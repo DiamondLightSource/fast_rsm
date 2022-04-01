@@ -11,6 +11,6 @@ class Motors:
     Keeps track of motor positions.
     """
 
-    def __init__(self, theta: float, chi: float) -> None:
+    def __init__(self, theta: float, phi: float) -> None:
         self.theta = theta
-        self.chi = chi
+        self.phi = phi

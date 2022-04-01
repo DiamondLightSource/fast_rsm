@@ -54,11 +54,11 @@ class Image:
         return self.metadata.relative_theta + self.motors.theta
 
     @property
-    def pixel_chi(self):
+    def pixel_phi(self):
         """
-        Returns the chi value at each pixel.
+        Returns the phi value at each pixel.
         """
-        return self.metadata.relative_chi + self.motors.chi
+        return self.metadata.relative_phi + self.motors.phi
 
     @property
     def q_out(self) -> np.ndarray:
@@ -91,9 +91,9 @@ class Image:
 
         # Now set the elements of the delta q matrix element.
         # First set all the delta_q_x values, then delta_q_y, then delta_q_z.
-        delta_q[:, :, 0] = np.sin(self.pixel_chi)
-        delta_q[:, :, 1] = np.cos(self.pixel_chi) * np.sin(self.pixel_theta)
-        delta_q[:, :, 2] = np.cos(self.pixel_chi) * np.cos(self.pixel_theta)-1
+        delta_q[:, :, 0] = np.sin(self.pixel_phi)
+        delta_q[:, :, 1] = np.cos(self.pixel_phi) * np.sin(self.pixel_theta)
+        delta_q[:, :, 2] = np.cos(self.pixel_phi) * np.cos(self.pixel_theta)-1
         delta_q *= self.metadata.q_incident_lenth
 
         self._delta_q = delta_q
