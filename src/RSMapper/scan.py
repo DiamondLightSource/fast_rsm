@@ -34,11 +34,20 @@ class Scan:
         """
         if self._rsm is None:
             self._init_rsm()
-        
+
         return self._rsm
 
     def _init_rsm(self):
         """
         Initializes the scan's reciprocal space map.
+        """
+        raise NotImplementedError()
+
+
+    @classmethod
+    def from_h5(cls, path_to_h5: str, metadata: Metadata):
+        """
+        Returns an instance of Scan from the path to an hdf5 file containing
+        some images, and an instance of Metadata.
         """
         raise NotImplementedError()
