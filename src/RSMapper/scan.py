@@ -4,7 +4,7 @@ information relating to a reciprocal space scan.
 """
 
 from pathlib import Path
-from typing import List, Callable, Union
+from typing import List, Callable, Union, Tuple
 
 from .image import Image
 from .metadata import Metadata
@@ -45,12 +45,16 @@ class Scan:
         raise NotImplementedError()
 
     @classmethod
-    def from_file(cls, file_path: Union[str, Path], parser: Callable):
+    def from_file(cls, file_path: Union[str, Path], parser: Callable,
+                  beam_centre: Tuple[int] = None):
         """
         Returns an instance of Scan from the path to a data file and a parser
         that can be used to parse the data file. Parser functions can be found
         in RSMapper.io.
         """
         # Use the parser to grab this scan's images and metadata; call __init__.
-        images, metadata = parser(file_path)
+        if beam_centre is None:
+            images, metadata = parser(file_path)
+        else:
+            images, metadata = parser(file_path, beam_centre)
         return cls(images, metadata)
