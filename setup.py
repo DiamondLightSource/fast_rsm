@@ -11,8 +11,8 @@ python setup.py install
 from setuptools import setup, find_packages
 
 setup(
-    name='local_stats',
-    version='0.1.2',
+    name='RSMapper',
+    version='0.0.1',
     license='MIT License',
     packages=find_packages('src'),
     description=(
