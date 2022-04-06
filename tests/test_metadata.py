@@ -38,12 +38,31 @@ def test_init_relative_theta(metadata_01: Metadata):
     metadata_01._init_relative_theta()
 
     # Now check some values (manually calculated).
-    assert (metadata_01._relative_theta[20][:] == 0).all()
+    assert (metadata_01._relative_theta[20, :] == 0).all()
     assert_almost_equal(
-        metadata_01._relative_theta[1020][15], -0.0499583957, 9)
+        metadata_01._relative_theta[1020, 15], -0.0499583957, 9)
     assert_almost_equal(
-        metadata_01._relative_theta[0][1278], 0.000999999667, 12)
+        metadata_01._relative_theta[0, 1278], 0.000999999667, 12)
     assert_almost_equal(
-        metadata_01._relative_theta[19][0], 5e-5, 12)
+        metadata_01._relative_theta[19, 0], 5e-5, 12)
     assert_almost_equal(
-        metadata_01._relative_theta[21][1999], -5e-5, 12)
+        metadata_01._relative_theta[21, 1999], -5e-5, 12)
+
+
+def test_init_relative_phi(metadata_01: Metadata):
+    """
+    Make sure that metadata._relative_phi is initialized correctly. This is
+    used in all reciprocal space mapping routines.
+    """
+    metadata_01._init_relative_phi()
+
+    # Now check some values (manually calculated).
+    assert (metadata_01._relative_phi[:, 80] == 0).all()
+    assert_almost_equal(
+        metadata_01._relative_phi[0, 0], -0.00399997867, 10)
+    assert_almost_equal(  # Index -1 is index 1999
+        metadata_01._relative_phi[234, -1], 0.0956571644, 10)
+    assert_almost_equal(
+        metadata_01._relative_phi[1263, 1500], 0.0708810559, 10)
+    assert_almost_equal(
+        metadata_01._relative_phi[1863, 945], 0.0432230629, 10)
