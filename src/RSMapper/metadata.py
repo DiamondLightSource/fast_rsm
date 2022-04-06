@@ -90,24 +90,23 @@ class Metadata:
     def _init_solid_angles(self):
         """
         Initialize the solid angles property. Note that this is not an exact
-        calculation, but all the values should be correct to within a few %.
-
-        Also note that this implementation is an awful hack.
+        calculation, but all the values should be almost correct (since small
+        angle approximations are likely to hold nicely.)
         """
         # We're going to need to inc the data shape to hack this.
-        self.data_shape = self.data_shape[0], self.data_shape[1]+1
+        self.data_shape = self.data_shape[0]+1, self.data_shape[1]
         self._init_relative_theta()
         theta_diffs = np.copy(self.relative_theta)
-        theta_diffs = np.diff(theta_diffs, axis=1)
+        theta_diffs = np.diff(theta_diffs, axis=0)
 
-        self.data_shape = self.data_shape[0]+1, self.data_shape[1]-1
+        self.data_shape = self.data_shape[0]-1, self.data_shape[1]+1
 
         self._init_relative_phi()
         phi_diffs = np.copy(self._relative_phi)
-        phi_diffs = np.diff(phi_diffs, axis=0)
+        phi_diffs = np.diff(phi_diffs, axis=1)
 
         # Now return the shape back to normal.
-        self.data_shape = self.data_shape[0]-1, self.data_shape[1]
+        self.data_shape = self.data_shape[0], self.data_shape[1]-1
         self._init_relative_theta()
         self._init_relative_phi()
 
@@ -158,7 +157,7 @@ class Metadata:
         # Because we don't need to invert any axes, this is easier to follow.
         num_x_pixels = self.data_shape[1]
         pixel_offsets = np.arange(0, num_x_pixels)
-        x_beam_centre = self.beam_centre[0]
+        x_beam_centre = self.beam_centre[1]
         pixel_offsets -= x_beam_centre
 
         # Now convert from pixels to distances to angles.
@@ -168,4 +167,4 @@ class Metadata:
         # Now use these offsets to initialize the relative_phi array
         self._relative_phi = np.zeros(self.data_shape)
         for i, column in enumerate(phi_offsets):
-            self._relative_phi[i, :] = column
+            self._relative_phi[:, i] = column
