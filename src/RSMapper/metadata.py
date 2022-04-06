@@ -6,6 +6,7 @@ for the .nxs file written for the scan.
 
 from typing import Tuple
 
+import nexusformat.nexus as nx
 import numpy as np
 from scipy.constants import physical_constants
 
@@ -18,11 +19,15 @@ class Metadata:
     """
 
     def __init__(self,
+                 metadata_file: nx.NXFile,  # The file containing the metadata.
+                 instrument: str,  # The name of the instrument.
                  detector_distance: float,  # In m.
                  pixel_size: float,  # In m.
                  energy: float,  # In eV.
                  data_shape: Tuple[int, int],  # In number of pixels.
                  beam_centre: Tuple[int, int]):  # In number of pixels.
+        self.metadata_file = metadata_file
+        self.instrument = instrument
         self.detector_distance = detector_distance
         self.pixel_size = pixel_size
         self.beam_centre = beam_centre
@@ -43,7 +48,7 @@ class Metadata:
 
         This means that, if the beam was centered at the top left pixel, the
         user should enter that the beam_centre=[0, 0]. This seems unlikely; this
-        would probably be given as [1, 1] in typical software!
+        would probably be given as [0, -1] in typical software!
         """
         raise NotImplementedError()
 

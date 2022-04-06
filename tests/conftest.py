@@ -13,6 +13,8 @@ def metadata_01():
     Returns an instance of metadata with fairly arbitrarily chosen parameters.
     """
     return Metadata(
+        None, # The metadata file could really be anything, so leave it.
+        instrument="my_instrument",  # The name of the instrument.
         detector_distance=0.2,  # 20 cm detector distance.
         pixel_size=1e-5,  # 10 µm pixel size (easy number, not unrealistic).
         energy=10e3,  # 10 KeV photons, easy & realistic number.
