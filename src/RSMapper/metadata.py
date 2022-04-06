@@ -39,7 +39,7 @@ class Metadata:
         out where the data was acquired. Some data sources might report the
         beam_centre using a different convention; this is where we correct for
         that to make sure that that data[0, 0] is the top left pixel,
-        data[-1, 0] is the top right pixel.
+        data[-1, 0] is the bottom left pixel.
 
         This means that, if the beam was centered at the top left pixel, the
         user should enter that the beam_centre=[0, 0]. This seems unlikely; this
@@ -91,13 +91,19 @@ class Metadata:
         """
         Initialize the solid angles property. Note that this is not an exact
         calculation, but all the values should be almost correct (since small
-        angle approximations are likely to hold nicely.)
+        angle approximations are likely to hold nicely).
+
+        The following are low priority because the solid angle correction is
+        pretty damn minor/unimportant.
+        TODO: This implementation is wrong by half a pixel. Fix this.
+        TODO: This implementation is approximate and should be replaced by an
+            exact treatment.
         """
         # We're going to need to inc the data shape to hack this.
         self.data_shape = self.data_shape[0]+1, self.data_shape[1]
         self._init_relative_theta()
         theta_diffs = np.copy(self.relative_theta)
-        theta_diffs = np.diff(theta_diffs, axis=0)
+        theta_diffs = -np.diff(theta_diffs, axis=0)  # Remember the minus sign!
 
         self.data_shape = self.data_shape[0]-1, self.data_shape[1]+1
 
