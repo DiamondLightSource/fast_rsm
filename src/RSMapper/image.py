@@ -18,7 +18,8 @@ class Image:
             A numpy array storing the image data.
     """
 
-    def __init__(self, raw_data: np.ndarray, motors: Motors, metadata: Metadata):
+    def __init__(self, raw_data: np.ndarray, motors: Motors,
+                 metadata: Metadata):
         self._raw_data = raw_data
         self.motors = motors
         self.metadata = metadata
@@ -28,6 +29,7 @@ class Image:
         # Carry out transposes etc. if necessary:
         # We want self.data[0, 0] to be the top left pixel.
         # We want self.data[-1, 0] to be th top right pixel.
+        # self.metadata should contain enough information for us to do this.
         self._correct_img_axes()
 
     def _correct_img_axes(self):
@@ -35,9 +37,10 @@ class Image:
         Correct the image axes so that the image is the right way around, taking
         transposes if necessary. This method can use the metadata to work out
         where the data came from so that different transposes/inversions can be
-        carried out depending on where the data was acquired.
+        carried out depending on where the data was acquired. Information should
+        be scraped from self.metadata to work out if any corrections are
+        necessary at this point.
         """
-        raise NotImplementedError()
 
     @property
     def data(self):
@@ -51,14 +54,14 @@ class Image:
         """
         Returns the theta value at each pixel.
         """
-        return self.metadata.relative_theta + self.motors.theta
+        return self.metadata.relative_theta + self.motors.detector_theta
 
     @property
     def pixel_phi(self):
         """
         Returns the phi value at each pixel.
         """
-        return self.metadata.relative_phi + self.motors.phi
+        return self.metadata.relative_phi + self.motors.detector_phi
 
     @property
     def q_out(self) -> np.ndarray:

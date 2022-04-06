@@ -3,7 +3,8 @@ This module contains the scan class, that will be used to store all of the
 information relating to a reciprocal space scan.
 """
 
-from typing import List
+from pathlib import Path
+from typing import List, Callable, Union
 
 from .image import Image
 from .metadata import Metadata
@@ -43,11 +44,13 @@ class Scan:
         """
         raise NotImplementedError()
 
-
     @classmethod
-    def from_h5(cls, path_to_h5: str, metadata: Metadata):
+    def from_file(cls, file_path: Union[str, Path], parser: Callable):
         """
-        Returns an instance of Scan from the path to an hdf5 file containing
-        some images, and an instance of Metadata.
+        Returns an instance of Scan from the path to a data file and a parser
+        that can be used to parse the data file. Parser functions can be found
+        in RSMapper.io.
         """
-        raise NotImplementedError()
+        # Use the parser to grab this scan's images and metadata; call __init__.
+        images, metadata = parser(file_path)
+        return cls(images, metadata)
