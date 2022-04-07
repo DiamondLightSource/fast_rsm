@@ -1,5 +1,15 @@
 """
-This module contains tools used for parsing data/metadata files.
+This module contains tools used for parsing data/metadata files. This is
+scuffed, because Diamond's nexus writing is scuffed. So, in place of doing a
+decent job of anything, this is all one giant hack.
+
+If Diamond wrote compliant .nxs files there would be elegant, reproducible ways
+to extract data from files. Instead, I make the opposite assumption: that
+everything is awful, all metadata is wrong and I just need to hack stuff.
+
+It's my hope that it's possible to contain all of the terrible hacky badness to
+this file and this file alone. The rest of the library should be held to a high
+standard.
 """
 
 # Because of the dumb way that values are stored in the nexusformat package.
@@ -16,7 +26,9 @@ from .metadata import Metadata
 from .motors import Motors
 
 
-def i07_nexus_parser(path_to_nx: Union[str, Path], beam_centre: Tuple[int]) -> \
+def i07_nexus_parser(path_to_nx: Union[str, Path],
+                     beam_centre: Tuple[int],
+                     detector_distance: float = None) -> \
         Tuple[List['Image'], 'Metadata']:
     """
     Parses an I07 nexus file. Returns everything required to instantiate a Scan.
@@ -32,20 +44,26 @@ def i07_nexus_parser(path_to_nx: Union[str, Path], beam_centre: Tuple[int]) -> \
         instantiate a Scan.
     """
     nx_file = nx.nxload(path_to_nx)
+
     # Just use some hard-coded paths to grab the data.
     # It doesn't need to be pretty; it needs to work.
-    detector_distance = nx_file["/entry/instrument/diff1detdist/value"]._value
-    energy = nx_file["/entry/instrument/dcm1energy/value"]._value
+
+    # Energy came in units of KeV, we want eV.
+    energy = nx_file["/entry/instrument/dcm1energy/value"]._value*1e3
+    if detector_distance is None:
+        detector_distance = nx_file[
+            "/entry/instrument/diff1detdist/value"]._value
 
     default = str(nx_file["/entry/"].get_default())
     image_path = nx_file[
         f"/entry/instrument/{default}/data_file/file_name"]._value
 
-    # Now we need to do some detector specific stuff.
+    # Now we need to do some detector specific stuff. Note that this is a dumb
+    # way to work out what detector we're using, but whatever.
     if 'pil' in default:
         # It's the pilatus detector.
         pixel_size = 172e-6
-        data_shape = [1475, 1679]
+        data_shape = 1475, 1679
         metadata = Metadata(nx_file, "i07", detector_distance, pixel_size,
                             energy, data_shape, beam_centre)
         motors = Motors(metadata)
@@ -56,11 +74,10 @@ def i07_nexus_parser(path_to_nx: Union[str, Path], beam_centre: Tuple[int]) -> \
         image_paths = _try_to_find_files(image_path, [path_to_nx])
         images = [Image.from_file(x, motors, metadata) for x in image_paths]
     else:
-        # It's the excalibur detector.
+        # It's the excalibur detector. TODO: this, duh.
         raise NotImplementedError()
 
-    return images, Metadata(nx_file, "i07", detector_distance, pixel_size,
-                            energy, data_shape, beam_centre)
+    return images, metadata
 
 
 def _try_to_find_files(filenames: List[str],

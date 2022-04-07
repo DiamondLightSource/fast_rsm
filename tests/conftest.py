@@ -2,6 +2,9 @@
 The conftest file contains fixtures for RSMappers tests.
 """
 
+# Basically always needed in conftest files.
+# pylint: disable=redefined-outer-name
+
 import os
 
 from pytest import fixture
@@ -26,13 +29,39 @@ def metadata_01():
 
 
 @fixture
-def path_to_i07_nx():
+def path_to_resources():
+    """
+    Returns the path to the test resources folder.
+    """
+    if os.path.exists("tests/resources/i07-418550.nxs"):
+        return "tests/resources/"
+    return "resources/"
+
+
+@fixture
+def path_to_i07_nx_01(path_to_resources):
     """
     Returns the path to the i07 nexus file. This is a fixture for future
     proofing reasons (i.e. maybe one day some parsing has to be done to locate
     the file).
     """
-    # Make it work if we're in the base dir or the test dir.
-    if os.path.exists("tests/resources/i07-418550.nxs"):
-        return "tests/resources/i07-418550.nxs"
-    return "resources/i07-418550.nxs"
+    return path_to_resources + "i07-418550.nxs"
+
+
+@fixture
+def i07_beam_centre_01():
+    """
+    Returns the position of the beam centre that was recorded during the
+    experiment in which the above nexus file was written.
+    """
+    return 731, 1329
+
+
+@fixture
+def i07_detector_distance_01():
+    """
+    The distance between the sample and the detector in the experiment in which
+    the above nexus file was written. Note that diff1detdist in the nexus file
+    is a red herring.
+    """
+    return 0.5026

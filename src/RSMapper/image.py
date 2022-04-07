@@ -2,9 +2,12 @@
 This module contains the class that is used to store images.
 """
 
+from pathlib import Path
+from typing import Union
+
 import copy
-import PIL
 import numpy as np
+from PIL import Image as PILImage
 
 from .metadata import Metadata
 from .motors import Motors
@@ -17,10 +20,12 @@ class Image:
 
     Attrs:
         data:
-            A numpy array storing the image data.
+            A numpy array storing the image data. This is a property.
     """
 
-    def __init__(self, raw_data: np.ndarray, motors: Motors,
+    def __init__(self,
+                 raw_data: np.ndarray,
+                 motors: Motors,
                  metadata: Metadata):
         self._raw_data = raw_data
         self.motors = motors
@@ -44,28 +49,28 @@ class Image:
         necessary at this point.
         """
 
-    @property
+    @ property
     def data(self):
         """
         Returns the normalized data.
         """
         return self._raw_data/self.metadata.solid_angles
 
-    @property
+    @ property
     def pixel_theta(self):
         """
         Returns the theta value at each pixel.
         """
         return self.metadata.relative_theta + self.motors.detector_theta
 
-    @property
+    @ property
     def pixel_phi(self):
         """
         Returns the phi value at each pixel.
         """
         return self.metadata.relative_phi + self.motors.detector_phi
 
-    @property
+    @ property
     def q_out(self) -> np.ndarray:
         """
         Returns the q vectors of the light after scattering to each pixel on the
@@ -75,7 +80,7 @@ class Image:
         q_z[:, :, 2] = self.metadata.q_incident_lenth
         return self.delta_q + q_z
 
-    @property
+    @ property
     def delta_q(self) -> np.ndarray:
         """
         Returns the q vectors through which light had to scatter to reach each
@@ -103,12 +108,12 @@ class Image:
 
         self._delta_q = delta_q
 
-    @classmethod
+    @ classmethod
     def from_file(cls, path: str, motors: Motors, metadata: Metadata):
         """
         Loads the image from a file.
         """
-        with PIL.Image.open(path) as img:
+        with PILImage.open(path) as img:
             img_arr = copy.deepcopy(np.array(img))
 
         return cls(img_arr, motors, metadata)
