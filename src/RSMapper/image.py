@@ -49,28 +49,28 @@ class Image:
         necessary at this point.
         """
 
-    @ property
+    @property
     def data(self):
         """
         Returns the normalized data.
         """
         return self._raw_data/self.metadata.solid_angles
 
-    @ property
+    @property
     def pixel_theta(self):
         """
         Returns the theta value at each pixel.
         """
         return self.metadata.relative_theta + self.motors.detector_theta
 
-    @ property
+    @property
     def pixel_phi(self):
         """
         Returns the phi value at each pixel.
         """
         return self.metadata.relative_phi + self.motors.detector_phi
 
-    @ property
+    @property
     def q_out(self) -> np.ndarray:
         """
         Returns the q vectors of the light after scattering to each pixel on the
@@ -80,7 +80,7 @@ class Image:
         q_z[:, :, 2] = self.metadata.q_incident_lenth
         return self.delta_q + q_z
 
-    @ property
+    @property
     def delta_q(self) -> np.ndarray:
         """
         Returns the q vectors through which light had to scatter to reach each
@@ -108,7 +108,7 @@ class Image:
 
         self._delta_q = delta_q
 
-    @ classmethod
+    @classmethod
     def from_file(cls, path: str, motors: Motors, metadata: Metadata):
         """
         Loads the image from a file.
