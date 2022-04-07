@@ -10,7 +10,6 @@ import numpy as np
 from PIL import Image as PILImage
 
 from RSMapper.io import i07_nexus_parser
-from RSMapper.motors import Motors
 
 
 def test_i07_nexus_parser_metadata(path_to_i07_nx_01: str,
