@@ -10,6 +10,7 @@ import numpy as np
 from PIL import Image as PILImage
 
 from RSMapper.io import i07_nexus_parser
+from RSMapper.motors import Motors
 
 
 def test_i07_nexus_parser_metadata(path_to_i07_nx_01: str,
@@ -55,3 +56,22 @@ def test_i07_nexus_parser_images(path_to_resources: str,
         with PILImage.open(image_paths[i]) as open_image:
             true_img_array = np.array(open_image)
             assert (true_img_array == image._raw_data).all()
+
+
+def test_i07_nexus_parser_img_metadata(path_to_i07_nx_01: str,
+                                       i07_beam_centre_01: tuple,
+                                       i07_detector_distance_01: float):
+    """
+    Make sure that images are loaded with the proper metadata.
+    """
+    images, metadata = i07_nexus_parser(path_to_i07_nx_01,
+                                        i07_beam_centre_01,
+                                        i07_detector_distance_01)
+
+    # These are lazy checks, but they do make sure that no metadata has gone
+    # missing when i07_nexus_parser constructs an image.
+    for image in images:
+        assert image.motors.metadata.metadata_file.tree == \
+            metadata.metadata_file.tree
+        assert image.metadata.metadata_file.tree == \
+            metadata.metadata_file.tree
