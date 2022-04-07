@@ -104,7 +104,7 @@ def i10_nxs_parser(path_to_nx: Union[str, Path],
     """
     # These are always the same on I10.
     pixel_size = 13.5e-6  # Same for both the pimte and the pixis.
-    data_shape = 2000, 2000  # They're both 2k x 2k detectors.
+    data_shape = 2048, 2048  # They're both 2k x 2k detectors.
 
     nx_file = nx.nxload(path_to_nx)
 

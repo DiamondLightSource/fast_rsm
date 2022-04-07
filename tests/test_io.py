@@ -86,7 +86,7 @@ def test_i10_nexus_parser_metadata(i10_nx_01: str,
                                  i10_pimte_detector_distance)
 
     assert metadata.beam_centre == (1000, 1000)
-    assert metadata.data_shape == (2000, 2000)
+    assert metadata.data_shape == (2048, 2048)
     assert metadata.detector_distance == 0.1363
     assert metadata.energy == 931.7725
     assert metadata.instrument == "i10"
