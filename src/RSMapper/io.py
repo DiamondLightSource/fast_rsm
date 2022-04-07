@@ -38,6 +38,8 @@ def i07_nexus_parser(path_to_nx: Union[str, Path],
             Path to the nexus file to parse.
         beam_centre:
             The beam centre when all axes are zeroed.
+        detector_distance:
+            The distance between the sample and the detector.
 
     Returns:
         A tuple taking the form (list_of_images, metadata). This can be used to
@@ -76,6 +78,52 @@ def i07_nexus_parser(path_to_nx: Union[str, Path],
     else:
         # It's the excalibur detector. TODO: this, duh.
         raise NotImplementedError()
+
+    return images, metadata
+
+
+def i10_nxs_parser(path_to_nx: Union[str, Path],
+                   beam_centre: Tuple[int],
+                   detector_distance: float) -> \
+        Tuple[List['Image'], 'Metadata']:
+    """
+    Parses an I10 nexus file. Returns everything required to instantiate a Scan
+    (a list of images and some metadata).
+
+    Args:
+        path_to_nx:
+            Path to the nexus file to parse.
+        beam_centre:
+            The beam centre when all axes are zeroed.
+        detector_distance:
+            The distance between the sample and the detector.
+
+    Returns:
+        A tuple taking the form (list_of_images, metadata). This can be used to
+        instantiate a Scan.
+    """
+    # These are always the same on I10.
+    pixel_size = 13.5e-6  # Same for both the pimte and the pixis.
+    data_shape = 2000, 2000  # They're both 2k x 2k detectors.
+
+    nx_file = nx.nxload(path_to_nx)
+
+    # Incident beam energy (in eV).
+    energy = nx_file["/entry/sample/beam/incident_energy"]._value
+
+    # Get the paths to the images (at least, where they are on diamond servers).
+    detector_name = nx_file["/entry/"].default
+    image_paths = nx_file[f"/entry/{detector_name}/image_data"].nxlink._value
+    image_paths = [bytes.decode(x, 'utf-8') for x in image_paths]
+
+    # Instantiate metadata classes.
+    metadata = Metadata(nx_file, "i10", detector_distance, pixel_size,
+                        energy, data_shape, beam_centre)
+    motors = Motors(metadata)
+
+    # Make sure that we can locate the images; load them.
+    image_paths = _try_to_find_files(image_paths, [path_to_nx])
+    images = [Image.from_file(x, motors, metadata) for x in image_paths]
 
     return images, metadata
 

@@ -9,7 +9,7 @@ import nexusformat.nexus as nx
 import numpy as np
 from PIL import Image as PILImage
 
-from RSMapper.io import i07_nexus_parser
+from RSMapper.io import i07_nexus_parser, i10_nxs_parser
 
 
 def test_i07_nexus_parser_metadata(path_to_i07_nx_01: str,
@@ -74,3 +74,39 @@ def test_i07_nexus_parser_img_metadata(path_to_i07_nx_01: str,
             metadata.metadata_file.tree
         assert image.metadata.metadata_file.tree == \
             metadata.metadata_file.tree
+
+
+def test_i10_nexus_parser_metadata(i10_nx_01: str,
+                                   i10_beam_centre_01: tuple,
+                                   i10_pimte_detector_distance: float):
+    """
+    Make sure that our parser makes a valid metadata file.
+    """
+    _, metadata = i10_nxs_parser(i10_nx_01, i10_beam_centre_01,
+                                 i10_pimte_detector_distance)
+
+    assert metadata.beam_centre == (1000, 1000)
+    assert metadata.data_shape == (2000, 2000)
+    assert metadata.detector_distance == 0.1363
+    assert metadata.energy == 931.7725
+    assert metadata.instrument == "i10"
+    assert metadata.metadata_file.tree == nx.nxload(i10_nx_01).tree
+    assert metadata.pixel_size == 13.5e-6
+
+
+def test_i10_nexus_parser_images(path_to_resources: str,
+                                 i10_nx_01: str,
+                                 i10_beam_centre_01: tuple,
+                                 i10_pimte_detector_distance: float):
+    """
+    Check that the image data is preserved. Only check one image (loading each
+    image twice is redundant and this already takes long enough).
+    """
+    images, _ = i10_nxs_parser(i10_nx_01,
+                               i10_beam_centre_01,
+                               i10_pimte_detector_distance)
+
+    path_to_img = path_to_resources + "693862-pimte-files/pimte-00009.tiff"
+    with PILImage.open(path_to_img) as open_img:
+        correct_array = np.array(open_img)
+        assert (images[9]._raw_data == correct_array).all()

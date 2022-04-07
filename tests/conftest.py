@@ -65,3 +65,27 @@ def i07_detector_distance_01():
     is a red herring.
     """
     return 0.5026
+
+
+@fixture
+def i10_nx_01(path_to_resources):
+    """
+    Returns the path to an i10 nexus file.
+    """
+    return path_to_resources + "i10-693862.nxs"
+
+
+@fixture
+def i10_beam_centre_01():
+    """
+    Beam centre for the above nexus file.
+    """
+    return 1000, 1000
+
+
+@fixture
+def i10_pimte_detector_distance():
+    """
+    Returns the distance between a sample and the pimte camera in RASOR.
+    """
+    return 0.1363
