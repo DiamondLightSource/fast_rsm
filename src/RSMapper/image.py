@@ -2,6 +2,8 @@
 This module contains the class that is used to store images.
 """
 
+import copy
+import PIL
 import numpy as np
 
 from .metadata import Metadata
@@ -100,3 +102,13 @@ class Image:
         delta_q *= self.metadata.q_incident_lenth
 
         self._delta_q = delta_q
+
+    @classmethod
+    def from_file(cls, path: str, motors: Motors, metadata: Metadata):
+        """
+        Loads the image from a file.
+        """
+        with PIL.Image.open(path) as img:
+            img_arr = copy.deepcopy(np.array(img))
+
+        return cls(img_arr, motors, metadata)
