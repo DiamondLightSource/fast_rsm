@@ -81,3 +81,35 @@ def test_i10_detector_polar_coords_01(
     motors = images[70].motors
     assert_almost_equal(azimuth, motors.detector_azimuth, decimal=5)
     assert_almost_equal(polar, motors.detector_polar, decimal=5)
+
+
+def test_i10_detector_polar_coords_02(
+        i10_parser_output_01: Tuple[List[Image], Metadata]):
+    """
+    As above, but checking frame 0 of the scan, using the fact that tth should
+    be 3.5 degrees above 96.519 on the first frame (which I got by looking at
+    the nexus file).
+    """
+    # Grab the parser output.
+    images, _ = i10_parser_output_01
+
+    # On frame 70, these are our tth and chi values.
+    tth = 96.519 + 3.5
+    chi = -1
+
+    # Prepare some rotations.
+    tth_rot = Rotation.from_euler('xyz', degrees=True,
+                                  angles=[-tth, 0, 0])
+    chi_rot = Rotation.from_euler('xyz', degrees=True,
+                                  angles=[0, 0, chi])
+    total_rot = chi_rot * tth_rot
+
+    # Rotate the beam.
+    beam_direction = [0, 0, 1]
+    beam_direction = total_rot.apply(beam_direction)
+    azimuth, polar = vector_to_azimuth_polar(beam_direction)
+
+    # Make sure this was correctly calculated by the Motors class.
+    motors = images[0].motors
+    assert_almost_equal(azimuth, motors.detector_azimuth, decimal=5)
+    assert_almost_equal(polar, motors.detector_polar, decimal=5)
