@@ -8,15 +8,18 @@ clever fixture.
 
 # pylint: disable=protected-access
 
+from copy import deepcopy
+from typing import Tuple, List
+
+
+from RSMapper.image import Image
+from RSMapper.metadata import Metadata
 from RSMapper.scan import Scan
 
 
-def test_data(i10_scan_01: Scan):
+def test_data(i10_parser_output_01: Tuple[List[Image], Metadata]):
     """
     Make sure that image_instance.data is properly normalized.
     """
-    data = i10_scan_01.images[0].data
-    raw_data = i10_scan_01.images[0]._raw_data
-    solid_angles = i10_scan_01.metadata.solid_angles
-
-    assert (data == raw_data/solid_angles).all()
+    images, _ = i10_parser_output_01
+    image = deepcopy(images[0])

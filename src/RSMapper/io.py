@@ -68,13 +68,13 @@ def i07_nexus_parser(path_to_nx: Union[str, Path],
         data_shape = 1475, 1679
         metadata = Metadata(nx_file, "i07", detector_distance, pixel_size,
                             energy, data_shape, beam_centre)
-        motors = Motors(metadata)
 
         # Search for images (usually necessary outside of Diamond).
         # First make sure everything is a string (could be bytes).
         image_path = [bytes.decode(x, 'utf-8') for x in image_path]
         image_paths = _try_to_find_files(image_path, [path_to_nx])
-        images = [Image.from_file(x, motors, metadata) for x in image_paths]
+        images = [Image.from_file(x, Motors(metadata, i), metadata) for
+                  i, x in enumerate(image_paths)]
     else:
         # It's the excalibur detector. TODO: this, duh.
         raise NotImplementedError()
@@ -119,11 +119,11 @@ def i10_nxs_parser(path_to_nx: Union[str, Path],
     # Instantiate metadata classes.
     metadata = Metadata(nx_file, "i10", detector_distance, pixel_size,
                         energy, data_shape, beam_centre)
-    motors = Motors(metadata)
 
     # Make sure that we can locate the images; load them.
     image_paths = _try_to_find_files(image_paths, [path_to_nx])
-    images = [Image.from_file(x, motors, metadata) for x in image_paths]
+    images = [Image.from_file(x, Motors(metadata, i), metadata)
+              for i, x in enumerate(image_paths)]
 
     return images, metadata
 

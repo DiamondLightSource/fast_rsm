@@ -5,13 +5,17 @@ detector position in spherical polars from motor positions.
 
 # pylint: disable=protected-access
 
+from typing import List, Tuple
+
 import numpy as np
 import pytest
 from numpy.testing import assert_almost_equal
+from scipy.spatial.transform import Rotation
 
-from RSMapper.io import i07_nexus_parser, i10_nxs_parser
+from RSMapper.image import Image
+from RSMapper.io import i07_nexus_parser
 from RSMapper.metadata import Metadata
-from RSMapper.motors import Motors
+from RSMapper.motors import Motors, vector_to_azimuth_polar
 
 
 def test_reflection(metadata_01: Metadata):
@@ -19,7 +23,7 @@ def test_reflection(metadata_01: Metadata):
     Make sure that we're calling the correct methods via reflection when we
     call detector_polar and detector_azimuth.
     """
-    motors = Motors(metadata_01)
+    motors = Motors(metadata_01, 0)
 
     # metadata_01.instrument = "my_instrument"
     motors._my_instrument_detector_polar = lambda: 1/0
@@ -48,10 +52,32 @@ def test_i07_phi_theta(path_to_i07_nx_01: str,
     assert_almost_equal(motors.detector_azimuth, np.arange(15, 75, 15), 2)
 
 
-def test_i10_detector_theta(i10_nx_01: str,
-                            i10_beam_centre_01,
-                            i10_pimte_detector_distance):
+def test_i10_detector_polar_coords_01(
+        i10_parser_output_01: Tuple[List[Image], Metadata]):
     """
     Make sure that we can correctly retrieve the detector's spherical polar
-    polar angle.
+    polar angle. Check this on frame 70 of the scan.
     """
+    # Grab the parser output.
+    images, _ = i10_parser_output_01
+
+    # On frame 70, these are our tth and chi values.
+    tth = 96.519
+    chi = -1
+
+    # Prepare some rotations.
+    tth_rot = Rotation.from_euler('xyz', degrees=True,
+                                  angles=[-tth, 0, 0])
+    chi_rot = Rotation.from_euler('xyz', degrees=True,
+                                  angles=[0, 0, chi])
+    total_rot = chi_rot * tth_rot
+
+    # Rotate the beam.
+    beam_direction = [0, 0, 1]
+    beam_direction = total_rot.apply(beam_direction)
+    azimuth, polar = vector_to_azimuth_polar(beam_direction)
+
+    # Make sure this was correctly calculated by the Motors class.
+    motors = images[70].motors
+    assert_almost_equal(azimuth, motors.detector_azimuth, decimal=5)
+    assert_almost_equal(polar, motors.detector_polar, decimal=5)

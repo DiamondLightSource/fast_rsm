@@ -13,9 +13,12 @@ from scipy.spatial.transform import Rotation
 from .metadata import Metadata
 
 
-def vector_to_phi_theta(vector: np.ndarray):
+def vector_to_azimuth_polar(vector: np.ndarray):
     """
     Takes a 3D vector. Returns phi, theta spherical polar angles.
+
+    Polar angle is measured from synchrotron y (vertically up).
+    Azimuthal angle is measured from synchrotron z (along the beam).
 
     Args:
         vector:
@@ -24,8 +27,8 @@ def vector_to_phi_theta(vector: np.ndarray):
     Returns:
         A tuple of (azimuthal_angle, polar_angle)
     """
-    theta = np.arccos(vector[2])
-    phi = np.arccos(vector[0]/np.sin(theta))
+    theta = np.arccos(vector[1])
+    phi = np.arccos(vector[2]/np.sin(theta))
 
     return phi, theta
 
@@ -33,10 +36,21 @@ def vector_to_phi_theta(vector: np.ndarray):
 class Motors:
     """
     Can calculate relative detector/sample orientation from motor positions.
+
+    Attrs:
+        metadata:
+            The scan's metadata.
+        index:
+            Motor positions vary throughout a scan. The index attribute lets
+            our Motor instance know which image it referes to. For example, if
+            four images were taken in a scan and self.index=3, then this
+            instance of Motors refers to the motor positions for the final
+            image.
     """
 
-    def __init__(self, metadata: Metadata) -> None:
+    def __init__(self, metadata: Metadata, index: int) -> None:
         self.metadata = metadata
+        self.index = index
 
     @property
     def detector_polar(self) -> float:
@@ -101,26 +115,29 @@ class Motors:
 
         TODO: check orientation of chi with beamline to fix a sign.
         """
-        init_direction = np.array([0, 0, 1])
-
         tth_area = -self.metadata.metadata_file[
-            "/entry/instrument/rasor/diff/2_theta"]._value + 90
+            "/entry/instrument/tth/value"]._value + 90
+        if isinstance(tth_area, np.ndarray):
+            tth_area = tth_area[self.index]
 
         chi = self.metadata.metadata_file[
             "/entry/instrument/rasor/diff/chi"]._value - 90
+        if isinstance(chi, np.ndarray):
+            chi = chi[self.index]
 
         # Prepare rotation matrices.
         tth_rot = Rotation.from_euler('xyz', degrees=True,
-                                      angles=[tth_area, 0, 0])
+                                      angles=[-tth_area, 0, 0])
         chi_rot = Rotation.from_euler('xyz', degrees=True,
                                       angles=[0, 0, chi])
         total_rot = chi_rot * tth_rot  # This does a proper composition.
 
         # Apply the rotation.
-        total_rot.apply(init_direction)
+        beam_direction = np.array([0, 0, 1])
+        beam_direction = total_rot.apply(beam_direction)
 
-        # Return the phi, theta values.
-        return vector_to_phi_theta(init_direction)
+        # Return the (azimuth, polar) angles.
+        return vector_to_azimuth_polar(beam_direction)
 
     def _i10_detector_polar(self):
         """
@@ -128,8 +145,7 @@ class Motors:
         angle; assumes that the data was recorded at beamline I10 in the RASOR
         diffractometer.
         """
-        return -self.metadata.metadata_file[
-            "/entry/instrument/rasor/diff/2_theta"]._value + 90
+        return self._i10_detector_angles[1]
 
     def _i10_detector_azimuth(self):
         """
@@ -137,5 +153,4 @@ class Motors:
         angle; assumes that the data was recorded at beamline I10 in the RASOR
         diffractometer.
         """
-        return -self.metadata.metadata_file[
-            "/entry/instrument/rasor/diff/2_theta"]._value + 90
+        return self._i10_detector_angles[0]

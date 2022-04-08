@@ -9,7 +9,9 @@ import os
 
 from pytest import fixture
 
+from RSMapper.io import i10_nxs_parser
 from RSMapper.metadata import Metadata
+from RSMapper.scan import Scan
 
 
 @fixture
@@ -28,7 +30,7 @@ def metadata_01():
     )
 
 
-@fixture
+@fixture(scope='session')
 def path_to_resources():
     """
     Returns the path to the test resources folder.
@@ -38,7 +40,7 @@ def path_to_resources():
     return "resources/"
 
 
-@fixture
+@fixture(scope='session')
 def path_to_i07_nx_01(path_to_resources):
     """
     Returns the path to the i07 nexus file. This is a fixture for future
@@ -67,7 +69,7 @@ def i07_detector_distance_01():
     return 0.5026
 
 
-@fixture
+@fixture(scope='session')
 def i10_nx_01(path_to_resources):
     """
     Returns the path to an i10 nexus file.
@@ -75,7 +77,7 @@ def i10_nx_01(path_to_resources):
     return path_to_resources + "i10-693862.nxs"
 
 
-@fixture
+@fixture(scope='session')
 def i10_beam_centre_01():
     """
     Beam centre for the above nexus file.
@@ -83,9 +85,23 @@ def i10_beam_centre_01():
     return 1000, 1000
 
 
-@fixture
+@fixture(scope='session')
 def i10_pimte_detector_distance():
     """
     Returns the distance between a sample and the pimte camera in RASOR.
     """
     return 0.1363
+
+
+@fixture(scope='session')
+def i10_parser_output_01(i10_nx_01: str,
+                         i10_beam_centre_01: tuple,
+                         i10_pimte_detector_distance: float):
+    """
+    The metadata and images corresponding to the above nexus file. It's better
+    to only load this once, because loading it via the parser involves also
+    loading 141 images into RAM...
+    """
+    return i10_nxs_parser(i10_nx_01,
+                          i10_beam_centre_01,
+                          i10_pimte_detector_distance)
