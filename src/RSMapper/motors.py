@@ -39,19 +39,19 @@ class Motors:
         self.metadata = metadata
 
     @property
-    def detector_theta(self) -> float:
+    def detector_polar(self) -> float:
         """
         Returns the detector's spherical polar theta value.
         """
         # Call the appropriate function for the instrument in use.
-        return getattr(self, f"_theta_from_{self.metadata.instrument}")()
+        return getattr(self, f"_{self.metadata.instrument}_detector_polar")()
 
     @property
-    def detector_phi(self) -> float:
+    def detector_azimuth(self) -> float:
         """
         Returns the detector's spherical polar phi value.
         """
-        return getattr(self, f"_phi_from_{self.metadata.instrument}")()
+        return getattr(self, f"_{self.metadata.instrument}_detector_azimuth")()
 
     @property
     def _i07_phi_theta(self) -> Tuple[float, float]:
@@ -79,14 +79,14 @@ class Motors:
 
         return phi, theta
 
-    def _theta_from_i07(self) -> float:
+    def _i07_detector_polar(self) -> float:
         """
         Parses self.metadata.metadata_file to calculate our current theta;
         assumes that the data was recorded at beamline I07 at Diamond.
         """
         return self._i07_phi_theta[1]
 
-    def _phi_from_i07(self) -> float:
+    def _i07_detector_azimuth(self) -> float:
         """
         Parses self.metadata.metadata_file to calculate our current phi; assumes
         that the data was acquired at Diamond's beamline I07.
@@ -94,11 +94,12 @@ class Motors:
         return self._i07_phi_theta[0]
 
     @property
-    def _i10_phi_theta(self):
+    def _i10_detector_angles(self):
         """
-        Calculates the phi and theta values for i10.
+        Calculates the detector's azimuthal and polar angles, assuming we're in
+        the RASOR diffractometer at beamline I10 in Diamond.
 
-        TODO: check orientation of chi with beamline.
+        TODO: check orientation of chi with beamline to fix a sign.
         """
         init_direction = np.array([0, 0, 1])
 
@@ -121,18 +122,20 @@ class Motors:
         # Return the phi, theta values.
         return vector_to_phi_theta(init_direction)
 
-    def _theta_from_i10(self) -> float:
+    def _i10_detector_polar(self):
         """
-        Parses self.metadata.metadata_file to calculate our current theta;
-        assumes that the data was recorded at beamline I10 at Diamond in RASOR.
+        Parses self.metadata.metadata_file to calculate our detector's polar
+        angle; assumes that the data was recorded at beamline I10 in the RASOR
+        diffractometer.
         """
         return -self.metadata.metadata_file[
             "/entry/instrument/rasor/diff/2_theta"]._value + 90
 
-    def _phi_from_i10(self) -> float:
+    def _i10_detector_azimuth(self):
         """
-        Parses self.metadata.metadata_file to calculate our current phi;
-        assumes that the data was recorded at beamline I10 at Diamond in RASOR.
+        Parses self.metadata.metadata_file to calculate our detector's azimuthal
+        angle; assumes that the data was recorded at beamline I10 in the RASOR
+        diffractometer.
         """
         return -self.metadata.metadata_file[
             "/entry/instrument/rasor/diff/2_theta"]._value + 90

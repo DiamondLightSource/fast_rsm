@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_almost_equal
 
-from RSMapper.io import i07_nexus_parser
+from RSMapper.io import i07_nexus_parser, i10_nxs_parser
 from RSMapper.metadata import Metadata
 from RSMapper.motors import Motors
 
@@ -17,19 +17,19 @@ from RSMapper.motors import Motors
 def test_reflection(metadata_01: Metadata):
     """
     Make sure that we're calling the correct methods via reflection when we
-    call detector_theta and detector_phi.
+    call detector_polar and detector_azimuth.
     """
     motors = Motors(metadata_01)
 
     # metadata_01.instrument = "my_instrument"
-    motors._theta_from_my_instrument = lambda: 1/0
-    motors._phi_from_my_instrument = lambda: 1/0
+    motors._my_instrument_detector_polar = lambda: 1/0
+    motors._my_instrument_detector_azimuth = lambda: 1/0
 
     with pytest.raises(ZeroDivisionError):
-        _ = motors.detector_theta
+        _ = motors.detector_polar
 
     with pytest.raises(ZeroDivisionError):
-        _ = motors.detector_phi
+        _ = motors.detector_azimuth
 
 
 def test_i07_phi_theta(path_to_i07_nx_01: str,
@@ -44,5 +44,14 @@ def test_i07_phi_theta(path_to_i07_nx_01: str,
 
     motors = images[0].motors
 
-    assert_almost_equal(motors.detector_theta, 90, 2)
-    assert_almost_equal(motors.detector_phi, np.arange(15, 75, 15), 2)
+    assert_almost_equal(motors.detector_polar, 90, 2)
+    assert_almost_equal(motors.detector_azimuth, np.arange(15, 75, 15), 2)
+
+
+def test_i10_detector_theta(i10_nx_01: str,
+                            i10_beam_centre_01,
+                            i10_pimte_detector_distance):
+    """
+    Make sure that we can correctly retrieve the detector's spherical polar
+    polar angle.
+    """
