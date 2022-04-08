@@ -2,9 +2,6 @@
 This module contains the class that is used to store images.
 """
 
-from pathlib import Path
-from typing import Union
-
 import copy
 import numpy as np
 from PIL import Image as PILImage
@@ -59,22 +56,26 @@ class Image:
     @property
     def pixel_theta(self):
         """
-        Returns the theta value at each pixel.
+        Returns the theta value at each pixel, where theta is anchored to the
+        sample surface.
         """
-        return self.metadata.relative_theta + self.motors.detector_theta
+        return self.metadata.relative_theta + \
+            self.motors.sample_rotation.apply(self.motors.detector_theta)
 
     @property
     def pixel_phi(self):
         """
-        Returns the phi value at each pixel.
+        Returns the phi value at each pixel, where phi is anchored to the sample
+        surface.
         """
-        return self.metadata.relative_phi + self.motors.detector_phi
+        return self.metadata.relative_phi + \
+            self.motors.sample_rotation.apply(self.motors.detector_phi)
 
     @property
     def q_out(self) -> np.ndarray:
         """
         Returns the q vectors of the light after scattering to each pixel on the
-        detector.
+        detector, in the frame of reference of the sample.
         """
         q_z = np.zeros_like(self.delta_q)
         q_z[:, :, 2] = self.metadata.q_incident_lenth
@@ -84,7 +85,7 @@ class Image:
     def delta_q(self) -> np.ndarray:
         """
         Returns the q vectors through which light had to scatter to reach each
-        pixel.
+        pixel, in the frame of reference of the sample.
         """
         if self._delta_q is None:
             self._init_delta_q()
