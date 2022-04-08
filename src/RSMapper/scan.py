@@ -45,7 +45,8 @@ class Scan:
         raise NotImplementedError()
 
     @classmethod
-    def from_file(cls, file_path: Union[str, Path],
+    def from_file(cls,
+                  file_path: Union[str, Path],
                   parser: Callable,
                   beam_centre: Tuple[int] = None,
                   detector_distance: float = None):
@@ -53,6 +54,20 @@ class Scan:
         Returns an instance of Scan from the path to a data file and a parser
         that can be used to parse the data file. Parser functions can be found
         in RSMapper.io.
+
+        Args:
+            file_path:
+                Path to the file to load.
+            parser:
+                The parser that we'll use to parse the file. These can be found
+                in the RSMapper.io module.
+            beam_centre:
+                The central pixel.
+            detector_distance:
+                The distance between the sample and the detector.
+
+        Returns:
+            An instance of Scan.
         """
         # Use the parser to grab this scan's images and metadata; call __init__.
         if beam_centre is None:
