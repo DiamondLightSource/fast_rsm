@@ -113,3 +113,31 @@ def test_i10_detector_polar_coords_02(
     motors = images[0].motors
     assert_almost_equal(azimuth, motors.detector_azimuth, decimal=5)
     assert_almost_equal(polar, motors.detector_polar, decimal=5)
+
+
+def test_i10_sample_rotation(
+        i10_parser_output_01: Tuple[List[Image], Metadata]):
+    """
+    Make sure that we can rotate into the frame of our sample. Do this by
+    manually reading theta and chi from the .nxs file. Apply the rotation of
+    the sample surface to a [0, 1, 0] vector, where the rotation is calculated
+    by the Motors class. Then, use the manually read theta and chi to invert
+    the transformation.
+    """
+    # Grab the parser output.
+    images, _ = i10_parser_output_01
+
+    surface_normal = [0, 1, 0]
+    surface_normal = images[70].motors.sample_rotation.apply(surface_normal)
+
+    # Sample theta read manually from .nxs file
+    theta = 42.121586
+    chi = -1  # wasn't scanned.
+
+    # Now try to use these two values to invert the rotation!
+    reverse_theta_rot = Rotation.from_euler('xyz', [theta, 0, 0], True)
+    reverse_chi_rot = Rotation.from_euler('xyz', [0, 0, -chi], True)
+    total_reverse_rot = reverse_theta_rot * reverse_chi_rot
+
+    surface_normal = total_reverse_rot.apply(surface_normal)
+    assert_almost_equal(surface_normal, np.array([0, 1, 0]), decimal=5)

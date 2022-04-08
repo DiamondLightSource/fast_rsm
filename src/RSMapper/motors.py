@@ -5,7 +5,7 @@ This module contains a convenience class for tracking motor positions.
 # Because of the dumb way that nexusformat works.
 # pylint: disable=protected-access
 
-from typing import Tuple
+from typing import Tuple, Union
 
 import numpy as np
 from scipy.spatial.transform import Rotation
@@ -51,6 +51,54 @@ class Motors:
     def __init__(self, metadata: Metadata, index: int) -> None:
         self.metadata = metadata
         self.index = index
+
+    def array_to_correct_element(
+            self, maybe_array: Union[float, np.ndarray]) -> float:
+        """
+        Takes motor positions, which could be a float (if the motor isn't
+        scanned during this scan) or an array (if the motor is [one of] the
+        scan's independent variables).
+
+        Args:
+            maybe_array:
+                Either a float, or an array, depending of if this maybe_array
+                represents the values of an independent variable or not.
+
+        Returns maybe_array if it wasn't a float, maybe_array[self.index]
+            otherwise.
+        """
+        if isinstance(maybe_array, np.ndarray):
+            return maybe_array[self.index]
+        return maybe_array
+
+    @property
+    def sample_rotation(self) -> Rotation:
+        """
+        Returns a scipy.spatial.transform.Rotation representation of the
+        rotation that the motors have applied to the sample. This can be used
+        to map vectors into coordinate systems tied to the sample.
+        """
+        return getattr(self, f"_{self.metadata.instrument}_sample_rotation")
+
+    @property
+    def _i10_sample_rotation(self) -> Rotation:
+        """
+        Samples can only be affected by theta and chi in RASOR, so this one's
+        pretty easy.
+        """
+        chi = self.array_to_correct_element(self.metadata.metadata_file[
+            "/entry/instrument/rasor/diff/chi"]._value - 90)
+        theta = self.array_to_correct_element(self.metadata.metadata_file[
+            "/entry/instrument/th/value"]._value - 90)
+
+        # Prepare rotation matrices.
+        tth_rot = Rotation.from_euler('xyz', degrees=True,
+                                      angles=[-theta, 0, 0])
+        chi_rot = Rotation.from_euler('xyz', degrees=True,
+                                      angles=[0, 0, chi])
+
+        # Return the properly ordered composition of these rotations.
+        return chi_rot * tth_rot
 
     @property
     def detector_polar(self) -> float:
@@ -115,15 +163,10 @@ class Motors:
 
         TODO: check orientation of chi with beamline to fix a sign.
         """
-        tth_area = -self.metadata.metadata_file[
-            "/entry/instrument/tth/value"]._value + 90
-        if isinstance(tth_area, np.ndarray):
-            tth_area = tth_area[self.index]
-
-        chi = self.metadata.metadata_file[
-            "/entry/instrument/rasor/diff/chi"]._value - 90
-        if isinstance(chi, np.ndarray):
-            chi = chi[self.index]
+        tth_area = self.array_to_correct_element(-self.metadata.metadata_file[
+            "/entry/instrument/tth/value"]._value + 90)
+        chi = self.array_to_correct_element(self.metadata.metadata_file[
+            "/entry/instrument/rasor/diff/chi"]._value - 90)
 
         # Prepare rotation matrices.
         tth_rot = Rotation.from_euler('xyz', degrees=True,
