@@ -34,8 +34,8 @@ class Metadata:
         self.data_shape = data_shape
         self.energy = energy
 
-        self._relative_theta = None
-        self._relative_phi = None
+        self._relative_polar = None
+        self._relative_azimuth = None
         self._solid_angles = None
 
     def _correct_beam_centre(self):
@@ -64,26 +64,26 @@ class Metadata:
         return self._solid_angles
 
     @property
-    def relative_theta(self):
+    def relative_polar(self):
         """
         This property makes accessing the detector's relative theta from the
         beam centre for each pixel, when all detector rotation motors have been
         zeroed.
         """
-        if self._relative_theta is None:
-            self._init_relative_theta()
-        return self._relative_theta
+        if self._relative_polar is None:
+            self._init_relative_polar()
+        return self._relative_polar
 
     @property
-    def relative_phi(self):
+    def relative_azimuth(self):
         """
         This property makes accessing the detector's relative phi from the
         beam centre for each pixel, when all detector rotation motors have been
         zeroed.
         """
-        if self._relative_phi is None:
-            self._init_relative_phi()
-        return self._relative_phi
+        if self._relative_azimuth is None:
+            self._init_relative_azimuth()
+        return self._relative_azimuth
 
     @property
     def q_incident_lenth(self):
@@ -106,27 +106,27 @@ class Metadata:
         """
         # We're going to need to inc the data shape to hack this.
         self.data_shape = self.data_shape[0]+1, self.data_shape[1]
-        self._init_relative_theta()
-        theta_diffs = np.copy(self.relative_theta)
+        self._init_relative_polar()
+        theta_diffs = np.copy(self.relative_polar)
         theta_diffs = -np.diff(theta_diffs, axis=0)  # Remember the minus sign!
 
         self.data_shape = self.data_shape[0]-1, self.data_shape[1]+1
 
-        self._init_relative_phi()
-        phi_diffs = np.copy(self._relative_phi)
+        self._init_relative_azimuth()
+        phi_diffs = np.copy(self._relative_azimuth)
         phi_diffs = np.diff(phi_diffs, axis=1)
 
         # Now return the shape back to normal.
         self.data_shape = self.data_shape[0], self.data_shape[1]-1
-        self._init_relative_theta()
-        self._init_relative_phi()
+        self._init_relative_polar()
+        self._init_relative_azimuth()
 
         # And finally, do what we came here to do.
         self._solid_angles = phi_diffs*theta_diffs
 
-    def _init_relative_theta(self):
+    def _init_relative_polar(self):
         """
-        Initializes the relative_theta array.
+        Initializes the relative_polar array.
         """
         # First we want to calculate pixel offsets.
         num_y_pixels = self.data_shape[0]
@@ -155,14 +155,14 @@ class Metadata:
         #                ^ This distance is detector distance.
         theta_offsets = np.arctan(distance_offsets/self.detector_distance)
 
-        # Now use these offsets to initialize the relative_theta array.
-        self._relative_theta = np.zeros(self.data_shape)
+        # Now use these offsets to initialize the relative_polar array.
+        self._relative_polar = np.zeros(self.data_shape)
         for i, theta_offset in enumerate(theta_offsets):
-            self._relative_theta[i, :] = theta_offset
+            self._relative_polar[i, :] = theta_offset
 
-    def _init_relative_phi(self):
+    def _init_relative_azimuth(self):
         """
-        Initializes the relative_phi array.
+        Initializes the relative_azimuth array.
         """
         # Follow the recipe from above.
         # Because we don't need to invert any axes, this is easier to follow.
@@ -175,7 +175,7 @@ class Metadata:
         distance_offsets = pixel_offsets*self.pixel_size
         phi_offsets = np.arctan(distance_offsets/self.detector_distance)
 
-        # Now use these offsets to initialize the relative_phi array
-        self._relative_phi = np.zeros(self.data_shape)
+        # Now use these offsets to initialize the relative_azimuth array
+        self._relative_azimuth = np.zeros(self.data_shape)
         for i, column in enumerate(phi_offsets):
-            self._relative_phi[:, i] = column
+            self._relative_azimuth[:, i] = column

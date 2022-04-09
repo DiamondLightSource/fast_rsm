@@ -30,85 +30,85 @@ def test_metadata_init():
     assert metadata.data_shape == (6, 7)
     assert metadata.beam_centre == (4, 5)
     assert metadata._solid_angles is None
-    assert metadata._relative_phi is None
-    assert metadata._relative_theta is None
+    assert metadata._relative_azimuth is None
+    assert metadata._relative_polar is None
 
 
-def test_init_relative_theta(metadata_01: Metadata):
+def test_init_relative_polar(metadata_01: Metadata):
     """
-    Make sure that the all-important metadata._relative_theta is initialized
+    Make sure that the all-important metadata._relative_polar is initialized
     correctly. This is used in all reciprocal space mapping routines.
     """
-    metadata_01._init_relative_theta()
+    metadata_01._init_relative_polar()
 
     # Now check some values (manually calculated).
-    assert (metadata_01._relative_theta[20, :] == 0).all()
+    assert (metadata_01._relative_polar[20, :] == 0).all()
     assert_almost_equal(
-        metadata_01._relative_theta[1020, 15], -0.0499583957, 9)
+        metadata_01._relative_polar[1020, 15], -0.0499583957, 9)
     assert_almost_equal(
-        metadata_01._relative_theta[0, 1278], 0.000999999667, 12)
+        metadata_01._relative_polar[0, 1278], 0.000999999667, 12)
     assert_almost_equal(
-        metadata_01._relative_theta[19, 0], 5e-5, 12)
+        metadata_01._relative_polar[19, 0], 5e-5, 12)
     assert_almost_equal(
-        metadata_01._relative_theta[21, 1999], -5e-5, 12)
+        metadata_01._relative_polar[21, 1999], -5e-5, 12)
 
 
-def test_init_relative_phi(metadata_01: Metadata):
+def test_init_relative_azimuth(metadata_01: Metadata):
     """
-    Make sure that metadata._relative_phi is initialized correctly. This is
+    Make sure that metadata._relative_azimuth is initialized correctly. This is
     used in all reciprocal space mapping routines.
     """
-    metadata_01._init_relative_phi()
+    metadata_01._init_relative_azimuth()
 
     # Now check some values (manually calculated).
-    assert (metadata_01._relative_phi[:, 80] == 0).all()
+    assert (metadata_01._relative_azimuth[:, 80] == 0).all()
     assert_almost_equal(
-        metadata_01._relative_phi[0, 0], -0.00399997867, 10)
+        metadata_01._relative_azimuth[0, 0], -0.00399997867, 10)
     assert_almost_equal(  # Index -1 is index 1999
-        metadata_01._relative_phi[234, -1], 0.0956571644, 10)
+        metadata_01._relative_azimuth[234, -1], 0.0956571644, 10)
     assert_almost_equal(
-        metadata_01._relative_phi[1263, 1500], 0.0708810559, 10)
+        metadata_01._relative_azimuth[1263, 1500], 0.0708810559, 10)
     assert_almost_equal(
-        metadata_01._relative_phi[1863, 945], 0.0432230629, 10)
+        metadata_01._relative_azimuth[1863, 945], 0.0432230629, 10)
 
 
-def test_relative_theta(metadata_01: Metadata):
+def test_relative_polar(metadata_01: Metadata):
     """
     Make sure that init relative theta is only called once.
     """
-    _ = metadata_01.relative_theta
-    metadata_01._init_relative_theta = lambda: 1/0
+    _ = metadata_01.relative_polar
+    metadata_01._init_relative_polar = lambda: 1/0
 
-    # This shouldn't raise because _init_relative_theta shouldn't run again.
-    assert (metadata_01.relative_theta[20, :] == 0).all()
+    # This shouldn't raise because _init_relative_polar shouldn't run again.
+    assert (metadata_01.relative_polar[20, :] == 0).all()
 
 
-def test_relative_phi(metadata_01: Metadata):
+def test_relative_azimuth(metadata_01: Metadata):
     """
     Make sure that init relative phi is only called once. Make sure that it's
     returning the correct array.
     """
-    _ = metadata_01.relative_phi
-    metadata_01._init_relative_phi = lambda: 1/0
+    _ = metadata_01.relative_azimuth
+    metadata_01._init_relative_azimuth = lambda: 1/0
 
-    # This shouldn't raise because _init_relative_phi shouldn't run again.
-    assert (metadata_01.relative_phi[:, 80] == 0).all()
+    # This shouldn't raise because _init_relative_azimuth shouldn't run again.
+    assert (metadata_01.relative_azimuth[:, 80] == 0).all()
 
 
 def test_init_solid_angles(metadata_01: Metadata):
     """
     Make sure that initializing the solid angles doesn't corrupt our relative
     theta/phi arrays. This isn't trivial since, during the calculation of solid
-    angles, the data shape is hacked and relative_theta+relative_phi are
+    angles, the data shape is hacked and relative_polar+relative_azimuth are
     recalculated twice each.
     """
-    relative_theta = deepcopy(metadata_01.relative_theta)
-    print(relative_theta.shape)
-    relative_phi = deepcopy(metadata_01.relative_phi)
+    relative_polar = deepcopy(metadata_01.relative_polar)
+    print(relative_polar.shape)
+    relative_azimuth = deepcopy(metadata_01.relative_azimuth)
     metadata_01._init_solid_angles()
 
-    assert (relative_theta == metadata_01.relative_theta).all()
-    assert (relative_phi == metadata_01.relative_phi).all()
+    assert (relative_polar == metadata_01.relative_polar).all()
+    assert (relative_azimuth == metadata_01.relative_azimuth).all()
 
 
 def test_solid_angle_init_once(metadata_01: Metadata):
