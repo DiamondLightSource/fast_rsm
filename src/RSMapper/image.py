@@ -54,28 +54,35 @@ class Image:
         return self._raw_data/self.metadata.solid_angles
 
     @property
-    def pixel_theta(self):
+    def pixel_polar_lab_frame(self):
         """
-        Returns the theta value at each pixel, where theta is anchored to the
-        sample surface.
+        Returns the polar angle at each pixel, where the coordinate system is
+        tied to the lab.
         """
-        return self.metadata.relative_theta + \
-            self.motors.sample_rotation.apply(self.motors.detector_theta)
+        return self.metadata.relative_polar + self.motors.detector_polar
 
     @property
-    def pixel_phi(self):
+    def pixel_azimuth_lab_frame(self):
         """
-        Returns the phi value at each pixel, where phi is anchored to the sample
-        surface.
+        Returns the azimuthal angle at each pixel, where the coordinate system
+        is tied to the lab.
         """
-        return self.metadata.relative_phi + \
-            self.motors.sample_rotation.apply(self.motors.detector_phi)
+        return self.metadata.relative_azimuth + self.motors.detector_phi
+
+    @property
+    def pixel_polar_sample_frame(self):
+        """
+        Returns the polar angle at each pixel, where the coordinate system is
+        tied to the sample.
+        """
+        return self.metadata.relative_polar + \
+            self.motors.sample_rotation.apply(self.motors.detector_polar)
 
     @property
     def q_out(self) -> np.ndarray:
         """
         Returns the q vectors of the light after scattering to each pixel on the
-        detector, in the frame of reference of the sample.
+        detector.
         """
         q_z = np.zeros_like(self.delta_q)
         q_z[:, :, 2] = self.metadata.q_incident_lenth
@@ -85,7 +92,7 @@ class Image:
     def delta_q(self) -> np.ndarray:
         """
         Returns the q vectors through which light had to scatter to reach each
-        pixel, in the frame of reference of the sample.
+        pixel.
         """
         if self._delta_q is None:
             self._init_delta_q()
@@ -102,9 +109,13 @@ class Image:
 
         # Now set the elements of the delta q matrix element.
         # First set all the delta_q_x values, then delta_q_y, then delta_q_z.
-        delta_q[:, :, 0] = np.sin(self.pixel_phi)
-        delta_q[:, :, 1] = np.cos(self.pixel_phi) * np.sin(self.pixel_theta)
-        delta_q[:, :, 2] = np.cos(self.pixel_phi) * np.cos(self.pixel_theta)-1
+        cos_phi = np.cos(self.pixel_azimuth_lab_frame)
+        sin_phi = np.sqrt(1 - cos_phi**2)
+        cos_theta = np.cos(self.pixel_polar_lab_frame)
+        sin_theta = np.sqrt(1 - cos_theta**2)
+        delta_q[:, :, 0] = sin_phi
+        delta_q[:, :, 1] = cos_phi * sin_theta
+        delta_q[:, :, 2] = cos_phi * cos_theta-1
         delta_q *= self.metadata.q_incident_lenth
 
         self._delta_q = delta_q
