@@ -28,7 +28,7 @@ def vector_to_azimuth_polar(vector: np.ndarray) -> Tuple[float]:
         A tuple of (azimuthal_angle, polar_angle)
     """
     polar = np.arccos(vector[1])
-    azimuth = np.arccos(vector[2]/np.sin(polar))
+    azimuth = np.arctan2(vector[0], vector[2])
 
     return azimuth, polar
 
@@ -135,6 +135,22 @@ class Motors:
         anchored to the sample.
         """
         return getattr(self, f"_{self.metadata.instrument}_sample_azimuth")()
+
+    @property
+    def incident_beam(self) -> np.ndarray:
+        """
+        Returns a unit vector parallel to the incident beam in the sample's
+        frame of reference.
+        """
+        return getattr(self, f"_{self.metadata.instrument}_incident_beam")
+
+    @property
+    def _i10_incident_beam(self):
+        """
+        Returns a unit vector pointing parallel to the incident beam. Assumes
+        the experiment took place in I10 on RASOR.
+        """
+        return self.sample_rotation.inv().apply([0, 0, 1])
 
     @property
     def _i10_sample_rotation(self) -> Rotation:

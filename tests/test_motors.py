@@ -178,3 +178,22 @@ def test_i10_sample_frame_angles_01(
                     atol=0.05)
     assert_allclose(extra_scuffed_azimuth, motors.detector_azimuth*180/np.pi,
                     atol=0.5)
+
+
+def test_i10_sample_frame_incident_beam(
+        i10_parser_output_01: Tuple[List[Image], Metadata]):
+    """
+    Make sure that we can compute a normal vector parallel to the incident beam
+    in the Motors class for experiments carried out in RASOR in i10.
+    """
+    images, _ = i10_parser_output_01
+    motors = images[0].motors
+    theta_rad = 49.6284*np.pi/180
+
+    incident_beam = motors.incident_beam
+    print(vector_to_azimuth_polar(motors.incident_beam))
+
+    # Incident beam should always be in the y-z plane in RASOR.
+    assert incident_beam[0] == 0
+    assert_almost_equal(incident_beam[1], -np.sin(theta_rad), decimal=5)
+    assert_almost_equal(incident_beam[2], np.cos(theta_rad), decimal=5)
