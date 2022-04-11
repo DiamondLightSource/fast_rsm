@@ -9,7 +9,7 @@ from typing import List, Tuple
 
 import numpy as np
 import pytest
-from numpy.testing import assert_almost_equal
+from numpy.testing import assert_almost_equal, assert_allclose
 from scipy.spatial.transform import Rotation
 
 from RSMapper.image import Image
@@ -99,7 +99,7 @@ def test_i10_detector_polar_coords_lab_frame_02(
     # Grab the parser output.
     images, _ = i10_parser_output_01
 
-    # On frame 70, these are our tth and chi values.
+    # On frame 0, these are our tth and chi values.
     tth = 96.519 + 3.5
     chi = -1
 
@@ -137,7 +137,7 @@ def test_i10_sample_rotation(
     surface_normal = images[70].motors.sample_rotation.apply(surface_normal)
 
     # Sample theta read manually from .nxs file
-    theta = 42.121586
+    theta = 49.6284 - 3.5/2
     chi = -1  # wasn't scanned.
 
     # Now try to use these two values to invert the rotation!
@@ -146,4 +146,35 @@ def test_i10_sample_rotation(
     total_reverse_rot = reverse_theta_rot * reverse_chi_rot
 
     surface_normal = total_reverse_rot.apply(surface_normal)
-    assert_almost_equal(surface_normal, np.array([0, 1, 0]), decimal=5)
+    assert_allclose(surface_normal, np.array([0, 1, 0]), atol=0.02)
+
+
+def test_i10_sample_frame_angles_01(
+        i10_parser_output_01: Tuple[List[Image], Metadata]):
+    """
+    Make sure that we can calculate quantities properly in the frame of
+    reference of the sample, which is rotated with respect to the lab.
+    """
+    images, _ = i10_parser_output_01
+    motors = images[0].motors
+
+    # tth, th values on frame 0.
+    tth = 96.519 + 3.5
+    theta = 49.6284
+    chi = -1
+
+    # Highly scuffed approximation (I'm ignoring chi).
+    # NOTE that the "90 - " part comes from spherical polars being defined from
+    # the y-axis.
+    scuffed_detector_polar = 90 - (tth - theta)
+    # The azimuthal angle is hard to estimate. It probably shouldn't be too big,
+    # since the detector is reasonably far from 90 degrees and chi is small.
+    # Also, minus signs are tricky because rotations have a dumb handedness.
+    extra_scuffed_azimuth = -2*chi
+
+    # Assert that our chi-less approx is within 0.05 deg of being correct.
+    # The scuffed approx is so accurate because chi is small, cos(chi) ~ 0.
+    assert_allclose(scuffed_detector_polar, motors.detector_polar*180/np.pi,
+                    atol=0.05)
+    assert_allclose(extra_scuffed_azimuth, motors.detector_azimuth*180/np.pi,
+                    atol=0.5)

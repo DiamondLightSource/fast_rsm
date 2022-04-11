@@ -27,10 +27,10 @@ def vector_to_azimuth_polar(vector: np.ndarray) -> Tuple[float]:
     Returns:
         A tuple of (azimuthal_angle, polar_angle)
     """
-    theta = np.arccos(vector[1])
-    phi = np.arccos(vector[2]/np.sin(theta))
+    polar = np.arccos(vector[1])
+    azimuth = np.arccos(vector[2]/np.sin(polar))
 
-    return phi, theta
+    return azimuth, polar
 
 
 def azimuth_polar_to_vector(azimuth: float, polar: float) -> np.ndarray:
@@ -47,12 +47,11 @@ def azimuth_polar_to_vector(azimuth: float, polar: float) -> np.ndarray:
     Returns:
         numpy array of length 1.
     """
-    vector = [0, 0, 0]
-    vector[0] = np.sin(polar)*np.sin(azimuth)
-    vector[1] = np.cos(polar)
-    vector[2] = np.sin(polar)*np.cos(azimuth)
-
-    return np.array(vector)
+    return np.array([
+        np.sin(polar)*np.sin(azimuth),
+        np.cos(polar),
+        np.sin(polar)*np.cos(azimuth)
+    ])
 
 
 class Motors:
@@ -107,26 +106,6 @@ class Motors:
         return getattr(self, f"_{self.metadata.instrument}_sample_rotation")
 
     @property
-    def _i10_sample_rotation(self) -> Rotation:
-        """
-        Samples can only be affected by theta and chi in RASOR, so this one's
-        pretty easy.
-        """
-        chi = self.array_to_correct_element(self.metadata.metadata_file[
-            "/entry/instrument/rasor/diff/chi"]._value - 90)
-        theta = self.array_to_correct_element(self.metadata.metadata_file[
-            "/entry/instrument/th/value"]._value - 90)
-
-        # Prepare rotation matrices.
-        tth_rot = Rotation.from_euler('xyz', degrees=True,
-                                      angles=[-theta, 0, 0])
-        chi_rot = Rotation.from_euler('xyz', degrees=True,
-                                      angles=[0, 0, chi])
-
-        # Return the properly ordered composition of these rotations.
-        return chi_rot * tth_rot
-
-    @property
     def detector_polar(self) -> float:
         """
         Returns the detector's spherical polar theta value.
@@ -158,10 +137,15 @@ class Motors:
         return getattr(self, f"_{self.metadata.instrument}_sample_azimuth")()
 
     @property
-    def _i10_sample_angles(self):
+    def _i10_sample_rotation(self) -> Rotation:
         """
-        Returns the azimuthal and polar angles to the detector.
+        Samples can only be affected by theta in RASOR; chi only tilts the
+        camera.
         """
+        theta = self.array_to_correct_element(180-self.metadata.metadata_file[
+            "/entry/instrument/th/value"]._value)
+        # Prepare rotation matrices.
+        return Rotation.from_rotvec([-theta, 0, 0], degrees=True)
 
     @property
     def _i10_detector_angles_lab_frame(self):
@@ -175,19 +159,16 @@ class Motors:
             "/entry/instrument/tth/value"]._value + 90)
         chi = self.array_to_correct_element(self.metadata.metadata_file[
             "/entry/instrument/rasor/diff/chi"]._value - 90)
-
         # Prepare rotation matrices.
-        tth_rot = Rotation.from_euler('xyz', degrees=True,
-                                      angles=[-tth_area, 0, 0])
-        chi_rot = Rotation.from_euler('xyz', degrees=True,
-                                      angles=[0, 0, chi])
+        tth_rot = Rotation.from_rotvec([-tth_area, 0, 0], degrees=True)
+        chi_rot = Rotation.from_rotvec([0, 0, chi], degrees=True)
         total_rot = chi_rot * tth_rot  # This does a proper composition.
 
         # Apply the rotation.
         beam_direction = np.array([0, 0, 1])
         beam_direction = total_rot.apply(beam_direction)
 
-        # Return the (azimuth, polar) angles.
+        # Return the (azimuth, polar) angles in radians.
         return vector_to_azimuth_polar(beam_direction)
 
     @property
