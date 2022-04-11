@@ -52,9 +52,11 @@ def test_i07_phi_theta(path_to_i07_nx_01: str,
     assert_almost_equal(motors.detector_azimuth, np.arange(15, 75, 15), 2)
 
 
-def test_i10_detector_polar_coords_01(
+def test_i10_detector_polar_coords_lab_frame_01(
         i10_parser_output_01: Tuple[List[Image], Metadata]):
     """
+    *THIS TEST IS TESTING ANGLES IN THE LAB FRAME.*
+
     Make sure that we can correctly retrieve the detector's spherical polar
     polar angle. Check this on frame 70 of the scan.
     """
@@ -79,13 +81,17 @@ def test_i10_detector_polar_coords_01(
 
     # Make sure this was correctly calculated by the Motors class.
     motors = images[70].motors
-    assert_almost_equal(azimuth, motors.detector_azimuth, decimal=5)
-    assert_almost_equal(polar, motors.detector_polar, decimal=5)
+    azimuth_lab, polar_lab = motors._i10_detector_angles_lab_frame
+
+    assert_almost_equal(azimuth, azimuth_lab, decimal=5)
+    assert_almost_equal(polar, polar_lab, decimal=5)
 
 
-def test_i10_detector_polar_coords_02(
+def test_i10_detector_polar_coords_lab_frame_02(
         i10_parser_output_01: Tuple[List[Image], Metadata]):
     """
+    *THIS TEST IS TESTING ANGLES IN THE LAB FRAME.*
+
     As above, but checking frame 0 of the scan, using the fact that tth should
     be 3.5 degrees above 96.519 on the first frame (which I got by looking at
     the nexus file).
@@ -98,10 +104,8 @@ def test_i10_detector_polar_coords_02(
     chi = -1
 
     # Prepare some rotations.
-    tth_rot = Rotation.from_euler('xyz', degrees=True,
-                                  angles=[-tth, 0, 0])
-    chi_rot = Rotation.from_euler('xyz', degrees=True,
-                                  angles=[0, 0, chi])
+    tth_rot = Rotation.from_euler('xyz', degrees=True, angles=[-tth, 0, 0])
+    chi_rot = Rotation.from_euler('xyz', degrees=True, angles=[0, 0, chi])
     total_rot = chi_rot * tth_rot
 
     # Rotate the beam.
@@ -111,8 +115,10 @@ def test_i10_detector_polar_coords_02(
 
     # Make sure this was correctly calculated by the Motors class.
     motors = images[0].motors
-    assert_almost_equal(azimuth, motors.detector_azimuth, decimal=5)
-    assert_almost_equal(polar, motors.detector_polar, decimal=5)
+    azimuth_lab, polar_lab = motors._i10_detector_angles_lab_frame
+
+    assert_almost_equal(azimuth, azimuth_lab, decimal=5)
+    assert_almost_equal(polar, polar_lab, decimal=5)
 
 
 def test_i10_sample_rotation(

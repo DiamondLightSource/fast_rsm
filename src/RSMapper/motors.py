@@ -13,7 +13,7 @@ from scipy.spatial.transform import Rotation
 from .metadata import Metadata
 
 
-def vector_to_azimuth_polar(vector: np.ndarray):
+def vector_to_azimuth_polar(vector: np.ndarray) -> Tuple[float]:
     """
     Takes a 3D vector. Returns phi, theta spherical polar angles.
 
@@ -33,9 +33,35 @@ def vector_to_azimuth_polar(vector: np.ndarray):
     return phi, theta
 
 
+def azimuth_polar_to_vector(azimuth: float, polar: float) -> np.ndarray:
+    """
+    Converts two spherical polar angles to a unit vector pointing in that
+    direction.
+
+    Args:
+        azimuth:
+            The azimuthal anlge (measured from the z-axis).
+        polar:
+            The polar angle (measured from the y-axis).
+
+    Returns:
+        numpy array of length 1.
+    """
+    vector = [0, 0, 0]
+    vector[0] = np.sin(polar)*np.sin(azimuth)
+    vector[1] = np.cos(polar)
+    vector[2] = np.sin(polar)*np.cos(azimuth)
+
+    return np.array(vector)
+
+
 class Motors:
     """
-    Can calculate relative detector/sample orientation from motor positions.
+    Instances of this class have knowledge of metadata acquired during this
+    experiment. They use this metadata to calculate the angular position of the
+    detector, and a unit vector parallel to the incident light, *IN THE FRAME OF
+    REFERENCE OF THE SAMPLE*. In a scattering experiment, all other frames of
+    reference are meaningless.
 
     Attrs:
         metadata:
@@ -116,6 +142,85 @@ class Motors:
         return getattr(self, f"_{self.metadata.instrument}_detector_azimuth")()
 
     @property
+    def sample_polar(self) -> float:
+        """
+        Returns the spherical polar polar angle in a coordinate system anchored
+        to the sample.
+        """
+        return getattr(self, f"_{self.metadata.instrument}_sample_polar")()
+
+    @property
+    def sample_azimuth(self) -> float:
+        """
+        Returns the spherical polar azimuthal angle in a coordinate system
+        anchored to the sample.
+        """
+        return getattr(self, f"_{self.metadata.instrument}_sample_azimuth")()
+
+    @property
+    def _i10_sample_angles(self):
+        """
+        Returns the azimuthal and polar angles to the detector.
+        """
+
+    @property
+    def _i10_detector_angles_lab_frame(self):
+        """
+        Calculates the detector's azimuthal and polar angles, assuming we're in
+        the RASOR diffractometer at beamline I10 in Diamond.
+
+        TODO: check orientation of chi with beamline to fix a sign.
+        """
+        tth_area = self.array_to_correct_element(-self.metadata.metadata_file[
+            "/entry/instrument/tth/value"]._value + 90)
+        chi = self.array_to_correct_element(self.metadata.metadata_file[
+            "/entry/instrument/rasor/diff/chi"]._value - 90)
+
+        # Prepare rotation matrices.
+        tth_rot = Rotation.from_euler('xyz', degrees=True,
+                                      angles=[-tth_area, 0, 0])
+        chi_rot = Rotation.from_euler('xyz', degrees=True,
+                                      angles=[0, 0, chi])
+        total_rot = chi_rot * tth_rot  # This does a proper composition.
+
+        # Apply the rotation.
+        beam_direction = np.array([0, 0, 1])
+        beam_direction = total_rot.apply(beam_direction)
+
+        # Return the (azimuth, polar) angles.
+        return vector_to_azimuth_polar(beam_direction)
+
+    @property
+    def _i10_detector_angles_sample_frame(self):
+        """
+        Returns the detectors azimuthal and polar angles, as measured from the
+        frame of reference tied to the sample.
+        """
+        # Grab the angles in the lab frame; turn them into a vector.
+        azi_lab, polar_lab = self._i10_detector_angles_lab_frame
+        q_out_lab = azimuth_polar_to_vector(azi_lab, polar_lab)
+
+        # Rotate this vector into the sample frame; convert it to angles.
+        q_out_sample = self._i10_sample_rotation.inv().apply(q_out_lab)
+        return vector_to_azimuth_polar(q_out_sample)
+
+    def _i10_detector_polar(self):
+        """
+        Parses self.metadata.metadata_file to calculate our detector's polar
+        angle; assumes that the data was recorded at beamline I10 in the RASOR
+        diffractometer.
+        """
+        return self._i10_detector_angles_sample_frame[1]
+
+    def _i10_detector_azimuth(self):
+        """
+        Parses self.metadata.metadata_file to calculate our detector's azimuthal
+        angle; assumes that the data was recorded at beamline I10 in the RASOR
+        diffractometer.
+        """
+        return self._i10_detector_angles_sample_frame[0]
+
+    @property
     def _i07_phi_theta(self) -> Tuple[float, float]:
         """
         Returns (phi, theta) assuming that the metadata file is an I07 file.
@@ -154,46 +259,3 @@ class Motors:
         that the data was acquired at Diamond's beamline I07.
         """
         return self._i07_phi_theta[0]
-
-    @property
-    def _i10_detector_angles(self):
-        """
-        Calculates the detector's azimuthal and polar angles, assuming we're in
-        the RASOR diffractometer at beamline I10 in Diamond.
-
-        TODO: check orientation of chi with beamline to fix a sign.
-        """
-        tth_area = self.array_to_correct_element(-self.metadata.metadata_file[
-            "/entry/instrument/tth/value"]._value + 90)
-        chi = self.array_to_correct_element(self.metadata.metadata_file[
-            "/entry/instrument/rasor/diff/chi"]._value - 90)
-
-        # Prepare rotation matrices.
-        tth_rot = Rotation.from_euler('xyz', degrees=True,
-                                      angles=[-tth_area, 0, 0])
-        chi_rot = Rotation.from_euler('xyz', degrees=True,
-                                      angles=[0, 0, chi])
-        total_rot = chi_rot * tth_rot  # This does a proper composition.
-
-        # Apply the rotation.
-        beam_direction = np.array([0, 0, 1])
-        beam_direction = total_rot.apply(beam_direction)
-
-        # Return the (azimuth, polar) angles.
-        return vector_to_azimuth_polar(beam_direction)
-
-    def _i10_detector_polar(self):
-        """
-        Parses self.metadata.metadata_file to calculate our detector's polar
-        angle; assumes that the data was recorded at beamline I10 in the RASOR
-        diffractometer.
-        """
-        return self._i10_detector_angles[1]
-
-    def _i10_detector_azimuth(self):
-        """
-        Parses self.metadata.metadata_file to calculate our detector's azimuthal
-        angle; assumes that the data was recorded at beamline I10 in the RASOR
-        diffractometer.
-        """
-        return self._i10_detector_angles[0]
