@@ -191,7 +191,6 @@ def test_i10_sample_frame_incident_beam(
     theta_rad = 49.6284*np.pi/180
 
     incident_beam = motors.incident_beam
-    print(vector_to_azimuth_polar(motors.incident_beam))
 
     # Incident beam should always be in the y-z plane in RASOR.
     assert incident_beam[0] == 0

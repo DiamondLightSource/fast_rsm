@@ -54,29 +54,21 @@ class Image:
         return self._raw_data/self.metadata.solid_angles
 
     @property
-    def pixel_polar_lab_frame(self):
-        """
-        Returns the polar angle at each pixel, where the coordinate system is
-        tied to the lab.
-        """
-        return self.metadata.relative_polar + self.motors.detector_polar
-
-    @property
-    def pixel_azimuth_lab_frame(self):
-        """
-        Returns the azimuthal angle at each pixel, where the coordinate system
-        is tied to the lab.
-        """
-        return self.metadata.relative_azimuth + self.motors.detector_phi
-
-    @property
-    def pixel_polar_sample_frame(self):
+    def pixel_polar_angle_sample_frame(self):
         """
         Returns the polar angle at each pixel, where the coordinate system is
         tied to the sample.
         """
-        return self.metadata.relative_polar + \
-            self.motors.sample_rotation.apply(self.motors.detector_polar)
+        return self.metadata.relative_polar + self.motors.detector_polar
+
+    @property
+    def pixel_azimuthal_angle_sample_frame(self):
+        """
+        Returns the azimuthal angle at each pixel, where the coordinate system
+        is the typical synchrotron coordinate system, but tied to the sample
+        (so with omega ≠ 0 or chi ≠ 0, the frame rotates with the sample).
+        """
+        return self.metadata.relative_azimuth + self.motors.detector_azimuth
 
     @property
     def q_out(self) -> np.ndarray:
@@ -104,18 +96,24 @@ class Image:
         """
         # We need num_x_pixels, num_y_pixels, 3 to be our shape.
         # Note that we need the extra "3" to store qx, qy, qz (3d vector).
-        desired_shape = tuple(list(self._raw_data.shape).append(3))
+        desired_shape = tuple(list(self._raw_data.shape) + [3])
         delta_q = np.zeros(desired_shape)
 
+        # Optimized trig calculations. One day, these should be done in C via
+        # lookup tables for maximum speed.
+        cos_azimuth = np.cos(self.pixel_azimuthal_angle_sample_frame)
+        sin_azimuth = np.sqrt(1 - cos_azimuth**2)
+        cos_polar = np.cos(self.pixel_polar_angle_sample_frame)
+        sin_polar = np.sqrt(1 - cos_polar**2)
         # Now set the elements of the delta q matrix element.
         # First set all the delta_q_x values, then delta_q_y, then delta_q_z.
-        cos_phi = np.cos(self.pixel_azimuth_lab_frame)
-        sin_phi = np.sqrt(1 - cos_phi**2)
-        cos_theta = np.cos(self.pixel_polar_lab_frame)
-        sin_theta = np.sqrt(1 - cos_theta**2)
-        delta_q[:, :, 0] = sin_phi
-        delta_q[:, :, 1] = cos_phi * sin_theta
-        delta_q[:, :, 2] = cos_phi * cos_theta-1
+        # Note that these are just q_out for now.
+        delta_q[:, :, 0] = sin_polar * sin_azimuth
+        delta_q[:, :, 1] = cos_polar
+        delta_q[:, :, 2] = sin_polar * cos_azimuth
+
+        # delta_q = q_out - q_in; finally, give it the correct length.
+        delta_q -= self.motors.incident_beam
         delta_q *= self.metadata.q_incident_lenth
 
         self._delta_q = delta_q

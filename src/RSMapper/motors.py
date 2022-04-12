@@ -108,7 +108,8 @@ class Motors:
     @property
     def detector_polar(self) -> float:
         """
-        Returns the detector's spherical polar theta value.
+        Returns the detector's spherical polar theta value in the sample's
+        frame.
         """
         # Call the appropriate function for the instrument in use.
         return getattr(self, f"_{self.metadata.instrument}_detector_polar")()
@@ -116,25 +117,9 @@ class Motors:
     @property
     def detector_azimuth(self) -> float:
         """
-        Returns the detector's spherical polar phi value.
+        Returns the detector's spherical polar phi value in the sample's frame.
         """
         return getattr(self, f"_{self.metadata.instrument}_detector_azimuth")()
-
-    @property
-    def sample_polar(self) -> float:
-        """
-        Returns the spherical polar polar angle in a coordinate system anchored
-        to the sample.
-        """
-        return getattr(self, f"_{self.metadata.instrument}_sample_polar")()
-
-    @property
-    def sample_azimuth(self) -> float:
-        """
-        Returns the spherical polar azimuthal angle in a coordinate system
-        anchored to the sample.
-        """
-        return getattr(self, f"_{self.metadata.instrument}_sample_azimuth")()
 
     @property
     def incident_beam(self) -> np.ndarray:
