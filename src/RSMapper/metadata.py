@@ -86,11 +86,21 @@ class Metadata:
         return self._relative_azimuth
 
     @property
+    def incident_wavelength(self):
+        """
+        Returns the wavelength of the incident light in Å.
+        """
+        return (physical_constants["Planck constant in eV s"][0] *
+                physical_constants["speed of light in vacuum"][0] /
+                self.energy *
+                1e10) # To convert to Å.
+
+    @property
     def q_incident_lenth(self):
         """
-        Returns the momentum of the incident beam.
+        Returns the wavevector of the incident beam in Å^-1.
         """
-        return self.energy/physical_constants["reduced Planck constant"]
+        return 1/self.incident_wavelength
 
     def _init_solid_angles(self):
         """

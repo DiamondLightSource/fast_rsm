@@ -7,6 +7,9 @@ RSMapper.metadata.Metadata actually do a reasonable amount of heavy lifting.
 # Obviously we need to test protected members.
 # pylint: disable=protected-access
 
+# Pylint hates electron volts.
+# pylint: disable=invalid-name
+
 from copy import deepcopy
 
 import numpy as np
@@ -139,3 +142,24 @@ def test_solid_angle_values(metadata_01: Metadata):
     assert 1999 in min_pixels[1]
     assert len(max_pixels[0]) == 4
     assert len(max_pixels[1]) == 4
+
+
+def test_incident_wavelength(metadata_01: Metadata):
+    """
+    Assert that we can correctly calculate wavelength from energies.
+    """
+    copper_kalpha_eV = 8.04e3
+    metadata_01.energy = copper_kalpha_eV
+
+    assert_almost_equal(metadata_01.incident_wavelength, 1.54, 2)
+
+
+def test_q_incident_length(metadata_01: Metadata):
+    """
+    Make sure that our q-vector calculation is correct. Test it against Cu
+    k-alpha.
+    """
+    copper_kalpha_eV = 8.04e3
+    metadata_01.energy = copper_kalpha_eV
+
+    assert_almost_equal(metadata_01.q_incident_lenth, 1/1.54, 2)
