@@ -92,7 +92,12 @@ class Image:
 
     def _init_delta_q(self) -> None:
         """
-        Sets the self._delta_q attribute for this instance of Image.
+        Sets the self._delta_q attribute for this instance of Image. This is
+        where the heavy lifting is done; this method call should take up
+        basically all of the execution time.
+
+        As a result, some of the maths is written out in weird ways. Trig
+        identities are used to save time wherever possible.
         """
         # We need num_x_pixels, num_y_pixels, 3 to be our shape.
         # Note that we need the extra "3" to store qx, qy, qz (3d vector).
