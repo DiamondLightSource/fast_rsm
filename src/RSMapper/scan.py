@@ -6,6 +6,8 @@ information relating to a reciprocal space scan.
 from pathlib import Path
 from typing import List, Callable, Union, Tuple
 
+import numpy as np
+
 from .image import Image
 from .metadata import Metadata
 
@@ -38,9 +40,21 @@ class Scan:
 
         return self._rsm
 
-    def _init_rsm(self):
+    def _init_rsm(self,
+                  lattice_parameters: Union[List, np.ndarray, float] = None,
+                  sample_orientation: Tuple[int] = (0, 1, 0)):
         """
         Initializes the scan's reciprocal space map.
+
+        Args:
+            lattice_parameters:
+                The lattice parameters of the crystal we're mapping. Can be just
+                a float in the case of a cubic crystal. In the case of an
+                orthorhombic crystal, takes a numpy array/list of the three
+                conventional lattice vectors [a, b, c].
+            sample_orientation:
+                What face is out of plane? Takes miller indices as a Tuple.
+                Defaults to (0,1,0).
         """
         raise NotImplementedError()
 

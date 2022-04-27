@@ -5,6 +5,7 @@ detector position in spherical polars from motor positions.
 
 # pylint: disable=protected-access
 
+from random import randint
 from typing import List, Tuple
 
 import numpy as np
@@ -15,7 +16,7 @@ from scipy.spatial.transform import Rotation
 from RSMapper.image import Image
 from RSMapper.io import i07_nexus_parser
 from RSMapper.metadata import Metadata
-from RSMapper.motors import Motors, vector_to_azimuth_polar
+from RSMapper.motors import Motors, vector_to_azimuth_polar, rot_from_a_to_b
 
 
 def test_reflection(metadata_01: Metadata):
@@ -25,7 +26,6 @@ def test_reflection(metadata_01: Metadata):
     """
     motors = Motors(metadata_01, 0)
 
-    # metadata_01.instrument = "my_instrument"
     motors._my_instrument_detector_polar = lambda: 1/0
     motors._my_instrument_detector_azimuth = lambda: 1/0
 
@@ -136,17 +136,15 @@ def test_i10_sample_rotation(
     surface_normal = [0, 1, 0]
     surface_normal = images[70].motors.sample_rotation.apply(surface_normal)
 
-    # Sample theta read manually from .nxs file
+    # Sample theta read manually from .nxs file.
     theta = 49.6284 - 3.5/2
-    chi = -1  # wasn't scanned.
 
-    # Now try to use these two values to invert the rotation!
-    reverse_theta_rot = Rotation.from_euler('xyz', [theta, 0, 0], True)
-    reverse_chi_rot = Rotation.from_euler('xyz', [0, 0, -chi], True)
-    total_reverse_rot = reverse_theta_rot * reverse_chi_rot
+    # Note that chi rotates the detector not the sample in i10, so we only need
+    # to invert one rotation.
+    reverse_rot = Rotation.from_euler('xyz', [-theta, 0, 0], True)
 
-    surface_normal = total_reverse_rot.apply(surface_normal)
-    assert_allclose(surface_normal, np.array([0, 1, 0]), atol=0.02)
+    surface_normal = reverse_rot.apply(surface_normal)
+    assert_allclose(surface_normal, np.array([0, 1, 0]), atol=1e-6)
 
 
 def test_i10_sample_frame_angles_01(
@@ -167,6 +165,7 @@ def test_i10_sample_frame_angles_01(
     # NOTE that the "90 - " part comes from spherical polars being defined from
     # the y-axis.
     scuffed_detector_polar = 90 - (tth - theta)
+
     # The azimuthal angle is hard to estimate. It probably shouldn't be too big,
     # since the detector is reasonably far from 90 degrees and chi is small.
     # Also, minus signs are tricky because rotations have a dumb handedness.
@@ -192,7 +191,104 @@ def test_i10_sample_frame_incident_beam(
 
     incident_beam = motors.incident_beam
 
-    # Incident beam should always be in the y-z plane in RASOR.
+    # NOTE: this test has been carefully checked for minus signs etc. If this
+    # test fails, you're in trouble.
     assert incident_beam[0] == 0
     assert_almost_equal(incident_beam[1], -np.sin(theta_rad), decimal=5)
     assert_almost_equal(incident_beam[2], np.cos(theta_rad), decimal=5)
+
+
+def test_rot_from_a_to_b():
+    """
+    Make sure that the all-important rot_from_a_to_b function is working. This
+    function is particularly important and is used to calculate many rotations.
+    """
+    rot_from = [2, 0, 0]
+    rot_to = [0, 4, 0]
+    rot = rot_from_a_to_b(rot_from, rot_to)
+
+    assert np.allclose(rot.apply([1, 0, 0]), np.array([0, 1, 0]))
+
+
+def test_rot_from_a_to_b_parallel():
+    """
+    Make sure that the special case of a || b gives us an identity rot matrix.
+    """
+    rot_from = [1, 0, 0]
+    rot_to = [3, 0, 0]
+
+    rot = rot_from_a_to_b(rot_from, rot_to)
+
+    random_vec = np.random.random(3)
+
+    assert np.allclose(rot.apply(random_vec), random_vec)
+
+
+def test_rot_from_a_to_b_physics_examples():
+    """
+    Throws some toy numbers at rot_from_a_to_b. I'm mostly using this test to
+    make sure that I don't screw up rotations in the motors class.
+    """
+    sample_frame_oop = [0, 0, 1]
+    sample_stage_frame_oop = [0, 1, 0]
+
+    rot = rot_from_a_to_b(sample_stage_frame_oop, sample_frame_oop)
+    beam = [0, 0, 1]
+
+    assert np.allclose([0, -1, 0], rot.apply(beam))
+
+
+def test_sample_orientation(i10_parser_output_01: Tuple[List[Image], Metadata]):
+    """
+    Make sure that we can affect reciprocal space maps by setting an image's
+    motors.sample_orientation attribute. This particular test just checks that
+    the length of vectors is unchanged. (i.e. we make sure that we have applied
+    a rotation, but don't check the rotation itself - that's in the next test.)
+    """
+    images, _ = i10_parser_output_01
+    image = images[0]
+
+    image.motors.sample_orientation = [1, 0, 0]
+    init_dq = np.copy(image.delta_q)
+
+    # Choose two random elements to check.
+    elem_1 = randint(0, 2048)
+    elem_2 = randint(0, 2048)
+
+    # We should be able to set sample_orientation with anything castable to a
+    # numpy array.
+    image.motors.sample_orientation = [0, 0, 1]
+    image._init_delta_q()
+    assert_allclose(np.linalg.norm(image.delta_q[elem_1, elem_2]),
+                    np.linalg.norm(init_dq[elem_1, elem_2]),
+                    rtol=1e-4)
+
+    image.motors.sample_orientation = [0, 1, 0]
+    image._init_delta_q()
+    assert_allclose(np.linalg.norm(image.delta_q[elem_1, elem_2]),
+                    np.linalg.norm(init_dq[elem_1, elem_2]),
+                    rtol=1e-4)
+
+
+def test_sample_orientation_quant_01(
+        i10_parser_output_01: Tuple[List[Image], Metadata]):
+    """
+    Make sure that setting the sample orientation and then performantly
+    computing the delta_q array is equivalent to a delta_q calculation with the
+    wrong sample orientation and rotating into the sample frame after.
+    """
+    images, _ = i10_parser_output_01
+    image = images[0]
+
+    # Default sample orientation is [0, 1, 0], just do this to be explicit.
+    image.motors.sample_orientation = [0, 1, 0]
+    init_dq_1 = np.copy(image.delta_q).reshape((2048**2, 3))
+    rot = rot_from_a_to_b([1, 0, 0], [0, 1, 0])
+    final_dq_1 = rot.apply(init_dq_1)
+
+    # Now change the sample orientation and recalculate delta_q.
+    image.motors.sample_orientation = [1, 0, 0]
+    image._init_delta_q()
+    final_dq_2 = image.delta_q.reshape((2048**2, 3))
+
+    assert_allclose(final_dq_1, final_dq_2, atol=1e-4)

@@ -40,7 +40,7 @@ def azimuth_polar_to_vector(azimuth: float, polar: float) -> np.ndarray:
 
     Args:
         azimuth:
-            The azimuthal anlge (measured from the z-axis).
+            The azimuthal angle (measured from the z-axis).
         polar:
             The polar angle (measured from the y-axis).
 
@@ -52,6 +52,37 @@ def azimuth_polar_to_vector(azimuth: float, polar: float) -> np.ndarray:
         np.cos(polar),
         np.sin(polar)*np.cos(azimuth)
     ])
+
+
+def rot_from_a_to_b(vector_a: np.ndarray, vector_b: np.ndarray):
+    """
+    Generates a rotation that will rotate vectors parallel to vector_a so that
+    they're parallel to vector_b.
+
+    Args:
+        vector_a:
+            The vector we want to rotate from.
+        vector_b:
+            The vector we want to rotate to.
+    """
+    vec_a_unit = np.array(vector_a)/np.linalg.norm(np.array(vector_a))
+    vec_b_unit = np.array(vector_b)/np.linalg.norm(np.array(vector_b))
+    cross = np.cross(vec_a_unit, vec_b_unit)
+
+    # The sine of the angle between vector_a and vector_b.
+    sin_angle_ab = np.linalg.norm(cross)
+    angle_ab = np.arcsin(sin_angle_ab)  # And the corresponding angle.
+
+    # Don't divide by zero!
+    if angle_ab == 0:
+        return Rotation.from_rotvec([0, 0, 0])
+
+    # Now calculate the rotvec.
+    rot_axis_normal = cross/np.linalg.norm(cross)
+    rotvec = rot_axis_normal*angle_ab
+
+    # Return the rotvec's corresponding rotation.
+    return Rotation.from_rotvec(rotvec)
 
 
 class Motors:
@@ -71,11 +102,17 @@ class Motors:
             four images were taken in a scan and self.index=3, then this
             instance of Motors refers to the motor positions for the final
             image.
+        sample_orientation:
+            The OOP sample face as a (h,k,l) tuple. Defaults to (010).
     """
 
-    def __init__(self, metadata: Metadata, index: int) -> None:
+    def __init__(self,
+                 metadata: Metadata,
+                 index: int,
+                 sample_orientation: Tuple[int] = (0, 1, 0)) -> None:
         self.metadata = metadata
         self.index = index
+        self.sample_orientation = np.array(sample_orientation)
 
     def array_to_correct_element(
             self, maybe_array: Union[float, np.ndarray]) -> float:
@@ -100,8 +137,26 @@ class Motors:
     def sample_rotation(self) -> Rotation:
         """
         Returns a scipy.spatial.transform.Rotation representation of the
+        rotation that maps the synchrotron coordinate system onto the sample's
+        hkl coordinate system.
+        """
+        stage_to_sample = rot_from_a_to_b([0, 1, 0], self.sample_orientation)
+        return stage_to_sample * self.sample_stage_rotation
+
+    @property
+    def sample_stage_rotation(self) -> Rotation:
+        """
+        Returns a scipy.spatial.transform.Rotation representation of the
         rotation that the motors have applied to the sample. This can be used
         to map vectors into coordinate systems tied to the sample.
+
+        Note that this wording is quite precise: applying this rotation will tie
+        your coordinate system to your sample, but it makes no guarantees about
+        the orientation of the axes. In fact, application of only this rotation
+        will just glue standard synchrotron coordinates to the sample.
+
+        In other words, this rotation object knows nothing about
+        crystallography.
         """
         return getattr(self, f"_{self.metadata.instrument}_sample_rotation")
 
@@ -135,18 +190,18 @@ class Motors:
         Returns a unit vector pointing parallel to the incident beam. Assumes
         the experiment took place in I10 on RASOR.
         """
-        return self.sample_rotation.inv().apply([0, 0, 1])
+        return self.sample_rotation.apply([0, 0, 1])
 
     @property
     def _i10_sample_rotation(self) -> Rotation:
         """
         Samples can only be affected by theta in RASOR; chi only tilts the
-        camera.
+        camera. This property is returned by self.sample_stage_rotation
         """
         theta = self.array_to_correct_element(180-self.metadata.metadata_file[
             "/entry/instrument/th/value"]._value)
-        # Prepare rotation matrices.
-        return Rotation.from_rotvec([-theta, 0, 0], degrees=True)
+        # Prepare rotation matrices. TODO: minus sign before theta?
+        return Rotation.from_rotvec([theta, 0, 0], degrees=True)
 
     @property
     def _i10_detector_angles_lab_frame(self):
@@ -183,7 +238,7 @@ class Motors:
         q_out_lab = azimuth_polar_to_vector(azi_lab, polar_lab)
 
         # Rotate this vector into the sample frame; convert it to angles.
-        q_out_sample = self._i10_sample_rotation.inv().apply(q_out_lab)
+        q_out_sample = self.sample_rotation.apply(q_out_lab)
         return vector_to_azimuth_polar(q_out_sample)
 
     def _i10_detector_polar(self):

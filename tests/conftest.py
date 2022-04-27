@@ -11,7 +11,6 @@ from pytest import fixture
 
 from RSMapper.io import i10_nxs_parser
 from RSMapper.metadata import Metadata
-from RSMapper.scan import Scan
 
 
 @fixture
