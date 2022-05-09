@@ -6,8 +6,9 @@ import copy
 import numpy as np
 from PIL import Image as PILImage
 
-from .metadata import Metadata
-from .motors import Motors
+from diffraction_utils import Frame
+
+from .rsm_metadata import RSMMetadata
 
 
 class Image:
@@ -18,15 +19,19 @@ class Image:
     Attrs:
         data:
             A numpy array storing the image data. This is a property.
+        metadata:
+            An instance of RSMMetadata containing the scan's metadata.
+        diffractometer:
+            A reference to the RSMMetadata's diffractometer.
+        index:
+            The index of the image in the scan.
     """
 
-    def __init__(self,
-                 raw_data: np.ndarray,
-                 motors: Motors,
-                 metadata: Metadata):
+    def __init__(self, raw_data: np.ndarray, metadata: RSMMetadata, index: int):
         self._raw_data = raw_data
-        self.motors = motors
         self.metadata = metadata
+        self.diffractometer = self.metadata.diffractometer
+        self.index = index
 
         self._delta_q = None
 
@@ -53,22 +58,41 @@ class Image:
         """
         return self._raw_data/self.metadata.solid_angles
 
-    @property
-    def pixel_polar_angle_sample_frame(self):
+    def pixel_polar_angle(self, frame: Frame) -> np.ndarray:
         """
-        Returns the polar angle at each pixel, where the coordinate system is
-        tied to the sample.
-        """
-        return self.metadata.relative_polar + self.motors.detector_polar
+        Returns the polar angle at each pixel in the specified frame.
 
-    @property
-    def pixel_azimuthal_angle_sample_frame(self):
+        Args:
+            frame (Frame):
+                The frame of reference in which we want the pixel's polar angle.
+
+        returns:
+            The polar angle at each pixel in the requested frame.
         """
-        Returns the azimuthal angle at each pixel, where the coordinate system
-        is the typical synchrotron coordinate system, but tied to the sample
-        (so with omega ≠ 0 or chi ≠ 0, the frame rotates with the sample).
+        # Grab the detector vector in our frame of interest.
+        detector_vector = self.diffractometer.get_detector_vector(
+            self.index, frame)
+
+        # Now return the polar angle at each pixel.
+        return self.metadata.relative_polar + detector_vector.polar_angle
+
+    def pixel_azimuthal_angle(self, frame: Frame):
         """
-        return self.metadata.relative_azimuth + self.motors.detector_azimuth
+        Returns the azimuthal angle at each pixel in the specified frame.
+
+        Args:
+            frame (Frame):
+                The frame of reference in which we want the pixel's azimuthal#
+                angle.
+
+        Returns:
+            The azimuthal angle at each pixel in the requested frame.
+        """
+        # Grab the detector vector in our frame of interest.
+        detector_vector = self.diffractometer.get_detector_vector(self.index,
+                                                                  frame)
+        # Now return the azimuthal angle at each pixel.
+        return self.metadata.relative_azimuth + detector_vector.azimuthal_angle
 
     @property
     def q_out(self) -> np.ndarray:
@@ -80,24 +104,14 @@ class Image:
         q_z[:, :, 2] = self.metadata.q_incident_lenth
         return self.delta_q + q_z
 
-    @property
-    def delta_q(self) -> np.ndarray:
+    def delta_q(self, frame: Frame) -> None:
         """
-        Returns the q vectors through which light had to scatter to reach each
-        pixel.
-        """
-        if self._delta_q is None:
-            self._init_delta_q()
-        return self._delta_q
+        Calculates the wavevector through which light had to scatter to reach
+        every pixel on the detector in a given frame of reference.
 
-    def _init_delta_q(self) -> None:
-        """
-        Sets the self._delta_q attribute for this instance of Image. This is
-        where the heavy lifting is done; this method call should take up
-        basically all of the execution time.
-
-        As a result, some of the maths is written out in weird ways. Trig
-        identities are used to save time wherever possible.
+        This is the most performance critical part of the code. As a result,
+        some of the maths is written out in weird ways. Trig identities are used
+        to save time wherever possible.
         """
         # We need num_x_pixels, num_y_pixels, 3 to be our shape.
         # Note that we need the extra "3" to store qx, qy, qz (3d vector).
@@ -106,9 +120,9 @@ class Image:
 
         # Optimized trig calculations. One day, these should be done in C via
         # lookup tables for maximum speed.
-        cos_azimuth = np.cos(self.pixel_azimuthal_angle_sample_frame)
+        cos_azimuth = np.cos(self.pixel_azimuthal_angle(frame))
         sin_azimuth = np.sqrt(1 - cos_azimuth**2)
-        cos_polar = np.cos(self.pixel_polar_angle_sample_frame)
+        cos_polar = np.cos(self.pixel_polar_angle(frame))
         sin_polar = np.sqrt(1 - cos_polar**2)
         # Now set the elements of the delta q matrix element.
         # First set all the delta_q_x values, then delta_q_y, then delta_q_z.
@@ -118,17 +132,7 @@ class Image:
         delta_q[:, :, 2] = sin_polar * cos_azimuth
 
         # delta_q = q_out - q_in; finally, give it the correct length.
-        delta_q -= self.motors.incident_beam
+        delta_q -= self.diffractometer.get_incident_beam(frame)
         delta_q *= self.metadata.q_incident_lenth
 
         self._delta_q = delta_q
-
-    @classmethod
-    def from_file(cls, path: str, motors: Motors, metadata: Metadata):
-        """
-        Loads the image from a file.
-        """
-        with PILImage.open(path) as img:
-            img_arr = copy.deepcopy(np.array(img))
-
-        return cls(img_arr, motors, metadata)
