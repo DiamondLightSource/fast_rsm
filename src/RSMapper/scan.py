@@ -98,6 +98,9 @@ class Scan:
         diff = I10RasorDiffractometer(i10_nexus, sample_oop, 'area')
         meta = RSMMetadata(diff, beam_centre)
 
+        # Make sure the sample_oop vector's frame's diffractometer is correct.
+        sample_oop.frame.diffractometer = diff
+
         # Now load the images.
         images = [Image(data, meta, x) for x, data in
                   enumerate(i10_nexus.load_image_arrays(path_to_tiffs))]
