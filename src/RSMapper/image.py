@@ -2,9 +2,7 @@
 This module contains the class that is used to store images.
 """
 
-import copy
 import numpy as np
-from PIL import Image as PILImage
 
 from diffraction_utils import Frame
 
