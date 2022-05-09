@@ -9,10 +9,11 @@ import os
 
 from pytest import fixture
 
-from diffraction_utils import I10Nexus
+from diffraction_utils import I10Nexus, Vector3, Frame
 from diffraction_utils.diffractometers import I10RasorDiffractometer
 
 from RSMapper.rsm_metadata import RSMMetadata
+from RSMapper.scan import Scan
 
 
 @fixture
@@ -90,16 +91,29 @@ def i07_detector_distance_01():
 
 
 @fixture(scope='session')
-def i10_nx_01(path_to_resources):
+def session_path_to_resources():
     """
-    Returns the path to an i10 nexus file.
+    Session scoped resource path.
     """
-    return path_to_resources + "i10-693862.nxs"
+    if os.path.exists("tests/resources/i07-418550.nxs"):
+        return "tests/resources/"
+    return "resources/"
 
 
 @fixture(scope='session')
-def i10_beam_centre_01():
+def i10_nx_01(session_path_to_resources):
     """
-    Beam centre for the above nexus file.
+    Returns the path to an i10 nexus file.
     """
-    return 1000, 1000
+    return session_path_to_resources + "i10-693862.nxs"
+
+
+@fixture(scope='session')
+def i10_scan(i10_nx_01, session_path_to_resources) -> Scan:
+    """
+    Returns a full scan object over 141 images. This is an expensive fixture so
+    we session scope it.
+    """
+    sample_oop = Vector3([0, 1, 0], Frame(Frame.sample_holder))
+    return Scan.from_i10(i10_nx_01, (998, 1016), 0.1363, sample_oop,
+                         session_path_to_resources)
