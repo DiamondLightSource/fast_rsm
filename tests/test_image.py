@@ -13,33 +13,34 @@ from typing import Tuple, List
 import numpy as np
 from numpy.testing import assert_allclose
 
+from diffraction_utils import Frame
 
-from RSMapper.image import Image
-from RSMapper.metadata import Metadata
+from RSMapper.scan import Scan
 
 
-def test_data(i10_parser_output_01: Tuple[List[Image], Metadata]):
+def test_data(i10_scan: Scan):
     """
     Make sure that image_instance.data is properly normalized.
     """
-    images, metadata = i10_parser_output_01
+    images = i10_scan.images
+    metadata = i10_scan.metadata
     assert (images[0].data == images[0]._raw_data/metadata.solid_angles).all()
 
 
-def test_delta_q_01(i10_parser_output_01: Tuple[List[Image], Metadata]):
+def test_delta_q_01(i10_scan: Scan):
     """
     Make sure that the scattering vectors are being correctly calculated. This
     is tricky to do exactly, but we can get pretty close by grabbing the
     brightest pixel and assuming that we scatter through the (100) to get there.
     """
-    images, _ = i10_parser_output_01
-
     # We should be on the Bragg peak in the centre image.
-    image = images[70]
+    image = i10_scan.images[70]
+
+    frame = Frame(Frame.hkl, i10_scan.metadata.diffractometer)
 
     # Brightest pixel should be on the Bragg peak.
     max_intensity_pixel = np.where(image.data == np.max(image.data))
-    max_intensity_q = np.linalg.norm(image.delta_q[max_intensity_pixel])
+    max_intensity_q = np.linalg.norm(image.delta_q(frame)[max_intensity_pixel])
     wavelength = 1/max_intensity_q
 
     # Published value of CSO unit cell length is 8.931 Å.

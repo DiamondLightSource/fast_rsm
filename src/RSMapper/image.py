@@ -67,10 +67,10 @@ class Image:
         returns:
             The polar angle at each pixel in the requested frame.
         """
+        # Make sure that the frame's index is correct.
+        frame.scan_index = self.index
         # Grab the detector vector in our frame of interest.
-        detector_vector = self.diffractometer.get_detector_vector(
-            self.index, frame)
-
+        detector_vector = self.diffractometer.get_detector_vector(frame)
         # Now return the polar angle at each pixel.
         return self.metadata.relative_polar + detector_vector.polar_angle
 
@@ -86,9 +86,10 @@ class Image:
         Returns:
             The azimuthal angle at each pixel in the requested frame.
         """
+        # Make sure that the frame's index is correct.
+        frame.scan_index = self.index
         # Grab the detector vector in our frame of interest.
-        detector_vector = self.diffractometer.get_detector_vector(self.index,
-                                                                  frame)
+        detector_vector = self.diffractometer.get_detector_vector(frame)
         # Now return the azimuthal angle at each pixel.
         return self.metadata.relative_azimuth + detector_vector.azimuthal_angle
 
@@ -111,6 +112,9 @@ class Image:
         some of the maths is written out in weird ways. Trig identities are used
         to save time wherever possible.
         """
+        # Make sure that our frame of reference has the correct index.
+        frame.scan_index = self.index
+
         # We need num_x_pixels, num_y_pixels, 3 to be our shape.
         # Note that we need the extra "3" to store qx, qy, qz (3d vector).
         desired_shape = tuple(list(self._raw_data.shape) + [3])
@@ -130,7 +134,7 @@ class Image:
         delta_q[:, :, 2] = sin_polar * cos_azimuth
 
         # delta_q = q_out - q_in; finally, give it the correct length.
-        delta_q -= self.diffractometer.get_incident_beam(frame)
+        delta_q -= self.diffractometer.get_incident_beam(frame).array
         delta_q *= self.metadata.q_incident_lenth
 
-        self._delta_q = delta_q
+        return delta_q
