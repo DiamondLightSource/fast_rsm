@@ -4,12 +4,16 @@ information relating to a reciprocal space scan.
 """
 
 from pathlib import Path
-from typing import List, Callable, Union, Tuple
+from typing import List, Union, Tuple
 
 import numpy as np
 
+from diffraction_utils import I10Nexus
+from diffraction_utils import Vector3
+from diffraction_utils.diffractometers import I10RasorDiffractometer
+
 from .image import Image
-from .metadata import Metadata
+from .rsm_metadata import RSMMetadata
 
 
 class Scan:
@@ -24,7 +28,7 @@ class Scan:
             Scan metadata.
     """
 
-    def __init__(self, images: List[Image], metadata: Metadata):
+    def __init__(self, images: List[Image], metadata: RSMMetadata):
         self.images = images
         self.metadata = metadata
 
@@ -59,33 +63,43 @@ class Scan:
         raise NotImplementedError()
 
     @classmethod
-    def from_file(cls,
-                  file_path: Union[str, Path],
-                  parser: Callable,
-                  beam_centre: Tuple[int] = None,
-                  detector_distance: float = None):
+    def from_i10(cls,
+                 path_to_nx: Union[str, Path],
+                 beam_centre: Tuple[int],
+                 detector_distance: float,
+                 sample_oop: Vector3,
+                 path_to_tiffs: str = ''):
         """
-        Returns an instance of Scan from the path to a data file and a parser
-        that can be used to parse the data file. Parser functions can be found
-        in RSMapper.io.
+        Instantiates a Scan from the path to an I10 nexus file, a beam centre
+        coordinate, a detector distance (this isn't stored in i10 nexus files)
+        and a sample out-of-plane vector.
 
         Args:
-            file_path:
-                Path to the file to load.
-            parser:
-                The parser that we'll use to parse the file. These can be found
-                in the RSMapper.io module.
+            path_to_nx:
+                Path to the nexus file containing the scan metadata.
             beam_centre:
-                The central pixel.
+                A (y, x) tuple of the beam centre, measured in the usual image
+                coordinate system, in units of pixels.
             detector_distance:
-                The distance between the sample and the detector.
-
-        Returns:
-            An instance of Scan.
+                The distance between the sample and the detector, which cant
+                be stored in i10 nexus files so needs to be given by the user.
+            sample_oop:
+                An instance of a diffraction_utils Vector3 which descrbes the
+                sample out of plane vector.
+            path_to_tiffs:
+                Path to the directory in which the images are stored. Defaults
+                to '', in which case a bunch of reasonable directories will be
+                searched for the images.
         """
-        # Use the parser to grab this scan's images and metadata; call __init__.
-        if beam_centre is None:
-            imgs, metadata = parser(file_path)
-        else:
-            imgs, metadata = parser(file_path, beam_centre, detector_distance)
-        return cls(imgs, metadata)
+        # Load the nexus file.
+        i10_nexus = I10Nexus(path_to_nx, detector_distance)
+
+        # Load the state of the RASOR diffractometer; prepare the metadata.
+        diff = I10RasorDiffractometer(i10_nexus, sample_oop, 'area')
+        meta = RSMMetadata(diff, beam_centre)
+
+        # Now load the images.
+        images = [Image(data, meta, x) for x, data in
+                  enumerate(i10_nexus.load_image_arrays(path_to_tiffs))]
+
+        return cls(images, meta)
