@@ -15,151 +15,138 @@ from copy import deepcopy
 import numpy as np
 from numpy.testing import assert_almost_equal
 
-from RSMapper.metadata import Metadata
+from RSMapper.rsm_metadata import RSMMetadata
 
 
-def test_metadata_init():
+def test_metadata_init(i10_metadata: RSMMetadata, i10_nxs_path):
     """
     For whatever reason, I'm partial to having a test explode when I rename
     attributes set in __init__.
     """
-    # Make some nonsense metadata.
-    metadata = Metadata(None, "0", 1, 2, 3, (6, 7), (4, 5))
 
-    assert metadata.instrument == "0"
-    assert metadata.detector_distance == 1
-    assert metadata.pixel_size == 2
-    assert metadata.energy == 3
-    assert metadata.data_shape == (6, 7)
-    assert metadata.beam_centre == (4, 5)
-    assert metadata._solid_angles is None
-    assert metadata._relative_azimuth is None
-    assert metadata._relative_polar is None
+    assert i10_metadata.data_file.local_path == i10_nxs_path
+    assert i10_metadata.data_file.detector_distance == 0.1363
+    assert i10_metadata.data_file.pixel_size == 13.5e-6
+    assert i10_metadata.data_file.probe_energy == 931.7725
+    assert i10_metadata.data_file.image_shape == (2048, 2048)
+    assert i10_metadata.beam_centre == (998, 1016)
+    assert i10_metadata._solid_angles is None
+    assert i10_metadata._relative_azimuth is None
+    assert i10_metadata._relative_polar is None
 
 
-def test_init_relative_polar(metadata_01: Metadata):
+def test_init_relative_polar(i10_metadata: RSMMetadata):
     """
     Make sure that the all-important metadata._relative_polar is initialized
     correctly. This is used in all reciprocal space mapping routines.
     """
-    metadata_01._init_relative_polar()
+    i10_metadata._init_relative_polar()
 
     # Now check some values (manually calculated).
-    assert (metadata_01._relative_polar[20, :] == 0).all()
-    assert_almost_equal(
-        metadata_01._relative_polar[1020, 15], -0.0499583957, 9)
-    assert_almost_equal(
-        metadata_01._relative_polar[0, 1278], 0.000999999667, 12)
-    assert_almost_equal(
-        metadata_01._relative_polar[19, 0], 5e-5, 12)
-    assert_almost_equal(
-        metadata_01._relative_polar[21, 1999], -5e-5, 12)
+    assert (i10_metadata._relative_polar[998, :] == 0).all()
+    assert_almost_equal(i10_metadata._relative_polar[1020, 15], -0.00217901343)
+    assert_almost_equal(i10_metadata._relative_polar[0, 1278], 0.0985280567)
+    assert_almost_equal(i10_metadata._relative_polar[19, 0], 0.0966640471)
+    assert_almost_equal(i10_metadata._relative_polar[21, 1999], 0.0964677961)
 
 
-def test_init_relative_azimuth(metadata_01: Metadata):
+def test_init_relative_azimuth(i10_metadata: RSMMetadata):
     """
     Make sure that metadata._relative_azimuth is initialized correctly. This is
     used in all reciprocal space mapping routines.
     """
-    metadata_01._init_relative_azimuth()
+    i10_metadata._init_relative_azimuth()
 
     # Now check some values (manually calculated).
-    assert (metadata_01._relative_azimuth[:, 80] == 0).all()
+    assert (i10_metadata._relative_azimuth[:, 1016] == 0).all()
+    assert_almost_equal(i10_metadata._relative_azimuth[0, 0], -0.100293327)
+    assert_almost_equal(i10_metadata._relative_azimuth[234, -1], 0.101763908)
     assert_almost_equal(
-        metadata_01._relative_azimuth[0, 0], -0.00399997867, 10)
-    assert_almost_equal(  # Index -1 is index 1999
-        metadata_01._relative_azimuth[234, -1], 0.0956571644, 10)
+        i10_metadata._relative_azimuth[1263, 1500], 0.047901699)
     assert_almost_equal(
-        metadata_01._relative_azimuth[1263, 1500], 0.0708810559, 10)
-    assert_almost_equal(
-        metadata_01._relative_azimuth[1863, 945], 0.0432230629, 10)
+        i10_metadata._relative_azimuth[12, 945], -0.00703216581)
 
 
-def test_relative_polar(metadata_01: Metadata):
+def test_relative_polar(i10_metadata: RSMMetadata):
     """
     Make sure that init relative theta is only called once.
     """
-    _ = metadata_01.relative_polar
-    metadata_01._init_relative_polar = lambda: 1/0
+    _ = i10_metadata.relative_polar
+    i10_metadata._init_relative_polar = lambda: 1/0
 
     # This shouldn't raise because _init_relative_polar shouldn't run again.
-    assert (metadata_01.relative_polar[20, :] == 0).all()
+    assert (i10_metadata.relative_polar[998, :] == 0).all()
 
 
-def test_relative_azimuth(metadata_01: Metadata):
+def test_relative_azimuth(i10_metadata: RSMMetadata):
     """
     Make sure that init relative phi is only called once. Make sure that it's
     returning the correct array.
     """
-    _ = metadata_01.relative_azimuth
-    metadata_01._init_relative_azimuth = lambda: 1/0
+    _ = i10_metadata.relative_azimuth
+    i10_metadata._init_relative_azimuth = lambda: 1/0
 
     # This shouldn't raise because _init_relative_azimuth shouldn't run again.
-    assert (metadata_01.relative_azimuth[:, 80] == 0).all()
+    assert (i10_metadata.relative_azimuth[:, 1016] == 0).all()
 
 
-def test_init_solid_angles(metadata_01: Metadata):
+def test_init_solid_angles(i10_metadata: RSMMetadata):
     """
     Make sure that initializing the solid angles doesn't corrupt our relative
     theta/phi arrays. This isn't trivial since, during the calculation of solid
     angles, the data shape is hacked and relative_polar+relative_azimuth are
     recalculated twice each.
     """
-    relative_polar = deepcopy(metadata_01.relative_polar)
-    print(relative_polar.shape)
-    relative_azimuth = deepcopy(metadata_01.relative_azimuth)
-    metadata_01._init_solid_angles()
+    relative_polar = deepcopy(i10_metadata.relative_polar)
+    relative_azimuth = deepcopy(i10_metadata.relative_azimuth)
+    i10_metadata._init_solid_angles()
 
-    assert (relative_polar == metadata_01.relative_polar).all()
-    assert (relative_azimuth == metadata_01.relative_azimuth).all()
+    assert (relative_polar == i10_metadata.relative_polar).all()
+    assert (relative_azimuth == i10_metadata.relative_azimuth).all()
 
 
-def test_solid_angle_init_once(metadata_01: Metadata):
+def test_solid_angle_init_once(i10_metadata: RSMMetadata):
     """
     Make sure that solid angles are initialized exactly once.
     """
-    _ = metadata_01.solid_angles
-    metadata_01._init_solid_angles = lambda: 1/0
+    _ = i10_metadata.solid_angles
+    i10_metadata._init_solid_angles = lambda: 1/0
 
     # This shouldn't raise because _init_solid_angle shouldn't run again.
-    _ = metadata_01.solid_angles
+    _ = i10_metadata.solid_angles
 
 
-def test_solid_angle_values(metadata_01: Metadata):
+def test_solid_angle_values(i10_metadata: RSMMetadata):
     """
     Make sure that the solid angles follow the correct trend (the biggest solid
     angle should be at the PONI pixel). Note that, as a quirk of the current
     approximate solid angle calculation, there are 4 pixels with a maximal solid
     angle.
     """
-    max_pixels = np.where(metadata_01.solid_angles == np.max(
-        metadata_01.solid_angles))
-    min_pixels = np.where(metadata_01.solid_angles == np.min(
-        metadata_01.solid_angles))
-    assert 20 in max_pixels[0]
-    assert 80 in max_pixels[1]
-    assert 1999 in min_pixels[0]
-    assert 1999 in min_pixels[1]
+    max_pixels = np.where(i10_metadata.solid_angles == np.max(
+        i10_metadata.solid_angles))
+    min_pixels = np.where(i10_metadata.solid_angles == np.min(
+        i10_metadata.solid_angles))
+    assert 998 in max_pixels[0]
+    assert 1016 in max_pixels[1]
+    assert 2047 in min_pixels[0]
+    assert 2047 in min_pixels[1]
     assert len(max_pixels[0]) == 4
     assert len(max_pixels[1]) == 4
 
 
-def test_incident_wavelength(metadata_01: Metadata):
+def test_incident_wavelength(i10_metadata: RSMMetadata):
     """
     Assert that we can correctly calculate wavelength from energies.
     """
-    copper_kalpha_eV = 8.04e3
-    metadata_01.energy = copper_kalpha_eV
-
-    assert_almost_equal(metadata_01.incident_wavelength, 1.54, 2)
+    # We're using the Cu L-3 edge.
+    assert_almost_equal(i10_metadata.incident_wavelength, 13.30627304411753, 6)
 
 
-def test_q_incident_length(metadata_01: Metadata):
+def test_q_incident_length(i10_metadata: RSMMetadata):
     """
     Make sure that our q-vector calculation is correct. Test it against Cu
     k-alpha.
     """
-    copper_kalpha_eV = 8.04e3
-    metadata_01.energy = copper_kalpha_eV
-
-    assert_almost_equal(metadata_01.q_incident_lenth, 1/1.54, 2)
+    # We're using the Cu L-3 edge.
+    assert_almost_equal(i10_metadata.q_incident_lenth, 1/13.30627304411753)

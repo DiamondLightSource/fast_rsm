@@ -125,33 +125,30 @@ class RSMMetadata:
             exact treatment.
         """
         # We're going to need to inc the data shape to hack this.
-        data_shape = self.diffractometer.data_file.image_shape
-        data_shape = data_shape[0]+1, data_shape[1]
-        self._init_relative_polar()
+        data_shape = self.data_file.image_shape
+        self._init_relative_polar((data_shape[0]+1, data_shape[1]))
         theta_diffs = np.copy(self.relative_polar)
         theta_diffs = -np.diff(theta_diffs, axis=0)  # Remember the minus sign!
 
-        data_shape = data_shape[0]-1, data_shape[1]+1
-
-        self._init_relative_azimuth()
+        self._init_relative_azimuth((data_shape[0], data_shape[1]+1))
         phi_diffs = np.copy(self._relative_azimuth)
         phi_diffs = np.diff(phi_diffs, axis=1)
 
-        # Now return the shape back to normal (in case data_file.image_shape was
-        # a list and we had a reference to it, for example).
-        data_shape = data_shape[0], data_shape[1]-1
+        # Now return the relative polar/azimuth arrays to normal.
         self._init_relative_polar()
         self._init_relative_azimuth()
 
         # And finally, do what we came here to do: a scuffed calculation.
         self._solid_angles = phi_diffs*theta_diffs
 
-    def _init_relative_polar(self):
+    def _init_relative_polar(self, image_shape: int = None):
         """
         Initializes the relative_polar array.
         """
+        if image_shape is None:
+            image_shape = self.data_file.image_shape
         # First we want to calculate pixel offsets.
-        num_y_pixels = self.diffractometer.data_file.image_shape[0]
+        num_y_pixels = image_shape[0]
         # Imagine num_y_pixels = 11.
         # pixel_offsets = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
         pixel_offsets = np.arange(num_y_pixels-1, -1, -1)
@@ -179,17 +176,19 @@ class RSMMetadata:
                                    self.data_file.detector_distance)
 
         # Now use these offsets to initialize the relative_polar array.
-        self._relative_polar = np.zeros(self.data_file.image_shape)
+        self._relative_polar = np.zeros(image_shape)
         for i, theta_offset in enumerate(theta_offsets):
             self._relative_polar[i, :] = theta_offset
 
-    def _init_relative_azimuth(self):
+    def _init_relative_azimuth(self, image_shape: int = None):
         """
         Initializes the relative_azimuth array.
         """
+        if image_shape is None:
+            image_shape = self.data_file.image_shape
         # Follow the recipe from above.
         # Because we don't need to invert any axes, this is easier to follow.
-        num_x_pixels = self.data_file.image_shape[1]
+        num_x_pixels = image_shape[1]
         pixel_offsets = np.arange(0, num_x_pixels)
         x_beam_centre = self.beam_centre[1]
         pixel_offsets -= x_beam_centre
@@ -200,6 +199,6 @@ class RSMMetadata:
                                  self.data_file.detector_distance)
 
         # Now use these offsets to initialize the relative_azimuth array
-        self._relative_azimuth = np.zeros(self.data_file.image_shape)
+        self._relative_azimuth = np.zeros(image_shape)
         for i, column in enumerate(phi_offsets):
             self._relative_azimuth[:, i] = column
