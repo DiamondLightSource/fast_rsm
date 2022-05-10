@@ -3,13 +3,13 @@ This module contains the scan class, that will be used to store all of the
 information relating to a reciprocal space scan.
 """
 
+import logging
 from pathlib import Path
 from typing import List, Union, Tuple
 
 import numpy as np
 
-from diffraction_utils import I10Nexus
-from diffraction_utils import Vector3
+from diffraction_utils import I10Nexus, Vector3, Frame
 from diffraction_utils.diffractometers import I10RasorDiffractometer
 
 from .image import Image
@@ -33,34 +33,32 @@ class Scan:
         self.metadata = metadata
 
         self._rsm = None
+        self._rsm_frame = None
 
-    @property
-    def reciprocal_space_map(self):
+    def reciprocal_space_map(self, frame: Frame):
         """
         Returns a full RSM from this scan's constutuent images.
         """
-        if self._rsm is None:
-            self._init_rsm()
+        if self._rsm_frame != frame:
+            self._init_rsm(frame)
 
         return self._rsm
 
-    def _init_rsm(self,
-                  lattice_parameters: Union[List, np.ndarray, float] = None,
-                  sample_orientation: Tuple[int] = (0, 1, 0)):
+    def _init_rsm(self, frame: Frame):
         """
         Initializes the scan's reciprocal space map.
 
         Args:
-            lattice_parameters:
-                The lattice parameters of the crystal we're mapping. Can be just
-                a float in the case of a cubic crystal. In the case of an
-                orthorhombic crystal, takes a numpy array/list of the three
-                conventional lattice vectors [a, b, c].
-            sample_orientation:
-                What face is out of plane? Takes miller indices as a Tuple.
-                Defaults to (0,1,0).
+            frame:
+                The frame of reference in which we want to carry out the
+                reciprocal space map.
         """
-        raise NotImplementedError()
+        delta_qs = []
+        intensities = []
+        for num, image in enumerate(self.images):
+            delta_qs.append(image.delta_q(frame))
+            intensities.append(image.data)
+            logging.info(num)
 
     @classmethod
     def from_i10(cls,
