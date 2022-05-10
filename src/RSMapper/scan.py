@@ -7,8 +7,6 @@ import logging
 from pathlib import Path
 from typing import List, Union, Tuple
 
-import numpy as np
-
 from diffraction_utils import I10Nexus, Vector3, Frame
 from diffraction_utils.diffractometers import I10RasorDiffractometer
 
