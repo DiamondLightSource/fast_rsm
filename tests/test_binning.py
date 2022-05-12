@@ -4,7 +4,7 @@ This module provides tests for the functions in the RSMapper.binning module.
 
 import numpy as np
 
-from RSMapper.binning import _correct_stop, _finite_diff_shape, linear_bin
+from RSMapper.binning import _correct_stop, finite_diff_shape, linear_bin
 
 
 def test_correct_stop():
@@ -27,7 +27,7 @@ def test_finite_diff_shape():
     stop = np.array([2.6, 3, 3])
     step = np.array([0.1, 0.1, 0.1])
 
-    assert (_finite_diff_shape(start, stop, step) == [17, 21, 11]).all()
+    assert (finite_diff_shape(start, stop, step) == [17, 21, 11]).all()
 
 
 def test_linear_bin():
