@@ -15,8 +15,6 @@ def _correct_stop(start: np.ndarray, stop: np.ndarray, step: np.ndarray):
     return start + num_steps*step
 
 
-
-
 def _fix_delta_q_geometry(arr: np.ndarray) -> np.ndarray:
     """
     If arr.shape is 3D, make it 2D.
@@ -34,12 +32,14 @@ def _fix_intensity_geometry(arr: np.ndarray) -> np.ndarray:
         return arr.flatten()
     return arr
 
+
 def finite_diff_shape(start: np.ndarray, stop: np.ndarray, step: np.ndarray):
     """
     Works out the shape of the finite differences grid that we're going to need
     to store data with this start, stop and step.
     """
     return ((stop-start)/step + 1).astype(np.int32)
+
 
 def linear_bin(coords: np.ndarray,  # Coordinates of each intensity.
                intensities: np.ndarray,  # The corresponding intensities.
