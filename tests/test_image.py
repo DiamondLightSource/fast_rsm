@@ -23,9 +23,9 @@ def test_data(i10_scan: Scan):
     """
     Make sure that image_instance.data is properly normalized.
     """
-    images = i10_scan.images
+    image = i10_scan.load_image(0)
     metadata = i10_scan.metadata
-    assert (images[0].data == images[0]._raw_data/metadata.solid_angles).all()
+    assert (image.data == image._raw_data/metadata.solid_angles).all()
 
 
 def test_delta_q_01(i10_scan: Scan):
@@ -35,7 +35,7 @@ def test_delta_q_01(i10_scan: Scan):
     brightest pixel and assuming that we scatter through the (100) to get there.
     """
     # We should be on the Bragg peak in the centre image.
-    image = i10_scan.images[70]
+    image = i10_scan.load_image(70)
 
     frame = Frame(Frame.hkl, i10_scan.metadata.diffractometer)
 
@@ -55,7 +55,7 @@ def test_binning(i10_scan: Scan):
     Make sure that no data is being lost when binning is carried out. This test
     is implicitly testing _fix_intensity_geometry and _fix_delta_q_geometry.
     """
-    image = i10_scan.images[67]
+    image = i10_scan.load_image(67)
     frame = Frame(Frame.hkl, i10_scan.metadata.diffractometer)
     delta_q = image.delta_q(frame)
 

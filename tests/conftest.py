@@ -90,30 +90,12 @@ def i07_detector_distance_01():
     return 0.5026
 
 
-@fixture(scope='session')
-def session_path_to_resources():
+@fixture
+def i10_scan(i10_nxs_path, path_to_resources) -> Scan:
     """
-    Session scoped resource path.
-    """
-    if os.path.exists("tests/resources/i07-418550.nxs"):
-        return "tests/resources/"
-    return "resources/"
-
-
-@fixture(scope='session')
-def i10_nx_01(session_path_to_resources):
-    """
-    Returns the path to an i10 nexus file.
-    """
-    return session_path_to_resources + "i10-693862.nxs"
-
-
-@fixture(scope='session')
-def i10_scan(i10_nx_01, session_path_to_resources) -> Scan:
-    """
-    Returns a full scan object over 141 images. This is an expensive fixture so
-    we session scope it.
+    Returns a full scan object over 141 images. Because of memory optimizations,
+    this doesn't cost anything until a call to .get_image is made.
     """
     sample_oop = Vector3([0, 1, 0], Frame(Frame.sample_holder))
-    return Scan.from_i10(i10_nx_01, (998, 1016), 0.1363, sample_oop,
-                         session_path_to_resources)
+    return Scan.from_i10(i10_nxs_path, (998, 1016), 0.1363, sample_oop,
+                         path_to_resources)
