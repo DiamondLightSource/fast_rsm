@@ -2,8 +2,10 @@
 This module contains the class that is used to store images.
 """
 
-import numpy as np
+from typing import List
 
+import numpy as np
+from PIL import Image as PILImage
 from diffraction_utils import Frame
 
 from .rsm_metadata import RSMMetadata
@@ -138,3 +140,10 @@ class Image:
         delta_q *= self.metadata.q_incident_lenth
 
         return delta_q
+
+    @classmethod
+    def from_image_paths(cls, paths: List[str], metadata, img_idx):
+        """
+        Loads an image from a list of paths and an image index.
+        """
+        return cls(np.array(PILImage.open(paths[img_idx])), metadata, img_idx)
