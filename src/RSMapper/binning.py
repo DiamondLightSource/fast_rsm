@@ -49,7 +49,8 @@ def linear_bin(coords: np.ndarray,  # Coordinates of each intensity.
                ) -> np.ndarray:
     """
     Bin intensities with coordinates coords into linearly spaced finite
-    differences bins.
+    differences bins. This is bottlenecking and should be rewritten as a numpy
+    C extension to achieve perfect performance.
     """
     # Fix the geometry of the input arguments.
     coords = _fix_delta_q_geometry(coords)
@@ -66,16 +67,26 @@ def linear_bin(coords: np.ndarray,  # Coordinates of each intensity.
     # Round to integers. Note that the type is still float64.
     np.rint(coords, out=coords)
 
+    # The following routine is bad in memory but makes numpy happy.
+    # Kill any coords that are out of bounds.
+    coord_in_bounds = (coords >= 0) * (coords < shape)
+    intensities *= coord_in_bounds[:, 0]
+    intensities *= coord_in_bounds[:, 1]
+    intensities *= coord_in_bounds[:, 2]
+    # And finally bin those empty intensities to the origin.
+    coords *= coord_in_bounds
+
     # Now convert to tuple of integer arrays for array indexing to work.
     coords = (coords[:, 0].astype(np.int32),
               coords[:, 1].astype(np.int32),
               coords[:, 2].astype(np.int32))
+
     # Flatten the coordinates; we need this for np.bincount to work.
     flat_indices = np.ravel_multi_index(coords, shape)
     # Now we can use bincount to work out the intensities.
     bincount = np.bincount(flat_indices, weights=intensities,
                            minlength=size)
-
+    print(f"Bincount shape: {bincount.shape}")
     bincount = bincount.reshape(shape)
 
     return bincount
