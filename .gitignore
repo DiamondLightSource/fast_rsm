@@ -5,3 +5,5 @@
 693862-pimte-files
 notebooks
 *.log
+*.vtk
+*.vtr
