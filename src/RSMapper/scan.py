@@ -87,6 +87,9 @@ def _bin_maps_with_indices(indices: List[int],
     intermediate function call is to decrease the amount of context switching/
     serialization that the interpreter has to do.
     """
+    # We need to catch all exceptions and explicitly print them in worker
+    # threads.
+    # pylint: disable=broad-except.
     try:
         for idx in indices:
             _bin_one_map(frame, start, stop, step, image_paths, idx, metadata)
