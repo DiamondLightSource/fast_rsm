@@ -1,11 +1,15 @@
 """
-This module contains the scan class, that will be used to store all of the
+This module contains the scan class, that is used to store all of the
 information relating to a reciprocal space scan.
+
+TODO: Better exception handling.
 """
 
-import logging
+from multiprocessing.pool import Pool
+from multiprocessing.shared_memory import SharedMemory
+from multiprocessing import Lock
 from pathlib import Path
-from typing import Union, Tuple, Callable
+from typing import Union, Tuple, List
 
 import numpy as np
 
@@ -15,6 +19,79 @@ from diffraction_utils.diffractometers import I10RasorDiffractometer
 from .binning import linear_bin, finite_diff_shape
 from .image import Image
 from .rsm_metadata import RSMMetadata
+
+
+# Make a global lock for the shared memory block used in parallel code.
+LOCK = Lock()
+
+
+def _load_image(image_paths: List[str],
+                metadata: RSMMetadata,
+                img_idx: int) -> Image:
+    """A global (and therefore picklable) image loader."""
+    return Image.from_image_paths(image_paths, metadata, img_idx)
+
+
+def _chunks(lst, num_chunks):
+    """Split lst into num_chunks almost evenly sized chunks."""
+    chunk_size = int(len(lst)/num_chunks)
+    if chunk_size * num_chunks < len(lst):
+        chunk_size += 1
+    for i in range(0, len(lst), chunk_size):
+        yield lst[i:i + chunk_size]
+
+
+def _bin_one_map(frame: Frame,
+                 start: np.ndarray,
+                 stop: np.ndarray,
+                 step: np.ndarray,
+                 image_paths: List[str],
+                 idx: int,
+                 metadata: RSMMetadata
+                 ) -> None:
+    """
+        Calculates and bins the reciprocal space map with index idx. Saves the
+        result to the shared memory buffer.
+        """
+    shared_mem = SharedMemory(name='arr')
+    shape = finite_diff_shape(start, stop, step)
+    final_data = np.ndarray(shape, dtype=np.float64, buffer=shared_mem.buf)
+    image = _load_image(image_paths, metadata, idx)
+    # Do the mapping for this image; bin the mapping.
+    delta_q = image.delta_q(frame)
+    binned_q = linear_bin(delta_q,
+                          image.data,
+                          start,
+                          stop,
+                          step)
+
+    # Update the final data array in a thread safe way.
+    with LOCK:
+        final_data += binned_q
+
+    # logging.info("idx %i", idx)
+    # Do some tidying up.
+    shared_mem.close()
+
+
+def _bin_maps_with_indices(indices: List[int],
+                           frame: Frame,
+                           start: np.ndarray,
+                           stop: np.ndarray,
+                           step: np.ndarray,
+                           image_paths: List[str],
+                           metadata: RSMMetadata
+                           ) -> None:
+    """
+    Bins all of the maps with indices in indices. The purpose of this
+    intermediate function call is to decrease the amount of context switching/
+    serialization that the interpreter has to do.
+    """
+    try:
+        for idx in indices:
+            _bin_one_map(frame, start, stop, step, image_paths, idx, metadata)
+    except Exception as exception:
+        print(f"Exception thrown in bin_one_map: \n{exception}")
 
 
 class Scan:
@@ -30,10 +107,11 @@ class Scan:
             instance of Image with that corresponding index.
     """
 
-    def __init__(self, metadata: RSMMetadata,
-                 image_loader: Callable[[int], Image]):
+    def __init__(self,
+                 metadata: RSMMetadata,
+                 image_paths: List[str]):
         self.metadata = metadata
-        self.load_image = image_loader
+        self.image_paths = image_paths
 
         self._rsm = None
         self._rsm_frame = None
@@ -66,29 +144,58 @@ class Scan:
             num_threads:
                 How many threads to use for this calculation. Defaults to 1.
         """
+        # Lets prevent complicated errors from showing up somewhere deeper.
         start, stop, step = np.array(start), np.array(stop), np.array(step)
-        if num_threads != 1:
-            raise NotImplementedError(
-                "Reciprocal space maps are currently single threaded only.")
 
-        # Prepare the final binned data array.
-        final_data = np.zeros(finite_diff_shape(start, stop, step))
+        # Prepare an array with the same shape as our final binned data array.
+        shape = finite_diff_shape(start, stop, step)
+        # Note that this doesn't initialise the array; arr is nonsense.
+        arr = np.ndarray(shape=shape)
 
-        # Load images one by one.
-        for idx in range(self.metadata.data_file.scan_length):
-            logging.debug("Mapping image number %i.", idx)
-            image = self.load_image(idx)
-            # Do the mapping for this image in correct frame; bin the mapping.
-            delta_q = image.delta_q(frame)
-            binned_dq = linear_bin(delta_q,
-                                   image.data,
-                                   start,
-                                   stop,
-                                   step)
+        # Make a shared memory block for final_data; initialize it.
+        shared_mem = SharedMemory('arr', create=True, size=arr.nbytes)
 
-            # Add this freshly binned data to our overall reciprocal space map.
-            final_data += binned_dq
+        # Now hook final_data up to the shared_mem buffer that we just made.
+        final_data = np.ndarray(shape, dtype=arr.dtype,
+                                buffer=shared_mem.buf)
+        # Set the array to be full of zeros.
+        final_data.fill(0)
 
+        # A pool-less single threaded approach.
+        if num_threads == 1:
+            print("Using single threaded routine.")
+            final_data = np.zeros(shape)
+            for i in range(self.metadata.data_file.scan_length):
+                print(f"Processing image {i}...")
+                img = self.load_image(i)
+                final_data += linear_bin(
+                    img.delta_q(frame),
+                    img.data,
+                    start, stop, step)
+            return final_data
+
+        # The high performance approach.
+        with Pool(processes=num_threads) as pool:
+            # Submit all of the image processing functions to the pool as jobs.
+            async_results = []
+            for indices in _chunks(list(range(
+                    self.metadata.data_file.scan_length)), num_threads):
+                async_results.append(pool.apply_async(
+                    _bin_maps_with_indices,
+                    (indices, frame, start, stop, step, self.image_paths,
+                     self.metadata,)))
+
+            # Wait for all the work to complete.
+            for result in async_results:
+                result.wait()
+                if not result.successful():
+                    raise ValueError(
+                        "Could not carry out map for an unknown reason.")
+
+        # Close the shared memory pool; return the final data.
+        final_data = np.copy(final_data)
+        shared_mem.close()
+        shared_mem.unlink()
         return final_data
 
     def reciprocal_space_map(self, frame: Frame, num_threads: int = 1):
@@ -111,11 +218,17 @@ class Scan:
         delta_qs = []
         # Load images one by one.
         for idx in range(self.metadata.data_file.scan_length):
-            image = self.load_image(idx)
+            image = _load_image(self.image_paths, self.metadata, idx)
             # Do the mapping for this image in correct frame.
             delta_qs.append(image.delta_q(frame))
 
         return delta_qs
+
+    def load_image(self, idx: int):
+        """
+        Convenience method for loading a single image. This is unpicklable.
+        """
+        return _load_image(self.image_paths, self.metadata, idx)
 
     @classmethod
     def from_i10(cls,
@@ -156,9 +269,5 @@ class Scan:
         # Make sure the sample_oop vector's frame's diffractometer is correct.
         sample_oop.frame.diffractometer = diff
 
-        def image_loader(img_idx: int):
-            """The image loader for I10 images."""
-            return Image(i10_nexus.load_image_array(img_idx, path_to_tiffs),
-                         metadata=meta, index=img_idx)
-
-        return cls(meta, image_loader)
+        image_paths = meta.data_file.get_local_image_paths(path_to_tiffs)
+        return cls(meta, image_paths)
