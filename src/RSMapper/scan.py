@@ -13,8 +13,9 @@ from typing import Union, Tuple, List
 
 import numpy as np
 
-from diffraction_utils import I10Nexus, Vector3, Frame
-from diffraction_utils.diffractometers import I10RasorDiffractometer
+from diffraction_utils import I07Nexus, I10Nexus, Vector3, Frame
+from diffraction_utils.diffractometers import \
+    I10RasorDiffractometer, I07Diffractometer
 
 from .binning import linear_bin, finite_diff_shape
 from .image import Image
@@ -274,3 +275,47 @@ class Scan:
 
         image_paths = meta.data_file.get_local_image_paths(path_to_tiffs)
         return cls(meta, image_paths)
+
+    @classmethod
+    def from_i07(cls,
+                 path_to_nx: Union[str, Path],
+                 beam_centre: Tuple[int],
+                 detector_distance: float,
+                 setup: str,
+                 sample_oop: Vector3,
+                 path_to_tiffs: str = ''):
+        """
+        Instantiates a Scan from the path to an I07 nexus file, a beam centre
+        coordinate tuple, a detector distance and a sample out-of-plane vector.
+
+        Args:
+            path_to_nx:
+                Path to the nexus file containing the scan metadata.
+            beam_centre:
+                A (y, x) tuple of the beam centre, measured in the usual image
+                coordinate system, in units of pixels.
+            detector_distance:
+                The distance between the sample and the detector.
+            setup:
+                What was the experimental setup? Can be "vertical", "horizontal"
+                or "DCD".
+            sample_oop:
+                An instance of a diffraction_utils Vector3 which descrbes the
+                sample out of plane vector.
+            path_to_tiffs:
+                Path to the directory in which the images are stored. Defaults
+                to '', in which case a bunch of reasonable directories will be
+                searched for the images.
+        """
+        # Load the nexus file.
+        i07_nexus = I07Nexus(path_to_nx, detector_distance, setup)
+
+        # Load the state of the diffractometer; prepare the RSM metadata.
+        diff = I07Diffractometer(i07_nexus, sample_oop, setup)
+        metadata = RSMMetadata(diff, beam_centre)
+
+        # Make sure that the sample_oop vector's frame's diffractometer is good.
+        sample_oop.frame.diffractometer = diff
+
+        image_paths = metadata.data_file.get_local_image_paths(path_to_tiffs)
+        return cls(metadata, image_paths)
