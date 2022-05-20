@@ -5,6 +5,7 @@ information relating to a reciprocal space scan.
 TODO: Better exception handling.
 """
 
+import atexit
 from multiprocessing.pool import Pool
 from multiprocessing.shared_memory import SharedMemory
 from multiprocessing import Lock
@@ -158,6 +159,8 @@ class Scan:
 
         # Make a shared memory block for final_data; initialize it.
         shared_mem = SharedMemory('arr', create=True, size=arr.nbytes)
+        # Make sure that we can never leak this memory.
+        atexit.register(shared_mem.unlink)
 
         # Now hook final_data up to the shared_mem buffer that we just made.
         final_data = np.ndarray(shape, dtype=arr.dtype,
@@ -282,7 +285,7 @@ class Scan:
                  beam_centre: Tuple[int],
                  detector_distance: float,
                  setup: str,
-                 sample_oop: Vector3,
+                 sample_oop: Union[Vector3, np.ndarray, List[float]],
                  path_to_tiffs: str = ''):
         """
         Instantiates a Scan from the path to an I07 nexus file, a beam centre
@@ -309,6 +312,10 @@ class Scan:
         """
         # Load the nexus file.
         i07_nexus = I07Nexus(path_to_nx, detector_distance, setup)
+
+        if not isinstance(sample_oop, Frame):
+            frame = Frame(Frame.sample_holder, None, None)
+            sample_oop = Vector3(sample_oop, frame)
 
         # Load the state of the diffractometer; prepare the RSM metadata.
         diff = I07Diffractometer(i07_nexus, sample_oop, setup)
