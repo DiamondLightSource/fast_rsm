@@ -5,6 +5,8 @@ information relating to a reciprocal space scan.
 TODO: Better exception handling.
 """
 
+# pylint: disable=protected-access
+
 import atexit
 from multiprocessing.pool import Pool
 from multiprocessing.shared_memory import SharedMemory
@@ -49,7 +51,8 @@ def _bin_one_map(frame: Frame,
                  step: np.ndarray,
                  image_paths: List[str],
                  idx: int,
-                 metadata: RSMMetadata
+                 metadata: RSMMetadata,
+                 processing_steps: list
                  ) -> None:
     """
         Calculates and bins the reciprocal space map with index idx. Saves the
@@ -59,6 +62,7 @@ def _bin_one_map(frame: Frame,
     shape = finite_diff_shape(start, stop, step)
     final_data = np.ndarray(shape, dtype=np.float64, buffer=shared_mem.buf)
     image = _load_image(image_paths, metadata, idx)
+    image._processing_steps = processing_steps
     # Do the mapping for this image; bin the mapping.
     delta_q = image.delta_q(frame)
     binned_q = linear_bin(delta_q,
@@ -82,7 +86,8 @@ def _bin_maps_with_indices(indices: List[int],
                            stop: np.ndarray,
                            step: np.ndarray,
                            image_paths: List[str],
-                           metadata: RSMMetadata
+                           metadata: RSMMetadata,
+                           processing_steps: list
                            ) -> None:
     """
     Bins all of the maps with indices in indices. The purpose of this
@@ -94,7 +99,8 @@ def _bin_maps_with_indices(indices: List[int],
     # pylint: disable=broad-except.
     try:
         for idx in indices:
-            _bin_one_map(frame, start, stop, step, image_paths, idx, metadata)
+            _bin_one_map(frame, start, stop, step, image_paths, idx, metadata,
+                         processing_steps)
     except Exception as exception:
         print(f"Exception thrown in bin_one_map: \n{exception}")
 
@@ -120,6 +126,19 @@ class Scan:
 
         self._rsm = None
         self._rsm_frame = None
+
+        self._processing_steps = []
+
+    def add_processing_step(self, function) -> None:
+        """
+        Adds the processing step to the processing pipeline.
+
+        Args:
+            function:
+                A function that takes a numpy array as an argument, and returns
+                a numpy array.
+        """
+        self._processing_steps.append(function)
 
     def binned_reciprocal_space_map(
         self,
@@ -175,6 +194,7 @@ class Scan:
             for i in range(self.metadata.data_file.scan_length):
                 print(f"Processing image {i}...")
                 img = self.load_image(i)
+                img._processing_steps = self._processing_steps
                 final_data += linear_bin(
                     img.delta_q(frame),
                     img.data,
@@ -190,7 +210,7 @@ class Scan:
                 async_results.append(pool.apply_async(
                     _bin_maps_with_indices,
                     (indices, frame, start, stop, step, self.image_paths,
-                     self.metadata,)))
+                     self.metadata, self._processing_steps)))
 
             # Wait for all the work to complete.
             for result in async_results:

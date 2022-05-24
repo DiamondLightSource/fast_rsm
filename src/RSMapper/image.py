@@ -41,6 +41,10 @@ class Image:
         # self.metadata should contain enough information for us to do this.
         self._correct_img_axes()
 
+        # Storage for all of the processing steps to be applied to the _raw_data
+        # prior to mapping.
+        self._processing_steps = []
+
     def _correct_img_axes(self):
         """
         Correct the image axes so that the image is the right way around, taking
@@ -51,12 +55,29 @@ class Image:
         necessary at this point.
         """
 
+    def add_processing_step(self, function) -> None:
+        """
+        Adds the processing step to the processing pipeline.
+
+        Args:
+            function:
+                A function that takes a numpy array as an argument, and returns
+                a numpy array.
+        """
+        self._processing_steps.append(function)
+
     @property
     def data(self):
         """
-        Returns the normalized data.
+        Returns the normalized, processed data. If you want to apply some
+        pre-processing to the data before mapping (e.g. by applying some
+        thresholding, masking, clustering, or any arbitrary algorithm) then
         """
-        return self._raw_data/self.metadata.solid_angles
+        arr = self._raw_data
+        for step in self._processing_steps:
+            arr = step(arr)
+
+        return arr/self.metadata.solid_angles
 
     def pixel_polar_angle(self, frame: Frame) -> np.ndarray:
         """
@@ -122,8 +143,7 @@ class Image:
         desired_shape = tuple(list(self._raw_data.shape) + [3])
         delta_q = np.zeros(desired_shape)
 
-        # Optimized trig calculations. One day, these should be done in C via
-        # lookup tables for maximum speed.
+        # Optimized trig calculations.
         cos_azimuth = np.cos(self.pixel_azimuthal_angle(frame))
         sin_azimuth = np.sqrt(1 - cos_azimuth**2)
         cos_polar = np.cos(self.pixel_polar_angle(frame))
@@ -138,6 +158,9 @@ class Image:
         # delta_q = q_out - q_in; finally, give it the correct length.
         delta_q -= self.diffractometer.get_incident_beam(frame).array
         delta_q *= self.metadata.q_incident_lenth
+
+        print("Top left: ", delta_q[0, 0, :])
+        print("Bottom right: ", delta_q[-1, -1, :])
 
         return delta_q
 
