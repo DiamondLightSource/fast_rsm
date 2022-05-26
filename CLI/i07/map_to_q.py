@@ -84,6 +84,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("-b", "--num_bins", help=HELP_STR, type=int,
                         default=os.environ.get("NUM_BINS"))
+
     HELP_STR = (
         "NOT ESSENTIAL (defaults sensibly).\n"
         "Specify the directory in which you would like your mapped data to be "
@@ -160,7 +161,13 @@ if __name__ == "__main__":
 
     q_lengths = np.linalg.norm(qs_flattened, axis=1)
     num_bins = args.num_bins  # Grab from the arg parser.
-    y, bin_edges = np.histogram(q_lengths, num_bins, weights=data_flattened)
+
+    # Put the intensities into bins.
+    y, _ = np.histogram(q_lengths, num_bins, weights=data_flattened)
+    # Normalise the intensity in each bin.
+    bincount, _ = np.histogram(q_lengths, num_bins)
+    y /= bincount
+
     x = np.arange(0, np.max(q_lengths), np.max(q_lengths)/num_bins)
 
     # Save the data.
