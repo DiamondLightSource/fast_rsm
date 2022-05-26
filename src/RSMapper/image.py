@@ -116,16 +116,6 @@ class Image:
         # Now return the azimuthal angle at each pixel.
         return self.metadata.relative_azimuth + detector_vector.azimuthal_angle
 
-    @property
-    def q_out(self) -> np.ndarray:
-        """
-        Returns the q vectors of the light after scattering to each pixel on the
-        detector.
-        """
-        q_z = np.zeros_like(self.delta_q)
-        q_z[:, :, 2] = self.metadata.q_incident_lenth
-        return self.delta_q + q_z
-
     def delta_q(self, frame: Frame) -> None:
         """
         Calculates the wavevector through which light had to scatter to reach
@@ -158,9 +148,6 @@ class Image:
         # delta_q = q_out - q_in; finally, give it the correct length.
         delta_q -= self.diffractometer.get_incident_beam(frame).array
         delta_q *= self.metadata.q_incident_lenth
-
-        print("Top left: ", delta_q[0, 0, :])
-        print("Bottom right: ", delta_q[-1, -1, :])
 
         return delta_q
 
