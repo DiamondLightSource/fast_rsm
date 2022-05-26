@@ -136,7 +136,7 @@ class RSMMetadata:
 
         self._init_relative_azimuth((data_shape[0], data_shape[1]+1))
         phi_diffs = np.copy(self._relative_azimuth)
-        phi_diffs = np.diff(phi_diffs, axis=1)
+        phi_diffs = -np.diff(phi_diffs, axis=1)
 
         # Now return the relative polar/azimuth arrays to normal.
         self._init_relative_polar()
@@ -190,12 +190,13 @@ class RSMMetadata:
         """
         if image_shape is None:
             image_shape = self.data_file.image_shape
+
         # Follow the recipe from above.
-        # Because we don't need to invert any axes, this is easier to follow.
+        # The azimuthal angle is larger towards the left of the image.
         num_x_pixels = image_shape[1]
-        pixel_offsets = np.arange(0, num_x_pixels)
+        pixel_offsets = np.arange(num_x_pixels-1, -1, -1)
         x_beam_centre = self.beam_centre[1]
-        pixel_offsets -= x_beam_centre
+        pixel_offsets -= ((num_x_pixels-1) - x_beam_centre)
 
         # Now convert from pixels to distances to angles.
         distance_offsets = pixel_offsets*self.data_file.pixel_size
