@@ -98,11 +98,11 @@ if __name__ == "__main__":
     parser.add_argument("--min_thresh", help=HELP_STR, type=float,
                         default=os.environ.get("MIN_THRESH"))
     HELP_STR = (
-        "The minimum value to threshold to. Defaults to MAX_THRESH environment "
+        "The maximum value to threshold to. Defaults to MAX_THRESH environment "
         "variable if set. If it isn't set, defaults to infinity."
     )
-    parser.add_argument("--min_thresh", help=HELP_STR, type=float,
-                        default=os.environ.get("MIN_THRESH"))
+    parser.add_argument("--max_thresh", help=HELP_STR, type=float,
+                        default=os.environ.get("MAX_THRESH"))
 
     HELP_STR = (
         "NOT ESSENTIAL (defaults sensibly).\n"
