@@ -16,12 +16,6 @@ from diffraction_utils import I07Nexus, Frame
 from RSMapper.scan import Scan
 
 
-def threshold(array):
-    array[array >= 4000] = 4000
-    array[array <= 1] = 0
-    return array
-
-
 if __name__ == "__main__":
     # First deal with the parsing of the command line arguments using the
     # argparse library.
@@ -98,6 +92,19 @@ if __name__ == "__main__":
                         default=os.environ.get("NUM_BINS"))
 
     HELP_STR = (
+        "The minimum value to threshold to. Defaults to MIN_THRESH environment "
+        "variable if set. If it isn't set, defaults to 0."
+    )
+    parser.add_argument("--min_thresh", help=HELP_STR, type=float,
+                        default=os.environ.get("MIN_THRESH"))
+    HELP_STR = (
+        "The minimum value to threshold to. Defaults to MAX_THRESH environment "
+        "variable if set. If it isn't set, defaults to infinity."
+    )
+    parser.add_argument("--min_thresh", help=HELP_STR, type=float,
+                        default=os.environ.get("MIN_THRESH"))
+
+    HELP_STR = (
         "NOT ESSENTIAL (defaults sensibly).\n"
         "Specify the directory in which you would like your mapped data to be "
         "stored. Defaults to the OUTPUT environment variable. "
@@ -135,6 +142,10 @@ if __name__ == "__main__":
     if args.num_bins is None:
         args.num_bins = 1000
 
+    min_thresh = args.min_thresh if args.min_thresh is not None else 0
+    max_thresh = args.max_thresh if args.max_thresh is not None else float(
+        'inf')
+
     # We should now have scraped all the data that we need to map an image.
     # First work out where our .nxs file should be stored.
     file_name = "i07-" + str(args.scan_number) + ".nxs"
@@ -154,6 +165,11 @@ if __name__ == "__main__":
                          setup=setup,
                          sample_oop=sample_oop,
                          path_to_tiffs=tiff_dir)
+
+    def threshold(array):
+        array[array >= max_thresh] = max_thresh
+        array[array <= min_thresh] = 0
+        return array
 
     # This is designed to be used when there's only 1 image in a scan.
     scan.add_processing_step(threshold)
