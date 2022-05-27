@@ -185,6 +185,10 @@ if __name__ == "__main__":
     if args.plot:
         print("Data saved! Plotting...")
         import plotly.graph_objects as go
+        fig = go.Figure().update_layout(title="Test",
+                                        xaxis_title='x-pixels',
+                                        yaxis_title='y-pixels')
+        fig.add_trace(go.Heatmap(z=image.data, colorscale='Jet'))
         title = "Intensity vs Q"
         fig = go.Figure().update_layout(title=title,
                                         xaxis_title='Q (1/Å)',
