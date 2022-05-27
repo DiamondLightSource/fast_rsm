@@ -17,7 +17,7 @@ from RSMapper.scan import Scan
 
 
 def threshold(array):
-    array[array >= 2000] = 2000
+    array[array >= 4000] = 4000
     array[array <= 1] = 0
     return array
 
@@ -83,6 +83,11 @@ if __name__ == "__main__":
         "Add --log if you want your --plot to be on a log scale."
     )
     parser.add_argument("--log", help=HELP_STR, action="store_true")
+
+    HELP_STR = (
+        "Add --nodelta to ignore the delta motor."
+    )
+    parser.add_argument("--nodelta", help=HELP_STR, action="store_true")
 
     HELP_STR = (
         "NOT ESSENTIAL (defaults sensibly).\n"
@@ -153,6 +158,12 @@ if __name__ == "__main__":
     # This is designed to be used when there's only 1 image in a scan.
     scan.add_processing_step(threshold)
     image = scan.load_image(0)
+
+    # Ignore the delta motor if asked to.
+    if args.nodelta:
+        image.metadata.data_file.delta = np.array([0])
+        scan.metadata.data_file.delta = np.array([0])
+
     data = threshold(image.data)
 
     import plotly.graph_objects as go
@@ -201,10 +212,6 @@ if __name__ == "__main__":
     if args.plot:
         print("Data saved! Plotting...")
         import plotly.graph_objects as go
-        fig = go.Figure().update_layout(title="Test",
-                                        xaxis_title='x-pixels',
-                                        yaxis_title='y-pixels')
-        fig.add_trace(go.Heatmap(z=data, colorscale='Jet'))
         title = "Intensity vs Q"
         fig = go.Figure().update_layout(title=title,
                                         xaxis_title='Q (1/Å)',
