@@ -15,6 +15,13 @@ import numpy as np
 from diffraction_utils import I07Nexus, Frame
 from RSMapper.scan import Scan
 
+
+def threshold(array):
+    array[array >= 2000] = 2000
+    array[array <= 1] = 0
+    return array
+
+
 if __name__ == "__main__":
     # First deal with the parsing of the command line arguments using the
     # argparse library.
@@ -144,7 +151,16 @@ if __name__ == "__main__":
                          path_to_tiffs=tiff_dir)
 
     # This is designed to be used when there's only 1 image in a scan.
+    scan.add_processing_step(threshold)
     image = scan.load_image(0)
+    data = threshold(image.data)
+
+    import plotly.graph_objects as go
+    fig = go.Figure().update_layout(title="Test",
+                                    xaxis_title='x-pixels',
+                                    yaxis_title='y-pixels')
+    fig.add_trace(go.Heatmap(z=data, colorscale='Jet'))
+    fig.show()
 
     # Map to reciprocal space.
     print("Loaded image! Beginning map...")
@@ -155,7 +171,7 @@ if __name__ == "__main__":
     # Now do some binning.
     qs_flattened = q.reshape((scan.metadata.data_file.image_shape[0] *
                               scan.metadata.data_file.image_shape[1], 3))
-    data_flattened = image.data.reshape(
+    data_flattened = data.reshape(
         (scan.metadata.data_file.image_shape[0] *
          scan.metadata.data_file.image_shape[1]))
 
@@ -188,7 +204,7 @@ if __name__ == "__main__":
         fig = go.Figure().update_layout(title="Test",
                                         xaxis_title='x-pixels',
                                         yaxis_title='y-pixels')
-        fig.add_trace(go.Heatmap(z=image.data, colorscale='Jet'))
+        fig.add_trace(go.Heatmap(z=data, colorscale='Jet'))
         title = "Intensity vs Q"
         fig = go.Figure().update_layout(title=title,
                                         xaxis_title='Q (1/Å)',
