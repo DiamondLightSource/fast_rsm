@@ -218,7 +218,7 @@ if __name__ == "__main__":
 
     # Save the data.
     datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
-    save_as = str(args.scan_number) + "_mapped_to_Q_" + datetime_str
+    save_as = str(args.scan_number) + "_mapped_to_Q_" + datetime_str + ".dat"
     save_as = args.output + save_as
     col_data = np.array([x, y]).reshape((num_bins, 2))
     np.savetxt(save_as, col_data, header="Q(1/Å) I(a.u.)")
