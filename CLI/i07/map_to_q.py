@@ -182,13 +182,6 @@ if __name__ == "__main__":
 
     data = threshold(image.data)
 
-    import plotly.graph_objects as go
-    fig = go.Figure().update_layout(title="Test",
-                                    xaxis_title='x-pixels',
-                                    yaxis_title='y-pixels')
-    fig.add_trace(go.Heatmap(z=data, colorscale='Jet'))
-    fig.show()
-
     # Map to reciprocal space.
     print("Loaded image! Beginning map...")
     map_frame = Frame(Frame.sample_holder, scan.metadata.diffractometer, 0)
@@ -228,6 +221,12 @@ if __name__ == "__main__":
     if args.plot:
         print("Data saved! Plotting...")
         import plotly.graph_objects as go
+        fig = go.Figure().update_layout(title="Raw image",
+                                        xaxis_title='x-pixels',
+                                        yaxis_title='y-pixels')
+        fig.add_trace(go.Heatmap(z=data, colorscale='Jet'))
+        fig.show()
+
         title = "Intensity vs Q"
         fig = go.Figure().update_layout(title=title,
                                         xaxis_title='Q (1/Å)',
