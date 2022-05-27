@@ -169,6 +169,9 @@ if __name__ == "__main__":
     y /= bincount
 
     x = np.arange(0, np.max(q_lengths), np.max(q_lengths)/num_bins)
+    # Correct the sizes, if needed.
+    if x.shape[0] == y.shape[0] + 1:
+        x = x[:-1]
 
     # Save the data.
     datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
