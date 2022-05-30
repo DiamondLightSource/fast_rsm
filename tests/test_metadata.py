@@ -59,12 +59,12 @@ def test_init_relative_azimuth(i10_metadata: RSMMetadata):
 
     # Now check some values (manually calculated).
     assert (i10_metadata._relative_azimuth[:, 1016] == 0).all()
-    assert_almost_equal(i10_metadata._relative_azimuth[0, 0], -0.100293327)
-    assert_almost_equal(i10_metadata._relative_azimuth[234, -1], 0.101763908)
+    assert_almost_equal(i10_metadata._relative_azimuth[0, 0], 0.100293327)
+    assert_almost_equal(i10_metadata._relative_azimuth[234, -1], -0.101763908)
     assert_almost_equal(
-        i10_metadata._relative_azimuth[1263, 1500], 0.047901699)
+        i10_metadata._relative_azimuth[1263, 1500], -0.047901699)
     assert_almost_equal(
-        i10_metadata._relative_azimuth[12, 945], -0.00703216581)
+        i10_metadata._relative_azimuth[12, 945], 0.00703216581)
 
 
 def test_relative_polar(i10_metadata: RSMMetadata):
