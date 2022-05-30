@@ -65,9 +65,9 @@ def _bin_one_map(frame: Frame,
                  processing_steps: list
                  ) -> None:
     """
-        Calculates and bins the reciprocal space map with index idx. Saves the
-        result to the shared memory buffer.
-        """
+    Calculates and bins the reciprocal space map with index idx. Saves the
+    result to the shared memory buffer.
+    """
     shared_mem = SharedMemory(name='arr')
     shape = finite_diff_shape(start, stop, step)
     final_data = np.ndarray(shape, dtype=np.float64, buffer=shared_mem.buf)
