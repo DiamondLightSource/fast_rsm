@@ -99,3 +99,11 @@ def i10_scan(i10_nxs_path, path_to_resources) -> Scan:
     sample_oop = Vector3([0, 1, 0], Frame(Frame.sample_holder))
     return Scan.from_i10(i10_nxs_path, (998, 1016), 0.1363, sample_oop,
                          path_to_resources)
+
+
+@fixture
+def path_to_i07_cli(path_to_resources: str) -> str:
+    """
+    Returns the path to the i07 CLI programs.
+    """
+    return path_to_resources + "../../CLI/i07/"
