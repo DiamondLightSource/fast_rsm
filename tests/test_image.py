@@ -68,7 +68,7 @@ def test_binning(i10_scan: Scan):
 
     step = np.array([(max0 - min0)/20, (max1 - min1)/20, (max2 - min2)/100])
     start = np.array([min0, min1, min2])
-    stop = np.array([max0, max1, max2])
+    stop = np.array([max0, max1, max2]) + step
 
     # Try to bin. Add an assert 1 == 2 to see single threaded bin performance.
     time1 = time()
