@@ -29,6 +29,16 @@ from .rsm_metadata import RSMMetadata
 LOCK = Lock()
 
 
+def _on_exit(shared_mem: SharedMemory):
+    """Make sure that the shared memory is cleaned when we exit."""
+    try:
+        print("Emergency unlinking shared memory.")
+        shared_mem.unlink()
+    except FileNotFoundError:
+        # The file has already been unlinked; do nothing.
+        pass
+
+
 def _load_image(image_paths: List[str],
                 metadata: RSMMetadata,
                 img_idx: int) -> Image:
@@ -179,7 +189,7 @@ class Scan:
         # Make a shared memory block for final_data; initialize it.
         shared_mem = SharedMemory('arr', create=True, size=arr.nbytes)
         # Make sure that we can never leak this memory.
-        atexit.register(shared_mem.unlink)
+        atexit.register(_on_exit, shared_mem)
 
         # Now hook final_data up to the shared_mem buffer that we just made.
         final_data = np.ndarray(shape, dtype=arr.dtype,
