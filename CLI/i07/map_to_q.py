@@ -224,7 +224,10 @@ if __name__ == "__main__":
         fig = go.Figure().update_layout(title="Raw image",
                                         xaxis_title='x-pixels',
                                         yaxis_title='y-pixels')
-        fig.add_trace(go.Heatmap(z=data, colorscale='Jet'))
+        if args.log:
+            fig.add_trace(go.Heatmap(z=np.log(data+1), colorscale='Jet'))
+        else:
+            fig.add_trace(go.Heatmap(z=data, colorscale='Jet'))
         fig.show()
 
         title = "Intensity vs Q"
