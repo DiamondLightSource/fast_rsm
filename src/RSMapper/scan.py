@@ -25,8 +25,15 @@ from .image import Image
 from .rsm_metadata import RSMMetadata
 
 
-# Make a global lock for the shared memory block used in parallel code.
-LOCK = Lock()
+def init_process_pool(lock: Lock):
+    """
+    Initializes a processing pool to have a global shared lock.
+    """
+    # pylint: disable=global-variable-undefined.
+
+    # Make a global lock for the shared memory block used in parallel code.
+    global LOCK
+    LOCK = lock
 
 
 def _on_exit(shared_mem: SharedMemory):
@@ -211,8 +218,15 @@ class Scan:
                     start, stop, step)
             return final_data
 
+        # If execution reaches here, we want a multithreaded binned RSM using
+        # a thread pool. For this, we'll need a lock to share between processes.
+        lock = Lock()
+
         # The high performance approach.
-        with Pool(processes=num_threads) as pool:
+        with Pool(processes=num_threads,  # The size of our pool.
+                  initializer=init_process_pool,  # Our pool's initializer.
+                  initargs=(lock,)  # The initializer makes this lock global.
+                  ) as pool:
             # Submit all of the image processing functions to the pool as jobs.
             async_results = []
             for indices in _chunks(list(range(
