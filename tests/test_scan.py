@@ -54,3 +54,33 @@ def test_binned_rsm_i07_421595(path_to_resources: str):
 
     # Make sure that we can re-create a map that is known to be correct.
     assert_allclose(data, rsmap)
+
+
+def test_binned_rsm_i10_693862(i10_scan: Scan, path_to_resources: str):
+    """
+    Make sure that we can deal with linearly binned data.
+
+    TODO: set memory/time limitations on this test. Test output vs a stored .vtk
+    file. Make this optional and make slow tests run via a flag.
+    """
+    # The necessary setup.
+    frame = Frame(Frame.hkl, i10_scan.metadata.diffractometer)
+    start = np.array([-0.0015, 0.11, -0.005])
+    stop = np.array([0.002, 0.115, 0.003])
+    step = np.array([0.0002, 0.0002, 0.0002])
+
+    # Do the reciprocal space map. Time it.
+    time1 = time()
+    rsm = i10_scan.binned_reciprocal_space_map(frame, start, stop, step, 10)
+    time2 = time()
+    time_taken = time2 - time1
+
+    # Make sure that it was done in < 60 ms per 4M image.
+    num_images = i10_scan.metadata.data_file.scan_length
+    time_per_image = time_taken/num_images
+    print(time_per_image)
+    assert time_per_image < 60e-3
+
+    # Make sure that our RSM checks out against the one known to be good.
+    data = np.load(path_to_resources + "i10_693862_coarse_map.npy")
+    assert_allclose(rsm, data)
