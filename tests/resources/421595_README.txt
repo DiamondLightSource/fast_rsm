@@ -1,0 +1,10 @@
+# The parameters required to generate 521595_mapped.dat using i07's map_to_q
+# are as follows:
+DETECTOR_DISTANCE=0.5026
+BEAM_CENTRE_X=739
+BEAM_CENTRE_Y=1329
+OUTPUT=tests/resources/
+DATA_PATH=/Users/richard/Data/i07/rsm_soller_test/421595/
+SCAN_NUMBER=421595
+MIN_THRESH=0
+MAX_THRESH=2e50
