@@ -46,13 +46,6 @@ def _on_exit(shared_mem: SharedMemory):
         pass
 
 
-def _load_image(image_paths: List[str],
-                metadata: RSMMetadata,
-                img_idx: int) -> Image:
-    """A global (and therefore picklable) image loader."""
-    return Image.from_image_paths(image_paths, metadata, img_idx)
-
-
 def _chunks(lst, num_chunks):
     """Split lst into num_chunks almost evenly sized chunks."""
     chunk_size = int(len(lst)/num_chunks)
@@ -66,7 +59,6 @@ def _bin_one_map(frame: Frame,
                  start: np.ndarray,
                  stop: np.ndarray,
                  step: np.ndarray,
-                 image_paths: List[str],
                  idx: int,
                  metadata: RSMMetadata,
                  processing_steps: list
@@ -78,7 +70,7 @@ def _bin_one_map(frame: Frame,
     shared_mem = SharedMemory(name='arr')
     shape = finite_diff_shape(start, stop, step)
     final_data = np.ndarray(shape, dtype=np.float64, buffer=shared_mem.buf)
-    image = _load_image(image_paths, metadata, idx)
+    image = Image(metadata, idx)
     image._processing_steps = processing_steps
     # Do the mapping for this image; bin the mapping.
     delta_q = image.delta_q(frame)
@@ -102,7 +94,6 @@ def _bin_maps_with_indices(indices: List[int],
                            start: np.ndarray,
                            stop: np.ndarray,
                            step: np.ndarray,
-                           image_paths: List[str],
                            metadata: RSMMetadata,
                            processing_steps: list
                            ) -> None:
@@ -116,7 +107,7 @@ def _bin_maps_with_indices(indices: List[int],
     # pylint: disable=broad-except.
     try:
         for idx in indices:
-            _bin_one_map(frame, start, stop, step, image_paths, idx, metadata,
+            _bin_one_map(frame, start, stop, step, idx, metadata,
                          processing_steps)
     except Exception as exception:
         print(f"Exception thrown in bin_one_map: \n{exception}")
@@ -135,15 +126,8 @@ class Scan:
             instance of Image with that corresponding index.
     """
 
-    def __init__(self,
-                 metadata: RSMMetadata,
-                 image_paths: List[str]):
+    def __init__(self, metadata: RSMMetadata):
         self.metadata = metadata
-        self.image_paths = image_paths
-
-        self._rsm = None
-        self._rsm_frame = None
-
         self._processing_steps = []
 
     def add_processing_step(self, function) -> None:
@@ -233,7 +217,7 @@ class Scan:
                     self.metadata.data_file.scan_length)), num_threads):
                 async_results.append(pool.apply_async(
                     _bin_maps_with_indices,
-                    (indices, frame, start, stop, step, self.image_paths,
+                    (indices, frame, start, stop, step,
                      self.metadata, self._processing_steps)))
 
             # Wait for all the work to complete.
@@ -269,7 +253,7 @@ class Scan:
         delta_qs = []
         # Load images one by one.
         for idx in range(self.metadata.data_file.scan_length):
-            image = _load_image(self.image_paths, self.metadata, idx)
+            image = Image(self.metadata, idx)
             # Do the mapping for this image in correct frame.
             delta_qs.append(image.delta_q(frame))
 
@@ -279,7 +263,7 @@ class Scan:
         """
         Convenience method for loading a single image. This is unpicklable.
         """
-        return _load_image(self.image_paths, self.metadata, idx)
+        return Image(self.metadata, idx)
 
     @classmethod
     def from_i10(cls,
@@ -287,7 +271,7 @@ class Scan:
                  beam_centre: Tuple[int],
                  detector_distance: float,
                  sample_oop: Vector3,
-                 path_to_tiffs: str = ''):
+                 path_to_data: str = ''):
         """
         Instantiates a Scan from the path to an I10 nexus file, a beam centre
         coordinate, a detector distance (this isn't stored in i10 nexus files)
@@ -305,13 +289,13 @@ class Scan:
             sample_oop:
                 An instance of a diffraction_utils Vector3 which descrbes the
                 sample out of plane vector.
-            path_to_tiffs:
+            path_to_data:
                 Path to the directory in which the images are stored. Defaults
                 to '', in which case a bunch of reasonable directories will be
                 searched for the images.
         """
         # Load the nexus file.
-        i10_nexus = I10Nexus(path_to_nx, detector_distance)
+        i10_nexus = I10Nexus(path_to_nx, path_to_data, detector_distance)
 
         # Load the state of the RASOR diffractometer; prepare the metadata.
         diff = I10RasorDiffractometer(i10_nexus, sample_oop, 'area')
@@ -320,8 +304,7 @@ class Scan:
         # Make sure the sample_oop vector's frame's diffractometer is correct.
         sample_oop.frame.diffractometer = diff
 
-        image_paths = meta.data_file.get_local_image_paths(path_to_tiffs)
-        return cls(meta, image_paths)
+        return cls(meta)
 
     @classmethod
     def from_i07(cls,
@@ -330,7 +313,7 @@ class Scan:
                  detector_distance: float,
                  setup: str,
                  sample_oop: Union[Vector3, np.ndarray, List[float]],
-                 path_to_tiffs: str = ''):
+                 path_to_data: str = ''):
         """
         Instantiates a Scan from the path to an I07 nexus file, a beam centre
         coordinate tuple, a detector distance and a sample out-of-plane vector.
@@ -349,13 +332,14 @@ class Scan:
             sample_oop:
                 An instance of a diffraction_utils Vector3 which descrbes the
                 sample out of plane vector.
-            path_to_tiffs:
+            path_to_data:
                 Path to the directory in which the images are stored. Defaults
                 to '', in which case a bunch of reasonable directories will be
                 searched for the images.
         """
         # Load the nexus file.
-        i07_nexus = I07Nexus(path_to_nx, detector_distance, setup)
+        i07_nexus = I07Nexus(path_to_nx, path_to_data,
+                             detector_distance, setup)
 
         if not isinstance(sample_oop, Frame):
             frame = Frame(Frame.sample_holder, None, None)
@@ -368,5 +352,4 @@ class Scan:
         # Make sure that the sample_oop vector's frame's diffractometer is good.
         sample_oop.frame.diffractometer = diff
 
-        image_paths = metadata.data_file.get_local_image_paths(path_to_tiffs)
-        return cls(metadata, image_paths)
+        return cls(metadata)
