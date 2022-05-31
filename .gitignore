@@ -7,3 +7,5 @@ notebooks
 *.log
 *.vtk
 *.vtr
+*.npy
+*.dat
