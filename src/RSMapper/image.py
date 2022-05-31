@@ -2,10 +2,7 @@
 This module contains the class that is used to store images.
 """
 
-from typing import List
-
 import numpy as np
-from PIL import Image as PILImage
 from diffraction_utils import Frame
 
 from .rsm_metadata import RSMMetadata
@@ -27,8 +24,8 @@ class Image:
             The index of the image in the scan.
     """
 
-    def __init__(self, raw_data: np.ndarray, metadata: RSMMetadata, index: int):
-        self._raw_data = raw_data
+    def __init__(self, metadata: RSMMetadata, index: int):
+        self._raw_data = metadata.data_file.get_image(index)
         self.metadata = metadata
         self.diffractometer = self.metadata.diffractometer
         self.index = index
@@ -150,10 +147,3 @@ class Image:
         delta_q *= self.metadata.q_incident_lenth
 
         return delta_q
-
-    @classmethod
-    def from_image_paths(cls, paths: List[str], metadata, img_idx):
-        """
-        Loads an image from a list of paths and an image index.
-        """
-        return cls(np.array(PILImage.open(paths[img_idx])), metadata, img_idx)
