@@ -39,8 +39,8 @@ def init_process_pool(lock: Lock):
 def _on_exit(shared_mem: SharedMemory):
     """Make sure that the shared memory is cleaned when we exit."""
     try:
-        print("Emergency unlinking shared memory.")
         shared_mem.unlink()
+        print("Had to emergency unlink shared memory.")
     except FileNotFoundError:
         # The file has already been unlinked; do nothing.
         pass
