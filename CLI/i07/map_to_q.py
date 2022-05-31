@@ -164,7 +164,7 @@ if __name__ == "__main__":
                          detector_distance=detector_distance,
                          setup=setup,
                          sample_oop=sample_oop,
-                         path_to_tiffs=tiff_dir)
+                         path_to_data=tiff_dir)
 
     def threshold(array):
         array[array >= max_thresh] = max_thresh
