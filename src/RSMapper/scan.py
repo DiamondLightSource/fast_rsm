@@ -1,13 +1,12 @@
 """
 This module contains the scan class, that is used to store all of the
 information relating to a reciprocal space scan.
-
-TODO: Better exception handling.
 """
 
 # pylint: disable=protected-access
 
 import atexit
+import time
 from multiprocessing.pool import Pool
 from multiprocessing.shared_memory import SharedMemory
 from multiprocessing import Lock
@@ -20,7 +19,7 @@ from diffraction_utils import I07Nexus, I10Nexus, Vector3, Frame
 from diffraction_utils.diffractometers import \
     I10RasorDiffractometer, I07Diffractometer
 
-from .binning import linear_bin, finite_diff_shape
+from .binning import finite_diff_shape, fast_linear_bin
 from .image import Image
 from .rsm_metadata import RSMMetadata
 
@@ -62,31 +61,22 @@ def _bin_one_map(frame: Frame,
                  idx: int,
                  metadata: RSMMetadata,
                  processing_steps: list
-                 ) -> None:
+                 ) -> np.ndarray:
     """
     Calculates and bins the reciprocal space map with index idx. Saves the
     result to the shared memory buffer.
     """
-    shared_mem = SharedMemory(name='arr')
-    shape = finite_diff_shape(start, stop, step)
-    final_data = np.ndarray(shape, dtype=np.float64, buffer=shared_mem.buf)
+
     image = Image(metadata, idx)
     image._processing_steps = processing_steps
     # Do the mapping for this image; bin the mapping.
     q_vectors = image.q_vectors(frame)
-    binned_q = linear_bin(q_vectors,
-                          image.data,
-                          start,
-                          stop,
-                          step)
-
-    # Update the final data array in a thread safe way.
-    with LOCK:
-        final_data += binned_q
-
-    # logging.info("idx %i", idx)
-    # Do some tidying up.
-    shared_mem.close()
+    binned_q = fast_linear_bin(q_vectors,
+                               image.data,
+                               start,
+                               stop,
+                               step)
+    return binned_q
 
 
 def _bin_maps_with_indices(indices: List[int],
@@ -106,9 +96,25 @@ def _bin_maps_with_indices(indices: List[int],
     # threads.
     # pylint: disable=broad-except.
     try:
+        binned_q = np.zeros(shape=finite_diff_shape(start, stop, step))
+
+        # Do the binning, adding each binned dataset to binned_q.
         for idx in indices:
-            _bin_one_map(frame, start, stop, step, idx, metadata,
-                         processing_steps)
+            binned_q += _bin_one_map(frame, start, stop, step, idx, metadata,
+                                     processing_steps)
+
+        # Now we've finished binning, add this to the final shared data array.
+        shared_mem = SharedMemory(name='arr')
+        shape = finite_diff_shape(start, stop, step)
+        final_data = np.ndarray(shape, dtype=np.float64, buffer=shared_mem.buf)
+
+        # Update the final data in a thread safe way.
+        with LOCK:
+            final_data += binned_q
+
+        # Always do your chores.
+        shared_mem.close()
+
     except Exception as exception:
         print(f"Exception thrown in bin_one_map: \n{exception}")
 
@@ -201,10 +207,18 @@ class Scan:
                 print(f"Processing image {i}...")
                 img = self.load_image(i)
                 img._processing_steps = self._processing_steps
-                final_data += linear_bin(
-                    img.q_vectors(frame),
+                t1 = time.time()
+                q_vectors = img.q_vectors(frame)
+                time_taken = time.time() - t1
+                print(f"Mapping time: {time_taken}")
+
+                t1 = time.time()
+                final_data += fast_linear_bin(
+                    q_vectors,
                     img.data,
                     start, stop, step)
+                time_taken = time.time() - t1
+                print(f"Binning time: {time_taken}")
             return final_data
 
         # If execution reaches here, we want a multithreaded binned RSM using
