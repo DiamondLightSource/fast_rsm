@@ -73,8 +73,8 @@ def _bin_one_map(frame: Frame,
     image = Image(metadata, idx)
     image._processing_steps = processing_steps
     # Do the mapping for this image; bin the mapping.
-    delta_q = image.delta_q(frame)
-    binned_q = linear_bin(delta_q,
+    q_vectors = image.q_vectors(frame)
+    binned_q = linear_bin(q_vectors,
                           image.data,
                           start,
                           stop,
@@ -172,6 +172,11 @@ class Scan:
         # Lets prevent complicated errors from showing up somewhere deeper.
         start, stop, step = np.array(start), np.array(stop), np.array(step)
 
+        # Also, make sure that we start our scan at scan index 0.
+        frame.scan_index = 0
+        # Make sure that our scan has the correct diffractometer associated.
+        frame.diffractometer = self.metadata.diffractometer
+
         # Prepare an array with the same shape as our final binned data array.
         shape = finite_diff_shape(start, stop, step)
         # Note that this doesn't initialise the array; arr is nonsense.
@@ -197,7 +202,7 @@ class Scan:
                 img = self.load_image(i)
                 img._processing_steps = self._processing_steps
                 final_data += linear_bin(
-                    img.delta_q(frame),
+                    img.q_vectors(frame),
                     img.data,
                     start, stop, step)
             return final_data
@@ -250,14 +255,14 @@ class Scan:
             raise NotImplementedError(
                 "Reciprocal space maps are currently single threaded only.")
 
-        delta_qs = []
+        q_vectors = []
         # Load images one by one.
         for idx in range(self.metadata.data_file.scan_length):
             image = Image(self.metadata, idx)
             # Do the mapping for this image in correct frame.
-            delta_qs.append(image.delta_q(frame))
+            q_vectors.append(image.q_vectors(frame))
 
-        return delta_qs
+        return q_vectors
 
     def load_image(self, idx: int):
         """
