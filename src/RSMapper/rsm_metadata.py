@@ -48,6 +48,10 @@ class RSMMetadata:
         self._relative_polar = None
         self._relative_azimuth = None
         self._solid_angles = None
+        self._vertical_pixel_offsets = None
+        self._horizontal_pixel_offsets = None
+        self._vertical_pixel_distances = None
+        self._horizontal_pixel_distances = None
 
     def _correct_beam_centre(self):
         """
@@ -76,6 +80,46 @@ class RSMMetadata:
         if self._solid_angles is None:
             self._init_solid_angles()
         return self._solid_angles
+
+    @property
+    def vertical_pixel_offsets(self):
+        """
+        The offsets between each pixel and the central pixel.
+        """
+        if self._vertical_pixel_offsets is None:
+            self._init_vertical_pixel_offsets()
+        return self._vertical_pixel_offsets
+
+    @property
+    def horizontal_pixel_offsets(self):
+        """
+        The offsets between each pixel and the central pixel.
+        """
+        if self._horizontal_pixel_offsets is None:
+            self._init_horizontal_pixel_offsets()
+        return self._horizontal_pixel_offsets
+
+    @property
+    def vertical_pixel_distances(self):
+        """
+        The vertical distances (in m) between each pixel and the central
+        vertical pixel.
+        """
+        if self._vertical_pixel_distances is None:
+            self._vertical_pixel_distances = \
+                self.vertical_pixel_offsets * self.data_file.pixel_size
+        return self._vertical_pixel_distances
+
+    @property
+    def horizontal_pixel_distances(self):
+        """
+        The horizontal pixel distances (in m) between each pixel and the central
+        horizontal pixel.
+        """
+        if self._horizontal_pixel_distances is None:
+            self._horizontal_pixel_distances = \
+                self.horizontal_pixel_offsets * self.data_file.pixel_size
+        return self._horizontal_pixel_distances
 
     @property
     def relative_polar(self):
@@ -110,7 +154,7 @@ class RSMMetadata:
                 1e10)  # To convert to Å.
 
     @property
-    def q_incident_lenth(self):
+    def q_incident_length(self):
         """
         Returns the wavevector of the incident beam in Å^-1.
         """
@@ -147,6 +191,51 @@ class RSMMetadata:
 
         # To prevent numbers from getting too silly, normalise this.
         self._solid_angles /= np.max(self._solid_angles)
+
+    def _init_vertical_pixel_offsets(self, image_shape: int = None):
+        """
+        Initializes the array of relative pixel offsets.
+        """
+        if image_shape is None:
+            image_shape = self.data_file.image_shape
+
+        num_y_pixels = image_shape[0]
+        # Imagine num_y_pixels = 11.
+        # pixel_offsets = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+        pixel_offsets = np.arange(num_y_pixels-1, -1, -1)
+        # Imagine y_beam_centre = 2
+        y_beam_centre = self.beam_centre[0]
+
+        # Now pixel_offsets -= ((11-1) - 2)
+        # => pixel_offsets = [2, 1, 0, -1, -2, -3, -4, -5, -6, -7, -8]
+        # This is good! The top of the detector is above the centre in y.
+        pixel_offsets -= ((num_y_pixels-1) - y_beam_centre)
+
+        # Save this value to an array with the same shape as the images.
+        self._vertical_pixel_offsets = np.zeros(image_shape)
+        for i, pixel_offset in enumerate(pixel_offsets):
+            self._vertical_pixel_offsets[i, :] = pixel_offset
+
+    def _init_horizontal_pixel_offsets(self, image_shape: int = None):
+        """
+        Initializes the array of relative horizontal pixel offsets, i.e. the
+        distance (in units of pixels) between each pixel and the horizontal
+        beam centre.
+        """
+        if image_shape is None:
+            image_shape = self.data_file.image_shape
+
+        # Follow the recipe from above.
+        # The azimuthal angle is larger towards the left of the image.
+        num_x_pixels = image_shape[1]
+        pixel_offsets = np.arange(num_x_pixels-1, -1, -1)
+        x_beam_centre = self.beam_centre[1]
+        pixel_offsets -= ((num_x_pixels-1) - x_beam_centre)
+
+        # Save this value to an array with the same shape as the images.
+        self._horizontal_pixel_offsets = np.zeros(image_shape)
+        for i, pixel_offset in enumerate(pixel_offsets):
+            self._horizontal_pixel_offsets[:, i] = pixel_offset
 
     def _init_relative_polar(self, image_shape: int = None):
         """
@@ -185,7 +274,7 @@ class RSMMetadata:
         # Now use these offsets to initialize the relative_polar array.
         self._relative_polar = np.zeros(image_shape)
         for i, theta_offset in enumerate(theta_offsets):
-            self._relative_polar[i, :] = theta_offset
+            self._relative_polar[i, :] = -theta_offset
 
     def _init_relative_azimuth(self, image_shape: int = None):
         """
