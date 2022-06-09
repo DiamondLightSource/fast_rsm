@@ -149,4 +149,4 @@ def test_q_incident_length(i10_metadata: RSMMetadata):
     k-alpha.
     """
     # We're using the Cu L-3 edge.
-    assert_almost_equal(i10_metadata.q_incident_lenth, 1/13.30627304411753)
+    assert_almost_equal(i10_metadata.q_incident_length, 1/13.30627304411753)
