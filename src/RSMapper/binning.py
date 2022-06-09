@@ -2,6 +2,7 @@
 This module contains functions for binning 3D scalar fields.
 """
 
+import fast_histogram as fast
 import numpy as np
 
 
@@ -73,9 +74,6 @@ def linear_bin(coords: np.ndarray,  # Coordinates of each intensity.
     intensities *= coord_in_bounds[:, 2]
     # And finally bin those empty intensities to the origin.
     coords *= coord_in_bounds
-    # print(np.max(coords[:, 0]), np.min(coords[:, 0]))
-    # print(np.max(coords[:, 1]), np.min(coords[:, 1]))
-    # print(np.max(coords[:, 2]), np.min(coords[:, 2]))
 
     # Now convert to tuple of integer arrays for array indexing to work.
     coords = (coords[:, 0].astype(np.int32),
@@ -86,10 +84,33 @@ def linear_bin(coords: np.ndarray,  # Coordinates of each intensity.
     # Now we can use bincount to work out the intensities.
     bincount = np.bincount(flat_indices, weights=intensities,
                            minlength=size)
-    # print(f"Bincount shape: {bincount.shape}")
     bincount = bincount.reshape(shape)
 
     return bincount
+
+
+def fast_linear_bin(coords: np.ndarray,  # Coordinates of each intensity.
+                    intensities: np.ndarray,  # Corresponding intensities.
+                    start: np.ndarray,  # (start_x, start_y, start_z)
+                    stop: np.ndarray,  # (stop_x, stop_y, stop_z)
+                    step: np.ndarray  # (delta_x, delta_y, delta_z)
+                    ) -> np.ndarray:
+    """
+    Binning using the fast-histogram library.
+    """
+    # Fix the geometry of the input arguments.
+    coords = _fix_delta_q_geometry(coords)
+    intensities = _fix_intensity_geometry(intensities)
+
+    # We'll need to know how many bins we're expecting in each dimension.
+    shape = finite_diff_shape(start, stop, step)
+
+    _range = ([start[0], stop[0]],
+              [start[1], stop[1]],
+              [start[2], stop[2]])
+
+    # Run the histogram.
+    return fast.histogramdd(coords, shape, _range, intensities)
 
 
 def hist_shape(start, stop, step):
