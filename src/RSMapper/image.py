@@ -127,18 +127,22 @@ class Image:
         # We need num_x_pixels, num_y_pixels, 3 to be our shape.
         # Note that we need the extra "3" to store qx, qy, qz (3d vector).
         desired_shape = tuple(list(self._raw_data.shape) + [3])
-        k_out_array = np.zeros(desired_shape)
+        # Don't bother initializing this.
+        k_out_array = np.ndarray(desired_shape, np.float32)
 
         # Get a unit vector pointing towards the detector.
         det_displacement = self.diffractometer.get_detector_vector(frame)
+        det_displacement.array = det_displacement.array.astype(np.float32)
 
         # Make a unit vector that points upwards along the slow axis of the
         # detector in this frame of reference.
         det_vertical = self.diffractometer.get_detector_vertical(frame)
+        det_vertical.array = det_vertical.array.astype(np.float32)
 
         # Make a unit vector that points horizontally along the fast axis of the
         # detector in this frame of reference.
         det_horizontal = self.diffractometer.get_detector_horizontal(frame)
+        det_horizontal.array = det_horizontal.array.astype(np.float32)
 
         # Now we have an orthonormal basis: det_displacement points from the
         # sample to the detector, det_vertical points vertically up the detector
@@ -146,7 +150,11 @@ class Image:
         # vector parallel to k_out, we can just work out the displacement from
         # each pixel to the sample.
         # This calculation is done component-by-component to match array shapes.
+        # This routine has been benchmarked to be ~4x faster than using an
+        # outer product and reshaping it.
         detector_distance = self.metadata.data_file.detector_distance
+        detector_distance = np.array(detector_distance, np.float32)
+
         k_out_array[:, :, 0] = (
             det_displacement.array[0]*detector_distance +
             det_vertical.array[0]*self.metadata.vertical_pixel_distances +
@@ -160,23 +168,34 @@ class Image:
             det_vertical.array[2]*self.metadata.vertical_pixel_distances +
             det_horizontal.array[2]*self.metadata.horizontal_pixel_distances)
 
-        # We're going to need to normalize; this function bottlenecks.
-        norms_calculated = np.linalg.norm(k_out_array, axis=-1)
-
-        # Now we have to do some broadcasting magic. This is fastest when done
-        # explicitly. This part of the code is bottlenecking, so here goes.
-        norms = np.zeros_like(k_out_array)
-        # Scuffed, but the fastest way to get an array of the right shape.
-        norms[:, :, 0] = norms_calculated
-        norms[:, :, 1] = norms_calculated
-        norms[:, :, 2] = norms_calculated
-
+        # We're going to need to normalize; this function bottlenecks if not
+        # done exactly like this!
+        # This weird manual norm calculation is an order of magnitude faster
+        # than using np.linalg.norm(k_out_array, axis=-1), and the manual
+        # addition is an order of magnitude faster than using sum(.., axis=-1)
+        k_out_squares = np.square(k_out_array)
+        norms = (
+            k_out_squares[:, :, 0] +
+            k_out_squares[:, :, 1] +
+            k_out_squares[:, :, 2])
+        norms = np.sqrt(norms)
         # Right now, k_out_array[a, b] has units of meters for all a, b. We want
         # k_out_array[a, b] to be normalized (elastic scattering). This can be
         # done now that norms has been created because it has the right shape.
-        k_out_array /= norms
+        k_out_array[:, :, 0] /= norms
+        k_out_array[:, :, 1] /= norms
+        k_out_array[:, :, 2] /= norms
+
+        # Note that for performance reasons these should also be float32.
+        incident_beam_arr = self.diffractometer.get_incident_beam(frame).array
+        incident_beam_arr = incident_beam_arr.astype(np.float32)
+        q_incident = np.array(self.metadata.q_incident_length, np.float32)
 
         # Now simply subtract and rescale to get the q_vectors!
-        k_out_array -= self.diffractometer.get_incident_beam(frame).array
-        k_out_array *= self.metadata.q_incident_length
+        # Note that this is an order of magnitude faster than:
+        # k_out_array -= incident_beam_arr
+        k_out_array[:, :, 0] -= incident_beam_arr[0]
+        k_out_array[:, :, 1] -= incident_beam_arr[1]
+        k_out_array[:, :, 2] -= incident_beam_arr[2]
+        k_out_array *= q_incident
         return k_out_array
