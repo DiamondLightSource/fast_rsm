@@ -192,6 +192,9 @@ class RSMMetadata:
         # To prevent numbers from getting too silly, normalise this.
         self._solid_angles /= np.max(self._solid_angles)
 
+        # Finally, store as a single precision float.
+        self._solid_angles = self._solid_angles.astype(np.float32)
+
     def _init_vertical_pixel_offsets(self, image_shape: int = None):
         """
         Initializes the array of relative pixel offsets.
@@ -212,7 +215,7 @@ class RSMMetadata:
         pixel_offsets -= ((num_y_pixels-1) - y_beam_centre)
 
         # Save this value to an array with the same shape as the images.
-        self._vertical_pixel_offsets = np.zeros(image_shape)
+        self._vertical_pixel_offsets = np.zeros(image_shape, np.float32)
         for i, pixel_offset in enumerate(pixel_offsets):
             self._vertical_pixel_offsets[i, :] = pixel_offset
 
@@ -233,7 +236,7 @@ class RSMMetadata:
         pixel_offsets -= ((num_x_pixels-1) - x_beam_centre)
 
         # Save this value to an array with the same shape as the images.
-        self._horizontal_pixel_offsets = np.zeros(image_shape)
+        self._horizontal_pixel_offsets = np.zeros(image_shape, np.float32)
         for i, pixel_offset in enumerate(pixel_offsets):
             self._horizontal_pixel_offsets[:, i] = pixel_offset
 
