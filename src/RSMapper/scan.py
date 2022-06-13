@@ -19,7 +19,7 @@ from diffraction_utils import I07Nexus, I10Nexus, Vector3, Frame
 from diffraction_utils.diffractometers import \
     I10RasorDiffractometer, I07Diffractometer
 
-from .binning import finite_diff_shape, fast_linear_bin
+from .binning import finite_diff_shape, weighted_bin_3d
 from .image import Image
 from .rsm_metadata import RSMMetadata
 
@@ -71,7 +71,7 @@ def _bin_one_map(frame: Frame,
     image._processing_steps = processing_steps
     # Do the mapping for this image; bin the mapping.
     q_vectors = image.q_vectors(frame)
-    binned_q = fast_linear_bin(q_vectors,
+    binned_q = weighted_bin_3d(q_vectors,
                                image.data,
                                start,
                                stop,
@@ -207,18 +207,18 @@ class Scan:
                 print(f"Processing image {i}...")
                 img = self.load_image(i)
                 img._processing_steps = self._processing_steps
-                t1 = time.time()
+                time_1 = time.time()
                 q_vectors = img.q_vectors(frame)
-                time_taken = time.time() - t1
+                time_taken = time.time() - time_1
                 print(f"Mapping time: {time_taken}")
 
-                t1 = time.time()
-                final_data += fast_linear_bin(
+                time_1 = time.time()
+                final_data += weighted_bin_3d(
                     q_vectors,
                     img.data,
                     start, stop, step)
-                time_taken = time.time() - t1
-                print(f"Binning time: {time_taken}")
+                time_taken = time.time() - time_1
+                print(f"Binning, img.data & final_data+= time: {time_taken}")
             return final_data
 
         # If execution reaches here, we want a multithreaded binned RSM using
