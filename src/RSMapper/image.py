@@ -25,7 +25,8 @@ class Image:
     """
 
     def __init__(self, metadata: RSMMetadata, index: int):
-        self._raw_data = metadata.data_file.get_image(index)
+        # Store intensities as 32 bit floats.
+        self._raw_data = metadata.data_file.get_image(index).astype(np.float32)
         self.metadata = metadata
         self.diffractometer = self.metadata.diffractometer
         self.index = index
@@ -69,6 +70,7 @@ class Image:
         Returns the normalized, processed data. If you want to apply some
         pre-processing to the data before mapping (e.g. by applying some
         thresholding, masking, clustering, or any arbitrary algorithm) then
+        use the add_processing_step method.
         """
         arr = self._raw_data
         for step in self._processing_steps:
