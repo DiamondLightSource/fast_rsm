@@ -15,4 +15,7 @@ a general purpose tool that can be used in many contexts besides purely
 reciprocal space mapping, although it originated as a spin-out of this project.
 
 https://github.com/RBrearton/Custom-bin contains the binning algorithm used by
-default, although several more are included in the RSMapper.binning module.
+default, although several more are included in the RSMapper.binning module. I
+found that the simple binning algorithm contained in custom-bin for 3D datasets
+is significantly faster than fast-histogram's histogramdd, which is faster than
+my custom numpy routine, which is faster than numpy's histogramdd.
