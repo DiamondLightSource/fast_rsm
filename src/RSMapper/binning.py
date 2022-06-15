@@ -7,7 +7,7 @@ import time
 import fast_histogram as fast
 import numpy as np
 
-import custom_bin
+import mapper_c_utils
 
 
 def _fix_delta_q_geometry(arr: np.ndarray) -> np.ndarray:
@@ -159,8 +159,8 @@ def weighted_bin_3d(coords: np.ndarray, weights: np.ndarray, start: np.ndarray,
     # C end).
     out = np.zeros(shape, np.float32)
 
-    custom_bin.weighted_bin_3d(coords, start, stop, step, shape,
-                               weights, out)
+    mapper_c_utils.weighted_bin_3d(coords, start, stop, step, shape,
+                                   weights, out)
 
     # time_taken = time.time() - time_1
     # print(f"Binning time: {time_taken}")
