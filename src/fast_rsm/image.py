@@ -215,11 +215,7 @@ class Image:
             # time_1 = time.time()
             # pylint: disable=c-extension-no-member
             # Make sure our UB matrix is float32.
-            ub_mat_0 = self.metadata.data_file.ub_matrix.astype(np.float32)
-            ub_mat = np.copy(ub_mat_0)
-            ub_mat[0] = ub_mat_0[0]
-            ub_mat[1] = ub_mat_0[1]
-            ub_mat[2] = ub_mat_0[2]
+            ub_mat = self.metadata.data_file.ub_matrix.astype(np.float32)
 
             k_out_array = k_out_array.reshape(
                 (desired_shape[0]*desired_shape[1], 3))
