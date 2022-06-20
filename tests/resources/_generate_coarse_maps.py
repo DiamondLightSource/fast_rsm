@@ -9,14 +9,14 @@ import numpy as np
 
 from diffraction_utils import Frame, Vector3
 
-from RSMapper.writing import linear_bin_to_vtk
-from RSMapper.scan import Scan
+from fast_rsm.writing import linear_bin_to_vtk
+from fast_rsm.scan import Scan
 
 
 def generate_i10_693862_coarse_map() -> None:
     """
     Generates one of the coarse maps needed for the tests. This will only work
-    when "RSMapper/tests/resources/" is the current working directory.
+    when "fast_rsm/tests/resources/" is the current working directory.
     """
     # The necessary setup.
     sample_oop = Vector3([0, 1, 0], Frame(Frame.sample_holder))
@@ -46,7 +46,7 @@ def generate_i10_693862_coarse_map() -> None:
 def generate_i07_421595_coarse_map() -> None:
     """
     Generates one of the coarse maps needed for the tests. This will only work
-    when "RSMapper/tests/resources/" is the current working directory.
+    when "fast_rsm/tests/resources/" is the current working directory.
     """
     # The necessary setup.
     beam_centre = (739, 1329)
