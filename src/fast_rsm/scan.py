@@ -19,7 +19,7 @@ from diffraction_utils import I07Nexus, I10Nexus, Vector3, Frame
 from diffraction_utils.diffractometers import \
     I10RasorDiffractometer, I07Diffractometer
 
-from .binning import finite_diff_shape, weighted_bin_3d, fast_linear_bin
+from .binning import finite_diff_shape, weighted_bin_3d
 from .image import Image
 from .rsm_metadata import RSMMetadata
 
@@ -99,7 +99,6 @@ def _bin_maps_with_indices(indices: List[int],
     # We need to catch all exceptions and explicitly print them in worker
     # threads.
     # pylint: disable=broad-except.
-    print("About to try to bin data.")
     try:
         binned_q = np.zeros(shape=finite_diff_shape(start, stop, step))
 
@@ -107,10 +106,6 @@ def _bin_maps_with_indices(indices: List[int],
         for idx in indices:
             binned_q += _bin_one_map(frame, start, stop, step, idx, metadata,
                                      processing_steps)
-            if (idx == indices[10]):
-                print("Binned tenth datapoint")
-
-        print("Binned all data.")
 
         # Now we've finished binning, add this to the final shared data array.
         shared_mem = SharedMemory(name='arr')
