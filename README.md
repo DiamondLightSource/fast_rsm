@@ -14,8 +14,11 @@ calculations. The idea is that https://github.com/RBrearton/diffraction_utils is
 a general purpose tool that can be used in many contexts besides purely
 reciprocal space mapping, although it originated as a spin-out of this project.
 
-https://github.com/RBrearton/Custom-bin contains the binning algorithm used by
-default, although several more are included in the fast_rsm.binning module. I
+https://github.com/RBrearton/mapper_c_utils contains the binning algorithm used
+by default, although several more are included in the fast_rsm.binning module. I
 found that the simple binning algorithm contained in custom-bin for 3D datasets
 is significantly faster than fast-histogram's histogramdd, which is faster than
-my custom numpy routine, which is faster than numpy's histogramdd.
+my custom numpy routine, which is faster than numpy's histogramdd. It contains
+some other useful routines, but I find it nice to keep the high performance C
+stuff in a separate repository. This fast_rsm repo should contain exclusively
+nice, easy to read and organised python code.
