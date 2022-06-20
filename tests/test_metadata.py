@@ -1,7 +1,7 @@
 """
-This module contains tests for the RSMapper.metadata module. As the angular
+This module contains tests for the fast_rsm.metadata module. As the angular
 metadata is an important part of the reciprocal space mapping, instances of
-RSMapper.metadata.Metadata actually do a reasonable amount of heavy lifting.
+fast_rsm.metadata.Metadata actually do a reasonable amount of heavy lifting.
 """
 
 # Obviously we need to test protected members.
@@ -15,7 +15,7 @@ from copy import deepcopy
 import numpy as np
 from numpy.testing import assert_almost_equal
 
-from RSMapper.rsm_metadata import RSMMetadata
+from fast_rsm.rsm_metadata import RSMMetadata
 
 
 def test_metadata_init(i10_metadata: RSMMetadata, i10_nxs_path):

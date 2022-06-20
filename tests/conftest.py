@@ -1,5 +1,5 @@
 """
-The conftest file contains fixtures for RSMappers tests.
+The conftest file contains fixtures for fast_rsms tests.
 """
 
 # Basically always needed in conftest files.
@@ -12,8 +12,8 @@ from pytest import fixture
 from diffraction_utils import I10Nexus, Vector3, Frame
 from diffraction_utils.diffractometers import I10RasorDiffractometer
 
-from RSMapper.rsm_metadata import RSMMetadata
-from RSMapper.scan import Scan
+from fast_rsm.rsm_metadata import RSMMetadata
+from fast_rsm.scan import Scan
 
 
 @fixture

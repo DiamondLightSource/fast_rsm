@@ -13,7 +13,7 @@ from datetime import datetime
 import numpy as np
 
 from diffraction_utils import I07Nexus, Frame
-from RSMapper.scan import Scan
+from fast_rsm.scan import Scan
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 """
-This module contains unit tests for the RSMapper.image.Image class.
+This module contains unit tests for the fast_rsm.image.Image class.
 
 As of 07/04/2022, I'm lazily grabbing images from scans. This could be improved
 by manually loading instances of Image, which would just require a slightly
@@ -15,8 +15,8 @@ from numpy.testing import assert_allclose
 
 from diffraction_utils import Frame
 
-from RSMapper.binning import linear_bin
-from RSMapper.scan import Scan
+from fast_rsm.binning import linear_bin
+from fast_rsm.scan import Scan
 
 
 def test_data(i10_scan: Scan):

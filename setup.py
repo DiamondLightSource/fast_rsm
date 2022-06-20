@@ -11,7 +11,7 @@ python setup.py install
 from setuptools import setup, find_packages
 
 setup(
-    name='RSMapper',
+    name='fast_rsm',
     version='0.0.1',
     license='MIT License',
     packages=find_packages('src'),

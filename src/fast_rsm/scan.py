@@ -5,8 +5,8 @@ information relating to a reciprocal space scan.
 
 # pylint: disable=protected-access
 
-import atexit
 import time
+from multiprocessing import get_context
 from multiprocessing.pool import Pool
 from multiprocessing.shared_memory import SharedMemory
 from multiprocessing import Lock
@@ -19,7 +19,7 @@ from diffraction_utils import I07Nexus, I10Nexus, Vector3, Frame
 from diffraction_utils.diffractometers import \
     I10RasorDiffractometer, I07Diffractometer
 
-from .binning import finite_diff_shape, weighted_bin_3d
+from .binning import finite_diff_shape, weighted_bin_3d, fast_linear_bin
 from .image import Image
 from .rsm_metadata import RSMMetadata
 
@@ -36,8 +36,12 @@ def init_process_pool(lock: Lock):
 
 
 def _on_exit(shared_mem: SharedMemory):
-    """Make sure that the shared memory is cleaned when we exit."""
+    """
+    Cane be used with the atexit module. Makes sure that the shared memory is
+    cleaned when called.
+    """
     try:
+        shared_mem.close()
         shared_mem.unlink()
         print("Had to emergency unlink shared memory.")
     except FileNotFoundError:
@@ -95,6 +99,7 @@ def _bin_maps_with_indices(indices: List[int],
     # We need to catch all exceptions and explicitly print them in worker
     # threads.
     # pylint: disable=broad-except.
+    print("About to try to bin data.")
     try:
         binned_q = np.zeros(shape=finite_diff_shape(start, stop, step))
 
@@ -102,6 +107,10 @@ def _bin_maps_with_indices(indices: List[int],
         for idx in indices:
             binned_q += _bin_one_map(frame, start, stop, step, idx, metadata,
                                      processing_steps)
+            if (idx == indices[10]):
+                print("Binned tenth datapoint")
+
+        print("Binned all data.")
 
         # Now we've finished binning, add this to the final shared data array.
         shared_mem = SharedMemory(name='arr')
@@ -188,10 +197,18 @@ class Scan:
         # Note that this doesn't initialise the array; arr is nonsense.
         arr = np.ndarray(shape=shape)
 
+        # Make sure we never leak this memory more than once.
+        try:
+            shm = SharedMemory('arr', size=100)
+            shm.close()
+            shm.unlink()
+            print("Had to unlink leaked shared memory before starting...")
+        except FileNotFoundError:
+            # Don't do anything if we couldn't open 'arr'.
+            pass
+
         # Make a shared memory block for final_data; initialize it.
         shared_mem = SharedMemory('arr', create=True, size=arr.nbytes)
-        # Make sure that we can never leak this memory.
-        atexit.register(_on_exit, shared_mem)
 
         # Now hook final_data up to the shared_mem buffer that we just made.
         final_data = np.ndarray(shape, dtype=arr.dtype,
@@ -219,6 +236,9 @@ class Scan:
                     start, stop, step)
                 time_taken = time.time() - time_1
                 print(f"Binning, img.data & final_data+= time: {time_taken}")
+            final_data = np.copy(final_data)
+            shared_mem.close()
+            shared_mem.unlink()
             return final_data
 
         # If execution reaches here, we want a multithreaded binned RSM using
@@ -226,10 +246,11 @@ class Scan:
         lock = Lock()
 
         # The high performance approach.
-        with Pool(processes=num_threads,  # The size of our pool.
-                  initializer=init_process_pool,  # Our pool's initializer.
-                  initargs=(lock,)  # The initializer makes this lock global.
-                  ) as pool:
+        with get_context("spawn").Pool(
+            processes=num_threads,  # The size of our pool.
+            initializer=init_process_pool,  # Our pool's initializer.
+            initargs=(lock,)  # The initializer makes this lock global.
+        ) as pool:
             # Submit all of the image processing functions to the pool as jobs.
             async_results = []
             for indices in _chunks(list(range(
@@ -250,6 +271,7 @@ class Scan:
         final_data = np.copy(final_data)
         shared_mem.close()
         shared_mem.unlink()
+        _on_exit(shared_mem)
         return final_data
 
     def reciprocal_space_map(self, frame: Frame, num_threads: int = 1):

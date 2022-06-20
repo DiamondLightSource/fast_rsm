@@ -1,10 +1,10 @@
 """
-This module provides tests for the functions in the RSMapper.binning module.
+This module provides tests for the functions in the fast_rsm.binning module.
 """
 
 import numpy as np
 
-from RSMapper.binning import finite_diff_shape, linear_bin
+from fast_rsm.binning import finite_diff_shape, linear_bin
 
 
 def test_finite_diff_shape():

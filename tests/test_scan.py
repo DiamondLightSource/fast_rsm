@@ -1,5 +1,5 @@
 """
-This module contains tests for the RSMapper.scan.Scan class.
+This module contains tests for the fast_rsm.scan.Scan class.
 """
 
 # pylint: disable=unreachable
@@ -10,7 +10,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 
 from diffraction_utils import Frame
-from RSMapper.scan import Scan
+from fast_rsm.scan import Scan
 
 
 def test_binned_rsm_i07_421595(path_to_resources: str):

@@ -2,9 +2,12 @@
 This module contains the class that is used to store images.
 """
 
+
+# import time
 import numpy as np
 from diffraction_utils import Frame
 
+import mapper_c_utils
 from .rsm_metadata import RSMMetadata
 
 
@@ -200,4 +203,29 @@ class Image:
         k_out_array[:, :, 1] -= incident_beam_arr[1]
         k_out_array[:, :, 2] -= incident_beam_arr[2]
         k_out_array *= q_incident
+
+        # Finally, if a user has specified that they want their results output
+        # in hkl-space, multiply each of these vectors by UB.
+        # Note that this is not an intelligent solution! A more optimal
+        # calculation would be carried out in hkl coordinates to begin with.
+        # It's more the case that I'm lazy, this calculation is cleaner and the
+        # performance difference is pretty small. And, I mean, doing the whole
+        # calculation in a non-orthogonal basis sounds gross.
+        if frame.frame_name == Frame.hkl:
+            # time_1 = time.time()
+            # pylint: disable=c-extension-no-member
+            # Make sure our UB matrix is float32.
+            ub_mat_0 = self.metadata.data_file.ub_matrix.astype(np.float32)
+            ub_mat = np.copy(ub_mat_0)
+            ub_mat[0] = ub_mat_0[0]
+            ub_mat[1] = ub_mat_0[1]
+            ub_mat[2] = ub_mat_0[2]
+
+            k_out_array = k_out_array.reshape(
+                (desired_shape[0]*desired_shape[1], 3))
+            mapper_c_utils.linear_map(k_out_array, ub_mat)
+            k_out_array = k_out_array.reshape(desired_shape)
+
+            # print(f"UB-time {(time.time()-time_1)*1000} ms")
+
         return k_out_array
