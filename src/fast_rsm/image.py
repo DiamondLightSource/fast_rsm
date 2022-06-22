@@ -3,10 +3,9 @@ This module contains the class that is used to store images.
 """
 
 
-# import time
 import numpy as np
 from diffraction_utils import Frame
-
+from scipy.spatial.transform import Rotation
 import mapper_c_utils
 from .rsm_metadata import RSMMetadata
 
@@ -205,23 +204,46 @@ class Image:
         k_out_array *= q_incident
 
         # Finally, if a user has specified that they want their results output
-        # in hkl-space, multiply each of these vectors by UB.
+        # in hkl-space, multiply each of these vectors by the inverse of UB.
         # Note that this is not an intelligent solution! A more optimal
         # calculation would be carried out in hkl coordinates to begin with.
         # It's more the case that I'm lazy, this calculation is cleaner and the
         # performance difference is pretty small. And, I mean, doing the whole
         # calculation in a non-orthogonal basis sounds gross.
         if frame.frame_name == Frame.hkl:
-            # time_1 = time.time()
             # pylint: disable=c-extension-no-member
-            # Make sure our UB matrix is float32.
             ub_mat = self.metadata.data_file.ub_matrix.astype(np.float32)
+            ub_mat = np.linalg.inv(ub_mat)
+
+            # OKAY, so for ...reasons... this ub matrix's z-axis is my y-axis.
+            # Also, its y is my -z.
+            # If you don't like linear algebra, shut your eyes real quick.
+            basis_change = Rotation.from_rotvec([np.pi/2, 0, 0])
+
+            ub_mat = np.matmul(ub_mat, basis_change.as_matrix())
+            ub_mat = np.matmul(basis_change.inv().as_matrix(), ub_mat)
+
+            # It turns out that diffcalc assumes that k has an extra factor of
+            # 2π. I would never in my life have realised this had it not been
+            # for an offhand comment by my colleague Dean. Thanks, Dean.
+            ub_mat *= 2*np.pi
+
+            # Final fixes to make the orientation of reciprocal space match
+            # diffcalc's orientation. This is really optional and just a
+            # definition. This is equivalent to (but faster than) rotating the
+            # coordinate system by π about the k(y)-axis later.
+            ub_mat[0] = -ub_mat[0]
+            ub_mat[2] = -ub_mat[2]
+
+            # The custom, high performance linear_map expects float32's.
+            ub_mat = ub_mat.astype(np.float32)
 
             k_out_array = k_out_array.reshape(
                 (desired_shape[0]*desired_shape[1], 3))
-            mapper_c_utils.linear_map(k_out_array, ub_mat)
-            k_out_array = k_out_array.reshape(desired_shape)
 
-            # print(f"UB-time {(time.time()-time_1)*1000} ms")
+            mapper_c_utils.linear_map(k_out_array, ub_mat)
+
+            # Reshape the k_out_array to have the same shape as the raw image.
+            k_out_array = k_out_array.reshape(desired_shape)
 
         return k_out_array
