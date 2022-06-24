@@ -148,7 +148,7 @@ def weighted_bin_3d(coords: np.ndarray, weights: np.ndarray, start: np.ndarray,
 
     # Work out the shape array on the python end, as opposed to on the C end.
     # Life's easier in python, so do what we can here.
-    shape = ((stop-start)/step).astype(np.int32)
+    shape = np.array(finite_diff_shape(start, stop, step)).astype(np.int32)
 
     # Allocate a new numpy array on the python end. Originally, I malloced a
     # big array on the C end, but the numpy C api documentation wasn't super
