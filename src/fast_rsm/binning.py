@@ -138,6 +138,10 @@ def weighted_bin_3d(coords: np.ndarray, weights: np.ndarray, start: np.ndarray,
     # time_1 = time.time()
     coords = _fix_delta_q_geometry(coords)
     weights = _fix_intensity_geometry(weights)
+    # Work out the shape array on the python end, as opposed to on the C end.
+    # Life's easier in python, so do what we can here.
+    shape = np.array(finite_diff_shape(start, stop, step)).astype(np.int32)
+
     # pylint: disable=c-extension-no-member
     start = start.astype(np.float32)
     stop = stop.astype(np.float32)
@@ -145,10 +149,6 @@ def weighted_bin_3d(coords: np.ndarray, weights: np.ndarray, start: np.ndarray,
 
     if weights.dtype != np.float32:
         raise ValueError("Weights must have dtype=np.float32")
-
-    # Work out the shape array on the python end, as opposed to on the C end.
-    # Life's easier in python, so do what we can here.
-    shape = np.array(finite_diff_shape(start, stop, step)).astype(np.int32)
 
     # Allocate a new numpy array on the python end. Originally, I malloced a
     # big array on the C end, but the numpy C api documentation wasn't super
