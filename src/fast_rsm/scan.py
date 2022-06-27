@@ -6,7 +6,6 @@ information relating to a reciprocal space scan.
 # pylint: disable=protected-access
 
 import time
-from multiprocessing import get_context
 from multiprocessing.pool import Pool
 from multiprocessing.shared_memory import SharedMemory
 from multiprocessing import Lock
@@ -241,7 +240,7 @@ class Scan:
         lock = Lock()
 
         # The high performance approach.
-        with get_context("spawn").Pool(
+        with Pool(
             processes=num_threads,  # The size of our pool.
             initializer=init_process_pool,  # Our pool's initializer.
             initargs=(lock,)  # The initializer makes this lock global.
