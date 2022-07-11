@@ -117,7 +117,7 @@ class Image:
         # Now return the azimuthal angle at each pixel.
         return self.metadata.relative_azimuth + detector_vector.azimuthal_angle
 
-    def q_vectors(self, frame: Frame) -> None:
+    def q_vectors(self, frame: Frame) -> np.ndarray:
         """
         Calculates the wavevector through which light had to scatter to reach
         every pixel on the detector in a given frame of reference.
