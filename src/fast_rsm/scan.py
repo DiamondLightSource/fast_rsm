@@ -6,6 +6,7 @@ information relating to a reciprocal space scan.
 # pylint: disable=protected-access
 
 import time
+from copy import deepcopy
 from multiprocessing.pool import Pool
 from multiprocessing.shared_memory import SharedMemory
 from multiprocessing import Lock
@@ -14,6 +15,7 @@ from typing import Union, Tuple, List
 
 import numpy as np
 
+import mapper_c_utils
 from diffraction_utils import I07Nexus, I10Nexus, Vector3, Frame
 from diffraction_utils.diffractometers import \
     I10RasorDiffractometer, I07Diffractometer
@@ -21,6 +23,27 @@ from diffraction_utils.diffractometers import \
 from .binning import finite_diff_shape, weighted_bin_3d
 from .image import Image
 from .rsm_metadata import RSMMetadata
+
+
+def check_shared_memory(shared_mem_name: str):
+    """
+    Make sure that a shared memory array is not open. Clear the shared memory
+    and print a warning if it is open.
+
+    Args:
+        shared_mem_name:
+            Name of the shared memory array to check.
+    """
+    # Make sure that we don't leak this memory more than once.
+    try:
+        shm = SharedMemory(shared_mem_name,
+                           size=100)  # Totally arbitrary number.
+        shm.close()
+        shm.unlink()
+        print(f"Had to unlink *leaked* shared memory '{shared_mem_name}'...")
+    except FileNotFoundError:
+        # Don't do anything if we couldn't open 'arr'.
+        pass
 
 
 def init_process_pool(lock: Lock):
@@ -63,7 +86,9 @@ def _bin_one_map(frame: Frame,
                  step: np.ndarray,
                  idx: int,
                  metadata: RSMMetadata,
-                 processing_steps: list
+                 processing_steps: list,
+                 out: np.ndarray,
+                 count: np.ndarray
                  ) -> np.ndarray:
     """
     Calculates and bins the reciprocal space map with index idx. Saves the
@@ -76,6 +101,8 @@ def _bin_one_map(frame: Frame,
     q_vectors = image.q_vectors(frame)
     binned_q = weighted_bin_3d(q_vectors,
                                image.data,
+                               out,
+                               count,
                                start,
                                stop,
                                step)
@@ -98,25 +125,47 @@ def _bin_maps_with_indices(indices: List[int],
     # We need to catch all exceptions and explicitly print them in worker
     # threads.
     # pylint: disable=broad-except.
-    try:
-        binned_q = np.zeros(shape=finite_diff_shape(start, stop, step))
 
+    rsm_shape = finite_diff_shape(start, stop, step)
+    # Allocate a new numpy array on the python end. Originally, I malloced a
+    # big array on the C end, but the numpy C api documentation wasn't super
+    # clear on 1) how to cast this to a np.ndarray, or 2) how to prevent memory
+    # leaks on the manually malloced array.
+    # np.zeros is a fancy function; it is blazingly fast. So, allocate the large
+    # array using np.zeros (as opposed to manual initialization to zeros on the
+    # C end).
+    binned_q = np.zeros(rsm_shape, np.float32)
+
+    # We need a second array of the same size to store the number of times we
+    # add to each voxel in the out array. This prevents overcounting errors.
+    count = np.zeros(rsm_shape, np.uint32)
+    try:
         # Do the binning, adding each binned dataset to binned_q.
         for idx in indices:
-            binned_q += _bin_one_map(frame, start, stop, step, idx, metadata,
-                                     processing_steps)
+            print(f"Processing image {idx}.")
+            _bin_one_map(frame, start, stop, step, idx, metadata,
+                         processing_steps, binned_q, count)
 
         # Now we've finished binning, add this to the final shared data array.
         shared_mem = SharedMemory(name='arr')
-        shape = finite_diff_shape(start, stop, step)
-        final_data = np.ndarray(shape, dtype=np.float64, buffer=shared_mem.buf)
+        shared_count = SharedMemory(name='count')
 
+        shape = finite_diff_shape(start, stop, step)
         # Update the final data in a thread safe way.
-        with LOCK:
-            final_data += binned_q
+        # with LOCK:
+        #     print("Accessed shared memory lock")
+        final_data = np.ndarray(
+            shape, dtype=np.float32, buffer=shared_mem.buf)
+        final_cnt = np.ndarray(
+            shape, dtype=np.uint32, buffer=shared_count.buf)
+        mapper_c_utils.simple_float_add(final_data, binned_q)
+        mapper_c_utils.simple_uint32_add(final_cnt, count)
+        # final_data += binned_q
+        # final_cnt += count
 
         # Always do your chores.
         shared_mem.close()
+        shared_count.close()
 
     except Exception as exception:
         print(f"Exception thrown in bin_one_map: \n{exception}")
@@ -189,20 +238,15 @@ class Scan:
         # Prepare an array with the same shape as our final binned data array.
         shape = finite_diff_shape(start, stop, step)
         # Note that this doesn't initialise the array; arr is nonsense.
-        arr = np.ndarray(shape=shape)
+        arr = np.ndarray(shape=shape, dtype=np.float32)
 
-        # Make sure we never leak this memory more than once.
-        try:
-            shm = SharedMemory('arr', size=100)
-            shm.close()
-            shm.unlink()
-            print("Had to unlink leaked shared memory before starting...")
-        except FileNotFoundError:
-            # Don't do anything if we couldn't open 'arr'.
-            pass
+        check_shared_memory('arr')
+        check_shared_memory('count')
 
         # Make a shared memory block for final_data; initialize it.
         shared_mem = SharedMemory('arr', create=True, size=arr.nbytes)
+        # Do the same for the count.
+        shared_count = SharedMemory('count', create=True, size=arr.nbytes)
 
         # Now hook final_data up to the shared_mem buffer that we just made.
         final_data = np.ndarray(shape, dtype=arr.dtype,
@@ -210,10 +254,16 @@ class Scan:
         # Set the array to be full of zeros.
         final_data.fill(0)
 
-        # A pool-less single threaded approach.
+        # Also zero the count array.
+        counts = np.ndarray(shape, dtype=np.uint32, buffer=shared_count.buf)
+
+        # A pool-less single threaded approach. This comes with a little extra
+        # performance related information.
         if num_threads == 1:
             print("Using single threaded routine.")
-            final_data = np.zeros(shape)
+            counts = np.zeros_like(counts)
+            binned_data = np.zeros_like(final_data)
+
             for i in range(self.metadata.data_file.scan_length):
                 print(f"Processing image {i}...")
                 img = self.load_image(i)
@@ -224,13 +274,19 @@ class Scan:
                 print(f"Mapping time: {time_taken}")
 
                 time_1 = time.time()
-                final_data += weighted_bin_3d(
-                    q_vectors,
-                    img.data,
-                    start, stop, step)
+                binned_data += weighted_bin_3d(q_vectors,
+                                               img.data,
+                                               final_data,
+                                               counts,
+                                               start,
+                                               stop,
+                                               step)
+                final_data += binned_data
                 time_taken = time.time() - time_1
                 print(f"Binning, img.data & final_data+= time: {time_taken}")
-            final_data = np.copy(final_data)
+            final_data = np.copy(final_data/counts)
+            print("Doubling output for no reason")
+            mapper_c_utils.simple_float_add(final_data, final_data)
             shared_mem.close()
             shared_mem.unlink()
             return final_data
@@ -263,10 +319,12 @@ class Scan:
 
         # Close the shared memory pool; return the final data.
         final_data = np.copy(final_data)
+        counts = np.copy(counts)
         shared_mem.close()
         shared_mem.unlink()
         _on_exit(shared_mem)
-        return final_data
+        _on_exit(shared_count)
+        return final_data, counts
 
     def reciprocal_space_map(self, frame: Frame, num_threads: int = 1):
         """

@@ -127,13 +127,16 @@ def fast_linear_bin(coords: np.ndarray,  # Coordinates of each intensity.
     return dd
 
 
-def weighted_bin_3d(coords: np.ndarray, weights: np.ndarray, start: np.ndarray,
-                    stop: np.ndarray, step: np.ndarray) -> np.ndarray:
+def weighted_bin_3d(coords: np.ndarray, weights: np.ndarray,
+                    out: np.ndarray, count: np.ndarray,
+                    start: np.ndarray, stop: np.ndarray, step: np.ndarray
+                    ) -> np.ndarray:
     """
     This is an alias to the native C function _weighted_bin_3d, which adds a
     useful protective layer. A lot of explicit type conversions are carried out,
     which prevents segfaults on the C side.
     """
+
     # Uncomment these timestamps to benchmark the binning routine.
     # time_1 = time.time()
     coords = _fix_delta_q_geometry(coords)
@@ -149,18 +152,16 @@ def weighted_bin_3d(coords: np.ndarray, weights: np.ndarray, start: np.ndarray,
 
     if weights.dtype != np.float32:
         raise ValueError("Weights must have dtype=np.float32")
+    if coords.dtype != np.float32:
+        raise ValueError("Coords must have dtype=np.float32")
+    if out.dtype != np.float32:
+        raise ValueError("out must have dtype=np.float32")
+    if count.dtype != np.uint32:
+        raise ValueError("Count must have dtype=np.int32")
 
-    # Allocate a new numpy array on the python end. Originally, I malloced a
-    # big array on the C end, but the numpy C api documentation wasn't super
-    # clear on 1) how to cast this to a np.ndarray, or 2) how to prevent memory
-    # leaks on the manually malloced array.
-    # np.zeros is a fancy function; it is blazingly fast. So, allocate the large
-    # array using np.zeros (as opposed to manual initialization to zeros on the
-    # C end).
-    out = np.zeros(shape, np.float32)
-
+    # Now we're ready to call the function.
     mapper_c_utils.weighted_bin_3d(coords, start, stop, step, shape,
-                                   weights, out)
+                                   weights, out, count)
 
     # time_taken = time.time() - time_1
     # print(f"Binning time: {time_taken}")
