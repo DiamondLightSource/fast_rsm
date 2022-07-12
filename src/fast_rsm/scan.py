@@ -6,7 +6,6 @@ information relating to a reciprocal space scan.
 # pylint: disable=protected-access
 
 import time
-from copy import deepcopy
 from multiprocessing.pool import Pool
 from multiprocessing.shared_memory import SharedMemory
 from multiprocessing import Lock
