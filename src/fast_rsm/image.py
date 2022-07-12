@@ -235,6 +235,14 @@ class Image:
             ub_mat[0] = -ub_mat[0]
             ub_mat[2] = -ub_mat[2]
 
+            # Finally, we make it so that (001) will end up OOP.
+            coord_change_mat = np.array([
+                [1, 0, 0],
+                [0, 0, 1],
+                [0, 1, 0]
+            ])
+            ub_mat = np.matmul(coord_change_mat, ub_mat)
+
             # The custom, high performance linear_map expects float32's.
             ub_mat = ub_mat.astype(np.float32)
 
