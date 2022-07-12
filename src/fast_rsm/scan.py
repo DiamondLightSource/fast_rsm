@@ -61,13 +61,12 @@ def init_process_pool(locks: List[Lock], num_threads: int):
 
 def _on_exit(shared_mem: SharedMemory):
     """
-    Cane be used with the atexit module. Makes sure that the shared memory is
+    Can be used with the atexit module. Makes sure that the shared memory is
     cleaned when called.
     """
     try:
         shared_mem.close()
         shared_mem.unlink()
-        print("Had to emergency unlink shared memory.")
     except FileNotFoundError:
         # The file has already been unlinked; do nothing.
         pass
