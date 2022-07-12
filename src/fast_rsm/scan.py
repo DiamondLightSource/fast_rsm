@@ -152,16 +152,14 @@ def _bin_maps_with_indices(indices: List[int],
 
         shape = finite_diff_shape(start, stop, step)
         # Update the final data in a thread safe way.
-        # with LOCK:
-        #     print("Accessed shared memory lock")
-        final_data = np.ndarray(
-            shape, dtype=np.float32, buffer=shared_mem.buf)
-        final_cnt = np.ndarray(
-            shape, dtype=np.uint32, buffer=shared_count.buf)
-        mapper_c_utils.simple_float_add(final_data, binned_q)
-        mapper_c_utils.simple_uint32_add(final_cnt, count)
-        # final_data += binned_q
-        # final_cnt += count
+        with LOCK:
+            print("Accessed shared memory lock")
+            final_data = np.ndarray(
+                shape, dtype=np.float32, buffer=shared_mem.buf)
+            final_cnt = np.ndarray(
+                shape, dtype=np.uint32, buffer=shared_count.buf)
+            mapper_c_utils.simple_float_add(final_data, binned_q)
+            mapper_c_utils.simple_uint32_add(final_cnt, count)
 
         # Always do your chores.
         shared_mem.close()
