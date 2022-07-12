@@ -46,15 +46,18 @@ def check_shared_memory(shared_mem_name: str):
         pass
 
 
-def init_process_pool(lock: Lock):
+def init_process_pool(locks: List[Lock], num_threads: int):
     """
     Initializes a processing pool to have a global shared lock.
     """
     # pylint: disable=global-variable-undefined.
 
     # Make a global lock for the shared memory block used in parallel code.
-    global LOCK
-    LOCK = lock
+    global LOCKS
+    global NUM_THREADS
+
+    LOCKS = locks
+    NUM_THREADS = num_threads
 
 
 def _on_exit(shared_mem: SharedMemory):
@@ -78,6 +81,18 @@ def _chunks(lst, num_chunks):
         chunk_size += 1
     for i in range(0, len(lst), chunk_size):
         yield lst[i:i + chunk_size]
+
+
+def _chunk_indices(array: np.ndarray, num_chunks: int) -> tuple:
+    """
+    Yield num_chunks (N) tuples of incides (a, b) such that array[a0:b0], 
+    array[a1:b1], ..., array[aN:bN] spans the entire array.
+    """
+    chunk_size = int(len(array)/num_chunks)
+    if chunk_size * num_chunks < len(array):
+        chunk_size += 1
+    for i in range(0, len(array), chunk_size):
+        yield i, i+chunk_size
 
 
 def _bin_one_map(frame: Frame,
@@ -149,17 +164,20 @@ def _bin_maps_with_indices(indices: List[int],
         # Now we've finished binning, add this to the final shared data array.
         shared_mem = SharedMemory(name='arr')
         shared_count = SharedMemory(name='count')
-
         shape = finite_diff_shape(start, stop, step)
-        # Update the final data in a thread safe way.
-        with LOCK:
-            print("Accessed shared memory lock")
-            final_data = np.ndarray(
-                shape, dtype=np.float32, buffer=shared_mem.buf)
-            final_cnt = np.ndarray(
-                shape, dtype=np.uint32, buffer=shared_count.buf)
-            mapper_c_utils.simple_float_add(final_data, binned_q)
-            mapper_c_utils.simple_uint32_add(final_cnt, count)
+        final_data = np.ndarray(
+            shape, dtype=np.float32, buffer=shared_mem.buf)
+        final_cnt = np.ndarray(
+            shape, dtype=np.uint32, buffer=shared_count.buf)
+
+        # Update the final data in a thread safe but parallel way. Here we're
+        # ensuring that no two threads are ever in the same bit of the final
+        # array.
+        for i, chunk_idx in enumerate(_chunk_indices(final_data, NUM_THREADS)):
+            with LOCKS[i]:
+                start, stop = chunk_idx
+                final_data[start:stop] += binned_q[start:stop]
+                final_cnt[start:stop] += count[start:stop]
 
         # Always do your chores.
         shared_mem.close()
@@ -291,13 +309,14 @@ class Scan:
 
         # If execution reaches here, we want a multithreaded binned RSM using
         # a thread pool. For this, we'll need a lock to share between processes.
-        lock = Lock()
+        locks = [Lock() for _ in range(num_threads)]
 
         # The high performance approach.
         with Pool(
             processes=num_threads,  # The size of our pool.
             initializer=init_process_pool,  # Our pool's initializer.
-            initargs=(lock,)  # The initializer makes this lock global.
+            initargs=(locks,  # The initializer makes this lock global.
+                      num_threads)  # Initializer also makes num_threads global.
         ) as pool:
             # Submit all of the image processing functions to the pool as jobs.
             async_results = []
