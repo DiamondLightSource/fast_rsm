@@ -298,12 +298,10 @@ class Scan:
                 final_data += binned_data
                 time_taken = time.time() - time_1
                 print(f"Binning, img.data & final_data+= time: {time_taken}")
-            final_data = np.copy(final_data/counts)
-            print("Doubling output for no reason")
-            mapper_c_utils.simple_float_add(final_data, final_data)
+            final_data = np.copy(final_data)
             shared_mem.close()
             shared_mem.unlink()
-            return final_data
+            return final_data, counts
 
         # If execution reaches here, we want a multithreaded binned RSM using
         # a thread pool. For this, we'll need a lock to share between processes.
