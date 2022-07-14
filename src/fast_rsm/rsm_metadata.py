@@ -66,9 +66,8 @@ class RSMMetadata:
         would probably be given as [0, -1] in typical software!
         """
         if isinstance(self.data_file, I07Nexus):
-            # Pilatus beam centres are given (x, y) (the wrong way around).
-            if self.data_file.is_pilatus:
-                self.beam_centre = (self.beam_centre[1], self.beam_centre[0])
+            # I07 beam centres are given (x, y) (the wrong way around).
+            self.beam_centre = (self.beam_centre[1], self.beam_centre[0])
 
     @property
     def solid_angles(self):
