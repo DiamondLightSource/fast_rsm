@@ -299,8 +299,8 @@ class Scan:
                 time_taken = time.time() - time_1
                 print(f"Binning, img.data & final_data+= time: {time_taken}")
             final_data = np.copy(final_data)
-            shared_mem.close()
-            shared_mem.unlink()
+            _on_exit(shared_mem)
+            _on_exit(shared_count)
             return final_data, counts
 
         # If execution reaches here, we want a multithreaded binned RSM using
@@ -333,8 +333,6 @@ class Scan:
         # Close the shared memory pool; return the final data.
         final_data = np.copy(final_data)
         counts = np.copy(counts)
-        shared_mem.close()
-        shared_mem.unlink()
         _on_exit(shared_mem)
         _on_exit(shared_count)
         return final_data, counts
