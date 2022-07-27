@@ -69,6 +69,21 @@ class RSMMetadata:
             # I07 beam centres are given (x, y) (the wrong way around).
             self.beam_centre = (self.beam_centre[1], self.beam_centre[0])
 
+            if self.data_file.is_rotated:
+                self.beam_centre = (
+                    self.data_file.image_shape[0] - self.beam_centre[0],
+                    self.beam_centre[1])
+
+        # Finally, make sure that the beam_centre can lie within the image.
+        test_arr = np.ndarray(self.data_file.image_shape)
+        try:
+            test_arr[self.beam_centre[0], self.beam_centre[1]]
+        except IndexError as error:
+            print(f"beam_centre {self.beam_centre} out of bounds. Your image "
+                  f"has shape {self.data_file.image_shape} (slow_axis, "
+                  f"fast_axis).")
+            raise error
+
     @property
     def solid_angles(self):
         """
@@ -153,7 +168,7 @@ class RSMMetadata:
                 1e10)  # To convert to Å.
 
     @property
-    def q_incident_length(self):
+    def k_incident_length(self):
         """
         Returns the wavevector of the incident beam in Å^-1.
         """
