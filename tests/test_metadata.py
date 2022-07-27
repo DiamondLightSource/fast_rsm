@@ -143,10 +143,10 @@ def test_incident_wavelength(i10_metadata: RSMMetadata):
     assert_almost_equal(i10_metadata.incident_wavelength, 13.30627304411753, 6)
 
 
-def test_q_incident_length(i10_metadata: RSMMetadata):
+def test_k_incident_length(i10_metadata: RSMMetadata):
     """
     Make sure that our q-vector calculation is correct. Test it against Cu
     k-alpha.
     """
     # We're using the Cu L-3 edge.
-    assert_almost_equal(i10_metadata.q_incident_length, 1/13.30627304411753)
+    assert_almost_equal(i10_metadata.k_incident_length, 1/13.30627304411753)
