@@ -14,7 +14,6 @@ from typing import Union, Tuple, List
 
 import numpy as np
 
-import mapper_c_utils
 from diffraction_utils import I07Nexus, I10Nexus, Vector3, Frame
 from diffraction_utils.diffractometers import \
     I10RasorDiffractometer, I07Diffractometer
@@ -183,6 +182,7 @@ def _bin_maps_with_indices(indices: List[int],
 
     except Exception as exception:
         print(f"Exception thrown in bin_one_map: \n{exception}")
+        raise exception
 
 
 class Scan:
@@ -276,7 +276,6 @@ class Scan:
         if num_threads == 1:
             print("Using single threaded routine.")
             counts = np.zeros_like(counts)
-            binned_data = np.zeros_like(final_data)
 
             for i in range(self.metadata.data_file.scan_length):
                 print(f"Processing image {i}...")
@@ -288,20 +287,19 @@ class Scan:
                 print(f"Mapping time: {time_taken}")
 
                 time_1 = time.time()
-                binned_data += weighted_bin_3d(q_vectors,
-                                               img.data,
-                                               final_data,
-                                               counts,
-                                               start,
-                                               stop,
-                                               step)
-                final_data += binned_data
+                weighted_bin_3d(q_vectors,
+                                img.data,
+                                final_data,
+                                counts,
+                                start,
+                                stop,
+                                step)
                 time_taken = time.time() - time_1
                 print(f"Binning, img.data & final_data+= time: {time_taken}")
-            final_data = np.copy(final_data)
+            return_arr = np.copy(final_data)
             _on_exit(shared_mem)
             _on_exit(shared_count)
-            return final_data, counts
+            return return_arr, counts
 
         # If execution reaches here, we want a multithreaded binned RSM using
         # a thread pool. For this, we'll need a lock to share between processes.
@@ -328,7 +326,8 @@ class Scan:
                 result.wait()
                 if not result.successful():
                     raise ValueError(
-                        "Could not carry out map for an unknown reason.")
+                        "Could not carry out map for an unknown reason. "
+                        "Probably one of the threads segfaulted, or something.")
 
         # Close the shared memory pool; return the final data.
         final_data = np.copy(final_data)
