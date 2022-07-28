@@ -262,3 +262,11 @@ class Image:
             k_out_array = k_out_array.reshape(desired_shape)
 
         return k_out_array
+
+    def q_vector_array(self, frame: Frame) -> np.ndarray:
+        """
+        Returns a numpy array of q_vectors whose shape is (N,3).
+        """
+        q_vectors = self.q_vectors(frame).reshape()
+        num_q_vectors = q_vectors.shape[0]*q_vectors.shape[1]
+        return q_vectors.reshape((num_q_vectors, 3))
