@@ -4,7 +4,7 @@ This module contains the class that is used to store images.
 
 
 import numpy as np
-from diffraction_utils import Frame
+from diffraction_utils import Frame, I07Nexus
 from scipy.spatial.transform import Rotation
 
 import mapper_c_utils
@@ -55,6 +55,13 @@ class Image:
         be scraped from self.metadata to work out if any corrections are
         necessary at this point.
         """
+        if isinstance(self.metadata.data_file, I07Nexus):
+            if self.metadata.data_file.is_rotated:
+                # The detector has been rotated in the experiment!
+                # NOTE: this is slow. If you flip your detector and run fscans,
+                # f#!@ you.
+                self._raw_data = self._raw_data.transpose()
+                self._raw_data = np.flip(self._raw_data, axis=0)
 
     def add_processing_step(self, function) -> None:
         """
@@ -194,7 +201,7 @@ class Image:
         # Note that for performance reasons these should also be float32.
         incident_beam_arr = self.diffractometer.get_incident_beam(frame).array
         incident_beam_arr = incident_beam_arr.astype(np.float32)
-        q_incident = np.array(self.metadata.q_incident_length, np.float32)
+        k_incident_len = np.array(self.metadata.k_incident_length, np.float32)
 
         # Now simply subtract and rescale to get the q_vectors!
         # Note that this is an order of magnitude faster than:
@@ -202,7 +209,11 @@ class Image:
         k_out_array[:, :, 0] -= incident_beam_arr[0]
         k_out_array[:, :, 1] -= incident_beam_arr[1]
         k_out_array[:, :, 2] -= incident_beam_arr[2]
-        k_out_array *= q_incident
+
+        # It turns out that diffcalc assumes that k has an extra factor of
+        # 2π. I would never in my life have realised this had it not been
+        # for an offhand comment by my colleague Dean. Thanks, Dean.
+        k_out_array *= k_incident_len * 2*np.pi
 
         # Finally, if a user has specified that they want their results output
         # in hkl-space, multiply each of these vectors by the inverse of UB.
@@ -223,11 +234,6 @@ class Image:
 
             ub_mat = np.matmul(ub_mat, basis_change.as_matrix())
             ub_mat = np.matmul(basis_change.inv().as_matrix(), ub_mat)
-
-            # It turns out that diffcalc assumes that k has an extra factor of
-            # 2π. I would never in my life have realised this had it not been
-            # for an offhand comment by my colleague Dean. Thanks, Dean.
-            ub_mat *= 2*np.pi
 
             # Final fixes to make the orientation of reciprocal space match
             # diffcalc's orientation. This is really optional and just a
