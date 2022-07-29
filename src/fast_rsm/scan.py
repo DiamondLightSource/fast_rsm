@@ -362,11 +362,11 @@ class Scan:
 
         return q_vectors
 
-    def load_image(self, idx: int):
+    def load_image(self, idx: int, load_data=True):
         """
         Convenience method for loading a single image. This is unpicklable.
         """
-        return Image(self.metadata, idx)
+        return Image(self.metadata, idx, load_data)
 
     @classmethod
     def from_i10(cls,
