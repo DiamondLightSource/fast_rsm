@@ -25,11 +25,22 @@ class Image:
             A reference to the RSMMetadata's diffractometer.
         index:
             The index of the image in the scan.
+        load_image:
+            Should we actually load the image? It can be useful to access an
+            Image object without incurring the latency of an image load to e.g.
+            quickly calculate a few q_vectors.
     """
 
-    def __init__(self, metadata: RSMMetadata, index: int):
+    def __init__(self, metadata: RSMMetadata, index: int, load_image: True):
         # Store intensities as 32 bit floats.
-        self._raw_data = metadata.data_file.get_image(index).astype(np.float32)
+        if load_image:
+            self._raw_data = metadata.data_file.get_image(
+                index).astype(np.float32)
+        else:
+            # Note that np.zeros uses virtual initialization, so this doesn't
+            # actually take CPU time.
+            self._raw_data = np.zeros(metadata.data_file.image_shape)
+
         self.metadata = metadata
         self.diffractometer = self.metadata.diffractometer
         self.index = index
