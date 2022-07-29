@@ -125,14 +125,36 @@ class Image:
         # Now return the azimuthal angle at each pixel.
         return self.metadata.relative_azimuth + detector_vector.azimuthal_angle
 
-    def q_vectors(self, frame: Frame) -> np.ndarray:
+    def q_vectors(self, frame: Frame, indices: tuple = None) -> np.ndarray:
         """
         Calculates the wavevector through which light had to scatter to reach
         every pixel on the detector in a given frame of reference.
 
         First, we calculate the wavevector of the outgoing light at each pixel.
         This is done using basic vector algebra.
+
+        Args:
+            frame:
+                The frame of reference in which we want to calculate the
+                q_vectors.
+            indices:
+                The indices that we want to carry out the map for. Defaults to
+                None, in which case the entire image is mapped. E.g. passing
+                indices=(-1, -1) will only calculate the scattering vector for
+                the bottom right pixel.
+
+        Returns:
+            If your image has a shape of (a, b), the output of q_vectors has
+            shape (a, b, 3), i.e. you get one q_vector for each pixel. If
+            you specify an index, then your output will have shape (1, 1, 3).
+            Probably.
         """
+        if indices is None:
+            i = slice(None)
+            j = slice(None)
+        else:
+            i = indices[0]
+            j = indices[1]
         # Make sure that our frame of reference has the correct index.
         frame.scan_index = self.index
 
@@ -167,18 +189,21 @@ class Image:
         detector_distance = self.metadata.data_file.detector_distance
         detector_distance = np.array(detector_distance, np.float32)
 
-        k_out_array[:, :, 0] = (
+        k_out_array[i, j, 0] = (
             det_displacement.array[0]*detector_distance +
-            det_vertical.array[0]*self.metadata.vertical_pixel_distances +
-            det_horizontal.array[0]*self.metadata.horizontal_pixel_distances)
-        k_out_array[:, :, 1] = (
+            det_vertical.array[0]*self.metadata.vertical_pixel_distances[i, j] +
+            det_horizontal.array[0] *
+            self.metadata.horizontal_pixel_distances[i, j])
+        k_out_array[i, j, 1] = (
             det_displacement.array[1]*detector_distance +
-            det_vertical.array[1]*self.metadata.vertical_pixel_distances +
-            det_horizontal.array[1]*self.metadata.horizontal_pixel_distances)
-        k_out_array[:, :, 2] = (
+            det_vertical.array[1]*self.metadata.vertical_pixel_distances[i, j] +
+            det_horizontal.array[1] *
+            self.metadata.horizontal_pixel_distances[i, j])
+        k_out_array[i, j, 2] = (
             det_displacement.array[2]*detector_distance +
-            det_vertical.array[2]*self.metadata.vertical_pixel_distances +
-            det_horizontal.array[2]*self.metadata.horizontal_pixel_distances)
+            det_vertical.array[2]*self.metadata.vertical_pixel_distances[i, j] +
+            det_horizontal.array[2] *
+            self.metadata.horizontal_pixel_distances[i, j])
 
         # We're going to need to normalize; this function bottlenecks if not
         # done exactly like this!
@@ -187,16 +212,16 @@ class Image:
         # addition is an order of magnitude faster than using sum(.., axis=-1)
         k_out_squares = np.square(k_out_array)
         norms = (
-            k_out_squares[:, :, 0] +
-            k_out_squares[:, :, 1] +
-            k_out_squares[:, :, 2])
+            k_out_squares[i, j, 0] +
+            k_out_squares[i, j, 1] +
+            k_out_squares[i, j, 2])
         norms = np.sqrt(norms)
         # Right now, k_out_array[a, b] has units of meters for all a, b. We want
         # k_out_array[a, b] to be normalized (elastic scattering). This can be
         # done now that norms has been created because it has the right shape.
-        k_out_array[:, :, 0] /= norms
-        k_out_array[:, :, 1] /= norms
-        k_out_array[:, :, 2] /= norms
+        k_out_array[i, j, 0] /= norms
+        k_out_array[i, j, 1] /= norms
+        k_out_array[i, j, 2] /= norms
 
         # Note that for performance reasons these should also be float32.
         incident_beam_arr = self.diffractometer.get_incident_beam(frame).array
@@ -206,9 +231,9 @@ class Image:
         # Now simply subtract and rescale to get the q_vectors!
         # Note that this is an order of magnitude faster than:
         # k_out_array -= incident_beam_arr
-        k_out_array[:, :, 0] -= incident_beam_arr[0]
-        k_out_array[:, :, 1] -= incident_beam_arr[1]
-        k_out_array[:, :, 2] -= incident_beam_arr[2]
+        k_out_array[i, j, 0] -= incident_beam_arr[0]
+        k_out_array[i, j, 1] -= incident_beam_arr[1]
+        k_out_array[i, j, 2] -= incident_beam_arr[2]
 
         # It turns out that diffcalc assumes that k has an extra factor of
         # 2π. I would never in my life have realised this had it not been
@@ -256,12 +281,14 @@ class Image:
             k_out_array = k_out_array.reshape(
                 (desired_shape[0]*desired_shape[1], 3))
 
-            mapper_c_utils.linear_map(k_out_array, ub_mat)
+            # This is the bit that takes CPU time, mapping every vector.
+            mapper_c_utils.linear_map(k_out_array[i, j, :], ub_mat)
 
             # Reshape the k_out_array to have the same shape as the raw image.
             k_out_array = k_out_array.reshape(desired_shape)
 
-        return k_out_array
+        # Only return the indices that we worked on.
+        return k_out_array[i, j, :]
 
     def q_vector_array(self, frame: Frame) -> np.ndarray:
         """
