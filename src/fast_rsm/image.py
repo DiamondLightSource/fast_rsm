@@ -223,12 +223,17 @@ class Image:
         # This weird manual norm calculation is an order of magnitude faster
         # than using np.linalg.norm(k_out_array, axis=-1), and the manual
         # addition is an order of magnitude faster than using sum(.., axis=-1)
-        k_out_squares = np.square(k_out_array)
+        k_out_squares = np.square(k_out_array[i, j, :])
+
+        if len(k_out_squares.shape) == 1:
+            k_out_squares = k_out_squares[None][None]
+
         norms = (
-            k_out_squares[i, j, 0] +
-            k_out_squares[i, j, 1] +
-            k_out_squares[i, j, 2])
+            k_out_squares[:, :, 0] +
+            k_out_squares[:, :, 1] +
+            k_out_squares[:, :, 2])
         norms = np.sqrt(norms)
+
         # Right now, k_out_array[a, b] has units of meters for all a, b. We want
         # k_out_array[a, b] to be normalized (elastic scattering). This can be
         # done now that norms has been created because it has the right shape.
@@ -251,7 +256,7 @@ class Image:
         # It turns out that diffcalc assumes that k has an extra factor of
         # 2π. I would never in my life have realised this had it not been
         # for an offhand comment by my colleague Dean. Thanks, Dean.
-        k_out_array *= k_incident_len * 2*np.pi
+        k_out_array[i, j, :] *= k_incident_len * 2*np.pi
 
         # Finally, if a user has specified that they want their results output
         # in hkl-space, multiply each of these vectors by the inverse of UB.
