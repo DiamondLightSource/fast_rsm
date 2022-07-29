@@ -166,8 +166,10 @@ class Image:
         else:
             i = indices[0]
             j = indices[1]
-        # Make sure that our frame of reference has the correct index.
+        # Make sure that our frame of reference has the correct index and
+        # diffractometer.
         frame.scan_index = self.index
+        frame.diffractometer = self.metadata.diffractometer
 
         # We need num_x_pixels, num_y_pixels, 3 to be our shape.
         # Note that we need the extra "3" to store qx, qy, qz (3d vector).
