@@ -59,4 +59,38 @@ def find_q_bounds(scan: Scan, frame: Frame):
                  for x in range(3)]
         stop = [max_q[x] if max_q[x] > stop[x] else stop[x] for x in range(3)]
 
+    # Give a bit of wiggle room. For now, I'm using 5% padding, but this was
+    # chosen arbitrarily.
+    start, stop = np.array(start), np.array(stop)
+    side_lengths = stop - start
+    padding = side_lengths/20
+    start -= padding
+    stop += padding
+
     return start, stop
+
+
+def get_step_from_filesize(start: np.ndarray,
+                           stop: np.ndarray,
+                           file_size: float = 100) -> np.ndarray:
+    """
+    Takes a requested file size, a start and a stop. Works out the step that
+    will give you a resultant file of your requested filesize. To calculate
+    start and stop you can use fast_rsm.meta_analysis.find_q_bounds, or
+    calculate it yourself.
+
+    Args:
+        start:
+            array-like [qx_min qy_min qz_min]
+        stop:
+            array-like [qx_max qy_max qz_max]
+        file_size:
+            Requested output filesize in MB. Defaults to 100 MB.
+
+    Returns:
+        A numpy array of [step step step].
+    """
+    side_lengths = stop-start
+    volume = side_lengths[0]*side_lengths[1]*side_lengths[2]
+
+    return np.array([np.cbrt(4*volume/(file_size*1e6))]*3)
