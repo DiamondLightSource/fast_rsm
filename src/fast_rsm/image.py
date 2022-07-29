@@ -301,14 +301,17 @@ class Image:
             # The custom, high performance linear_map expects float32's.
             ub_mat = ub_mat.astype(np.float32)
 
-            k_out_array = k_out_array.reshape(
-                (desired_shape[0]*desired_shape[1], 3))
-
-            # This is the bit that takes CPU time, mapping every vector.
-            mapper_c_utils.linear_map(k_out_array[i, j, :], ub_mat)
-
-            # Reshape the k_out_array to have the same shape as the raw image.
-            k_out_array = k_out_array.reshape(desired_shape)
+            if indices is not None:
+                to_map = np.ascontiguousarray(np.copy(k_out_array[i, j, :]))
+                mapper_c_utils.linear_map(to_map, ub_mat)
+                k_out_array[i, j, :] = to_map
+            else:
+                k_out_array = k_out_array.reshape(
+                    (desired_shape[0]*desired_shape[1], 3))
+                # This is the bit that takes CPU time: mapping every vector.
+                mapper_c_utils.linear_map(k_out_array, ub_mat)
+                # Reshape the k_out_array to have the same shape as the raw image.
+                k_out_array = k_out_array.reshape(desired_shape)
 
         # Only return the indices that we worked on.
         return k_out_array[i, j, :]
