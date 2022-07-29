@@ -37,9 +37,8 @@ class Image:
             self._raw_data = metadata.data_file.get_image(
                 index).astype(np.float32)
         else:
-            # Note that np.zeros uses virtual initialization, so this doesn't
-            # actually take CPU time.
-            self._raw_data = np.zeros(metadata.data_file.image_shape)
+            # Allocate, but don't initialize.
+            self._raw_data = np.ndarray(metadata.data_file.image_shape)
 
         self.metadata = metadata
         self.diffractometer = self.metadata.diffractometer
@@ -225,13 +224,19 @@ class Image:
         # addition is an order of magnitude faster than using sum(.., axis=-1)
         k_out_squares = np.square(k_out_array[i, j, :])
 
+        # k_out_sqares' shape depends on what i and j are. Handle all 3 cases.
         if len(k_out_squares.shape) == 1:
-            k_out_squares = k_out_squares[None][None]
-
-        norms = (
-            k_out_squares[:, :, 0] +
-            k_out_squares[:, :, 1] +
-            k_out_squares[:, :, 2])
+            norms = np.sum(k_out_squares)
+        elif len(k_out_squares.shape) == 2:
+            norms = (
+                k_out_squares[:, 0] +
+                k_out_squares[:, 1] +
+                k_out_squares[:, 2])
+        elif len(k_out_squares.shape) == 3:
+            norms = (
+                k_out_squares[:, :, 0] +
+                k_out_squares[:, :, 1] +
+                k_out_squares[:, :, 2])
         norms = np.sqrt(norms)
 
         # Right now, k_out_array[a, b] has units of meters for all a, b. We want
