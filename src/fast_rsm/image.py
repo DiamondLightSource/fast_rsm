@@ -31,7 +31,7 @@ class Image:
             quickly calculate a few q_vectors.
     """
 
-    def __init__(self, metadata: RSMMetadata, index: int, load_image: True):
+    def __init__(self, metadata: RSMMetadata, index: int, load_image=True):
         # Store intensities as 32 bit floats.
         if load_image:
             self._raw_data = metadata.data_file.get_image(
