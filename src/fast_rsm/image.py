@@ -310,7 +310,20 @@ class Image:
                     (desired_shape[0]*desired_shape[1], 3))
                 # This is the bit that takes CPU time: mapping every vector.
                 mapper_c_utils.linear_map(k_out_array, ub_mat)
-                # Reshape the k_out_array to have the same shape as the raw image.
+                # Reshape the k_out_array to have the same shape as the image.
+                k_out_array = k_out_array.reshape(desired_shape)
+
+        # If the user asked for cylindrical polars then change to those coords.
+        if frame.coordinates == Frame.polar:
+            # pylint: disable=c-extension-no-member
+            if indices is not None:
+                to_polar = np.ascontiguousarray(np.copy(k_out_array[i, j, :]))
+                mapper_c_utils.cylindrical_polar(to_polar, ub_mat)
+                k_out_array[i, j, :] = to_polar
+            else:
+                k_out_array = k_out_array.reshape(
+                    (desired_shape[0]*desired_shape[1], 3))
+                mapper_c_utils.cylindrical_polar(k_out_array)
                 k_out_array = k_out_array.reshape(desired_shape)
 
         # Only return the indices that we worked on.
