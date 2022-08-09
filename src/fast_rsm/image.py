@@ -271,7 +271,6 @@ class Image:
         # performance difference is pretty small. And, I mean, doing the whole
         # calculation in a non-orthogonal basis sounds gross.
         if frame.frame_name == Frame.hkl:
-            # pylint: disable=c-extension-no-member
             ub_mat = self.metadata.data_file.ub_matrix.astype(np.float32)
             ub_mat = np.linalg.inv(ub_mat)
 
@@ -307,6 +306,7 @@ class Image:
         # The custom, high performance linear_map expects float32's.
         ub_mat = ub_mat.astype(np.float32)
 
+        # pylint: disable=c-extension-no-member
         if indices is not None:
             to_map = np.ascontiguousarray(np.copy(k_out_array[i, j, :]))
             mapper_c_utils.linear_map(to_map, ub_mat)
