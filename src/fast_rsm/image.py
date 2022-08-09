@@ -263,7 +263,7 @@ class Image:
         # for an offhand comment by my colleague Dean. Thanks, Dean.
         k_out_array[i, j, :] *= k_incident_len * 2*np.pi
 
-        # Finally, if a user has specified that they want their results output
+        # If a user has specified that they want their results output
         # in hkl-space, multiply each of these vectors by the inverse of UB.
         # Note that this is not an intelligent solution! A more optimal
         # calculation would be carried out in hkl coordinates to begin with.
@@ -289,36 +289,42 @@ class Image:
             # coordinate system by π about the k(y)-axis later.
             ub_mat[0] = -ub_mat[0]
             ub_mat[2] = -ub_mat[2]
-
-            # Finally, we make it so that (001) will end up OOP.
-            coord_change_mat = np.array([
+        else:
+            ub_mat = np.array([
                 [1, 0, 0],
-                [0, 0, 1],
-                [0, 1, 0]
+                [0, 1, 0],
+                [0, 0, 1]
             ])
-            ub_mat = np.matmul(coord_change_mat, ub_mat)
 
-            # The custom, high performance linear_map expects float32's.
-            ub_mat = ub_mat.astype(np.float32)
+        # Finally, we make it so that (001) will end up OOP.
+        coord_change_mat = np.array([
+            [1, 0, 0],
+            [0, 0, 1],
+            [0, 1, 0]
+        ])
+        ub_mat = np.matmul(coord_change_mat, ub_mat)
 
-            if indices is not None:
-                to_map = np.ascontiguousarray(np.copy(k_out_array[i, j, :]))
-                mapper_c_utils.linear_map(to_map, ub_mat)
-                k_out_array[i, j, :] = to_map
-            else:
-                k_out_array = k_out_array.reshape(
-                    (desired_shape[0]*desired_shape[1], 3))
-                # This is the bit that takes CPU time: mapping every vector.
-                mapper_c_utils.linear_map(k_out_array, ub_mat)
-                # Reshape the k_out_array to have the same shape as the image.
-                k_out_array = k_out_array.reshape(desired_shape)
+        # The custom, high performance linear_map expects float32's.
+        ub_mat = ub_mat.astype(np.float32)
+
+        if indices is not None:
+            to_map = np.ascontiguousarray(np.copy(k_out_array[i, j, :]))
+            mapper_c_utils.linear_map(to_map, ub_mat)
+            k_out_array[i, j, :] = to_map
+        else:
+            k_out_array = k_out_array.reshape(
+                (desired_shape[0]*desired_shape[1], 3))
+            # This takes CPU time: mapping every vector.
+            mapper_c_utils.linear_map(k_out_array, ub_mat)
+            # Reshape the k_out_array to have the same shape as the image.
+            k_out_array = k_out_array.reshape(desired_shape)
 
         # If the user asked for cylindrical polars then change to those coords.
         if frame.coordinates == Frame.polar:
             # pylint: disable=c-extension-no-member
             if indices is not None:
                 to_polar = np.ascontiguousarray(np.copy(k_out_array[i, j, :]))
-                mapper_c_utils.cylindrical_polar(to_polar, ub_mat)
+                mapper_c_utils.cylindrical_polar(to_polar)
                 k_out_array[i, j, :] = to_polar
             else:
                 k_out_array = k_out_array.reshape(
