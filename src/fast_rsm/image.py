@@ -3,6 +3,8 @@ This module contains the class that is used to store images.
 """
 
 
+from typing import Union
+
 import numpy as np
 from diffraction_utils import Frame, I07Nexus
 from scipy.spatial.transform import Rotation
@@ -72,6 +74,31 @@ class Image:
                 # f#!@ you.
                 self._raw_data = self._raw_data.transpose()
                 self._raw_data = np.flip(self._raw_data, axis=0)
+
+    def generate_mask(self, min_intensity: Union[float, int]) -> np.ndarray:
+        """
+        Generates a mask from every pixel whose intensity is below a certain
+        value. This mask uses the intensities recorded in the _raw_data, not
+        the corrected data returned by the Image.data property. While this
+        might seem a bit dodgy, it does mean that the mask is consistent with
+        what a user would see as a raw detector output.
+
+        Note that the condition is written as
+            self._raw_data >= min_intensity
+        *not*
+            self._raw_data > min_intensity
+
+        Args:
+            min_intensity:
+                If the raw intensity value of a pixel is below this cutoff, that
+                pixel will be masked.
+
+        Returns:
+            A numpy array of ones and zeroes, where a zeroes represent masked
+            pixels. The dtype of the array is dtype('bool'), but under the hood
+            it's just ones and zeros.
+        """
+        return self._raw_data >= min_intensity
 
     def add_processing_step(self, function) -> None:
         """
