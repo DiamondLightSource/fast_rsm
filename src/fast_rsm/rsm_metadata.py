@@ -201,7 +201,7 @@ class RSMMetadata:
         self._init_relative_azimuth()
 
         # And finally, do what we came here to do: a scuffed calculation.
-        self._solid_angles = phi_diffs*theta_diffs
+        self._solid_angles = -phi_diffs*theta_diffs
 
         # To prevent numbers from getting too silly, normalise this.
         self._solid_angles /= np.max(self._solid_angles)
