@@ -123,6 +123,7 @@ class Image:
         for step in self._processing_steps:
             arr = step(arr)
 
+        # Solid angle corrections are not optional.
         return arr/self.metadata.solid_angles
 
     def pixel_polar_angle(self, frame: Frame) -> np.ndarray:
