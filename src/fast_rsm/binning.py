@@ -129,14 +129,38 @@ def fast_linear_bin(coords: np.ndarray,  # Coordinates of each intensity.
 
 def weighted_bin_3d(coords: np.ndarray, weights: np.ndarray,
                     out: np.ndarray, count: np.ndarray,
-                    start: np.ndarray, stop: np.ndarray, step: np.ndarray
+                    start: np.ndarray, stop: np.ndarray, step: np.ndarray,
+                    min_intensity=None
                     ) -> np.ndarray:
     """
     This is an alias to the native C function _weighted_bin_3d, which adds a
     useful protective layer. A lot of explicit type conversions are carried out,
     which prevents segfaults on the C side.
-    """
 
+    Args:
+        coords:
+            A numpy array of the coordinates we're going to bin. Should be the
+            output of Image.q_vectors.
+        weights:
+            The intensities measured at each of the q_vectors stored in coords.
+            Should be the output of Image.data
+        out:
+            The current state of the binned reciprocal space map.
+        count:
+            The number of times each voxel in out has been binned to so far.
+        start:
+            A numpy array that looks like [qx_min, qy_min, qz_min].
+        stop:
+            A numpy array that looks like [qx_max, qy_max, qz_max]. Together
+            with start, these arrays specify the bounds of the region of
+            reciprocal space that we're binning to.
+        step:
+            The side-length of each reciprocal space voxel.
+        min_intensity:
+            Any intensities recorded below this intensity should be completely
+            ignored. This is used for masking. Defaults to None (i.e. no
+            masking). This is not the same thing as background subtraction.
+    """
     # Uncomment these timestamps to benchmark the binning routine.
     # time_1 = time.time()
     coords = _fix_delta_q_geometry(coords)
@@ -147,8 +171,12 @@ def weighted_bin_3d(coords: np.ndarray, weights: np.ndarray,
 
     # pylint: disable=c-extension-no-member
     start = start.astype(np.float32)
-    stop = stop.astype(np.float32)
     step = step.astype(np.float32)
+
+    # Make sure that min_intensity is a float32.
+    if min_intensity is None:
+        min_intensity = -np.inf
+    min_intensity = np.array([min_intensity]).astype(np.float32)
 
     if weights.dtype != np.float32:
         raise ValueError("Weights must have dtype=np.float32")
@@ -160,8 +188,8 @@ def weighted_bin_3d(coords: np.ndarray, weights: np.ndarray,
         raise ValueError("Count must have dtype=np.int32")
 
     # Now we're ready to call the function.
-    mapper_c_utils.weighted_bin_3d(coords, start, stop, step, shape,
-                                   weights, out, count)
+    mapper_c_utils.weighted_bin_3d(coords, start, step, shape,
+                                   weights, out, count, min_intensity)
 
     # time_taken = time.time() - time_1
     # print(f"Binning time: {time_taken}")
