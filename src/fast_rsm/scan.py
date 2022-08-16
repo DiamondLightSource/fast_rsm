@@ -154,7 +154,7 @@ def _bin_maps_with_indices(indices: List[int],
     try:
         # Do the binning, adding each binned dataset to binned_q.
         for idx in indices:
-            print(f"Processing image {idx}.")
+            print(f"Processing image {idx}.\r", end='')
             _bin_one_map(frame, start, stop, step, idx, metadata,
                          processing_steps, binned_q, count)
 
@@ -278,7 +278,7 @@ class Scan:
             counts = np.zeros_like(counts)
 
             for i in range(self.metadata.data_file.scan_length):
-                print(f"Processing image {i}...")
+                print(f"Processing image {i}...\r", end='')
                 img = self.load_image(i)
                 img._processing_steps = self._processing_steps
                 time_1 = time.time()
