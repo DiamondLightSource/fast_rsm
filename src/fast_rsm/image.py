@@ -351,7 +351,7 @@ class Image:
         if frame.coordinates == Frame.polar:
             # pylint: disable=c-extension-no-member
             if indices is not None:
-                to_polar = np.ascontiguousarray(np.copy(k_out_array[i, j, :]))
+                to_polar = np.ascontiguousarray(k_out_array[i, j, :])
                 mapper_c_utils.cylindrical_polar(to_polar)
                 k_out_array[i, j, :] = to_polar
             else:
