@@ -336,7 +336,7 @@ class Image:
 
         # pylint: disable=c-extension-no-member
         if indices is not None:
-            to_map = np.ascontiguousarray(np.copy(k_out_array[i, j, :]))
+            to_map = np.ascontiguousarray(k_out_array[i, j, :])
             mapper_c_utils.linear_map(to_map, ub_mat)
             k_out_array[i, j, :] = to_map
         else:
