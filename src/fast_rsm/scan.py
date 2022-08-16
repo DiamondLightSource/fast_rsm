@@ -96,6 +96,7 @@ def _bin_one_map(frame: Frame,
                  start: np.ndarray,
                  stop: np.ndarray,
                  step: np.ndarray,
+                 min_intensity: float,
                  idx: int,
                  metadata: RSMMetadata,
                  processing_steps: list,
@@ -117,7 +118,8 @@ def _bin_one_map(frame: Frame,
                                count,
                                start,
                                stop,
-                               step)
+                               step,
+                               min_intensity)
     return binned_q
 
 
@@ -126,6 +128,7 @@ def _bin_maps_with_indices(indices: List[int],
                            start: np.ndarray,
                            stop: np.ndarray,
                            step: np.ndarray,
+                           min_intensity: float,
                            metadata: RSMMetadata,
                            processing_steps: list
                            ) -> None:
@@ -155,7 +158,7 @@ def _bin_maps_with_indices(indices: List[int],
         # Do the binning, adding each binned dataset to binned_q.
         for idx in indices:
             print(f"Processing image {idx}.\r", end='')
-            _bin_one_map(frame, start, stop, step, idx, metadata,
+            _bin_one_map(frame, start, stop, step, min_intensity, idx, metadata,
                          processing_steps, binned_q, count)
 
         # Now we've finished binning, add this to the final shared data array.
@@ -219,6 +222,7 @@ class Scan:
         start: np.ndarray,  # Bin start.
         stop: np.ndarray,  # Bin stop.
         step: np.ndarray,  # Bin step.
+        min_intensity: float = None,  # Cutoff intensity for pixels.
         num_threads: int = 1  # How many threads to use for this map.
     ) -> np.ndarray:
         """
@@ -238,6 +242,10 @@ class Scan:
             step:
                 Step size for our finite differences binning grid. This should
                 be an array-like object [stepx, stepy, stepz].
+            min_intensity:
+                The intensity value of a pixel below which the pixel will be
+                completely ignored (the algorithm will act as though that pixel
+                was never measured). This is used for masking.
             num_threads:
                 How many threads to use for this calculation. Defaults to 1.
         """
@@ -293,7 +301,8 @@ class Scan:
                                 counts,
                                 start,
                                 stop,
-                                step)
+                                step,
+                                min_intensity)
                 time_taken = time.time() - time_1
                 print(f"Binning, img.data & final_data+= time: {time_taken}")
             return_arr = np.copy(final_data)
@@ -318,7 +327,7 @@ class Scan:
                     self.metadata.data_file.scan_length)), num_threads):
                 async_results.append(pool.apply_async(
                     _bin_maps_with_indices,
-                    (indices, frame, start, stop, step,
+                    (indices, frame, start, stop, step, min_intensity,
                      self.metadata, self._processing_steps)))
 
             # Wait for all the work to complete.
