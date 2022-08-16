@@ -309,13 +309,6 @@ class Image:
 
             ub_mat = np.matmul(ub_mat, basis_change.as_matrix())
             ub_mat = np.matmul(basis_change.inv().as_matrix(), ub_mat)
-
-            # Final fixes to make the orientation of reciprocal space match
-            # diffcalc's orientation. This is really optional and just a
-            # definition. This is equivalent to (but faster than) rotating the
-            # coordinate system by π about the k(y)-axis later.
-            ub_mat[0] = -ub_mat[0]
-            ub_mat[2] = -ub_mat[2]
         else:
             ub_mat = np.array([
                 [1, 0, 0],
