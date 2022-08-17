@@ -6,11 +6,13 @@ This module contains the class that is used to store images.
 from typing import Union
 
 import numpy as np
-from diffraction_utils import Frame, I07Nexus
+from diffraction_utils import Frame, I07Nexus, Polarisation
 from scipy.spatial.transform import Rotation
 
 import mapper_c_utils
 from .rsm_metadata import RSMMetadata
+
+from . import corrections
 
 
 class Image:
@@ -274,10 +276,33 @@ class Image:
         k_out_array[i, j, 1] /= norms
         k_out_array[i, j, 2] /= norms
 
-        # Note that for performance reasons these should also be float32.
+        # For performance reasons these should also be float32.
         incident_beam_arr = self.diffractometer.get_incident_beam(frame).array
         incident_beam_arr = incident_beam_arr.astype(np.float32)
         k_incident_len = np.array(self.metadata.k_incident_length, np.float32)
+
+        # At exactly this point, while k_in and k_out are normalised "for
+        # free", Lorentz/polarisation corrections should be applied. Only do
+        # this if we're mapping the entire image (i.e. indices is None).
+        if indices is None:
+            init_max_intensity = np.max(self._raw_data)
+            corrections.lorentz(self._raw_data, incident_beam_arr, k_out_array)
+
+            # The kind of polarisation correction that we want to apply of
+            # depends, rather obviously, on the polarisation of the beam!
+            polarisation = self.metadata.data_file.polarisation
+            if polarisation.kind != Polarisation.linear:
+                raise NotImplementedError(
+                    "Only linear polarisation corrections have been "
+                    "implemented.")
+            if polarisation.kind == Polarisation.linear:
+                pol_vec = polarisation.vector
+                pol_vec.to_frame(frame)
+                corrections.linear_polarisation(
+                    self._raw_data, k_out_array, pol_vec.array)
+
+            # Finally, fix the units on the _raw_data.
+            self._raw_data *= init_max_intensity/np.max(self._raw_data)
 
         # Now simply subtract and rescale to get the q_vectors!
         # Note that this is an order of magnitude faster than:
