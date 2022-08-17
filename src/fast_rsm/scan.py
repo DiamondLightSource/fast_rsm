@@ -6,6 +6,7 @@ information relating to a reciprocal space scan.
 # pylint: disable=protected-access
 
 import time
+import traceback
 from multiprocessing.pool import Pool
 from multiprocessing.shared_memory import SharedMemory
 from multiprocessing import Lock
@@ -184,7 +185,8 @@ def _bin_maps_with_indices(indices: List[int],
         shared_count.close()
 
     except Exception as exception:
-        print(f"Exception thrown in bin_one_map: \n{exception}")
+        print("Exception thrown in bin_one_map:")
+        print(traceback.format_exc())
         raise exception
 
 
