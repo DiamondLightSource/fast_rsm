@@ -42,7 +42,7 @@ def lorentz(intensities: np.ndarray, k_in: np.ndarray, k_out: np.ndarray):
     intensity_shape = intensities.shape
     k_out_shape = k_out.shape
     intensities = intensities.reshape(intensities.size)
-    k_out = k_out.reshape((k_out.size/3, 3))
+    k_out = k_out.reshape((int(k_out.size/3), 3))
 
     # Call the C function. This directly affects the elements of the
     # intensities array.
@@ -85,7 +85,7 @@ def linear_polarisation(intensities: np.ndarray, k_out: np.ndarray,
     intensity_shape = intensities.shape
     k_out_shape = k_out.shape
     intensities = intensities.reshape(intensities.size)
-    k_out = k_out.reshape((k_out.size/3, 3))
+    k_out = k_out.reshape((int(k_out.size/3), 3))
 
     # Call the C function. This directly affects the elements of the
     # intensities array.
