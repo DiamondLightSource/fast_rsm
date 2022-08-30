@@ -258,15 +258,13 @@ class Image:
         if len(k_out_squares.shape) == 1:
             norms = np.sum(k_out_squares)
         elif len(k_out_squares.shape) == 2:
-            norms = (
-                k_out_squares[:, 0] +
-                k_out_squares[:, 1] +
-                k_out_squares[:, 2])
+            norms = (k_out_squares[:, 0] +
+                     k_out_squares[:, 1] +
+                     k_out_squares[:, 2])
         elif len(k_out_squares.shape) == 3:
-            norms = (
-                k_out_squares[:, :, 0] +
-                k_out_squares[:, :, 1] +
-                k_out_squares[:, :, 2])
+            norms = (k_out_squares[:, :, 0] +
+                     k_out_squares[:, :, 1] +
+                     k_out_squares[:, :, 2])
         norms = np.sqrt(norms)
 
         # Right now, k_out_array[a, b] has units of meters for all a, b. We want
