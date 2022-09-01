@@ -19,9 +19,9 @@ from diffraction_utils import I07Nexus, I10Nexus, Vector3, Frame
 from diffraction_utils.diffractometers import \
     I10RasorDiffractometer, I07Diffractometer
 
+from . import io
 from .binning import finite_diff_shape, weighted_bin_3d
 from .image import Image
-from .io import from_i07
 from .rsm_metadata import RSMMetadata
 
 
@@ -380,6 +380,60 @@ class Scan:
         """
         return Image(self.metadata, idx, load_data)
 
+    def q_bounds(self, frame: Frame):
+        """
+        Works out the region of reciprocal space sampled by this scan.
+
+        Args:
+            frame:
+                The frame of reference in which we want to calculate the bounds.
+
+        Returns:
+            (start, stop), where start and stop are numpy arrays with shape (3,)
+        """
+        top_left = (0, 0)
+        top_right = (0, -1)
+        bottom_left = (-1, 0)
+        bottom_right = (-1, -1)
+        poni = self.metadata.beam_centre
+        extremal_q_points = np.array(
+            [top_left, top_right, bottom_left, bottom_right, poni])
+        extremal_q_points = (extremal_q_points[:, 0], extremal_q_points[:, 1])
+
+        # Get some sort of starting value.
+        img = self.load_image(0, load_data=False)
+        q_vec = img.q_vectors(frame, poni)
+
+        start, stop = q_vec, q_vec
+
+        # Iterate over every image in the scan.
+        for i in range(self.metadata.data_file.scan_length):
+            # Instantiate an image without loading its data.
+            img = self.load_image(i, load_data=False)
+
+            # Work out all the extreme q values for this image.
+            q_vecs = img.q_vectors(frame, extremal_q_points)
+
+            # Get the min/max of each component.
+            min_q = np.array([np.amin(q_vecs[:, i]) for i in range(3)])
+            max_q = np.array([np.amax(q_vecs[:, i]) for i in range(3)])
+
+            # Update start/stop accordingly.
+            start = [min_q[x] if min_q[x] < start[x] else start[x]
+                     for x in range(3)]
+            stop = [max_q[x] if max_q[x] > stop[x] else stop[x]
+                    for x in range(3)]
+
+        # Give a bit of wiggle room. For now, I'm using 5% padding, but this was
+        # chosen arbitrarily.
+        start, stop = np.array(start), np.array(stop)
+        side_lengths = stop - start
+        padding = side_lengths/20
+        start -= padding
+        stop += padding
+
+        return start, stop
+
     @classmethod
     def from_i10(cls,
                  path_to_nx: Union[str, Path],
@@ -449,5 +503,5 @@ class Scan:
         Returns:
             Corresponding instance of Scan.
         """
-        return from_i07(path_to_nx, beam_centre, detector_distance,
-                        setup, path_to_data)
+        return io.from_i07(path_to_nx, beam_centre, detector_distance,
+                           setup, path_to_data)
