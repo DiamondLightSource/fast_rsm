@@ -25,9 +25,10 @@ def get_step_from_filesize(start: np.ndarray,
             Requested output filesize in MB. Defaults to 100 MB.
 
     Returns:
-        A numpy array of [step step step].
+        A numpy array of [step step step] (since step_x=step_y=step_z).
     """
     side_lengths = stop-start
     volume = side_lengths[0]*side_lengths[1]*side_lengths[2]
 
-    return np.array([np.cbrt(4*volume/(file_size*1e6))]*3)
+    # Note that there are 2^20 bytes in a megabyte.
+    return np.array([np.cbrt(4*volume/(file_size*(2**20)))]*3)
