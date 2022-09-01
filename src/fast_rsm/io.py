@@ -3,20 +3,23 @@ This module contains parsers for different instruments that return Scan objects.
 """
 
 from pathlib import Path
-from typing import Union, Tuple
+from typing import Union, Tuple, TYPE_CHECKING
 
 from diffraction_utils import I07Nexus, Frame, Vector3
 from diffraction_utils.diffractometers import I07Diffractometer
 
+from . import scan
 from .rsm_metadata import RSMMetadata
-from .scan import Scan
+
+if TYPE_CHECKING:
+    from .scan import Scan
 
 
 def from_i07(path_to_nx: Union[str, Path],
              beam_centre: Tuple[int],
              detector_distance: float,
              setup: str,
-             path_to_data: str = ''):
+             path_to_data: str = '') -> 'Scan':
     """
     Instantiates a Scan from the path to an I07 nexus file, a beam centre
     coordinate tuple, a detector distance and a sample out-of-plane vector.
@@ -59,4 +62,4 @@ def from_i07(path_to_nx: Union[str, Path],
     # Make sure that the sample_oop vector's frame's diffractometer is good.
     sample_oop.frame.diffractometer = diff
 
-    return Scan(metadata)
+    return scan.Scan(metadata)
