@@ -21,6 +21,7 @@ from diffraction_utils.diffractometers import \
 
 from .binning import finite_diff_shape, weighted_bin_3d
 from .image import Image
+from .io import from_i07
 from .rsm_metadata import RSMMetadata
 
 
@@ -420,17 +421,14 @@ class Scan:
 
         return cls(meta)
 
-    @classmethod
-    def from_i07(cls,
-                 path_to_nx: Union[str, Path],
+    @staticmethod
+    def from_i07(path_to_nx: Union[str, Path],
                  beam_centre: Tuple[int],
                  detector_distance: float,
                  setup: str,
-                 sample_oop: Union[Vector3, np.ndarray, List[float]],
                  path_to_data: str = ''):
         """
-        Instantiates a Scan from the path to an I07 nexus file, a beam centre
-        coordinate tuple, a detector distance and a sample out-of-plane vector.
+        Aliases to io.from_i07.
 
         Args:
             path_to_nx:
@@ -443,27 +441,13 @@ class Scan:
             setup:
                 What was the experimental setup? Can be "vertical", "horizontal"
                 or "DCD".
-            sample_oop:
-                An instance of a diffraction_utils Vector3 which descrbes the
-                sample out of plane vector.
             path_to_data:
                 Path to the directory in which the images are stored. Defaults
                 to '', in which case a bunch of reasonable directories will be
                 searched for the images.
+
+        Returns:
+            Corresponding instance of Scan.
         """
-        # Load the nexus file.
-        i07_nexus = I07Nexus(path_to_nx, path_to_data,
-                             detector_distance, setup)
-
-        if not isinstance(sample_oop, Frame):
-            frame = Frame(Frame.sample_holder, None, None)
-            sample_oop = Vector3(sample_oop, frame)
-
-        # Load the state of the diffractometer; prepare the RSM metadata.
-        diff = I07Diffractometer(i07_nexus, sample_oop, setup)
-        metadata = RSMMetadata(diff, beam_centre)
-
-        # Make sure that the sample_oop vector's frame's diffractometer is good.
-        sample_oop.frame.diffractometer = diff
-
-        return cls(metadata)
+        return from_i07(path_to_nx, beam_centre, detector_distance,
+                        setup, path_to_data)
