@@ -15,9 +15,8 @@ from typing import Union, Tuple, List
 
 import numpy as np
 
-from diffraction_utils import I07Nexus, I10Nexus, Vector3, Frame
-from diffraction_utils.diffractometers import \
-    I10RasorDiffractometer, I07Diffractometer
+from diffraction_utils import I10Nexus, Vector3, Frame
+from diffraction_utils.diffractometers import I10RasorDiffractometer
 
 from . import io
 from .binning import finite_diff_shape, weighted_bin_3d
@@ -25,7 +24,7 @@ from .image import Image
 from .rsm_metadata import RSMMetadata
 
 
-def check_shared_memory(shared_mem_name: str):
+def check_shared_memory(shared_mem_name: str) -> None:
     """
     Make sure that a shared memory array is not open. Clear the shared memory
     and print a warning if it is open.
@@ -46,7 +45,7 @@ def check_shared_memory(shared_mem_name: str):
         pass
 
 
-def init_process_pool(locks: List[Lock], num_threads: int):
+def init_process_pool(locks: List[Lock], num_threads: int) -> None:
     """
     Initializes a processing pool to have a global shared lock.
     """
@@ -60,7 +59,7 @@ def init_process_pool(locks: List[Lock], num_threads: int):
     NUM_THREADS = num_threads
 
 
-def _on_exit(shared_mem: SharedMemory):
+def _on_exit(shared_mem: SharedMemory) -> None:
     """
     Can be used with the atexit module. Makes sure that the shared memory is
     cleaned when called.
@@ -380,7 +379,7 @@ class Scan:
         """
         return Image(self.metadata, idx, load_data)
 
-    def q_bounds(self, frame: Frame):
+    def q_bounds(self, frame: Frame) -> Tuple[np.ndarray]:
         """
         Works out the region of reciprocal space sampled by this scan.
 
