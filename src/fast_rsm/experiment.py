@@ -82,6 +82,9 @@ class Experiment:
         for path in self._normalisation_file_names:
             _remove_file(path)
 
+        self._data_file_names = []
+        self._normalisation_file_names = []
+
     def binned_reciprocal_space_map(self,
                                     num_threads: int,
                                     map_frame: Frame,
