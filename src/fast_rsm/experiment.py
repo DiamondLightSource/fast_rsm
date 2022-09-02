@@ -27,6 +27,31 @@ def _remove_file(path: Union[str, Path]):
         pass
 
 
+def _sum_numpy_files(filenames: List[Union[Path, str]]):
+    """
+    Takes a list of paths to .npy files. Adds them all together. Returns this
+    sum.
+
+    TODO: this could be parallelised.
+
+    Args:
+        filenames:
+            A list/tuple/iterable of strings/paths/np.load-able things.
+
+    Returns:
+        Sum of the contents of all the files in the filenames list.
+    """
+    total = np.load(filenames[0] + '.npy')
+
+    for i, filename in enumerate(filenames):
+        # Skip the zeroth file because we already loaded it.
+        if i == 0:
+            continue
+        total += np.load(filename + '.npy')
+
+    return total
+
+
 class Experiment:
     """
     The Experiment class specifies all experimental details necessary to process
@@ -102,12 +127,9 @@ class Experiment:
             self._data_file_names.append(data_name)
             self._normalisation_file_names.append(norm_name)
 
-        # Combine the maps and normalise. TODO: parallelise this.
-        total_map = np.zeros_like(rsmap, dtype=np.float32)
-        total_counts = np.zeros_like(counts, dtype=np.float32)
-        for i, map_name in enumerate(self._data_file_names):
-            total_map += np.load(map_name + '.npy')
-            total_counts += np.load(self._normalisation_file_names[i] + '.npy')
+        # Combine the maps and normalise.
+        total_map = _sum_numpy_files(self._data_file_names)
+        total_counts = _sum_numpy_files(self._normalisation_file_names)
 
         normalised_map = total_map / total_counts
         linear_bin_to_vtk(normalised_map, output_file_name, start, stop, step)
