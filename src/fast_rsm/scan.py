@@ -83,7 +83,7 @@ def _chunks(lst, num_chunks):
 
 def _chunk_indices(array: np.ndarray, num_chunks: int) -> tuple:
     """
-    Yield num_chunks (N) tuples of incides (a, b) such that array[a0:b0], 
+    Yield num_chunks (N) tuples of incides (a, b) such that array[a0:b0],
     array[a1:b1], ..., array[aN:bN] spans the entire array.
     """
     chunk_size = int(len(array)/num_chunks)
@@ -131,7 +131,8 @@ def _bin_maps_with_indices(indices: List[int],
                            step: np.ndarray,
                            min_intensity: float,
                            metadata: RSMMetadata,
-                           processing_steps: list
+                           processing_steps: list,
+                           skip_images: List[int]
                            ) -> None:
     """
     Bins all of the maps with indices in indices. The purpose of this
@@ -158,6 +159,10 @@ def _bin_maps_with_indices(indices: List[int],
     try:
         # Do the binning, adding each binned dataset to binned_q.
         for idx in indices:
+            # Skip this if we've been asked to.
+            if idx in skip_images:
+                continue
+
             print(f"Processing image {idx}.\r", end='')
             _bin_one_map(frame, start, stop, step, min_intensity, idx, metadata,
                          processing_steps, binned_q, count)
@@ -198,13 +203,20 @@ class Scan:
     Attrs:
         metadata:
             Scan metadata.
+        skip_images:
+            Image indices to be skipped in a reciprocal space map.
         load_image:
             A Callable that takes an index as an argument and returns an
             instance of Image with that corresponding index.
     """
 
-    def __init__(self, metadata: RSMMetadata):
+    def __init__(self, metadata: RSMMetadata, skip_images: List[int] = None):
         self.metadata = metadata
+
+        if isinstance(skip_images, int):
+            skip_images = [skip_images]
+        self.skip_images = [] if skip_images is None else skip_images
+
         self._processing_steps = []
 
     def add_processing_step(self, function) -> None:
@@ -288,6 +300,10 @@ class Scan:
             counts = np.zeros_like(counts)
 
             for i in range(self.metadata.data_file.scan_length):
+                # Skip this index if we've been asked to.
+                if i in self.skip_images:
+                    continue
+
                 print(f"Processing image {i}...\r", end='')
                 img = self.load_image(i)
                 img._processing_steps = self._processing_steps
@@ -330,7 +346,7 @@ class Scan:
                 async_results.append(pool.apply_async(
                     _bin_maps_with_indices,
                     (indices, frame, start, stop, step, min_intensity,
-                     self.metadata, self._processing_steps)))
+                     self.metadata, self._processing_steps, self.skip_images)))
 
             # Wait for all the work to complete.
             for result in async_results:
