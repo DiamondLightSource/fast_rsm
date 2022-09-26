@@ -7,6 +7,8 @@ to move this into the core of the module.
 
 import numpy as np
 
+from .scan import Scan
+
 
 def get_step_from_filesize(start: np.ndarray,
                            stop: np.ndarray,
@@ -32,3 +34,42 @@ def get_step_from_filesize(start: np.ndarray,
 
     # Note that there are 2^20 bytes in a megabyte.
     return np.array([np.cbrt(4*volume/(file_size*(2**20)))]*3)
+
+
+def find_exc_broken_frames(scan: Scan):
+    """
+    Takes a scan recorded using i07's excalibur detector, which is a bit broken.
+    Attempts to work out which frames are broken. Returns a list of image
+    indices corresponding to the frames that we think are broken.
+
+    For now this simple test relies on the broken frames being much brighter
+    than its preceding frames.
+    """
+    # I think it's pretty clean to use the _raw_data directly in this case.
+    # pylint: disable=protected-access
+
+    # Don't do anything if this wasn't an i07 excalibur scan.
+    try:
+        if not scan.metadata.data_file.is_excalibur:
+            return []
+    except AttributeError:
+        return []
+
+    broken_frames = []
+
+    # An intensity jump is suspicious if it's a factor big_intensity_jump more.
+    big_intensity_jump = 20
+    previous_mean = np.mean(scan.load_image(0)._raw_data)
+    for i in range(scan.metadata.data_file.scan_length):
+        current_mean = np.mean(scan.load_image(i)._raw_data)
+        print(f"Current mean {current_mean}.")
+
+        if current_mean < previous_mean*big_intensity_jump:
+            # This is not a suspicious jump in counts.
+            previous_mean = current_mean
+        else:
+            # This is suspicious.
+            broken_frames.append(i)
+            print(f"Found index {i} suspicious!")
+
+    return broken_frames
