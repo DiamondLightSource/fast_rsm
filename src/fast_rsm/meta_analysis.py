@@ -62,7 +62,6 @@ def find_exc_broken_frames(scan: Scan):
     previous_mean = np.mean(scan.load_image(0)._raw_data)
     for i in range(scan.metadata.data_file.scan_length):
         current_mean = np.mean(scan.load_image(i)._raw_data)
-        print(f"Current mean {current_mean}.")
 
         if current_mean < previous_mean*big_intensity_jump:
             # This is not a suspicious jump in counts.
