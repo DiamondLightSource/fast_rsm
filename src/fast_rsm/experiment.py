@@ -73,7 +73,7 @@ class Experiment:
         self._data_file_names = []
         self._normalisation_file_names = []
 
-    def _clean_temp_files(self):
+    def _clean_temp_files(self) -> None:
         """
         Removes all temporary files.
         """
@@ -85,10 +85,34 @@ class Experiment:
         self._data_file_names = []
         self._normalisation_file_names = []
 
+    def add_processing_step(self, processing_step: callable) -> None:
+        """
+        Adds a processing step to every scan in the experiment. The processing
+        step is a function that takes a numpy array representing the input
+        image, and outputs a numpy array representing the output image. A valid
+        processing step could look something like
+
+        def add_one(arr):
+            return arr + 1
+
+        If you, for some reason, wanted to add 1 to every raw image array, this
+        function can be added to all the scans in this experiment using:
+
+            experiment.add_processing_step(add_one)
+
+        Note that this must currently (python 3.10) be a module-level named
+        function. Because of the internals of how pythons serialization
+        (pickling) works, anonymous (lambda) functions won't work.
+
+        *Processing steps are applied in the order in which they are added.*
+        """
+        for scan in self.scans:
+            scan.add_processing_step(processing_step)
+
     def binned_reciprocal_space_map(self,
                                     num_threads: int,
                                     map_frame: Frame,
-                                    output_file_name: str = "mapped_data",
+                                    output_file_name: str = "mapped",
                                     min_intensity_mask: float = None,
                                     output_file_size: float = 100):
         """
@@ -119,8 +143,8 @@ class Experiment:
                 map_frame, start, stop, step, min_intensity_mask, num_threads)
 
             scan_unique_path = scan.metadata.data_file.local_path
-            data_name = output_file_name + "_data_" + scan_unique_path
-            norm_name = output_file_name + "_norm_" + scan_unique_path
+            data_name = str(scan_unique_path) + output_file_name + "_data"
+            norm_name = str(scan_unique_path) + output_file_name + "_norm"
 
             # Save the map and the normalisation array.
             np.save(data_name, rsmap)
