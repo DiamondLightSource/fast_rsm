@@ -5,9 +5,13 @@ e.g. reciprocal space bounds on scans in a performant way. The decision was made
 to move this into the core of the module.
 """
 
+from typing import TYPE_CHECKING
 import numpy as np
 
+
 from .scan import Scan
+if TYPE_CHECKING:
+    from .experiment import Experiment
 
 
 def get_step_from_filesize(start: np.ndarray,
@@ -36,7 +40,7 @@ def get_step_from_filesize(start: np.ndarray,
     return np.array([np.cbrt(4*volume/(file_size*(2**20)))]*3)
 
 
-def find_exc_broken_frames(scan: Scan):
+def _find_exc_broken_frames(scan: Scan):
     """
     Takes a scan recorded using i07's excalibur detector, which is a bit broken.
     Attempts to work out which frames are broken. Returns a list of image
@@ -73,3 +77,12 @@ def find_exc_broken_frames(scan: Scan):
                   "It is likely broken and will be ignored.")
 
     return broken_frames
+
+
+def skip_i07_exc_broken_frames(experiment: 'Experiment'):
+    """
+    This is the public facing function that can be used to skip all dodgy
+    frames captured by i07's excalibur detector.
+    """
+    for scan in experiment.scans:
+        scan.skip_images.extend(_find_exc_broken_frames(scan))
