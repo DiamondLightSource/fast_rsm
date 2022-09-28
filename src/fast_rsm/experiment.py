@@ -140,6 +140,9 @@ class Experiment:
         # Finally, remove all of the random .npy files we created along the way.
         self._clean_temp_files()
 
+        # Return the normalised RSM.
+        return normalised_map
+
     def q_bounds(self, frame: Frame) -> Tuple[np.ndarray]:
         """
         Works out the region of reciprocal space sampled by every scan in this
