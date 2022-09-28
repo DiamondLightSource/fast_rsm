@@ -69,6 +69,7 @@ def find_exc_broken_frames(scan: Scan):
         else:
             # This is suspicious.
             broken_frames.append(i)
-            print(f"Found index {i} suspicious!")
+            print(f"Image with index {i} has suspiciously high counts. "
+                  "It is likely broken and will be ignored.")
 
     return broken_frames
