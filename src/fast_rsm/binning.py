@@ -196,6 +196,82 @@ def weighted_bin_3d(coords: np.ndarray, weights: np.ndarray,
     return out
 
 
+def weighted_bin_1d(coords: np.ndarray,
+                    weights: np.ndarray,
+                    out: np.ndarray,
+                    count: np.ndarray,
+                    start: float,
+                    stop: float,
+                    step: float):
+    """
+    Entirely analogous to weighted_bin_3d, but histograms in only 1 dimension.
+    This is useful for re-histogramming for e.g. 2-theta and |Q| projections.
+
+    Args:
+        coords:
+            A numpy array of the coordinates we're going to bin. Should be a
+            numpy array with shape (N,).
+        weights:
+            The intensities measured at each of the q_vectors stored in coords.
+            Should be a numpy array with shape (N,)
+        out:
+            If the results of this binning are to be appended to another
+            histogram, out should be the histogram to which the results will be
+            appended. Otherwise, np.zeros() please. This should have the shape
+            of your desired output. So, if you're binning into 1000 equally
+            spaced bines, it should have shape (1000,)
+        count:
+            Same shape as out. This array just counts how many times you bin
+            into each bin. This is needed for normalisation.
+        start:
+            The minimum coordinate that we want to bin to. Any coordinate
+            smaller than this value will be thrown away.
+        stop:
+            The maximum coordinate we want to bin to. Any coordinate larger
+            than this value will be thrown away.
+        step:
+            The side-length of each bin voxel.
+    """
+    # Pylint will, as usual, complain because I guess it doesn't like my minimal
+    # C extension.
+    # pylint: disable=c-extension-no-member
+
+    # Make sure start, stop and step are floats. Explicit type checking is
+    # normally unpythonic, because you want an exception to be raised naturally.
+    # Well, on the C end, we'd just get a segfault - this is the last line
+    # of defence! For things to _feel_ pythonic, this is exactly the point where
+    # we need explicit type checking!
+    if not isinstance(start, float):
+        raise ValueError("start Argument must have type float. "
+                         f"Instead, it had type {type(start)}")
+    if not isinstance(stop, float):
+        raise ValueError("stop Argument must have type float. "
+                         f"Instead, it had type {type(stop)}")
+    if not isinstance(step, float):
+        raise ValueError("step Argument must have type float. "
+                         f"Instead, it had type {type(step)}")
+
+    # Work out how many bins we're going to need.
+    shape = np.arange(start, stop, step).shape[0]
+
+    # Make sure that everything is a float32. We don't need double length
+    # floating point precision, and this is, well, 2x faster!
+    if weights.dtype != np.float32:
+        raise ValueError("Weights must have dtype=np.float32")
+    if coords.dtype != np.float32:
+        raise ValueError("Coords must have dtype=np.float32")
+    if out.dtype != np.float32:
+        raise ValueError("out must have dtype=np.float32")
+    if count.dtype != np.uint32:
+        raise ValueError("Count must have dtype=np.int32")
+
+    # Now we're ready to call the function.
+    mapper_c_utils.weighted_bin_1d(
+        coords, start, step, shape, weights, out, count)
+
+    return out
+
+
 def hist_shape(start, stop, step):
     """
     Returns the shape of the histogram returned by linear_bin_histdd.
