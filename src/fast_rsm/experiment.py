@@ -8,10 +8,11 @@ from pathlib import Path
 from typing import List, Tuple, Union
 
 import numpy as np
-
 from diffraction_utils import Frame
+from scipy.constants import physical_constants
 
 from . import io
+from .binning import weighted_bin_1d
 from .meta_analysis import get_step_from_filesize
 from .scan import Scan
 from .writing import linear_bin_to_vtk
@@ -50,6 +51,29 @@ def _sum_numpy_files(filenames: List[Union[Path, str]]):
         total += np.load(filename + '.npy')
 
     return total
+
+
+def _q_to_theta(q_values, energy) -> np.array:
+    """
+    Calculates the diffractometer theta from scattering vector Q.
+
+    Args:
+        theta:
+            Array of theta values to be converted.
+        energy:
+            Energy of the incident probe particle, in eV.
+    """
+    # First calculate the wavevector of the incident light.
+    planck = physical_constants["Planck constant in eV s"][0]
+    speed_of_light = physical_constants["speed of light in vacuum"][0] * 1e10
+    # My q_values are angular, so my wavevector needs to be angular too.
+    ang_wavevector = 2*np.pi*energy/(planck*speed_of_light)
+
+    # Do some basic geometry.
+    theta_values = np.arccos(1 - np.square(q_values)/(2*ang_wavevector**2))
+
+    # Convert from radians to degrees.
+    return theta_values*180/np.pi
 
 
 class Experiment:
@@ -114,7 +138,8 @@ class Experiment:
                                     map_frame: Frame,
                                     output_file_name: str = "mapped",
                                     min_intensity_mask: float = None,
-                                    output_file_size: float = 100):
+                                    output_file_size: float = 100,
+                                    save_vtk: bool = True):
         """
         Carries out a binned reciprocal space map for this experimental data.
 
@@ -158,14 +183,163 @@ class Experiment:
         total_map = _sum_numpy_files(self._data_file_names)
         total_counts = _sum_numpy_files(self._normalisation_file_names)
 
-        normalised_map = total_map / total_counts
-        linear_bin_to_vtk(normalised_map, output_file_name, start, stop, step)
+        # Gotta explicitly cast the counts from uint32 to float32.
+        normalised_map = total_map/(total_counts.astype(np.float32))
+        # Only save the vtk if we've been asked to.
+        if save_vtk:
+            linear_bin_to_vtk(
+                normalised_map, output_file_name, start, stop, step)
 
         # Finally, remove all of the random .npy files we created along the way.
         self._clean_temp_files()
 
         # Return the normalised RSM.
-        return normalised_map
+        return normalised_map, start, stop, step
+
+    def _project_to_1d(self,
+                       num_threads: int,
+                       output_file_name: str = "mapped",
+                       num_bins: int = 1000,
+                       bin_size: float = None,
+                       tth=False):
+        """
+        Maps this experiment to a simple intensity vs two-theta representation.
+        This virtual 'two-theta' axis is the total angle scattered by the light,
+        *not* the projection of the total angle about a particular axis.
+
+        Under the hood, this runs a binned reciprocal space map with an
+        auto-generated resolution such that the reciprocal space volume is
+        100MB. You really shouldn't need more than 100MB of reciprocal space
+        for a simple line chart...
+
+        TODO: one day, this shouldn't run the 3D binned reciprocal space map
+        and should instead directly bin to a one-dimensional space. The
+        advantage of this approach is that it is much easier to maintain. The
+        disadvantage is that theoretical optimal performance is worse, memory
+        footprint is higher and some data _could_ be incorrectly binned due to
+        double binning. In reality, it's fine: inaccuracies are pedantic and
+        performance is pretty damn good.
+
+        TODO: Currently, this method assumes that the beam energy is constant
+        throughout the scan. Assumptions aren't exactly in the spirit of this
+        module - maybe one day someone can find the time to do this "properly".
+        """
+        map_frame = Frame(Frame.sample_holder, coordinates=Frame.cartesian)
+
+        rsm, start, stop, step = self.binned_reciprocal_space_map(
+            num_threads, map_frame, output_file_name, save_vtk=False)
+
+        # RSM could have a lot of nan elements, representing unmeasured voxels.
+        # Lets make sure we zero these before continuing.
+        rsm = np.nan_to_num(rsm, nan=0)
+
+        q_x = np.arange(start[0], stop[0], step[0], dtype=np.float32)
+        q_y = np.arange(start[1], stop[1], step[1], dtype=np.float32)
+        q_z = np.arange(start[2], stop[2], step[2], dtype=np.float32)
+
+        if tth:
+            energy = self.scans[0].metadata.data_file.probe_energy
+            q_x = _q_to_theta(q_x, energy)
+            q_y = _q_to_theta(q_y, energy)
+            q_z = _q_to_theta(q_z, energy)
+            q_x, q_y, q_z = np.meshgrid(q_x, q_y, q_z, indexing='ij')
+
+        # Now we can work out the |Q| for each voxel.
+        q_x_squared = q_x * q_x
+        q_y_squared = q_y * q_y
+        q_z_squared = q_z * q_z
+
+        q_lengths = np.sqrt(q_x_squared + q_y_squared + q_z_squared)
+
+        # It doesn't make sense to keep the 3D shape because we're about to map
+        # to a 1D space anyway.
+        rsm = rsm.ravel()
+        q_lengths = q_lengths.ravel()
+
+        # If we haven't been given a bin_size, we need to calculate it.
+        min_q = float(np.min(q_lengths))
+        max_q = float(np.max(q_lengths))
+
+        if bin_size is None:
+            # Work out the bin_size from the range of |Q| values.
+            bin_size = (max_q - min_q)/num_bins
+
+        # Now that we know the bin_size, we can make an array of the bin edges.
+        bins = np.arange(min_q, max_q, bin_size)
+
+        # Use this to make output & count arrays of the correct size.
+        out = np.zeros_like(bins, dtype=np.float32)
+        count = np.zeros_like(out, dtype=np.uint32)
+
+        # Do the binning.
+        out = weighted_bin_1d(q_lengths, rsm, out, count,
+                              min_q, max_q, bin_size)
+
+        # Normalise by the counts.
+        out /= count.astype(np.float32)
+
+        out = np.nan_to_num(out, nan=0)
+
+        # Now return (intensity, Q).
+        return out, bins
+
+    def intensity_vs_tth(self,
+                         num_threads: int,
+                         output_file_name: str = "mapped",
+                         num_bins: int = 1000,
+                         bin_size: float = None):
+        """
+        Maps this experiment to a simple intensity vs two-theta representation.
+        This virtual 'two-theta' axis is the total angle scattered by the light,
+        *not* the projection of the total angle about a particular axis.
+
+        Under the hood, this runs a binned reciprocal space map with an
+        auto-generated resolution such that the reciprocal space volume is
+        100MB. You really shouldn't need more than 100MB of reciprocal space
+        for a simple line chart...
+
+        TODO: one day, this shouldn't run the 3D binned reciprocal space map
+        and should instead directly bin to a one-dimensional space. The
+        advantage of this approach is that it is much easier to maintain. The
+        disadvantage is that theoretical optimal performance is worse, memory
+        footprint is higher and some data _could_ be incorrectly binned due to
+        double binning. In reality, it's fine: inaccuracies are pedantic and
+        performance is pretty damn good.
+
+        TODO: Currently, this method assumes that the beam energy is constant
+        throughout the scan. Assumptions aren't exactly in the spirit of this
+        module - maybe one day someone can find the time to do this "properly".
+        """
+        # This just aliases to self._project_to_1d, which handles the minor
+        # difference between a projection to |Q| and 2θ.
+        return self._project_to_1d(num_threads, output_file_name, num_bins,
+                                   bin_size, tth=True)
+
+    def intensity_vs_q(self,
+                       num_threads: int,
+                       output_file_name: str = "I vs Q",
+                       num_bins: int = 1000,
+                       bin_size: float = None):
+        """
+        Maps this experiment to a simple insenity vs |Q| plot.
+
+        Under the hood, this runs a binned reciprocal space map with an
+        auto-generated resolution such that the reciprocal space volume is
+        100MB. You really shouldn't need more than 100MB of reciprocal space
+        for a simple line chart...
+
+        TODO: one day, this shouldn't run the 3D binned reciprocal space map
+        and should instead directly bin to a one-dimensional space. The
+        advantage of this approach is that it is much easier to maintain. The
+        disadvantage is that theoretical optimal performance is worse, memory
+        footprint is higher and some data could be incorrectly binned due to
+        double binning. In reality, it's fine: inaccuracies are pedantic and
+        performance is pretty damn good.
+        """
+        # This just aliases to self._project_to_1d, which handles the minor
+        # difference between a projection to |Q| and 2θ.
+        return self._project_to_1d(num_threads, output_file_name, num_bins,
+                                   bin_size, tth=True)
 
     def q_bounds(self, frame: Frame) -> Tuple[np.ndarray]:
         """
