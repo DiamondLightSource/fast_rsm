@@ -242,12 +242,13 @@ class Experiment:
             q_x = _q_to_theta(q_x, energy)
             q_y = _q_to_theta(q_y, energy)
             q_z = _q_to_theta(q_z, energy)
-            q_x, q_y, q_z = np.meshgrid(q_x, q_y, q_z, indexing='ij')
+
+        q_x, q_y, q_z = np.meshgrid(q_x, q_y, q_z, indexing='ij')
 
         # Now we can work out the |Q| for each voxel.
-        q_x_squared = q_x * q_x
-        q_y_squared = q_y * q_y
-        q_z_squared = q_z * q_z
+        q_x_squared = np.square(q_x)
+        q_y_squared = np.square(q_y)
+        q_z_squared = np.square(q_z)
 
         q_lengths = np.sqrt(q_x_squared + q_y_squared + q_z_squared)
 
@@ -339,7 +340,7 @@ class Experiment:
         # This just aliases to self._project_to_1d, which handles the minor
         # difference between a projection to |Q| and 2θ.
         return self._project_to_1d(num_threads, output_file_name, num_bins,
-                                   bin_size, tth=True)
+                                   bin_size, tth=False)
 
     def q_bounds(self, frame: Frame) -> Tuple[np.ndarray]:
         """
