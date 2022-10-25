@@ -125,6 +125,13 @@ class Image:
         for step in self._processing_steps:
             arr = step(arr)
 
+        # If our data file has transmission data, divide by it.
+        # This is not optional!
+        try:
+            arr /= self.metadata.data_file.transmission
+        except AttributeError:
+            pass
+
         # Solid angle corrections are not optional.
         return arr/self.metadata.solid_angles
 
