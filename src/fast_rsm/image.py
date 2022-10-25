@@ -165,7 +165,10 @@ class Image:
         # Now return the azimuthal angle at each pixel.
         return self.metadata.relative_azimuth + detector_vector.azimuthal_angle
 
-    def q_vectors(self, frame: Frame, indices: tuple = None) -> np.ndarray:
+    def q_vectors(self,
+                  frame: Frame,
+                  indices: tuple = None,
+                  oop='y') -> np.ndarray:
         """
         Calculates the wavevector through which light had to scatter to reach
         every pixel on the detector in a given frame of reference.
@@ -328,7 +331,12 @@ class Image:
             # OKAY, so for ...reasons... this ub matrix's z-axis is my y-axis.
             # Also, its y is my -z.
             # If you don't like linear algebra, shut your eyes real quick.
-            basis_change = Rotation.from_rotvec([np.pi/2, 0, 0])
+            if oop == 'y':
+                basis_change = Rotation.from_rotvec([np.pi/2, 0, 0])
+            if oop == 'x':
+                basis_change = Rotation.from_rotvec([0, np.pi/2, 0])
+            if oop == 'z':
+                basis_change = Rotation.from_rotvec([0, 0, 0])
 
             ub_mat = np.matmul(ub_mat, basis_change.as_matrix())
             ub_mat = np.matmul(basis_change.inv().as_matrix(), ub_mat)
@@ -340,11 +348,19 @@ class Image:
             ])
 
         # Finally, we make it so that (001) will end up OOP.
-        coord_change_mat = np.array([
-            [1, 0, 0],
-            [0, 0, 1],
-            [0, 1, 0]
-        ])
+        if oop == 'y':
+            coord_change_mat = np.array([
+                [1, 0, 0],
+                [0, 0, 1],
+                [0, 1, 0]
+            ])
+        elif oop == 'x':
+            coord_change_mat = np.array([
+                [0, 0, 1],
+                [0, 1, 0],
+                [1, 0, 0]
+            ])
+
         ub_mat = np.matmul(coord_change_mat, ub_mat)
 
         # The custom, high performance linear_map expects float32's.
@@ -379,10 +395,10 @@ class Image:
         # Only return the indices that we worked on.
         return k_out_array[i, j, :]
 
-    def q_vector_array(self, frame: Frame) -> np.ndarray:
+    def q_vector_array(self, frame: Frame, oop='y') -> np.ndarray:
         """
         Returns a numpy array of q_vectors whose shape is (N,3).
         """
-        q_vectors = self.q_vectors(frame).reshape()
+        q_vectors = self.q_vectors(frame, oop=oop).reshape()
         num_q_vectors = q_vectors.shape[0]*q_vectors.shape[1]
         return q_vectors.reshape((num_q_vectors, 3))

@@ -139,7 +139,8 @@ class Experiment:
                                     output_file_name: str = "mapped",
                                     min_intensity_mask: float = None,
                                     output_file_size: float = 100,
-                                    save_vtk: bool = True):
+                                    save_vtk: bool = True,
+                                    oop: str = 'y'):
         """
         Carries out a binned reciprocal space map for this experimental data.
 
@@ -157,15 +158,19 @@ class Experiment:
             output_file_size:
                 The desired output file size, in units of MB.
                 Defaults to 100 MB.
+            oop:
+                Which synchrotron axis should become the out-of-plane (001)
+                direction. Defaults to 'y'; can be 'x', 'y' or 'z'.
         """
         # Compute the optimal finite differences volume.
-        start, stop = self.q_bounds(map_frame)
+        start, stop = self.q_bounds(map_frame, oop)
         step = get_step_from_filesize(start, stop, output_file_size)
 
         # Carry out the maps.
         for scan in self.scans:
             rsmap, counts = scan.binned_reciprocal_space_map(
-                map_frame, start, stop, step, min_intensity_mask, num_threads)
+                map_frame, start, stop, step, min_intensity_mask, num_threads,
+                oop)
 
             scan_unique_path = scan.metadata.data_file.local_path
             data_name = str(scan_unique_path) + output_file_name + "_data"
@@ -342,7 +347,7 @@ class Experiment:
         return self._project_to_1d(num_threads, output_file_name, num_bins,
                                    bin_size, tth=False)
 
-    def q_bounds(self, frame: Frame) -> Tuple[np.ndarray]:
+    def q_bounds(self, frame: Frame, oop: str = 'y') -> Tuple[np.ndarray]:
         """
         Works out the region of reciprocal space sampled by every scan in this
         experiment. This is reasonably performant, but should really be
@@ -354,7 +359,7 @@ class Experiment:
         # Get a start and stop value for each scan.
         starts, stops = [], []
         for scan in self.scans:
-            start, stop = scan.q_bounds(frame)
+            start, stop = scan.q_bounds(frame, oop)
             starts.append(start)
             stops.append(stop)
 

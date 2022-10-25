@@ -102,7 +102,8 @@ def _bin_one_map(frame: Frame,
                  metadata: RSMMetadata,
                  processing_steps: list,
                  out: np.ndarray,
-                 count: np.ndarray
+                 count: np.ndarray,
+                 oop: str
                  ) -> np.ndarray:
     """
     Calculates and bins the reciprocal space map with index idx. Saves the
@@ -112,7 +113,7 @@ def _bin_one_map(frame: Frame,
     image = Image(metadata, idx)
     image._processing_steps = processing_steps
     # Do the mapping for this image; bin the mapping.
-    q_vectors = image.q_vectors(frame)
+    q_vectors = image.q_vectors(frame, oop=oop)
     binned_q = weighted_bin_3d(q_vectors,
                                image.data,
                                out,
@@ -132,7 +133,8 @@ def _bin_maps_with_indices(indices: List[int],
                            min_intensity: float,
                            metadata: RSMMetadata,
                            processing_steps: list,
-                           skip_images: List[int]
+                           skip_images: List[int],
+                           oop: str
                            ) -> None:
     """
     Bins all of the maps with indices in indices. The purpose of this
@@ -165,7 +167,7 @@ def _bin_maps_with_indices(indices: List[int],
 
             print(f"Processing image {idx}.\r", end='')
             _bin_one_map(frame, start, stop, step, min_intensity, idx, metadata,
-                         processing_steps, binned_q, count)
+                         processing_steps, binned_q, count, oop)
 
         # Now we've finished binning, add this to the final shared data array.
         shared_mem = SharedMemory(name='arr')
@@ -237,7 +239,8 @@ class Scan:
         stop: np.ndarray,  # Bin stop.
         step: np.ndarray,  # Bin step.
         min_intensity: float = None,  # Cutoff intensity for pixels.
-        num_threads: int = 1  # How many threads to use for this map.
+        num_threads: int = 1,  # How many threads to use for this map.
+        oop: str = 'y'  # Which synchrotron axis becomes the (001).
     ) -> np.ndarray:
         """
         Runs a reciprocal space map, but bins image by image. All of start,
@@ -262,6 +265,9 @@ class Scan:
                 was never measured). This is used for masking.
             num_threads:
                 How many threads to use for this calculation. Defaults to 1.
+            oop:
+                Which synchrotron axis becomes out-of-plane. Can be 'x', 'y' or
+                'z'. Defaults to 'y'.
         """
         # Lets prevent complicated errors from showing up somewhere deeper.
         start, stop, step = np.array(start), np.array(stop), np.array(step)
@@ -308,7 +314,7 @@ class Scan:
                 img = self.load_image(i)
                 img._processing_steps = self._processing_steps
                 time_1 = time.time()
-                q_vectors = img.q_vectors(frame)
+                q_vectors = img.q_vectors(frame, oop=oop)
                 time_taken = time.time() - time_1
                 print(f"Mapping time: {time_taken}")
 
@@ -346,7 +352,8 @@ class Scan:
                 async_results.append(pool.apply_async(
                     _bin_maps_with_indices,
                     (indices, frame, start, stop, step, min_intensity,
-                     self.metadata, self._processing_steps, self.skip_images)))
+                     self.metadata, self._processing_steps, self.skip_images,
+                     oop)))
 
             # Wait for all the work to complete.
             for result in async_results:
@@ -395,7 +402,7 @@ class Scan:
         """
         return Image(self.metadata, idx, load_data)
 
-    def q_bounds(self, frame: Frame) -> Tuple[np.ndarray]:
+    def q_bounds(self, frame: Frame, oop: str = 'y') -> Tuple[np.ndarray]:
         """
         Works out the region of reciprocal space sampled by this scan.
 
@@ -417,7 +424,7 @@ class Scan:
 
         # Get some sort of starting value.
         img = self.load_image(0, load_data=False)
-        q_vec = img.q_vectors(frame, poni)
+        q_vec = img.q_vectors(frame, poni, oop)
 
         start, stop = q_vec, q_vec
 
@@ -427,7 +434,7 @@ class Scan:
             img = self.load_image(i, load_data=False)
 
             # Work out all the extreme q values for this image.
-            q_vecs = img.q_vectors(frame, extremal_q_points)
+            q_vecs = img.q_vectors(frame, extremal_q_points, oop)
 
             # Get the min/max of each component.
             min_q = np.array([np.amin(q_vecs[:, i]) for i in range(3)])
