@@ -206,7 +206,9 @@ class Experiment:
                        output_file_name: str = "mapped",
                        num_bins: int = 1000,
                        bin_size: float = None,
-                       tth=False):
+                       oop: str = 'y',
+                       tth=False,
+                       only_l=False):
         """
         Maps this experiment to a simple intensity vs two-theta representation.
         This virtual 'two-theta' axis is the total angle scattered by the light,
@@ -230,9 +232,12 @@ class Experiment:
         module - maybe one day someone can find the time to do this "properly".
         """
         map_frame = Frame(Frame.sample_holder, coordinates=Frame.cartesian)
+        if only_l:
+            map_frame = Frame(Frame.hkl, coordinates=Frame.cartesian)
 
         rsm, start, stop, step = self.binned_reciprocal_space_map(
-            num_threads, map_frame, output_file_name, save_vtk=False)
+            num_threads, map_frame, output_file_name, save_vtk=False,
+            oop=oop)
 
         # RSM could have a lot of nan elements, representing unmeasured voxels.
         # Lets make sure we zero these before continuing.
@@ -247,6 +252,9 @@ class Experiment:
             q_x = _q_to_theta(q_x, energy)
             q_y = _q_to_theta(q_y, energy)
             q_z = _q_to_theta(q_z, energy)
+        if only_l:
+            q_x *= 0
+            q_y *= 0
 
         q_x, q_y, q_z = np.meshgrid(q_x, q_y, q_z, indexing='ij')
 
@@ -289,11 +297,41 @@ class Experiment:
         # Now return (intensity, Q).
         return out, bins
 
+    def intensity_vs_l(self,
+                       num_threads: int,
+                       output_file_name: str = "mapped",
+                       num_bins: int = 1000,
+                       bin_size: float = None,
+                       oop: str = 'y'):
+        """
+        Maps this experiment to a simple intensity vs l representation.
+
+        Under the hood, this runs a binned reciprocal space map with an
+        auto-generated resolution such that the reciprocal space volume is
+        100MB. You really shouldn't need more than 100MB of reciprocal space
+        for a simple line chart...
+
+        TODO: one day, this shouldn't run the 3D binned reciprocal space map
+        and should instead directly bin to a one-dimensional space. The
+        advantage of this approach is that it is much easier to maintain. The
+        disadvantage is that theoretical optimal performance is worse, memory
+        footprint is higher and some data _could_ be incorrectly binned due to
+        double binning. In reality, it's fine: inaccuracies are pedantic and
+        performance is pretty damn good.
+
+        TODO: Currently, this method assumes that the beam energy is constant
+        throughout the scan. Assumptions aren't exactly in the spirit of this
+        module - maybe one day someone can find the time to do this "properly".
+        """
+        return self._project_to_1d(num_threads, output_file_name, num_bins,
+                                   bin_size, only_l=True, oop=oop)
+
     def intensity_vs_tth(self,
                          num_threads: int,
                          output_file_name: str = "mapped",
                          num_bins: int = 1000,
-                         bin_size: float = None):
+                         bin_size: float = None,
+                         oop: str = 'y'):
         """
         Maps this experiment to a simple intensity vs two-theta representation.
         This virtual 'two-theta' axis is the total angle scattered by the light,
@@ -319,13 +357,14 @@ class Experiment:
         # This just aliases to self._project_to_1d, which handles the minor
         # difference between a projection to |Q| and 2θ.
         return self._project_to_1d(num_threads, output_file_name, num_bins,
-                                   bin_size, tth=True)
+                                   bin_size, tth=True, oop=oop)
 
     def intensity_vs_q(self,
                        num_threads: int,
                        output_file_name: str = "I vs Q",
                        num_bins: int = 1000,
-                       bin_size: float = None):
+                       bin_size: float = None,
+                       oop: str = 'y'):
         """
         Maps this experiment to a simple insenity vs |Q| plot.
 
@@ -345,7 +384,7 @@ class Experiment:
         # This just aliases to self._project_to_1d, which handles the minor
         # difference between a projection to |Q| and 2θ.
         return self._project_to_1d(num_threads, output_file_name, num_bins,
-                                   bin_size, tth=False)
+                                   bin_size, oop=oop)
 
     def q_bounds(self, frame: Frame, oop: str = 'y') -> Tuple[np.ndarray]:
         """
