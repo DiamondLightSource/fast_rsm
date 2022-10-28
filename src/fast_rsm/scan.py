@@ -48,6 +48,12 @@ def check_shared_memory(shared_mem_name: str) -> None:
 def init_process_pool(locks: List[Lock], num_threads: int) -> None:
     """
     Initializes a processing pool to have a global shared lock.
+
+    Args:
+        locks:
+            A list of the locks that will be shared between spawned processes.
+        num_threads:
+            The total number of processes that are being spawned in the pool.
     """
     # pylint: disable=global-variable-undefined.
 
@@ -63,6 +69,10 @@ def _on_exit(shared_mem: SharedMemory) -> None:
     """
     Can be used with the atexit module. Makes sure that the shared memory is
     cleaned when called.
+
+    Args:
+        shared_mem:
+            The shared memory to close/unlink.
     """
     try:
         shared_mem.close()
@@ -73,7 +83,20 @@ def _on_exit(shared_mem: SharedMemory) -> None:
 
 
 def _chunks(lst, num_chunks):
-    """Split lst into num_chunks almost evenly sized chunks."""
+    """
+    Split lst into num_chunks almost evenly sized chunks. Algorithm lifted from
+    stackoverflow almost without change (but isn't everything, in the end...)
+
+    Args:
+        lst:
+            The iterable to split up.
+        num_chunks:
+            The number of almost-evenly-sized chunks to split lst into. Note
+            that the last chunk can be decently smaller.
+
+    Yields:
+        the chunks. Note that this yields as a generator, it does not return.
+    """
     chunk_size = int(len(lst)/num_chunks)
     if chunk_size * num_chunks < len(lst):
         chunk_size += 1
