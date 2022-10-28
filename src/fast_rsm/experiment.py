@@ -133,6 +133,27 @@ class Experiment:
         for scan in self.scans:
             scan.add_processing_step(processing_step)
 
+    def mask_pixels(self, pixels: tuple) -> None:
+        """
+        Masks the requested pixels. Note that the pixels argument will be used
+        to directly affect arrays, i.e.
+
+        array[pixels] = np.nan
+
+        is going to be used at some point.
+
+        Args:
+            pixels:
+                The pixels to be masked.
+        """
+        # Masking is handled specially using RSMMetadata objects. I couldn't
+        # think of a more elegant solution, and I don't love that this
+        # masking information is somewhat randomly stored there, but I suppose
+        # that pixel masks are metadata, and it is relevant to reciprocal space
+        # maps, so I suppose it works well enough!
+        for scan in self.scans:
+            scan.metadata.mask_pixels = pixels
+
     def binned_reciprocal_space_map(self,
                                     num_threads: int,
                                     map_frame: Frame,

@@ -188,8 +188,8 @@ def weighted_bin_3d(coords: np.ndarray, weights: np.ndarray,
         raise ValueError("Count must have dtype=np.int32")
 
     # Now we're ready to call the function.
-    mapper_c_utils.weighted_bin_3d(coords, start, step, shape,
-                                   weights, out, count, min_intensity)
+    mapper_c_utils.weighted_bin_3d(
+        coords, start, step, shape, weights, out, count, min_intensity)
 
     # time_taken = time.time() - time_1
     # print(f"Binning time: {time_taken}")

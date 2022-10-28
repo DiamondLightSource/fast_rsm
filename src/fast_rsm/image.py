@@ -125,6 +125,9 @@ class Image:
         for step in self._processing_steps:
             arr = step(arr)
 
+        # Solid angle corrections are not optional.
+        arr /= self.metadata.solid_angles
+
         # If our data file has transmission data, divide by it.
         # This is not optional!
         try:
@@ -132,8 +135,11 @@ class Image:
         except AttributeError:
             pass
 
-        # Solid angle corrections are not optional.
-        return arr/self.metadata.solid_angles
+        # If there are pixels to mask, mask them.
+        if self.metadata.mask_pixels is not None:
+            arr[self.metadata.mask_pixels] = np.nan
+
+        return arr
 
     def pixel_polar_angle(self, frame: Frame) -> np.ndarray:
         """

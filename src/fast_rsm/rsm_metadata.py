@@ -33,17 +33,27 @@ class RSMMetadata:
             A reference to the diffractometer's data file.
         beam_centre:
             The centre of the beam.
+        mask_pixels:
+            A tuple representing pixels that should be masked from the image.
+            This tuple will be used to directly index a numpy array. In other
+            words, at some point:
+                array[mask_pixels] = np.nan
+            is going to be executed. For more information on how to index many
+            elements of a numpy array simultaneously: google it.
     """
 
     def __init__(self,
                  diffractometer: DiffractometerBase,
-                 beam_centre: Tuple[int, int]):  # In number of pixels.
+                 beam_centre: Tuple[int, int],  # In number of pixels.
+                 mask_pixels: tuple = None
+                 ):
         self.diffractometer = diffractometer
         self.data_file = diffractometer.data_file  # A handy reference.
         self.beam_centre = beam_centre
 
         # Correct the beam centre in case of diffractometer specific weirdness.
         self._correct_beam_centre()
+        self.mask_pixels = mask_pixels
 
         self._relative_polar = None
         self._relative_azimuth = None
