@@ -244,24 +244,23 @@ class Image:
         # This calculation is done component-by-component to match array shapes.
         # This routine has been benchmarked to be ~4x faster than using an
         # outer product and reshaping it.
-        detector_distance = self.metadata.data_file.detector_distance
+        detector_distance = self.metadata.get_detector_distance(self.index)
         detector_distance = np.array(detector_distance, np.float32)
+        vertical = self.metadata.get_vertical_pixel_distances(self.index)
+        horizontal = self.metadata.get_horizontal_pixel_distances(self.index)
 
         k_out_array[i, j, 0] = (
             det_displacement.array[0]*detector_distance +
-            det_vertical.array[0]*self.metadata.vertical_pixel_distances[i, j] +
-            det_horizontal.array[0] *
-            self.metadata.horizontal_pixel_distances[i, j])
+            det_vertical.array[0]*vertical[i, j] +
+            det_horizontal.array[0]*horizontal[i, j])
         k_out_array[i, j, 1] = (
             det_displacement.array[1]*detector_distance +
-            det_vertical.array[1]*self.metadata.vertical_pixel_distances[i, j] +
-            det_horizontal.array[1] *
-            self.metadata.horizontal_pixel_distances[i, j])
+            det_vertical.array[1]*vertical[i, j] +
+            det_horizontal.array[1]*horizontal[i, j])
         k_out_array[i, j, 2] = (
             det_displacement.array[2]*detector_distance +
-            det_vertical.array[2]*self.metadata.vertical_pixel_distances[i, j] +
-            det_horizontal.array[2] *
-            self.metadata.horizontal_pixel_distances[i, j])
+            det_vertical.array[2]*vertical[i, j] +
+            det_horizontal.array[2]*horizontal[i, j])
 
         # We're going to need to normalize; this function bottlenecks if not
         # done exactly like this!
@@ -329,6 +328,9 @@ class Image:
         # 2π. I would never in my life have realised this had it not been
         # for an offhand comment by my colleague Dean. Thanks, Dean.
         k_out_array[i, j, :] *= k_incident_len * 2*np.pi
+
+        if self.index == self.metadata.data_file.scan_length-1:
+            print(np.mean(k_out_array[:, :, 2]))
 
         # If a user has specified that they want their results output
         # in hkl-space, multiply each of these vectors by the inverse of UB.

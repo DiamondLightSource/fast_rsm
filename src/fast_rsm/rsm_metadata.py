@@ -84,7 +84,7 @@ class RSMMetadata:
                     self.data_file.image_shape[0] - self.beam_centre[0],
                     self.beam_centre[1])
 
-        # Finally, make sure that the beam_centre can lie within the image.
+        # Make sure that the beam_centre can lie within the image.
         test_arr = np.ndarray(self.data_file.image_shape)
         try:
             test_arr[self.beam_centre[0], self.beam_centre[1]]
@@ -93,6 +93,37 @@ class RSMMetadata:
                   f"has shape {self.data_file.image_shape} (slow_axis, "
                   f"fast_axis).")
             raise error
+
+    def get_detector_distance(self, index: int) -> float:
+        """
+        The detector distance should be written into the data_file object.
+        However, I07Nexus.detector_distance should return a float, which is
+        understood to be the distance between sample and detector *with the dps
+        system zeroed*. If the dps system is being used, things get a bit more
+        complicated.
+
+        This method aims to provide a universal interface to the detector
+        distance.
+
+        Args:
+            index:
+                The index of the scan for which we want to find the detector
+                distance. This should correspond to Image.index, for example.
+
+        Returns:
+            The distance between sample and detector, in m, at this particular
+            image index in your setup.
+        """
+        try:
+            if self.data_file.using_dps:
+                dps_z_array = self.data_file.dpsz + self.data_file.dpsz2
+                return self.data_file.detector_distance + dps_z_array[index]
+        except AttributeError:
+            # If the data_file doesn't have a using_dps attribute, the detector
+            # distance will always be a float so don't worry about it.
+            pass
+
+        return self.data_file.detector_distance
 
     @property
     def solid_angles(self):
@@ -123,26 +154,63 @@ class RSMMetadata:
             self._init_horizontal_pixel_offsets()
         return self._horizontal_pixel_offsets
 
-    @property
-    def vertical_pixel_distances(self):
+    def get_vertical_pixel_distances(self, idx: int) -> np.ndarray:
         """
         The vertical distances (in m) between each pixel and the central
-        vertical pixel.
+        vertical pixel. This method accounts for e.g. detector displacement
+        systems moving the detector during a scan, which is why the index
+        argument is needed.
+
+        Args:
+            index:
+                The scan index at which these distances should be calculated.
+
+        Returns:
+            Numpy array containing the vertical displacement of each pixel from
+            the central pixel.
         """
         if self._vertical_pixel_distances is None:
             self._vertical_pixel_distances = \
                 self.vertical_pixel_offsets * self.data_file.pixel_size
+
+        # If the DPS system is being used, account for it.
+        try:
+            if self.data_file.using_dps:
+                return self._vertical_pixel_distances + self.data_file.dpsy[idx]
+        except AttributeError:
+            # If there's no using_dps attribute on our data file, just return
+            # the pre-calculated _vertical_pixel_distances.
+            pass
         return self._vertical_pixel_distances
 
-    @property
-    def horizontal_pixel_distances(self):
+    def get_horizontal_pixel_distances(self, index: int) -> np.ndarray:
         """
         The horizontal pixel distances (in m) between each pixel and the central
-        horizontal pixel.
+        horizontal pixel. This method accounts for e.g. detector displacement
+        systems moving the detector during a scan, which is why the index
+        argument is needed.
+
+        Args:
+            index:
+                The scan index at which these distances should be calculated.
+
+        Returns:
+            Numpy array containing the horizontal displacement of each pixel
+            from the central pixel.
         """
         if self._horizontal_pixel_distances is None:
             self._horizontal_pixel_distances = \
                 self.horizontal_pixel_offsets * self.data_file.pixel_size
+
+        # If the DPS system is being used, account for it.
+        try:
+            if self.data_file.using_dps:
+                return (self._horizontal_pixel_distances +
+                        self.data_file.dpsx[index])
+        except AttributeError:
+            # If there's no using_dps attribute on our data file, just return
+            # the pre-calculated _vertical_pixel_distances.
+            pass
         return self._horizontal_pixel_distances
 
     @property

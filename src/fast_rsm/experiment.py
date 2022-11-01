@@ -433,7 +433,8 @@ class Experiment:
                      beam_centre: Tuple[int],
                      detector_distance: float,
                      setup: str,
-                     path_to_data: str = ''):
+                     path_to_data: str = '',
+                     using_dps: bool = False):
         """
         Generates an instance of Experiment from paths to nexus files obtained
         from the i07 beamline. Also requires a few other essential pieces of
@@ -467,7 +468,8 @@ class Experiment:
 
         # Instantiate all of the scans.
         scans = [
-            io.from_i07(x, beam_centre, detector_distance, setup, path_to_data)
+            io.from_i07(x, beam_centre, detector_distance,
+                        setup, path_to_data, using_dps)
             for x in nexus_paths]
 
         return cls(scans)
