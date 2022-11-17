@@ -352,8 +352,14 @@ class Experiment:
         throughout the scan. Assumptions aren't exactly in the spirit of this
         module - maybe one day someone can find the time to do this "properly".
         """
-        return self._project_to_1d(num_threads, output_file_name, num_bins,
-                                   bin_size, only_l=True, oop=oop)
+        intensity, l = self._project_to_1d(
+            num_threads, output_file_name, num_bins, bin_size, only_l=True,
+            oop=oop)
+
+        to_save = np.transpose((l, intensity))
+        np.savetxt(output_file_name, to_save, header="l intensity")
+
+        return l, intensity
 
     def intensity_vs_tth(self,
                          num_threads: int,
@@ -385,8 +391,14 @@ class Experiment:
         """
         # This just aliases to self._project_to_1d, which handles the minor
         # difference between a projection to |Q| and 2θ.
-        return self._project_to_1d(num_threads, output_file_name, num_bins,
-                                   bin_size, tth=True, oop=oop)
+        intensity, tth = self._project_to_1d(
+            num_threads, output_file_name, num_bins, bin_size, tth=True,
+            oop=oop)
+
+        to_save = np.transpose((tth, intensity))
+        np.savetxt(output_file_name, to_save, header="tth intensity")
+
+        return tth, intensity
 
     def intensity_vs_q(self,
                        num_threads: int,
@@ -412,8 +424,12 @@ class Experiment:
         """
         # This just aliases to self._project_to_1d, which handles the minor
         # difference between a projection to |Q| and 2θ.
-        return self._project_to_1d(num_threads, output_file_name, num_bins,
-                                   bin_size, oop=oop)
+        intensity, q = self._project_to_1d(
+            num_threads, output_file_name, num_bins, bin_size, oop=oop)
+
+        to_save = np.transpose((q, intensity))
+        np.savetxt(output_file_name, to_save, header="|Q| intensity")
+        return q, intensity
 
     def q_bounds(self, frame: Frame, oop: str = 'y') -> Tuple[np.ndarray]:
         """
