@@ -161,6 +161,7 @@ class Experiment:
                                     min_intensity_mask: float = None,
                                     output_file_size: float = 100,
                                     save_vtk: bool = True,
+                                    save_npy: bool = True,
                                     oop: str = 'y'):
         """
         Carries out a binned reciprocal space map for this experimental data.
@@ -179,6 +180,10 @@ class Experiment:
             output_file_size:
                 The desired output file size, in units of MB.
                 Defaults to 100 MB.
+            save_vtk:
+                Should we save a vtk file for this map? Defaults to True.
+            save_npy:
+                Should we save a numpy file for this map? Defaults to True.
             oop:
                 Which synchrotron axis should become the out-of-plane (001)
                 direction. Defaults to 'y'; can be 'x', 'y' or 'z'.
@@ -211,13 +216,16 @@ class Experiment:
 
         # Gotta explicitly cast the counts from uint32 to float32.
         normalised_map = total_map/(total_counts.astype(np.float32))
-        # Only save the vtk if we've been asked to.
-        if save_vtk:
-            linear_bin_to_vtk(
-                normalised_map, output_file_name, start, stop, step)
 
         # Finally, remove all of the random .npy files we created along the way.
         self._clean_temp_files()
+
+        # Only save the vtk/npy files if we've been asked to.
+        if save_vtk:
+            linear_bin_to_vtk(
+                normalised_map, output_file_name, start, stop, step)
+        if save_npy:
+            np.save(output_file_name, normalised_map)
 
         # Return the normalised RSM.
         return normalised_map, start, stop, step
