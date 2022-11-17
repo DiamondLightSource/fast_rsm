@@ -3,12 +3,12 @@ This module contains the metadata class, which provides a python interface
 for the .nxs file written for the scan.
 """
 
-from typing import Tuple
+from typing import Tuple, List
 
 import numpy as np
 from scipy.constants import physical_constants
 
-from diffraction_utils import DiffractometerBase, I07Nexus
+from diffraction_utils import DiffractometerBase, I07Nexus, Region
 
 
 class RSMMetadata:
@@ -45,7 +45,8 @@ class RSMMetadata:
     def __init__(self,
                  diffractometer: DiffractometerBase,
                  beam_centre: Tuple[int, int],  # In number of pixels.
-                 mask_pixels: tuple = None
+                 mask_pixels: tuple = None,
+                 mask_regions: List[Region] = None
                  ):
         self.diffractometer = diffractometer
         self.data_file = diffractometer.data_file  # A handy reference.
@@ -54,6 +55,7 @@ class RSMMetadata:
         # Correct the beam centre in case of diffractometer specific weirdness.
         self._correct_beam_centre()
         self.mask_pixels = mask_pixels
+        self.mask_regions = mask_regions
 
         self._relative_polar = None
         self._relative_azimuth = None
