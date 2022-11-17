@@ -222,9 +222,11 @@ class Experiment:
 
         # Only save the vtk/npy files if we've been asked to.
         if save_vtk:
+            print(f"Saving vtk to {output_file_name}.vtk")
             linear_bin_to_vtk(
                 normalised_map, output_file_name, start, stop, step)
         if save_npy:
+            print(f"Saving numpy array to {output_file_name}.npy")
             np.save(output_file_name, normalised_map)
 
         # Return the normalised RSM.
@@ -357,6 +359,7 @@ class Experiment:
             oop=oop)
 
         to_save = np.transpose((l, intensity))
+        print(f"Saving intensity vs l to {output_file_name}")
         np.savetxt(output_file_name, to_save, header="l intensity")
 
         return l, intensity
@@ -396,6 +399,7 @@ class Experiment:
             oop=oop)
 
         to_save = np.transpose((tth, intensity))
+        print(f"Saving intensity vs tth to {output_file_name}")
         np.savetxt(output_file_name, to_save, header="tth intensity")
 
         return tth, intensity
@@ -428,6 +432,7 @@ class Experiment:
             num_threads, output_file_name, num_bins, bin_size, oop=oop)
 
         to_save = np.transpose((q, intensity))
+        print(f"Saving intensity vs q to {output_file_name}")
         np.savetxt(output_file_name, to_save, header="|Q| intensity")
         return q, intensity
 
