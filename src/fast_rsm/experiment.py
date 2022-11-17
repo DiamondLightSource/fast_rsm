@@ -162,7 +162,10 @@ class Experiment:
                                     output_file_size: float = 100,
                                     save_vtk: bool = True,
                                     save_npy: bool = True,
-                                    oop: str = 'y'):
+                                    oop: str = 'y',
+                                    volume_start: np.ndarray = None,
+                                    volume_stop: np.ndarray = None,
+                                    volume_step: np.ndarray = None):
         """
         Carries out a binned reciprocal space map for this experimental data.
 
@@ -190,7 +193,14 @@ class Experiment:
         """
         # Compute the optimal finite differences volume.
         start, stop = self.q_bounds(map_frame, oop)
+        # Overwrite whichever of these we were given explicitly.
+        if volume_start is not None:
+            start = np.array(volume_start)
+        if volume_stop is not None:
+            stop = np.array(volume_stop)
         step = get_step_from_filesize(start, stop, output_file_size)
+        if volume_step is not None:
+            step = np.array(volume_step)
 
         # Carry out the maps.
         for scan in self.scans:
