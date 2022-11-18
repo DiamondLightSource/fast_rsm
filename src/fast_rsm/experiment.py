@@ -201,6 +201,11 @@ class Experiment:
                 Which synchrotron axis should become the out-of-plane (001)
                 direction. Defaults to 'y'; can be 'x', 'y' or 'z'.
         """
+        # For simplicity, if qpar_qperp is asked for, we swap to the lab frame.
+        # They're the same, but qpar_qperp is an average.
+        if map_frame.frame_name == Frame.qpar_qperp:
+            map_frame.frame_name = Frame.lab
+
         # Compute the optimal finite differences volume.
         start, stop = self.q_bounds(map_frame, oop)
         # Overwrite whichever of these we were given explicitly.
