@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import List, Tuple, Union
 
 import numpy as np
-from diffraction_utils import Frame
+from diffraction_utils import Frame, Region
 from scipy.constants import physical_constants
 
 from . import io
@@ -153,6 +153,16 @@ class Experiment:
         # maps, so I suppose it works well enough!
         for scan in self.scans:
             scan.metadata.mask_pixels = pixels
+
+    def mask_regions(self, regions: List[Region]):
+        """
+        Masks the requested regions.
+        """
+        # Make sure that we have a list of regions, not an individual region.
+        if isinstance(regions, Region):
+            regions = [regions]
+        for scan in self.scans:
+            scan.metadata.mask_regions = regions
 
     def binned_reciprocal_space_map(self,
                                     num_threads: int,

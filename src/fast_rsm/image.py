@@ -139,6 +139,11 @@ class Image:
         if self.metadata.mask_pixels is not None:
             arr[self.metadata.mask_pixels] = np.nan
 
+        # If there are regions to mask, mask them too.
+        if self.metadata.mask_regions is not None:
+            for region in self.metadata.mask_regions:
+                arr[region.slice] = np.nan
+
         return arr
 
     def pixel_polar_angle(self, frame: Frame) -> np.ndarray:
