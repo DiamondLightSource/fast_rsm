@@ -255,7 +255,7 @@ class Experiment:
             print(f"Saving numpy array to {output_file_name}.npy")
             np.save(output_file_name, normalised_map)
             # Also save the finite differences parameters.
-            np.savetxt(str(output_file_name) + "_bounds",
+            np.savetxt(str(output_file_name) + "_bounds.txt",
                        np.array((start, stop, step)).transpose(),
                        header="start stop step")
 
