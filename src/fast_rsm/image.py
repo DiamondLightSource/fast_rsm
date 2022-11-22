@@ -303,7 +303,6 @@ class Image:
         # free", Lorentz/polarisation corrections should be applied. Only do
         # this if we're mapping the entire image (i.e. indices is None).
         if indices is None:
-            init_max_intensity = np.max(self._raw_data)
             corrections.lorentz(self._raw_data, incident_beam_arr, k_out_array)
 
             # The kind of polarisation correction that we want to apply of
@@ -318,9 +317,6 @@ class Image:
                 pol_vec.to_frame(frame)
                 corrections.linear_polarisation(
                     self._raw_data, k_out_array, pol_vec.array)
-
-            # Finally, fix the units on the _raw_data.
-            self._raw_data *= init_max_intensity/np.max(self._raw_data)
 
         # Now simply subtract and rescale to get the q_vectors!
         # Note that this is an order of magnitude faster than:
