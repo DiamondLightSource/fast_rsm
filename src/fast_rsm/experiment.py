@@ -248,7 +248,17 @@ class Experiment:
 
         # Only save the vtk/npy files if we've been asked to.
         if save_vtk:
-            print(f"Saving vtk to {output_file_name}.vtk")
+            print(f"\nSaving vtk to {output_file_name}.vtk")
+            print(
+                "This is the file that you can open with paraview. "
+                "Note that this can be done with 'module load paraview' "
+                "followed by 'paraview' in the terminal. \n"
+                "Then open with ctrl+o as usual, navigating to the above path. "
+                "Once opened, apply a threshold filter to your data to view. \n"
+                "To play with colours: on your threshold filter, go to the "
+                "'coloring' section and click the small 'rescale to custom "
+                "range' button. Paraview is really powerful, but this should "
+                "be enough to at least get you playing with it.")
             linear_bin_to_vtk(
                 normalised_map, output_file_name, start, stop, step)
         if save_npy:
