@@ -224,8 +224,10 @@ class Experiment:
                 oop)
 
             scan_unique_path = Path(scan.metadata.data_file.local_path)
-            data_name = str(output_file_name) + scan_unique_path.name + "_data"
-            norm_name = str(output_file_name) + scan_unique_path.name + "_norm"
+            data_name = str(output_file_name)[
+                :-4] + scan_unique_path.name + "_data"
+            norm_name = str(output_file_name)[
+                :-4] + scan_unique_path.name + "_norm"
 
             # Save the map and the normalisation array.
             np.save(data_name, rsmap)
