@@ -223,10 +223,9 @@ class Experiment:
                 map_frame, start, stop, step, min_intensity_mask, num_threads,
                 oop)
 
-            scan_unique_path = scan.metadata.data_file.local_path
-            output_file_name = Path(output_file_name)
-            data_name = str(scan_unique_path) + output_file_name.name + "_data"
-            norm_name = str(scan_unique_path) + output_file_name.name + "_norm"
+            scan_unique_path = Path(scan.metadata.data_file.local_path)
+            data_name = str(output_file_name) + scan_unique_path.name + "_data"
+            norm_name = str(output_file_name) + scan_unique_path.name + "_norm"
 
             # Save the map and the normalisation array.
             np.save(data_name, rsmap)
