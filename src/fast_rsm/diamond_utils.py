@@ -8,6 +8,8 @@ from typing import Tuple
 import numpy as np
 from scipy.constants import physical_constants
 
+import nexusformat.nexus as nx
+
 
 def q_to_theta(q_values: np.ndarray, energy: float) -> np.ndarray:
     """
@@ -68,3 +70,36 @@ def get_volume_and_bounds(path_to_npy: str) -> Tuple[np.ndarray]:
 
     # And return what we were asked for!
     return volume, start, stop, step
+
+
+def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str):
+    """
+    Saves the .npy file as a binoculars-readable hdf5 file.
+    """
+    # Load the volume and the bounds.
+    volume, start, stop, step = get_volume_and_bounds(path_to_npy)
+
+    # Binoculars expects float64s with no NaNs.
+    volume = volume.astype(np.float64)
+    volume = np.nan_to_num(volume)
+
+    # Make h, k and l arrays in the expected format.
+    h_arr = np.array([0, start[0], stop[0], step[0],
+                      start[0]/step[0], stop[0]/step[0]])
+    k_arr = np.array([1, start[1], stop[1], step[1],
+                      start[1]/step[1], stop[1]/step[1]])
+    l_arr = np.array([2, start[2], stop[2], step[2],
+                      start[2]/step[2], stop[2]/step[2]])
+
+    # Turn those into an axes group.
+    axes_group = nx.NXgroup(h=h_arr, k=k_arr, l=l_arr)
+    # Make a corresponding (mandatory) "binoculars" group.
+    binoculars_group = nx.NXgroup(
+        axes=axes_group, contributions=np.ones_like(volume), counts=(volume))
+    binoculars_group.attrs['type'] = 'Space'
+
+    # Make a root which contains the binoculars group.
+    bin_hdf = nx.NXroot(binoculars=binoculars_group)
+
+    # Save it!
+    bin_hdf.save(output_path)
