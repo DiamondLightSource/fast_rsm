@@ -131,7 +131,10 @@ class Image:
         # If our data file has transmission data, divide by it.
         # This is not optional!
         try:
-            arr /= self.metadata.data_file.transmission
+            if isinstance(self.metadata.data_file.transmission, np.ndarray):
+                arr /= self.metadata.data_file.transmission[self.index]
+            else:
+                arr /= self.metadata.data_file.transmission
         except AttributeError:
             pass
 
