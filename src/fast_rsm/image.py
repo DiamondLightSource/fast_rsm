@@ -346,19 +346,6 @@ class Image:
         if frame.frame_name == Frame.hkl:
             ub_mat = self.metadata.data_file.ub_matrix.astype(np.float32)
             ub_mat = np.linalg.inv(ub_mat)
-
-            # OKAY, so for ...reasons... this ub matrix's z-axis is my y-axis.
-            # Also, its y is my -z.
-            # If you don't like linear algebra, shut your eyes real quick.
-            if oop == 'y':
-                basis_change = Rotation.from_rotvec([np.pi/2, 0, 0])
-            if oop == 'x':
-                basis_change = Rotation.from_rotvec([0, np.pi/2, 0])
-            if oop == 'z':
-                basis_change = Rotation.from_rotvec([0, 0, 0])
-
-            ub_mat = np.matmul(ub_mat, basis_change.as_matrix())
-            ub_mat = np.matmul(basis_change.inv().as_matrix(), ub_mat)
         else:
             ub_mat = np.array([
                 [1, 0, 0],
@@ -369,8 +356,8 @@ class Image:
         # Finally, we make it so that (001) will end up OOP.
         if oop == 'y':
             coord_change_mat = np.array([
-                [1, 0, 0],
                 [0, 0, 1],
+                [1, 0, 0],
                 [0, 1, 0]
             ])
         elif oop == 'x':
@@ -379,8 +366,14 @@ class Image:
                 [0, 0, 1],
                 [1, 0, 0]
             ])
+        elif oop == 'z':
+            coord_change_mat = np.array([
+                [1, 0, 0],
+                [0, 1, 0],
+                [0, 0, 1]
+            ])
 
-        ub_mat = np.matmul(coord_change_mat, ub_mat)
+        ub_mat = np.matmul(ub_mat, coord_change_mat)
 
         # The custom, high performance linear_map expects float32's.
         ub_mat = ub_mat.astype(np.float32)
