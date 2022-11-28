@@ -79,9 +79,13 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str):
     # Load the volume and the bounds.
     volume, start, stop, step = get_volume_and_bounds(path_to_npy)
 
+    # Do some rounding to improve binoculars formatting.
+    start, stop, step = np.round(start, 3), np.round(
+        stop, 3), np.round(step, 3)
+
     # Binoculars expects float64s with no NaNs.
     volume = volume.astype(np.float64)
-    volume = np.nan_to_num(volume, nan=np.nan, posinf=np.nan, neginf=np.nan)
+    volume = np.nan_to_num(volume)
 
     # Make h, k and l arrays in the expected format.
     h_arr = np.array([0, start[0], stop[0], step[0],
