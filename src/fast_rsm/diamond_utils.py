@@ -81,6 +81,11 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str):
 
     # Binoculars expects float64s with no NaNs.
     volume = volume.astype(np.float64)
+
+    # Allow binoculars to generate the NaNs naturally.
+    contributions = np.empty_like(volume)
+    contributions[np.isnan(volume)] = 0
+    contributions[~np.isnan(volume)] = 1
     volume = np.nan_to_num(volume)
 
     # Make h, k and l arrays in the expected format.
@@ -95,7 +100,7 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str):
     axes_group = nx.NXgroup(h=h_arr, k=k_arr, l=l_arr)
     # Make a corresponding (mandatory) "binoculars" group.
     binoculars_group = nx.NXgroup(
-        axes=axes_group, contributions=np.ones_like(volume), counts=(volume))
+        axes=axes_group, contributions=contributions, counts=(volume))
     binoculars_group.attrs['type'] = 'Space'
 
     # Make a root which contains the binoculars group.
