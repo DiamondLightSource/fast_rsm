@@ -333,9 +333,6 @@ class Image:
         # for an offhand comment by my colleague Dean. Thanks, Dean.
         k_out_array[i, j, :] *= k_incident_len * 2*np.pi
 
-        if self.index == self.metadata.data_file.scan_length-1:
-            print(np.mean(k_out_array[:, :, 2]))
-
         # If a user has specified that they want their results output
         # in hkl-space, multiply each of these vectors by the inverse of UB.
         # Note that this is not an intelligent solution! A more optimal
