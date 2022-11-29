@@ -236,7 +236,7 @@ class Experiment:
             # Store a record of where this has been saved.
             self._data_file_names.append(data_name)
             self._normalisation_file_names.append(norm_name)
-            print(f"Finished scan {i} out of {len(self.scans)}.")
+            print(f"Finished scan {i+1} out of {len(self.scans)}.")
 
         # Combine the maps and normalise.
         total_map = _sum_numpy_files(self._data_file_names)
