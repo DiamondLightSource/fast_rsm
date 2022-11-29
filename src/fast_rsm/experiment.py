@@ -218,7 +218,7 @@ class Experiment:
             step = np.array(volume_step)
 
         # Carry out the maps.
-        for scan in self.scans:
+        for i, scan in enumerate(self.scans):
             rsmap, counts = scan.binned_reciprocal_space_map(
                 map_frame, start, stop, step, min_intensity_mask, num_threads,
                 oop)
@@ -236,6 +236,7 @@ class Experiment:
             # Store a record of where this has been saved.
             self._data_file_names.append(data_name)
             self._normalisation_file_names.append(norm_name)
+            print(f"Finished scan {i} out of {len(self.scans)}.")
 
         # Combine the maps and normalise.
         total_map = _sum_numpy_files(self._data_file_names)
