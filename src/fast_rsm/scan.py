@@ -188,7 +188,7 @@ def _bin_maps_with_indices(indices: List[int],
             if idx in skip_images:
                 continue
 
-            print(f"Processing image {idx}.\r", end='')
+            # print(f"Processing image {idx}.\r", end='')
             _bin_one_map(frame, start, stop, step, min_intensity, idx, metadata,
                          processing_steps, binned_q, count, oop)
 
