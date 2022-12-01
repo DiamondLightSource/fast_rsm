@@ -297,7 +297,7 @@ class Scan:
 
         # Also, make sure that we start our scan at scan index 0.
         frame.scan_index = 0
-        # Make sure that our scan has the correct diffractometer associated.
+        # Make sure that our frame has the correct diffractometer associated.
         frame.diffractometer = self.metadata.diffractometer
 
         # Prepare an array with the same shape as our final binned data array.
