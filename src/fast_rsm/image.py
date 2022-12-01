@@ -353,8 +353,8 @@ class Image:
         # Finally, we make it so that (001) will end up OOP.
         if oop == 'y':
             coord_change_mat = np.array([
-                [0, 0, 1],
                 [1, 0, 0],
+                [0, 0, -1],
                 [0, 1, 0]
             ])
         elif oop == 'x':
