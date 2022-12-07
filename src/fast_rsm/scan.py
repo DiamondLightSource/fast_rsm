@@ -5,13 +5,13 @@ information relating to a reciprocal space scan.
 
 # pylint: disable=protected-access
 
-import time
 import traceback
+from multiprocessing import current_process
 from multiprocessing.pool import Pool
 from multiprocessing.shared_memory import SharedMemory
 from multiprocessing import Lock
 from pathlib import Path
-from typing import Union, Tuple, List
+from typing import Union, Tuple, List, Dict
 
 import numpy as np
 
@@ -45,7 +45,13 @@ def check_shared_memory(shared_mem_name: str) -> None:
         pass
 
 
-def init_process_pool(locks: List[Lock], num_threads: int) -> None:
+def init_process_pool(
+        locks: List[Lock],
+        num_threads: int,
+        metadata: RSMMetadata,
+        frame: Frame,
+        shape: tuple
+) -> None:
     """
     Initializes a processing pool to have a global shared lock.
 
@@ -54,15 +60,61 @@ def init_process_pool(locks: List[Lock], num_threads: int) -> None:
             A list of the locks that will be shared between spawned processes.
         num_threads:
             The total number of processes that are being spawned in the pool.
+        shape:
+            Passed if you want to make RSM and count arrays global.
     """
     # pylint: disable=global-variable-undefined.
 
     # Make a global lock for the shared memory block used in parallel code.
     global LOCKS
+
+    # Some metadata that a worker thread should always have access to.
     global NUM_THREADS
+    global METADATA
+    global FRAME
+
+    # These are numpy arrays whose buffer corresponds to the shared memory
+    # buffer. It's more convenient to access these later than to directly work
+    # with the shared memory buffer.
+    global RSM
+    global COUNT
+
+    # We want to keep track of what we've called our shared memory arrays.
+    global SHARED_RSM_NAME
+    global SHARED_COUNT_NAME
+
+    # Why do we need to make the shared memory blocks global, if we're giving
+    # global access to them via the numpy 'RSM' and 'COUNT' arrays? The answer
+    # is that we need the shared memory arrays to remain in scope, or they'll be
+    # freed.
+    global SHARED_RSM
+    global SHARED_COUNT
 
     LOCKS = locks
     NUM_THREADS = num_threads
+    METADATA = metadata
+    FRAME = frame
+
+    # Work out how many bytes we're going to need by making a dummy array.
+    arr = np.ndarray(shape=shape, dtype=np.float32)
+
+    # Construct the shared memory buffers.
+    SHARED_RSM_NAME = f'rsm_{current_process().name}'
+    SHARED_COUNT_NAME = f'count_{current_process().name}'
+    SHARED_RSM = SharedMemory(
+        name=SHARED_RSM_NAME, create=True, size=arr.nbytes)
+    SHARED_COUNT = SharedMemory(
+        name=SHARED_COUNT_NAME, create=True, size=arr.nbytes)
+
+    # Construct the global references to the shared memory arrays.
+    RSM = np.ndarray(shape, dtype=np.float32, buffer=SHARED_RSM.buf)
+    COUNT = np.ndarray(shape, dtype=np.uint32, buffer=SHARED_COUNT.buf)
+
+    # Initialize the shared memory arrays.
+    RSM.fill(0)
+    COUNT.fill(0)
+
+    print(f"Finished initializing worker {current_process().name}.")
 
 
 def _on_exit(shared_mem: SharedMemory) -> None:
@@ -82,7 +134,7 @@ def _on_exit(shared_mem: SharedMemory) -> None:
         pass
 
 
-def _chunks(lst, num_chunks):
+def chunk(lst, num_chunks):
     """
     Split lst into num_chunks almost evenly sized chunks. Algorithm lifted from
     stackoverflow almost without change (but isn't everything, in the end...)
@@ -116,71 +168,53 @@ def _chunk_indices(array: np.ndarray, num_chunks: int) -> tuple:
         yield i, i+chunk_size
 
 
-def _bin_one_map(frame: Frame,
-                 start: np.ndarray,
+def _bin_one_map(start: np.ndarray,
                  stop: np.ndarray,
                  step: np.ndarray,
                  min_intensity: float,
                  idx: int,
-                 metadata: RSMMetadata,
                  processing_steps: list,
-                 out: np.ndarray,
-                 count: np.ndarray,
                  oop: str
                  ) -> np.ndarray:
     """
     Calculates and bins the reciprocal space map with index idx. Saves the
     result to the shared memory buffer.
     """
-
-    image = Image(metadata, idx)
+    image = Image(METADATA, idx)
     image._processing_steps = processing_steps
     # Do the mapping for this image; bin the mapping.
-    q_vectors = image.q_vectors(frame, oop=oop)
-    binned_q = weighted_bin_3d(q_vectors,
-                               image.data,
-                               out,
-                               count,
-                               start,
-                               stop,
-                               step,
-                               min_intensity)
-    return binned_q
+    q_vectors = image.q_vectors(FRAME, oop=oop)
+    weighted_bin_3d(q_vectors,
+                    image.data,
+                    RSM,
+                    COUNT,
+                    start,
+                    stop,
+                    step,
+                    min_intensity)
 
 
-def _bin_maps_with_indices(indices: List[int],
-                           frame: Frame,
-                           start: np.ndarray,
-                           stop: np.ndarray,
-                           step: np.ndarray,
-                           min_intensity: float,
-                           metadata: RSMMetadata,
-                           processing_steps: list,
-                           skip_images: List[int],
-                           oop: str
-                           ) -> None:
+def bin_maps_with_indices(indices: List[int],
+                          start: np.ndarray,
+                          stop: np.ndarray,
+                          step: np.ndarray,
+                          min_intensity: float,
+                          motors: Dict[str, np.ndarray],
+                          metadata: dict,
+                          processing_steps: list,
+                          skip_images: List[int],
+                          oop: str
+                          ) -> None:
     """
     Bins all of the maps with indices in indices. The purpose of this
     intermediate function call is to decrease the amount of context switching/
     serialization that the interpreter has to do.
     """
+    METADATA.update_i07_nx(motors, metadata)
+
     # We need to catch all exceptions and explicitly print them in worker
     # threads.
     # pylint: disable=broad-except.
-
-    rsm_shape = finite_diff_shape(start, stop, step)
-    # Allocate a new numpy array on the python end. Originally, I malloced a
-    # big array on the C end, but the numpy C api documentation wasn't super
-    # clear on 1) how to cast this to a np.ndarray, or 2) how to prevent memory
-    # leaks on the manually malloced array.
-    # np.zeros is a fancy function; it is blazingly fast. So, allocate the large
-    # array using np.zeros (as opposed to manual initialization to zeros on the
-    # C end).
-    binned_q = np.zeros(rsm_shape, np.float32)
-
-    # We need a second array of the same size to store the number of times we
-    # add to each voxel in the out array. This prevents overcounting errors.
-    count = np.zeros(rsm_shape, np.uint32)
     try:
         # Do the binning, adding each binned dataset to binned_q.
         for idx in indices:
@@ -188,36 +222,19 @@ def _bin_maps_with_indices(indices: List[int],
             if idx in skip_images:
                 continue
 
-            # print(f"Processing image {idx}.\r", end='')
-            _bin_one_map(frame, start, stop, step, min_intensity, idx, metadata,
-                         processing_steps, binned_q, count, oop)
-
-        # Now we've finished binning, add this to the final shared data array.
-        shared_mem = SharedMemory(name='arr')
-        shared_count = SharedMemory(name='count')
-        shape = finite_diff_shape(start, stop, step)
-        final_data = np.ndarray(
-            shape, dtype=np.float32, buffer=shared_mem.buf)
-        final_cnt = np.ndarray(
-            shape, dtype=np.uint32, buffer=shared_count.buf)
-
-        # Update the final data in a thread safe but parallel way. Here we're
-        # ensuring that no two threads are ever in the same bit of the final
-        # array.
-        for i, chunk_idx in enumerate(_chunk_indices(final_data, NUM_THREADS)):
-            with LOCKS[i]:
-                start, stop = chunk_idx
-                final_data[start:stop] += binned_q[start:stop]
-                final_cnt[start:stop] += count[start:stop]
-
-        # Always do your chores.
-        shared_mem.close()
-        shared_count.close()
-
+            # print(f"Processing image {idx}. ", end='')
+            _bin_one_map(start, stop, step, min_intensity, idx,
+                         processing_steps, oop)
     except Exception as exception:
         print("Exception thrown in bin_one_map:")
         print(traceback.format_exc())
         raise exception
+
+    # In place of returning very large arrays when they might not be wanted, we
+    # just return the names of the shared memory blocks where the RSM/count data
+    # is stored. The caller can then choose to access the shared memory blocks
+    # directly without needlessly serializing enormous arrays.
+    return SHARED_RSM_NAME, SHARED_COUNT_NAME
 
 
 class Scan:
@@ -244,6 +261,11 @@ class Scan:
 
         self._processing_steps = []
 
+    @property
+    def processing_steps(self):
+        """Left as a property to give the option to deepcopy in the future."""
+        return self._processing_steps
+
     def add_processing_step(self, function) -> None:
         """
         Adds the processing step to the processing pipeline.
@@ -254,170 +276,6 @@ class Scan:
                 a numpy array.
         """
         self._processing_steps.append(function)
-
-    def binned_reciprocal_space_map(
-        self,
-        frame: Frame,  # The frame in which we'll do the mapping.
-        start: np.ndarray,  # Bin start.
-        stop: np.ndarray,  # Bin stop.
-        step: np.ndarray,  # Bin step.
-        min_intensity: float = None,  # Cutoff intensity for pixels.
-        num_threads: int = 1,  # How many threads to use for this map.
-        oop: str = 'y'  # Which synchrotron axis becomes the (001).
-    ) -> np.ndarray:
-        """
-        Runs a reciprocal space map, but bins image by image. All of start,
-        stop and step are numpy arrays with shape (3) for [xstart, ystart,
-        zstart] etc.
-
-        Args:
-            frame:
-                The frame in which we want to carry out the map.
-            start:
-                Where to start our finite differences binning grid. This should
-                be an array-like object [startx, starty, startz].
-            stop:
-                Where to stop our finite differences binning grid. This should
-                be an array-like object [stopx, stopy, stopz].
-            step:
-                Step size for our finite differences binning grid. This should
-                be an array-like object [stepx, stepy, stepz].
-            min_intensity:
-                The intensity value of a pixel below which the pixel will be
-                completely ignored (the algorithm will act as though that pixel
-                was never measured). This is used for masking.
-            num_threads:
-                How many threads to use for this calculation. Defaults to 1.
-            oop:
-                Which synchrotron axis becomes out-of-plane. Can be 'x', 'y' or
-                'z'. Defaults to 'y'.
-        """
-        # Lets prevent complicated errors from showing up somewhere deeper.
-        start, stop, step = np.array(start), np.array(stop), np.array(step)
-
-        # Also, make sure that we start our scan at scan index 0.
-        frame.scan_index = 0
-        # Make sure that our frame has the correct diffractometer associated.
-        frame.diffractometer = self.metadata.diffractometer
-
-        # Prepare an array with the same shape as our final binned data array.
-        shape = finite_diff_shape(start, stop, step)
-        # Note that this doesn't initialise the array; arr is nonsense.
-        arr = np.ndarray(shape=shape, dtype=np.float32)
-
-        check_shared_memory('arr')
-        check_shared_memory('count')
-
-        # Make a shared memory block for final_data; initialize it.
-        shared_mem = SharedMemory('arr', create=True, size=arr.nbytes)
-        # Do the same for the count.
-        shared_count = SharedMemory('count', create=True, size=arr.nbytes)
-
-        # Now hook final_data up to the shared_mem buffer that we just made.
-        final_data = np.ndarray(shape, dtype=arr.dtype,
-                                buffer=shared_mem.buf)
-        # Set the array to be full of zeros.
-        final_data.fill(0)
-
-        # Also zero the count array.
-        counts = np.ndarray(shape, dtype=np.uint32, buffer=shared_count.buf)
-
-        # A pool-less single threaded approach. This comes with a little extra
-        # performance related information.
-        if num_threads == 1:
-            print("Using single threaded routine.")
-            counts = np.zeros_like(counts)
-
-            for i in range(self.metadata.data_file.scan_length):
-                # Skip this index if we've been asked to.
-                if i in self.skip_images:
-                    continue
-
-                print(f"Processing image {i}...\r", end='')
-                img = self.load_image(i)
-                img._processing_steps = self._processing_steps
-                time_1 = time.time()
-                q_vectors = img.q_vectors(frame, oop=oop)
-                time_taken = time.time() - time_1
-                print(f"Mapping time: {time_taken}")
-
-                time_1 = time.time()
-                weighted_bin_3d(q_vectors,
-                                img.data,
-                                final_data,
-                                counts,
-                                start,
-                                stop,
-                                step,
-                                min_intensity)
-                time_taken = time.time() - time_1
-                print(f"Binning, img.data & final_data+= time: {time_taken}")
-            return_arr = np.copy(final_data)
-            _on_exit(shared_mem)
-            _on_exit(shared_count)
-            return return_arr, counts
-
-        # If execution reaches here, we want a multithreaded binned RSM using
-        # a thread pool. For this, we'll need a lock to share between processes.
-        locks = [Lock() for _ in range(num_threads)]
-
-        # The high performance approach.
-        with Pool(
-            processes=num_threads,  # The size of our pool.
-            initializer=init_process_pool,  # Our pool's initializer.
-            initargs=(locks,  # The initializer makes this lock global.
-                      num_threads)  # Initializer also makes num_threads global.
-        ) as pool:
-            # Submit all of the image processing functions to the pool as jobs.
-            async_results = []
-            for indices in _chunks(list(range(
-                    self.metadata.data_file.scan_length)), num_threads):
-                async_results.append(pool.apply_async(
-                    _bin_maps_with_indices,
-                    (indices, frame, start, stop, step, min_intensity,
-                     self.metadata, self._processing_steps, self.skip_images,
-                     oop)))
-
-            # Wait for all the work to complete.
-            for result in async_results:
-                result.wait()
-                if not result.successful():
-                    raise ValueError(
-                        "Could not carry out map for an unknown reason. "
-                        "Probably one of the threads segfaulted, or something.")
-
-        # Close the shared memory pool; return the final data.
-        final_data = np.copy(final_data)
-        counts = np.copy(counts)
-        _on_exit(shared_mem)
-        _on_exit(shared_count)
-        return final_data, counts
-
-    def reciprocal_space_map(self, frame: Frame, num_threads: int = 1):
-        """
-        Don't use this unless you understand what you're doing. Use the binned
-        reciprocal space map method, your computer will thank you.
-
-        Calculates the scan's reciprocal space map, without binning. I hope you
-        have a *LOT* of RAM.
-
-        Args:
-            frame:
-                The frame of reference in which we want to carry out the
-                reciprocal space map.
-        """
-        if num_threads != 1:
-            raise NotImplementedError(
-                "Reciprocal space maps are currently single threaded only.")
-
-        q_vectors = []
-        # Load images one by one.
-        for idx in range(self.metadata.data_file.scan_length):
-            image = Image(self.metadata, idx)
-            # Do the mapping for this image in correct frame.
-            q_vectors.append(image.q_vectors(frame))
-
-        return q_vectors
 
     def load_image(self, idx: int, load_data=True):
         """

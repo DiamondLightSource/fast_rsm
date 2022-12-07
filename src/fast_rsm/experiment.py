@@ -4,6 +4,9 @@ relating to your experiment.
 """
 
 import os
+from multiprocessing import Pool
+from multiprocessing.shared_memory import SharedMemory
+from multiprocessing import Lock
 from pathlib import Path
 from typing import List, Tuple, Union
 
@@ -12,9 +15,9 @@ from diffraction_utils import Frame, Region
 from scipy.constants import physical_constants
 
 from . import io
-from .binning import weighted_bin_1d
+from .binning import weighted_bin_1d, finite_diff_shape
 from .meta_analysis import get_step_from_filesize
-from .scan import Scan
+from .scan import Scan, init_process_pool, bin_maps_with_indices, chunk
 from .writing import linear_bin_to_vtk
 
 
@@ -217,40 +220,84 @@ class Experiment:
         if volume_step is not None:
             step = np.array(volume_step)
 
-        # Carry out the maps.
-        for i, scan in enumerate(self.scans):
-            rsmap, counts = scan.binned_reciprocal_space_map(
-                map_frame, start, stop, step, min_intensity_mask, num_threads,
-                oop)
+        locks = [Lock() for _ in range(num_threads)]
+        shape = finite_diff_shape(start, stop, step)
 
-            scan_unique_path = Path(scan.metadata.data_file.local_path)
-            data_name = str(output_file_name)[
-                :-4] + scan_unique_path.stem + "_data"
-            norm_name = str(output_file_name)[
-                :-4] + scan_unique_path.stem + "_norm"
+        from time import time
+        t1 = time()
+        # Make a pool on which we'll carry out the processing.
+        with Pool(
+            processes=num_threads,  # The size of our pool.
+            initializer=init_process_pool,  # Our pool's initializer.
+            initargs=(locks,  # The initializer makes this lock global.
+                      num_threads,  # Initializer makes num_threads global.
+                      self.scans[0].metadata,
+                      map_frame,
+                      shape)
+        ) as pool:
+            # Submit all maps for all images in all scans.
+            async_results = []
+            for scan in self.scans:
+                for indices in chunk(list(range(
+                        scan.metadata.data_file.scan_length)), num_threads):
 
-            # Save the map and the normalisation array.
-            np.save(data_name, rsmap)
-            np.save(norm_name, counts)
+                    new_motors = scan.metadata.data_file.get_motors()
+                    new_metadata = scan.metadata.data_file.get_metadata()
+                    # Submit the binning as jobs on the pool.
+                    # Note that serializing the map_frame and the scan.metadata
+                    # are the only things that take finite time.
+                    async_results.append(pool.apply_async(
+                        bin_maps_with_indices,
+                        (indices, start, stop, step,
+                         min_intensity_mask,  new_motors, new_metadata,
+                         scan.processing_steps, scan.skip_images, oop)))
 
-            # Store a record of where this has been saved.
-            self._data_file_names.append(data_name)
-            self._normalisation_file_names.append(norm_name)
-            print(f"Finished scan {i+1} out of {len(self.scans)}.")
+            print(f"Took {time() - t1}s to prepare the calculation.")
+            map_names = []
+            count_names = []
+            for result in async_results:
+                # Make sure that we're storing the location of the shared memory
+                # block.
+                shared_rsm_name, shared_count_name = result.get()
+                if shared_rsm_name not in map_names:
+                    map_names.append(shared_rsm_name)
+                if shared_count_name not in count_names:
+                    count_names.append(shared_count_name)
 
-        # Combine the maps and normalise.
-        total_map = _sum_numpy_files(self._data_file_names)
-        total_counts = _sum_numpy_files(self._normalisation_file_names)
+                # Make sure that no error was thrown while mapping.
+                if not result.successful():
+                    raise ValueError(
+                        "Could not carry out map for an unknown reason. "
+                        "Probably one of the threads segfaulted, or something.")
+            print("\nCalculation complete. Finishing up...")
 
-        # Gotta explicitly cast the counts from uint32 to float32.
-        normalised_map = total_map/(total_counts.astype(np.float32))
+            map_mem = [SharedMemory(x) for x in map_names]
+            count_mem = [SharedMemory(x) for x in count_names]
 
-        # Finally, remove all of the random .npy files we created along the way.
-        self._clean_temp_files()
+            map_arrays = np.array([
+                np.ndarray(shape=shape, dtype=np.float32, buffer=x.buf)
+                for x in map_mem])
+            count_arrays = np.array([
+                np.ndarray(shape=shape, dtype=np.uint32, buffer=y.buf)
+                for y in count_mem])
+
+            map_arrays = np.mean(map_arrays, axis=0)
+            count_arrays = np.mean(count_arrays, axis=0)
+
+            normalised_map = map_arrays/(count_arrays.astype(np.float32))
+
+            # Make sure all our shared memory has been closed nicely.
+            for shared_mem in map_mem:
+                shared_mem.close()
+                shared_mem.unlink()
+
+            for shared_mem in count_mem:
+                shared_mem.close()
+                shared_mem.unlink()
 
         # Only save the vtk/npy files if we've been asked to.
         if save_vtk:
-            print("**READ THIS**")
+            print("\n**READ THIS**")
             print(f"Saving vtk to {output_file_name}.vtk")
             print(
                 "This is the file that you can open with paraview. "
@@ -271,6 +318,9 @@ class Experiment:
             np.savetxt(str(output_file_name) + "_bounds.txt",
                        np.array((start, stop, step)).transpose(),
                        header="start stop step")
+
+        # Finally, remove any .npy files we created along the way.
+        self._clean_temp_files()
 
         # Return the normalised RSM.
         return normalised_map, start, stop, step
@@ -537,6 +587,8 @@ class Experiment:
         Returns:
             Corresponding instance of Experiment.
         """
+        from time import time
+        t1 = time()
         # Make sure that we have a list, in case we just received a single path.
         if isinstance(nexus_paths, (str, Path)):
             nexus_paths = [nexus_paths]
@@ -546,5 +598,5 @@ class Experiment:
             io.from_i07(x, beam_centre, detector_distance,
                         setup, path_to_data, using_dps)
             for x in nexus_paths]
-
+        print(f"Took {time() - t1}s to load all nexus files.")
         return cls(scans)

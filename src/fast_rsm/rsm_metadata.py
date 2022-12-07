@@ -3,7 +3,7 @@ This module contains the metadata class, which provides a python interface
 for the .nxs file written for the scan.
 """
 
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 
 import numpy as np
 from scipy.constants import physical_constants
@@ -95,6 +95,15 @@ class RSMMetadata:
                   f"has shape {self.data_file.image_shape} (slow_axis, "
                   f"fast_axis).")
             raise error
+
+    def update_i07_nx(self, motors: Dict[str, np.ndarray], metadata: dict):
+        """
+        Updates an underlying I07Nexus data_file attribute from new motor
+        positions and new metadata values. This significantly decreases
+        synchronization time between threads.
+        """
+        self.data_file.update_motors(motors)
+        self.data_file.update_metadata(metadata)
 
     def get_detector_distance(self, index: int) -> float:
         """
