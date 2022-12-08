@@ -3,6 +3,7 @@ This file contains a suite of utility functions for processing data acquired
 specifically at Diamond.
 """
 
+import os
 from typing import Tuple
 
 import numpy as np
@@ -108,3 +109,39 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str):
 
     # Save it!
     bin_hdf.save(output_path)
+
+
+def most_recent_cluster_output():
+    """
+    Returns the filename of the most recent cluster stdout output.
+    """
+    # Get all the cluster job files that have been created.
+    files = [x for x in os.listdir() if x.startswith("cluster_job.sh.o")]
+    numbers = [int(x[16:]) for x in files]
+
+    # Work out which cluster job is the most recent.
+    most_recent_job_no = np.max(numbers)
+    most_recent_file = ""
+    for file in files:
+        if str(most_recent_job_no) in file:
+            most_recent_file = file
+
+    return most_recent_file
+
+
+def most_recent_cluster_error():
+    """
+    Returns the filename of the most recent cluster stderr output.
+    """
+    # Get all the cluster job files that have been created.
+    files = [x for x in os.listdir() if x.startswith("cluster_job.sh.e")]
+    numbers = [int(x[16:]) for x in files]
+
+    # Work out which cluster job is the most recent.
+    most_recent_job_no = np.max(numbers)
+    most_recent_file = ""
+    for file in files:
+        if str(most_recent_job_no) in file:
+            most_recent_file = file
+
+    return most_recent_file
