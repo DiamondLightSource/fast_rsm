@@ -7,7 +7,6 @@ information relating to a reciprocal space scan.
 
 import traceback
 from multiprocessing import current_process
-from multiprocessing.pool import Pool
 from multiprocessing.shared_memory import SharedMemory
 from multiprocessing import Lock
 from pathlib import Path
@@ -19,7 +18,7 @@ from diffraction_utils import I10Nexus, Vector3, Frame
 from diffraction_utils.diffractometers import I10RasorDiffractometer
 
 from . import io
-from .binning import finite_diff_shape, weighted_bin_3d
+from .binning import weighted_bin_3d
 from .image import Image
 from .rsm_metadata import RSMMetadata
 
