@@ -101,6 +101,8 @@ def init_process_pool(
     # Construct the shared memory buffers.
     SHARED_RSM_NAME = f'rsm_{current_process().name}'
     SHARED_COUNT_NAME = f'count_{current_process().name}'
+    check_shared_memory(SHARED_RSM_NAME)
+    check_shared_memory(SHARED_COUNT_NAME)
     SHARED_RSM = SharedMemory(
         name=SHARED_RSM_NAME, create=True, size=arr.nbytes)
     SHARED_COUNT = SharedMemory(
