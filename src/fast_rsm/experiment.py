@@ -8,6 +8,7 @@ from multiprocessing import Pool
 from multiprocessing.shared_memory import SharedMemory
 from multiprocessing import Lock
 from pathlib import Path
+from time import time
 from typing import List, Tuple, Union
 
 import numpy as np
@@ -206,6 +207,7 @@ class Experiment:
         """
         # For simplicity, if qpar_qperp is asked for, we swap to the lab frame.
         # They're the same, but qpar_qperp is an average.
+        original_frame_name = map_frame.frame_name
         if map_frame.frame_name == Frame.qpar_qperp:
             map_frame.frame_name = Frame.lab
 
@@ -223,8 +225,7 @@ class Experiment:
         locks = [Lock() for _ in range(num_threads)]
         shape = finite_diff_shape(start, stop, step)
 
-        from time import time
-        t1 = time()
+        time_1 = time()
         # Make a pool on which we'll carry out the processing.
         with Pool(
             processes=num_threads,  # The size of our pool.
@@ -252,7 +253,7 @@ class Experiment:
                          min_intensity_mask,  new_motors, new_metadata,
                          scan.processing_steps, scan.skip_images, oop)))
 
-            print(f"Took {time() - t1}s to prepare the calculation.")
+            print(f"Took {time() - time_1}s to prepare the calculation.")
             map_names = []
             count_names = []
             for result in async_results:
@@ -294,6 +295,68 @@ class Experiment:
             for shared_mem in count_mem:
                 shared_mem.close()
                 shared_mem.unlink()
+
+        # Now convert to qpar_qperp if we were originally asked to.
+        if original_frame_name == Frame.qpar_qperp:
+            q_x = np.arange(start[0], stop[0], step[0], dtype=np.float32)
+            q_y = np.arange(start[1], stop[1], step[1], dtype=np.float32)
+            q_x, q_y = np.meshgrid(q_x, q_y, indexing='ij')
+
+            # Now we can work out the |Q| for each voxel in an l-slice.
+            q_xy = np.sqrt(np.square(q_x) + np.square(q_y))
+
+            # Calculate the minimum and maximum q_xy.
+            q_xy_start = float(np.min(q_xy))
+            q_xy_stop = float(np.max(q_xy))
+
+            # Which in-plane length do we have more of? Use that one!
+            shape_0, shape_1 = q_xy.shape[0], q_xy.shape[1]
+            in_plane_shape = shape_1 if shape_1 > shape_0 else shape_0
+            oop_shape = normalised_map.shape[2]
+
+            # The bin edges of the axis that we'll bin to.
+            bins = np.linspace(q_xy_start, q_xy_stop, in_plane_shape)
+            bin_size = bins[1] - bins[0]
+
+            # The new "2D image" of qpar, qperp. Its shape takes the form:
+            # (length_of_l, length_of_longest_of_h_and_k).
+            qpar_qperp = np.zeros((oop_shape, in_plane_shape))
+
+            # Override the current start/stop/step values.
+            start = [0, q_xy_start, start[-1]]
+            stop = [0, q_xy_stop, stop[-1]]
+            step = [0.01, bin_size, step[-1]]
+
+            # Unwrap q_xy to a 1D array.
+            q_xy = q_xy.ravel()
+            # Now we want to calculate the weighted average of qxy for every
+            # possibe value of Q along the l direction.
+            for idx in range(oop_shape):
+                # Index of l=idx slice
+                l_start = shape_0*shape_1*idx
+                l_end = shape_0*shape_1*(idx + 1)
+                qperp_slice = normalised_map.ravel()[l_start:l_end]
+                print(qperp_slice.shape)
+                print(q_xy.shape)
+                qperp_slice = qperp_slice.ravel()
+
+                # Use this to make output & count arrays of the correct size.
+                out = np.zeros_like(bins, dtype=np.float32)
+                count = np.zeros_like(out, dtype=np.uint32)
+                # Do the binning.
+                out = weighted_bin_1d(
+                    q_xy, qperp_slice, out, count,
+                    q_xy_start, q_xy_stop, bin_size)
+
+                # Normalise by the counts.
+                out /= count.astype(np.float32)
+
+                print("out", out)
+
+                # Finally, save the out array.
+                qpar_qperp[idx] = np.copy(out)
+            print("Overwriting normalised map...")
+            normalised_map = np.array([qpar_qperp, ])
 
         # Only save the vtk/npy files if we've been asked to.
         if save_vtk:
