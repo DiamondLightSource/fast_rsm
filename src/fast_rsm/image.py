@@ -7,7 +7,6 @@ from typing import Union
 
 import numpy as np
 from diffraction_utils import Frame, I07Nexus, Polarisation
-from scipy.spatial.transform import Rotation
 
 import mapper_c_utils
 from .rsm_metadata import RSMMetadata
