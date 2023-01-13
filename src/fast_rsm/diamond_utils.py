@@ -11,6 +11,8 @@ from scipy.constants import physical_constants
 
 import nexusformat.nexus as nx
 
+from .binning import weighted_bin_1d
+
 
 def q_to_theta(q_values: np.ndarray, energy: float) -> np.ndarray:
     """
@@ -71,6 +73,161 @@ def get_volume_and_bounds(path_to_npy: str) -> Tuple[np.ndarray]:
 
     # And return what we were asked for!
     return volume, start, stop, step
+
+
+def _project_to_1d(volume: np.ndarray,
+                   start: np.ndarray,
+                   stop: np.ndarray,
+                   step: np.ndarray,
+                   num_bins: int = 1000,
+                   bin_size: float = None,
+                   tth=False,
+                   only_l=False,
+                   energy=None):
+    """
+    Maps this experiment to a simple intensity vs two-theta representation.
+    This virtual 'two-theta' axis is the total angle scattered by the light,
+    *not* the projection of the total angle about a particular axis.
+
+    Under the hood, this runs a binned reciprocal space map with an
+    auto-generated resolution such that the reciprocal space volume is
+    100MB. You really shouldn't need more than 100MB of reciprocal space
+    for a simple line chart...
+
+    TODO: one day, this shouldn't run the 3D binned reciprocal space map
+    and should instead directly bin to a one-dimensional space. The
+    advantage of this approach is that it is much easier to maintain. The
+    disadvantage is that theoretical optimal performance is worse, memory
+    footprint is higher and some data _could_ be incorrectly binned due to
+    double binning. In reality, it's fine: inaccuracies are pedantic and
+    performance is pretty damn good.
+
+    TODO: Currently, this method assumes that the beam energy is constant
+    throughout the scan. Assumptions aren't exactly in the spirit of this
+    module - maybe one day someone can find the time to do this "properly".
+    """
+    # RSM could have a lot of nan elements, representing unmeasured voxels.
+    # Lets make sure we zero these before continuing.
+    rsm = np.nan_to_num(volume, nan=0)
+
+    q_x = np.arange(start[0], stop[0], step[0], dtype=np.float32)
+    q_y = np.arange(start[1], stop[1], step[1], dtype=np.float32)
+    q_z = np.arange(start[2], stop[2], step[2], dtype=np.float32)
+
+    if tth:
+        q_x = q_to_theta(q_x, energy)
+        q_y = q_to_theta(q_y, energy)
+        q_z = q_to_theta(q_z, energy)
+    if only_l:
+        q_x *= 0
+        q_y *= 0
+
+    q_x, q_y, q_z = np.meshgrid(q_x, q_y, q_z, indexing='ij')
+
+    # Now we can work out the |Q| for each voxel.
+    q_x_squared = np.square(q_x)
+    q_y_squared = np.square(q_y)
+    q_z_squared = np.square(q_z)
+
+    q_lengths = np.sqrt(q_x_squared + q_y_squared + q_z_squared)
+
+    # It doesn't make sense to keep the 3D shape because we're about to map
+    # to a 1D space anyway.
+    rsm = rsm.ravel()
+    q_lengths = q_lengths.ravel()
+
+    # If we haven't been given a bin_size, we need to calculate it.
+    min_q = float(np.min(q_lengths))
+    max_q = float(np.max(q_lengths))
+
+    if bin_size is None:
+        # Work out the bin_size from the range of |Q| values.
+        bin_size = (max_q - min_q)/num_bins
+
+    # Now that we know the bin_size, we can make an array of the bin edges.
+    bins = np.arange(min_q, max_q, bin_size)
+
+    # Use this to make output & count arrays of the correct size.
+    out = np.zeros_like(bins, dtype=np.float32)
+    count = np.zeros_like(out, dtype=np.uint32)
+
+    # Do the binning.
+    out = weighted_bin_1d(q_lengths, rsm, out, count,
+                          min_q, max_q, bin_size)
+
+    # Normalise by the counts.
+    out /= count.astype(np.float32)
+
+    out = np.nan_to_num(out, nan=0)
+
+    # Now return (intensity, Q).
+    return out, bins
+
+
+def intensity_vs_q(output_file_name: str,
+                   volume: np.ndarray,
+                   start: np.ndarray,
+                   stop: np.ndarray,
+                   step: np.ndarray,
+                   num_bins: int = 1000,
+                   bin_size: float = None):
+    """
+    Calculates intensity as a function of the magnitude of the scattering vector
+    from the intensities and their finite differences geometry description.
+    """
+    intensity, q = _project_to_1d(
+        volume, start, stop, step, num_bins, bin_size)
+
+    to_save = np.transpose((q, intensity))
+    output_file_name = str(output_file_name) + "_Q.txt"
+    print(f"Saving intensity vs q to {output_file_name}")
+    np.savetxt(output_file_name, to_save, header="|Q| intensity")
+    return q, intensity
+
+
+def intensity_vs_tth(output_file_name: str,
+                     volume: np.ndarray,
+                     start: np.ndarray,
+                     stop: np.ndarray,
+                     step: np.ndarray,
+                     energy: float,
+                     num_bins: int = 1000,
+                     bin_size: float = None):
+    """
+    Calculates intensity as a function of 2θ, where θ is the total diffracted
+    angle (not along any particular direction).
+    """
+    # This just aliases to self._project_to_1d, which handles the minor
+    # difference between a projection to |Q| and 2θ.
+    intensity, tth = _project_to_1d(
+        volume, start, stop, step, num_bins, bin_size, tth=True, energy=energy)
+
+    to_save = np.transpose((tth, intensity))
+    output_file_name = str(output_file_name) + "_tth.txt"
+    print(f"Saving intensity vs tth to {output_file_name}")
+    np.savetxt(output_file_name, to_save, header="tth intensity")
+
+    return tth, intensity
+
+
+def intensity_vs_l(output_file_name: str,
+                   volume: np.ndarray,
+                   start: np.ndarray,
+                   stop: np.ndarray,
+                   step: np.ndarray,
+                   num_bins: int = 1000,
+                   bin_size: float = None):
+    """
+    Calculates intensity as a function of l, ignoring h and k. Only relevant if
+    you have used the hkl coordinate system.
+    """
+    intensity, l = _project_to_1d(
+        volume, start, stop, step, num_bins, bin_size, only_l=True)
+
+    to_save = np.transpose((l, intensity))
+    output_file_name = str(output_file_name) + "_l.txt"
+    print(f"Saving intensity vs l to {output_file_name}")
+    np.savetxt(output_file_name, to_save, header="l intensity")
 
 
 def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str):
