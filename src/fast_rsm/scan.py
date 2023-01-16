@@ -190,6 +190,10 @@ def _bin_one_map(start: np.ndarray,
     Calculates and bins the reciprocal space map with index idx. Saves the
     result to the shared memory buffer.
     """
+    if map_each_image:
+        rsm_before = np.copy(RSM)
+        count_before = np.copy(COUNT)
+
     image = Image(METADATA, idx)
     image._processing_steps = processing_steps
     # Do the mapping for this image; bin the mapping.
@@ -206,16 +210,8 @@ def _bin_one_map(start: np.ndarray,
     if map_each_image:
         # If the user also wants us to map each image, rerun the map for just
         # this image.
-        rsm = np.zeros_like(RSM)
-        count = np.zeros_like(COUNT)
-        weighted_bin_3d(q_vectors,
-                        image.data,
-                        rsm,
-                        count,
-                        start,
-                        stop,
-                        step,
-                        min_intensity)
+        rsm = RSM - rsm_before
+        count = COUNT - count_before
 
         # Normalise it.
         normalised_map = rsm/(count.astype(np.float32))
