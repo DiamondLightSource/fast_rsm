@@ -225,10 +225,9 @@ def _bin_one_map(start: np.ndarray,
 
         # Now we just need to save this map; work out its unique name.
         npy_path = str(OUTPUT_FILE_NAME) + str(image_id)
-        map_path = str(npy_path) + '.vtk'
 
         # Save the vtk, as well as a .npy and a bounds file.
-        linear_bin_to_vtk(normalised_map, map_path, start, stop, step)
+        linear_bin_to_vtk(normalised_map, npy_path, start, stop, step)
         np.save(npy_path, normalised_map)
         np.savetxt(str(npy_path) + "_bounds.txt",
                    np.array((start, stop, step)).transpose(),
