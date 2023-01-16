@@ -224,8 +224,8 @@ def _bin_one_map(start: np.ndarray,
         image_id = str(previous_images + idx).zfill(6)
 
         # Now we just need to save this map; work out its unique name.
-        npy_path = OUTPUT_FILE_NAME + image_id
-        map_path = npy_path + '.vtk'
+        npy_path = str(OUTPUT_FILE_NAME) + str(image_id)
+        map_path = str(npy_path) + '.vtk'
 
         # Save the vtk, as well as a .npy and a bounds file.
         linear_bin_to_vtk(normalised_map, map_path, start, stop, step)
