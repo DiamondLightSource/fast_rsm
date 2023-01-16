@@ -21,6 +21,7 @@ from . import io
 from .binning import weighted_bin_3d
 from .image import Image
 from .rsm_metadata import RSMMetadata
+from .writing import linear_bin_to_vtk
 
 
 def check_shared_memory(shared_mem_name: str) -> None:
@@ -49,7 +50,8 @@ def init_process_pool(
         num_threads: int,
         metadata: RSMMetadata,
         frame: Frame,
-        shape: tuple
+        shape: tuple,
+        output_file_name: str = None
 ) -> None:
     """
     Initializes a processing pool to have a global shared lock.
@@ -72,6 +74,9 @@ def init_process_pool(
     global METADATA
     global FRAME
 
+    # Not always necessary and may be set to None.
+    global OUTPUT_FILE_NAME
+
     # These are numpy arrays whose buffer corresponds to the shared memory
     # buffer. It's more convenient to access these later than to directly work
     # with the shared memory buffer.
@@ -93,6 +98,8 @@ def init_process_pool(
     NUM_THREADS = num_threads
     METADATA = metadata
     FRAME = frame
+
+    OUTPUT_FILE_NAME = output_file_name
 
     # Work out how many bytes we're going to need by making a dummy array.
     arr = np.ndarray(shape=shape, dtype=np.float32)
@@ -175,7 +182,9 @@ def _bin_one_map(start: np.ndarray,
                  min_intensity: float,
                  idx: int,
                  processing_steps: list,
-                 oop: str
+                 oop: str,
+                 map_each_image: bool = False,
+                 previous_images: int = 0
                  ) -> np.ndarray:
     """
     Calculates and bins the reciprocal space map with index idx. Saves the
@@ -194,6 +203,37 @@ def _bin_one_map(start: np.ndarray,
                     step,
                     min_intensity)
 
+    if map_each_image:
+        # If the user also wants us to map each image, rerun the map for just
+        # this image.
+        rsm = np.zeros_like(RSM)
+        count = np.zeros_like(count)
+        weighted_bin_3d(q_vectors,
+                        image.data,
+                        rsm,
+                        count,
+                        start,
+                        stop,
+                        step,
+                        min_intensity)
+
+        # Normalise it.
+        normalised_map = rsm/(count.astype(np.float32))
+
+        # Get the unique id for this image & pad with zeros for paraview.
+        image_id = str(previous_images + idx).zfill(6)
+
+        # Now we just need to save this map; work out its unique name.
+        npy_path = OUTPUT_FILE_NAME + image_id
+        map_path = npy_path + '.vtk'
+
+        # Save the vtk, as well as a .npy and a bounds file.
+        linear_bin_to_vtk(normalised_map, map_path, start, stop, step)
+        np.save(npy_path, normalised_map)
+        np.savetxt(str(npy_path) + "_bounds.txt",
+                   np.array((start, stop, step)).transpose(),
+                   header="start stop step")
+
 
 def bin_maps_with_indices(indices: List[int],
                           start: np.ndarray,
@@ -204,7 +244,9 @@ def bin_maps_with_indices(indices: List[int],
                           metadata: dict,
                           processing_steps: list,
                           skip_images: List[int],
-                          oop: str
+                          oop: str,
+                          map_each_image: bool = False,
+                          previous_images: int = 0
                           ) -> None:
     """
     Bins all of the maps with indices in indices. The purpose of this
@@ -225,7 +267,7 @@ def bin_maps_with_indices(indices: List[int],
 
             # print(f"Processing image {idx}. ", end='')
             _bin_one_map(start, stop, step, min_intensity, idx,
-                         processing_steps, oop)
+                         processing_steps, oop, map_each_image, previous_images)
     except Exception as exception:
         print("Exception thrown in bin_one_map:")
         print(traceback.format_exc())
