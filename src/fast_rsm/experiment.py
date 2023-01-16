@@ -179,7 +179,8 @@ class Experiment:
                                     oop: str = 'y',
                                     volume_start: np.ndarray = None,
                                     volume_stop: np.ndarray = None,
-                                    volume_step: np.ndarray = None):
+                                    volume_step: np.ndarray = None,
+                                    map_each_image: bool = False):
         """
         Carries out a binned reciprocal space map for this experimental data.
 
@@ -234,16 +235,19 @@ class Experiment:
                       num_threads,  # Initializer makes num_threads global.
                       self.scans[0].metadata,
                       map_frame,
-                      shape)
+                      shape,
+                      output_file_name)
         ) as pool:
             # Submit all maps for all images in all scans.
             async_results = []
+            images_so_far = 0
             for scan in self.scans:
                 for indices in chunk(list(range(
                         scan.metadata.data_file.scan_length)), num_threads):
 
                     new_motors = scan.metadata.data_file.get_motors()
                     new_metadata = scan.metadata.data_file.get_metadata()
+
                     # Submit the binning as jobs on the pool.
                     # Note that serializing the map_frame and the scan.metadata
                     # are the only things that take finite time.
@@ -251,7 +255,10 @@ class Experiment:
                         bin_maps_with_indices,
                         (indices, start, stop, step,
                          min_intensity_mask,  new_motors, new_metadata,
-                         scan.processing_steps, scan.skip_images, oop)))
+                         scan.processing_steps, scan.skip_images, oop,
+                         map_each_image, images_so_far)))
+
+                    images_so_far += scan.metadata.data_file.scan_length
 
             print(f"Took {time() - time_1}s to prepare the calculation.")
             map_names = []
