@@ -106,10 +106,6 @@ def _project_to_1d(volume: np.ndarray,
     throughout the scan. Assumptions aren't exactly in the spirit of this
     module - maybe one day someone can find the time to do this "properly".
     """
-    # RSM could have a lot of nan elements, representing unmeasured voxels.
-    # Lets make sure we zero these before continuing.
-    rsm = np.nan_to_num(volume, nan=0)
-
     q_x = np.arange(start[0], stop[0], step[0], dtype=np.float32)
     q_y = np.arange(start[1], stop[1], step[1], dtype=np.float32)
     q_z = np.arange(start[2], stop[2], step[2], dtype=np.float32)
@@ -133,12 +129,12 @@ def _project_to_1d(volume: np.ndarray,
 
     # It doesn't make sense to keep the 3D shape because we're about to map
     # to a 1D space anyway.
-    rsm = rsm.ravel()
+    rsm = volume.ravel()
     q_lengths = q_lengths.ravel()
 
     # If we haven't been given a bin_size, we need to calculate it.
-    min_q = float(np.min(q_lengths))
-    max_q = float(np.max(q_lengths))
+    min_q = float(np.nanmin(q_lengths))
+    max_q = float(np.nanmax(q_lengths))
 
     if bin_size is None:
         # Work out the bin_size from the range of |Q| values.
