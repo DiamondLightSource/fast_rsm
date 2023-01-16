@@ -207,7 +207,7 @@ def _bin_one_map(start: np.ndarray,
         # If the user also wants us to map each image, rerun the map for just
         # this image.
         rsm = np.zeros_like(RSM)
-        count = np.zeros_like(count)
+        count = np.zeros_like(COUNT)
         weighted_bin_3d(q_vectors,
                         image.data,
                         rsm,
