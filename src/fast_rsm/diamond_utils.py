@@ -46,8 +46,8 @@ def intensity_vs_q_exact(
     out = np.zeros((num_bins,), np.float32)
     count = np.zeros((num_bins,), np.uint32)
 
-    start = float(np.min(q_lengths))
-    stop = float(np.max(q_lengths))
+    start = float(np.nanmin(q_lengths))
+    stop = float(np.nanmax(q_lengths))
     step = float((start - stop)/num_bins)
 
     weighted_bin_1d(q_lengths, raw_intensities, out, count, start, stop, step)
