@@ -220,14 +220,22 @@ def _bin_one_map(start: np.ndarray,
         image_id = str(previous_images + idx).zfill(6)
 
         # Now we just need to save this map; work out its unique name.
-        npy_path = str(OUTPUT_FILE_NAME) + '_' + str(image_id)
+        volume_path = str(OUTPUT_FILE_NAME) + '_' + str(image_id)
 
         # Save the vtk, as well as a .npy and a bounds file.
-        linear_bin_to_vtk(normalised_map, npy_path, start, stop, step)
-        np.save(npy_path, normalised_map)
-        np.savetxt(str(npy_path) + "_bounds.txt",
+        linear_bin_to_vtk(normalised_map, volume_path, start, stop, step)
+        np.save(volume_path, normalised_map)
+        np.savetxt(str(volume_path) + "_bounds.txt",
                    np.array((start, stop, step)).transpose(),
                    header="start stop step")
+
+        q_vec_path = volume_path + "_q"
+        intensities_path = volume_path + "_intensities"
+        # Also, just to provide complete information on a per-image basis, save
+        # every single *exact* q-vector for this scan.
+        # These should both be saved.
+        np.save(q_vec_path, q_vectors.ravel())
+        np.save(intensities_path, image.data.ravel())
 
 
 def bin_maps_with_indices(indices: List[int],
