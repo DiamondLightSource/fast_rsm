@@ -14,6 +14,50 @@ import nexusformat.nexus as nx
 from .binning import weighted_bin_1d
 
 
+def intensity_vs_q_exact(
+        q_vector_path: str, intensities_path: str, num_bins=1000
+) -> Tuple(np.ndarray, np.ndarray):
+    """
+    This routine is currently only available to data acquired when the
+    "map_per_image" option is checked. Note that the "map_per_image" option can
+    generate enormous quantities of data (generally producing 5x your input
+    data, each time you run a calculation).
+
+    Args:
+        q_vector_path:
+            The path to your .npy file containing RAW UNBINNED Q VECTORS. This
+            will only have been generated if you used the map_per_image option!
+        intensities_path:
+            The path to your .npy file containing detector data. This should not
+            have had Lorentz or Polarisation corrections applied, but may have
+            had minor corrections (solid angle) and masks applied.
+        num_bins:
+            Desired length of your output Q and Intensity arrays.
+
+    Returns:
+        A (Q, intensity) tuple, where both Q and intensity are represented by
+        numpy arrays of length num_bins.
+    """
+    raw_q = np.load(q_vector_path)
+    raw_intensities = np.load(intensities_path)
+    raw_q = raw_q.reshape((raw_intensities.shape[0], 3))
+    q_lengths = np.linalg.norm(raw_q)
+
+    out = np.zeros((num_bins,), np.float32)
+    count = np.zeros((num_bins,), np.uint32)
+
+    start = float(np.min(q_lengths))
+    stop = float(np.max(q_lengths))
+    step = float((start - stop)/num_bins)
+
+    weighted_bin_1d(q_lengths, raw_intensities, out, count, start, stop, step)
+
+    binned_qs = np.linspace(start, stop, num_bins)
+    intensities = out/count.astype(np.float32)
+
+    return binned_qs, intensities
+
+
 def q_to_theta(q_values: np.ndarray, energy: float) -> np.ndarray:
     """
     Takes a set of q_values IN INVERSE ANGSTROMS and and energy IN ELECTRON
