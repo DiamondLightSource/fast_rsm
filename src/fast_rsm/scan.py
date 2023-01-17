@@ -232,6 +232,7 @@ def _bin_one_map(start: np.ndarray,
 
         q_vec_path = volume_path + "_q"
         intensities_path = volume_path + "_uncorrected_intensities"
+        corrected_intensity_path = volume_path + "_corrected_intensities"
 
         # Re-calculate q-vectors. Don't apply corrections (if users want
         # per-image data, they likely want control over corrections. This is
@@ -249,6 +250,9 @@ def _bin_one_map(start: np.ndarray,
         # These should both be saved.
         np.save(q_vec_path, q_vectors.ravel())
         np.save(intensities_path, fresh_image.data.ravel())
+
+        # Also save the corrected intensities.
+        np.save(corrected_intensity_path, image.data.ravel())
 
 
 def bin_maps_with_indices(indices: List[int],
