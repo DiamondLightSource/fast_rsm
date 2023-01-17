@@ -185,7 +185,7 @@ def weighted_bin_3d(coords: np.ndarray, weights: np.ndarray,
     if out.dtype != np.float32:
         raise ValueError("out must have dtype=np.float32")
     if count.dtype != np.uint32:
-        raise ValueError("Count must have dtype=np.int32")
+        raise ValueError("Count must have dtype=np.uint32")
 
     # Now we're ready to call the function.
     mapper_c_utils.weighted_bin_3d(
@@ -263,7 +263,7 @@ def weighted_bin_1d(coords: np.ndarray,
     if out.dtype != np.float32:
         raise ValueError("out must have dtype=np.float32")
     if count.dtype != np.uint32:
-        raise ValueError("Count must have dtype=np.int32")
+        raise ValueError("Count must have dtype=np.uint32")
 
     # Now we're ready to call the function.
     mapper_c_utils.weighted_bin_1d(
