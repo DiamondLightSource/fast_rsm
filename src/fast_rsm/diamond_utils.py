@@ -41,7 +41,7 @@ def intensity_vs_q_exact(
     raw_q = np.load(q_vector_path)
     raw_intensities = np.load(intensities_path)
     raw_q = raw_q.reshape((raw_intensities.shape[0], 3))
-    q_lengths = np.linalg.norm(raw_q)
+    q_lengths = np.linalg.norm(raw_q, axis=1)
 
     out = np.zeros((num_bins,), np.float32)
     count = np.zeros((num_bins,), np.uint32)
