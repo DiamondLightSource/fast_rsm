@@ -16,7 +16,7 @@ from .binning import weighted_bin_1d
 
 def intensity_vs_q_exact(
         q_vector_path: str, intensities_path: str, num_bins=1000
-) -> Tuple(np.ndarray, np.ndarray):
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     This routine is currently only available to data acquired when the
     "map_per_image" option is checked. Note that the "map_per_image" option can
