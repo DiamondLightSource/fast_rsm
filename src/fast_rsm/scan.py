@@ -237,7 +237,8 @@ def _bin_one_map(start: np.ndarray,
         # per-image data, they likely want control over corrections. This is
         # especially true if people want to use this data to project to 1D,
         # where the application of custom corrections is particularly easy).
-        q_vectors = Image(METADATA, idx).q_vectors(
+        fresh_image = Image(METADATA, idx)
+        q_vectors = fresh_image.q_vectors(
             FRAME,
             oop=oop,
             lorentz_correction=False,
@@ -247,7 +248,7 @@ def _bin_one_map(start: np.ndarray,
         # every single *exact* q-vector for this scan.
         # These should both be saved.
         np.save(q_vec_path, q_vectors.ravel())
-        np.save(intensities_path, image.data.ravel())
+        np.save(intensities_path, fresh_image.data.ravel())
 
 
 def bin_maps_with_indices(indices: List[int],
