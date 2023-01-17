@@ -196,6 +196,7 @@ def _bin_one_map(start: np.ndarray,
 
     image = Image(METADATA, idx)
     image._processing_steps = processing_steps
+
     # Do the mapping for this image; bin the mapping.
     q_vectors = image.q_vectors(FRAME, oop=oop)
     weighted_bin_3d(q_vectors,
@@ -230,7 +231,18 @@ def _bin_one_map(start: np.ndarray,
                    header="start stop step")
 
         q_vec_path = volume_path + "_q"
-        intensities_path = volume_path + "_intensities"
+        intensities_path = volume_path + "_uncorrected_intensities"
+
+        # Re-calculate q-vectors. Don't apply corrections (if users want
+        # per-image data, they likely want control over corrections. This is
+        # especially true if people want to use this data to project to 1D,
+        # where the application of custom corrections is particularly easy).
+        q_vectors = Image(METADATA, idx).q_vectors(
+            FRAME,
+            oop=oop,
+            lorentz_correction=False,
+            pol_correction=False)
+
         # Also, just to provide complete information on a per-image basis, save
         # every single *exact* q-vector for this scan.
         # These should both be saved.
