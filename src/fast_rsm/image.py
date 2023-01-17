@@ -188,7 +188,9 @@ class Image:
     def q_vectors(self,
                   frame: Frame,
                   indices: tuple = None,
-                  oop='y') -> np.ndarray:
+                  oop='y',
+                  lorentz_correction: bool = True,
+                  pol_correction: bool = True) -> np.ndarray:
         """
         Calculates the wavevector through which light had to scatter to reach
         every pixel on the detector in a given frame of reference.
@@ -305,7 +307,9 @@ class Image:
         # free", Lorentz/polarisation corrections should be applied. Only do
         # this if we're mapping the entire image (i.e. indices is None).
         if indices is None:
-            corrections.lorentz(self._raw_data, incident_beam_arr, k_out_array)
+            if lorentz_correction:
+                corrections.lorentz(
+                    self._raw_data, incident_beam_arr, k_out_array)
 
             # The kind of polarisation correction that we want to apply of
             # depends, rather obviously, on the polarisation of the beam!
@@ -317,8 +321,9 @@ class Image:
             if polarisation.kind == Polarisation.linear:
                 pol_vec = polarisation.vector
                 pol_vec.to_frame(frame)
-                corrections.linear_polarisation(
-                    self._raw_data, k_out_array, pol_vec.array)
+                if pol_correction:
+                    corrections.linear_polarisation(
+                        self._raw_data, k_out_array, pol_vec.array)
 
         # Now simply subtract and rescale to get the q_vectors!
         # Note that this is an order of magnitude faster than:
@@ -403,10 +408,18 @@ class Image:
         # Only return the indices that we worked on.
         return k_out_array[i, j, :]
 
-    def q_vector_array(self, frame: Frame, oop='y') -> np.ndarray:
+    def q_vector_array(self,
+                       frame: Frame,
+                       oop='y',
+                       lorentz_correction: bool = True,
+                       pol_correction: bool = True) -> np.ndarray:
         """
         Returns a numpy array of q_vectors whose shape is (N,3).
         """
-        q_vectors = self.q_vectors(frame, oop=oop).reshape()
+        q_vectors = self.q_vectors(
+            frame,
+            oop=oop,
+            lorentz_correction=lorentz_correction,
+            pol_correction=pol_correction).reshape()
         num_q_vectors = q_vectors.shape[0]*q_vectors.shape[1]
         return q_vectors.reshape((num_q_vectors, 3))
