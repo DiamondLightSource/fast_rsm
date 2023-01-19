@@ -142,7 +142,7 @@ def qxy_qz_exact(
     min_qz = np.min(qz)
     max_qz = np.max(qz)
 
-    # Now run the binning.
+    # Now run the binning. This is not normalised.
     qxy_qz_intensities = fast_histogram.histogram2d(
         x=qxy,
         y=qz,
@@ -150,6 +150,17 @@ def qxy_qz_exact(
         range=[[min_qxy, max_qxy], [min_qz, max_qz]],
         weights=intensities
     )
+
+    # Work out how many times we binned into each pixel in the above routine.
+    qxy_qz_intensity_counts = fast_histogram.histogram2d(
+        x=qxy,
+        y=qz,
+        bins=(qxy_bins, qz_bins),
+        range=[[min_qxy, max_qxy], [min_qz, max_qz]]
+    )
+
+    # Normalise by the count of how many times we binned into each pixel.
+    qxy_qz_intensities /= qxy_qz_intensity_counts
 
     # For convenience, also return the corresponding Q values at all pixels.
     binned_qxy = np.linspace(min_qxy, max_qxy, qxy_bins)
