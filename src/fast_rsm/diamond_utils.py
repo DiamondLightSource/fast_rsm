@@ -58,7 +58,7 @@ def intensity_vs_q_exact(
             Desired length of your output Q and Intensity arrays.
 
     Returns:
-        A (Q, intensity) tuple, where both Q and intensity are represented by
+        A (intensity, Q) tuple, where both Q and intensity are represented by
         numpy arrays of length num_bins.
     """
     # These arrays could be affected by the call to weighted_bin_1d. Make sure
@@ -97,7 +97,7 @@ def intensity_vs_q_exact(
     # the other side of this function call.
     binned_qs = np.linspace(start, stop, num_bins)
 
-    return binned_qs, final_intensities
+    return final_intensities, binned_qs
 
 
 def qxy_qz_exact(
