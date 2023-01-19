@@ -97,7 +97,7 @@ def intensity_vs_q_exact(
     # the other side of this function call.
     binned_qs = np.linspace(start, stop, num_bins)
 
-    return binned_qs, intensities
+    return binned_qs, final_intensities
 
 
 def qxy_qz_exact(
