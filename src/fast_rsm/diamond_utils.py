@@ -84,7 +84,7 @@ def intensity_vs_q_exact(
     )
 
     # Work out how many times each bin was binned to for normalisation.
-    final_intensity_counts = final_intensities = fast_histogram.histogram1d(
+    final_intensity_counts = fast_histogram.histogram1d(
         x=q_lengths,
         bins=num_bins,
         range=[start, stop],
