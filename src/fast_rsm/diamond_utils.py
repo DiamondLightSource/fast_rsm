@@ -64,19 +64,38 @@ def intensity_vs_q_exact(
     # These arrays could be affected by the call to weighted_bin_1d. Make sure
     # that callers don't have their objects mangled by making copies here.
     q_vectors, intensities = np.copy(q_vectors), np.copy(intensities)
-    q_lengths = np.linalg.norm(q_vectors, axis=1)
 
-    out = np.zeros((num_bins,), np.float32)
-    count = np.zeros((num_bins,), np.uint32)
+    # Completely ignore all nan values.
+    q_vectors = q_vectors[~np.isnan(intensities)]
+    intensities = intensities[~np.isnan(intensities)]
+
+    q_lengths = np.linalg.norm(q_vectors, axis=1)
 
     start = float(np.nanmin(q_lengths))
     stop = float(np.nanmax(q_lengths))
-    step = float((stop - start)/num_bins)
 
-    weighted_bin_1d(q_lengths, intensities, out, count, start, stop, step)
+    # Work out the binned intensities. Note that this isn't normalised by the
+    # number of times each bin is binned to; we have to do that manually.
+    final_intensities = fast_histogram.histogram1d(
+        x=q_lengths,
+        bins=num_bins,
+        range=[start, stop],
+        weights=intensities
+    )
 
+    # Work out how many times each bin was binned to for normalisation.
+    final_intensity_counts = final_intensities = fast_histogram.histogram1d(
+        x=q_lengths,
+        bins=num_bins,
+        range=[start, stop],
+    )
+
+    # Carry out the normalisation.
+    final_intensities /= final_intensity_counts
+
+    # Also return an array of q vectors to make plotting as easy as possible on
+    # the other side of this function call.
     binned_qs = np.linspace(start, stop, num_bins)
-    intensities = out/count.astype(np.float32)
 
     return binned_qs, intensities
 
