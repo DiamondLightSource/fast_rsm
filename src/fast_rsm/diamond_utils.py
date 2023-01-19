@@ -130,7 +130,7 @@ def qxy_qz_exact(
     i, j, k = (qz_axis+1) % 3, (qz_axis+2) % 3, qz_axis
     # Create an array of qxy, qz q-vectors.
     qxy = np.sqrt(q_vectors[:, i]**2 + q_vectors[:, j]**2)
-    qz = q_vectors[k]
+    qz = q_vectors[:, k]
 
     # Run a 2D binning (I couldn't be bothered writing a really quick one, so
     # here I'm just defaulting to the reasonable implementation provided by
