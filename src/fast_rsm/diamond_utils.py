@@ -6,6 +6,7 @@ specifically at Diamond.
 import os
 from typing import Tuple
 
+import fast_histogram
 import numpy as np
 from scipy.constants import physical_constants
 
@@ -14,23 +15,45 @@ import nexusformat.nexus as nx
 from .binning import weighted_bin_1d
 
 
+def load_exact_map(
+    q_vector_path: str, intensities_path: str
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Returns exact q vectors and their corresponding intensities, after loading
+    them from the provided paths.
+
+    Args:
+        q_vector_path:
+            Path to exact q vectors.
+        intensities_path:
+            Path to either corrected or uncorrected intensities.
+
+    Returns:
+        (q_vectors, intensities)
+        Where, if intensities has a shape (1000,), q_vectors has a shape
+        (1000, 3). The intensity measured at q_vectors[i] is intensities[i].
+    """
+    raw_q = np.load(q_vector_path)
+    raw_intensities = np.load(intensities_path)
+    raw_q = raw_q.reshape((raw_intensities.shape[0], 3))
+    return raw_q, raw_intensities
+
+
 def intensity_vs_q_exact(
-        q_vector_path: str, intensities_path: str, num_bins=1000
+        q_vectors: np.ndarray, intensities: np.ndarray, num_bins=1000
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     This routine is currently only available to data acquired when the
     "map_per_image" option is checked. Note that the "map_per_image" option can
     generate enormous quantities of data (generally producing 5x your input
-    data, each time you run a calculation).
+    data, each time you run a calculation). Q vectors and intensities provided
+    need to be obtained using the "load_exact_map" function in this module.
 
     Args:
-        q_vector_path:
-            The path to your .npy file containing RAW UNBINNED Q VECTORS. This
-            will only have been generated if you used the map_per_image option!
+        q_vectors:
+            An array of q_vectors obtained using the "load_exact_map" function.
         intensities_path:
-            The path to your .npy file containing detector data. This should not
-            have had Lorentz or Polarisation corrections applied, but may have
-            had minor corrections (solid angle) and masks applied.
+            An array of intensities loaded using the "load_exact_map" function.
         num_bins:
             Desired length of your output Q and Intensity arrays.
 
@@ -38,10 +61,10 @@ def intensity_vs_q_exact(
         A (Q, intensity) tuple, where both Q and intensity are represented by
         numpy arrays of length num_bins.
     """
-    raw_q = np.load(q_vector_path)
-    raw_intensities = np.load(intensities_path)
-    raw_q = raw_q.reshape((raw_intensities.shape[0], 3))
-    q_lengths = np.linalg.norm(raw_q, axis=1)
+    # These arrays could be affected by the call to weighted_bin_1d. Make sure
+    # that callers don't have their objects mangled by making copies here.
+    q_vectors, intensities = np.copy(q_vectors), np.copy(intensities)
+    q_lengths = np.linalg.norm(q_vectors, axis=1)
 
     out = np.zeros((num_bins,), np.float32)
     count = np.zeros((num_bins,), np.uint32)
@@ -50,12 +73,90 @@ def intensity_vs_q_exact(
     stop = float(np.nanmax(q_lengths))
     step = float((stop - start)/num_bins)
 
-    weighted_bin_1d(q_lengths, raw_intensities, out, count, start, stop, step)
+    weighted_bin_1d(q_lengths, intensities, out, count, start, stop, step)
 
     binned_qs = np.linspace(start, stop, num_bins)
     intensities = out/count.astype(np.float32)
 
     return binned_qs, intensities
+
+
+def qxy_qz_exact(
+    q_vectors: str,
+    intensities: str,
+    qxy_bins: int = 1000,
+    qz_bins: int = 1000,
+    qz_axis: int = 2
+) -> np.ndarray:
+    """
+    This routine is currently only available to data acquired when the
+    "map_per_image" option is checked. Note that the "map_per_image" option can
+    generate enormous quantities of data (generally producing 5x your input
+    data, each time you run a calculation). Q vectors and intensities provided
+    need to be obtained using the "load_exact_map" function in this module.
+
+    Args:
+        q_vectors:
+            An array of q_vectors obtained using the "load_exact_map" function.
+        intensities_path:
+            An array of intensities loaded using the "load_exact_map" function.
+        qxy_bins:
+            How many qxy steps do you want. Should probably be slightly less
+            than the horizontal resolution of your detector.
+        qz_bins:
+            How many qz steps do you want. Should probably be slightly less than
+            the vertical resolution of your detector.
+        qz_axis:
+            Which axis of the q_vectors array should be taken to be qz? Defaults
+            to 2.
+
+    Returns:
+        (qxy_qz_intensities, qxy_qz_q_values)
+        Numpy arrays where the slow axis (axis=0) is in the qxy direction, and
+        the fast axis (axis=1) is in the qz direction.
+    """
+    # qz is an entirely reasonable name in this context.
+    # pylint: disable=invalid-name
+
+    # These arrays could be affected by the call to weighted_bin_1d. Make sure
+    # that callers don't have their objects mangled by making copies here.
+    q_vectors, intensities = np.copy(q_vectors), np.copy(intensities)
+
+    # Completely ignore all nan values.
+    q_vectors = q_vectors[~np.isnan(intensities)]
+    intensities = intensities[~np.isnan(intensities)]
+
+    # Deal with variable qz axis.
+    i, j, k = (qz_axis+1) % 3, (qz_axis+2) % 3, qz_axis
+    # Create an array of qxy, qz q-vectors.
+    qxy = np.sqrt(q_vectors[:, i]**2 + q_vectors[:, j]**2)
+    qz = q_vectors[k]
+
+    # Run a 2D binning (I couldn't be bothered writing a really quick one, so
+    # here I'm just defaulting to the reasonable implementation provided by
+    # the fast_histogram library).
+
+    # To do this, we need to know min/max of each of qxy and qz.
+    min_qxy = np.min(qxy)
+    max_qxy = np.max(qxy)
+    min_qz = np.min(qz)
+    max_qz = np.max(qz)
+
+    # Now run the binning.
+    qxy_qz_intensities = fast_histogram.histogram2d(
+        x=qxy,
+        y=qz,
+        bins=(qxy_bins, qz_bins),
+        range=[[min_qxy, max_qxy], [min_qz, max_qz]],
+        weights=intensities
+    )
+
+    # For convenience, also return the corresponding Q values at all pixels.
+    binned_qxy = np.linspace(min_qxy, max_qxy, qxy_bins)
+    binned_qz = np.linspace(min_qz, max_qz, qz_bins)
+    qxy_qz_q_vals = np.meshgrid(binned_qxy, binned_qz, indexing='ij')
+
+    return qxy_qz_intensities, qxy_qz_q_vals
 
 
 def q_to_theta(q_values: np.ndarray, energy: float) -> np.ndarray:
@@ -69,7 +170,7 @@ def q_to_theta(q_values: np.ndarray, energy: float) -> np.ndarray:
             those that know the different conventions).
         energy:
             The energy of the incident beam in units of electron volts. Not kev.
-            Not joules (lol). Electron volts, please.
+            Not joules. Electron volts, please.
 
     Returns:
         A numpy array of the corresponding theta values (NOT TWO THETA). Just
