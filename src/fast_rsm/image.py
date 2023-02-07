@@ -148,43 +148,6 @@ class Image:
 
         return arr
 
-    def pixel_polar_angle(self, frame: Frame) -> np.ndarray:
-        """
-        Returns the polar angle at each pixel in the specified frame.
-
-        Args:
-            frame (Frame):
-                The frame of reference in which we want the pixel's polar angle.
-
-        returns:
-            The polar angle at each pixel in the requested frame.
-        """
-        # Make sure that the frame's index is correct.
-        frame.scan_index = self.index
-        # Grab the detector vector in our frame of interest.
-        detector_vector = self.diffractometer.get_detector_vector(frame)
-        # Now return the polar angle at each pixel.
-        return self.metadata.relative_polar + detector_vector.polar_angle
-
-    def pixel_azimuthal_angle(self, frame: Frame):
-        """
-        Returns the azimuthal angle at each pixel in the specified frame.
-
-        Args:
-            frame (Frame):
-                The frame of reference in which we want the pixel's azimuthal#
-                angle.
-
-        Returns:
-            The azimuthal angle at each pixel in the requested frame.
-        """
-        # Make sure that the frame's index is correct.
-        frame.scan_index = self.index
-        # Grab the detector vector in our frame of interest.
-        detector_vector = self.diffractometer.get_detector_vector(frame)
-        # Now return the azimuthal angle at each pixel.
-        return self.metadata.relative_azimuth + detector_vector.azimuthal_angle
-
     def q_vectors(self,
                   frame: Frame,
                   indices: tuple = None,
