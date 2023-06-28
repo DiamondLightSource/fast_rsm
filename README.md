@@ -7,7 +7,7 @@
 A fast reciprocal space mapper.
 
 This module depends on two of my other modules:
-https://github.com/RBrearton/diffraction_utils
+https://github.com/DiamondLightSource/diffraction_utils
 is used for the parsing of awkward data formats and for the generation of many
 of the scipy.spatial.transform.Rotation objects that are used in the
 calculations. The idea is that https://github.com/RBrearton/diffraction_utils is
