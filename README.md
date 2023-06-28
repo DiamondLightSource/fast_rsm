@@ -6,7 +6,7 @@
 
 A fast reciprocal space mapper.
 
-This module depends on two of my other modules:
+This module depends on two other modules:
 
 https://github.com/DiamondLightSource/diffraction_utils
 is used for the parsing of awkward data formats and for the generation of many
