@@ -173,7 +173,6 @@ if __name__ == "__main__":
                          beam_centre=beam_centre,
                          detector_distance=detector_distance,
                          setup=setup,
-                         sample_oop=sample_oop,
                          path_to_data=tiff_dir)
 
     def threshold(array):
