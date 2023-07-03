@@ -194,7 +194,8 @@ if __name__ == "__main__":
     # Map to reciprocal space.
     print("Loaded image! Beginning map...")
     map_frame = Frame(Frame.sample_holder, scan.metadata.diffractometer, 0)
-    q = image.delta_q(map_frame)
+    q = image.q_vectors(map_frame)
+    #image.delta_q(map_frame)
     print(f"Map complete! Binning into {args.num_bins} bins.")
 
     # Now do some binning.
