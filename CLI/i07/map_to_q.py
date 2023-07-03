@@ -103,6 +103,11 @@ if __name__ == "__main__":
     )
     parser.add_argument("--max_thresh", help=HELP_STR, type=float,
                         default=os.environ.get("MAX_THRESH"))
+    
+    HELP_STR = (
+        "Set whether data is stored locally at Diamond"
+    )
+    parser.add_argument("--notlocal", help=HELP_STR, action="store_true")
 
     HELP_STR = (
         "NOT ESSENTIAL (defaults sensibly).\n"
@@ -112,6 +117,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("-o", "--output", help=HELP_STR,
                         default=os.environ.get('OUTPUT'))
+    
+    
 
     # Extract the arguments from the parser.
     args = parser.parse_args()
@@ -156,7 +163,10 @@ if __name__ == "__main__":
     sample_oop = np.array([0, 1, 0])  # This isn't going to be used.
 
     # Work out the directory in which stuff will be stored.
-    tiff_dir = os.path.dirname(I07Nexus(path_to_nx).raw_image_paths[0])
+    if args.notlocal:
+        tiff_dir=args.data_path
+    else:
+        tiff_dir = os.path.dirname(I07Nexus(path_to_nx).raw_image_paths[0])
 
     # Now we can instantiate a Scan.
     scan = Scan.from_i07(path_to_nx=path_to_nx,
