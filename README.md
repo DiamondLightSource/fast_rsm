@@ -6,15 +6,16 @@
 
 A fast reciprocal space mapper.
 
-This module depends on two of my other modules:
-https://github.com/RBrearton/diffraction_utils
+This module depends on two other modules:
+
+https://github.com/DiamondLightSource/diffraction_utils
 is used for the parsing of awkward data formats and for the generation of many
 of the scipy.spatial.transform.Rotation objects that are used in the
-calculations. The idea is that https://github.com/RBrearton/diffraction_utils is
+calculations. The idea is that https://github.com/DiamondLightSource/diffraction_utils is
 a general purpose tool that can be used in many contexts besides purely
 reciprocal space mapping, although it originated as a spin-out of this project.
 
-https://github.com/RBrearton/mapper_c_utils contains the binning algorithm used
+https://github.com/DiamondLightSource/mapper_c_utils contains the binning algorithm used
 by default, although several more are included in the fast_rsm.binning module. I
 found that the simple binning algorithm contained in custom-bin for 3D datasets
 is significantly faster than fast-histogram's histogramdd, which is faster than
