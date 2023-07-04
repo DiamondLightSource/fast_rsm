@@ -1,0 +1,25 @@
+instrument: 'i07'
+visit:
+  # Experiment details
+  experiment_number: 'si31429-1'
+  # The sub-directory containing your experimental data. Leave as None if unused.
+  # Otherwise, if the data was stored in a subdirectory called "day_1", e.g.
+  #   /dls/i07/data/2022/si32333-1/day_1/
+  # then you should use:    data_sub_directory = "day_1"
+  data_sub_directory : "sample1/"
+  # The year the experiment took place.
+  year : '2022' #list(range(415, 418+ 1))
+setup:
+  # The beam centre, as can be read out from GDA, in pixel_x, pixel_y. If your
+  # map looks wacky, you probably cocked this up.
+  beam_centre: (243, 92)
+  # The distance between the sample and the detector (or, if using the DCD, the
+  # distance between the receiving slit and the detector). Units of meters.
+  detector_distance: 930e-3
+paths:
+  # Set local_data_path if your data isn't stored on the diamond system any more
+  # (for example if it's on a memory stick or scratch drive).
+  local_data_path: None
+  # Set this if you want to save the output somewhere other than the processing
+  # folder. Be warned, this could take up a lot of space.
+  local_output_path: None
