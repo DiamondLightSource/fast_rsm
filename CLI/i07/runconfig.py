@@ -20,7 +20,6 @@ from yaml import load, dump, Loader
 from pathlib import Path
 import subprocess
 import time
-from IPython.display import display, clear_output
 if __name__ == "__main__":
 
     HELP_STR = (
@@ -121,23 +120,22 @@ if __name__ == "__main__":
     
     startfiles=os.listdir(f'{Path.home()}/fast_rsm')
     startslurms=[x for x in startfiles if '.out' in x]
-
-
-    #call subprocess to submit job using wilson
-    subprocess.run(["ssh","wilson","cd fast_rsm \nsbatch mapscript.sh"])
-
+    #get latest slurm file  before submitting job
     endfiles=os.listdir(f'{Path.home()}/fast_rsm')
     endslurms=[x for x in endfiles if '.out' in x]
     count=0
     limit=0
+    #call subprocess to submit job using wilson
+    subprocess.run(["ssh","wilson","cd fast_rsm \nsbatch mapscript.sh"])
+
+    #have check loop to find a new slurm out file
     while endslurms[-1]==startslurms[-1]:
-        clear_output(wait=True)
         endfiles=os.listdir(f'{Path.home()}/fast_rsm')
         endslurms=[x for x in endslurms if '.out' in x]
         if count >50:
             limit=1
             break
-        print(f'Job submitted, waiting for SLURM output.  Couter={count}')
+        print(f'Job submitted, waiting for SLURM output.  Couter={count}',end="")
         time.sleep(5)
         count+=1
     if limit==1:
