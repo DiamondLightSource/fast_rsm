@@ -95,11 +95,11 @@ if __name__ == "__main__":
             f.write(line)
     f.close()
     
-    f=open('..fast_rsm_diamond_config/Scripts/mapscript_template.sh')
+    f=open('../../../fast_rsm_diamond_config/Scripts/mapscript_template.sh')
     lines=f.readlines()
     f.close()
-    
-    f=open('..fast_rsm_diamond_config/Scripts/mapscript.sh','w')
+
+    f=open('../../../fast_rsm_diamond_config/Scripts/mapscript.sh','w')
     for line in lines:
         if '$' in line:
             phrase=line[line.find('$'):line.find('}')+1]
