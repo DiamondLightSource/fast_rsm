@@ -35,12 +35,12 @@ if __name__ == "__main__":
     HELP_STR = (
         "Path to the template job file. "
     )
-    parser.add_argument("-t", "--template_path", help=HELP_STR)
+    parser.add_argument("-t", "--template_path" help=HELP_STR)
     
     HELP_STR = (
         "Scan numbers to be mapped into one reciprocal volume"
     )
-    parser.add_argument("-s", "--scan_nums", help=HELP_STR)
+    parser.add_argument("-s", "--scan_nums",nargs="+", help=HELP_STR)
 
     HELP_STR = (
         "Path to the directory for saving output files to. "
