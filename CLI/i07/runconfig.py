@@ -100,13 +100,13 @@ if __name__ == "__main__":
             f.write(line)
     f.close()
     
-    #load in template mapscript
-    f=open('../../../fast_rsm_diamond_config/Scripts/mapscript_template.sh')
+    #load in template mapscript, new paths
+    f=open(f'{Path.home()}/fast_rsm/mapscript_template.sh')
     lines=f.readlines()
     f.close()
 
     #update mapscript in the /home/fast_rsm  directory using template, and filling in variables
-    f=open('../../../../../../fast_rsm/mapscript.sh','w')
+    f=open(f'{Path.home()}/fast_rsm//mapscript.sh','w')
     for line in lines:
         if '$' in line:
             phrase=line[line.find('$'):line.find('}')+1]
