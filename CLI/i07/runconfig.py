@@ -135,7 +135,7 @@ if __name__ == "__main__":
         if count >50:
             limit=1
             break
-        print(f'Job submitted, waiting for SLURM output.  Couter={count}',end="")
+        print(f'Job submitted, waiting for SLURM output.  Timer={5*count}',end="\r")
         time.sleep(5)
         count+=1
     if limit==1:
