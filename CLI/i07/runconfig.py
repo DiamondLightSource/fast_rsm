@@ -56,11 +56,11 @@ if __name__ == "__main__":
 
     EXP_N=recipe['visit']['experiment_number']
     YEAR=recipe['visit']['year']#
+    DATASUB=recipe['visit']['data_sub_directory']
     SETUP=recipe['equipment']['setup']
-    DATASUB=recipe['equipment']['data_sub_directory']
     BEAMCEN=recipe['equipment']['beam_centre']
     DETDIST=recipe['equipment']['detector_distance']
-    DATAPATH=recipe['paths']
+    DATAPATH=recipe['paths']['local_data_path']
 
     OUTDIR=args.out_path
     SCANS=args.scan_nums
