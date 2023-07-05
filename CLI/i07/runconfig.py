@@ -81,7 +81,7 @@ if __name__ == "__main__":
         save_path = Path(OUTDIR)/Path(save_file_name)
         if i > 1e7:
             raise ValueError(
-                "naming counter hit limit therefore exiting ")
+                "naming counter hit limit therefore exiting ")   
     #load in job template lines
     f=open(args.template_path)
     lines=f.readlines()
@@ -143,7 +143,14 @@ if __name__ == "__main__":
         print('Timer limit reached before new slurm ouput file found')
     else:
         print(f'Job finished\nSlurm output file: {Path.home()}/fast_rsm/{endslurms[-1]}')
-
+    f=open(f'{Path.home()}/fast_rsm/{endslurms[-1]}')
+    lines=f.readlines()
+    f.close()
+    if 'PROCESSING FINISHED.\n' in lines:
+        print('Processing completed')
+    else:
+        print("error encountered during processing, view slurm file below for details. Press 'q' to stop viewing file ")
+        subprocess.run(["less {Path.home()}/fast_rsm/{endslurms[-1]}"])
 
 
 
