@@ -58,6 +58,11 @@ if __name__ == "__main__":
     YEAR=recipe['visit']['year']#
     SCANS=args.scan_nums
     OUTDIR=args.out_path
+    SETUP='vertical'
+    DATASUB=None
+    BEAMCEN=(243, 92)
+    DETDIST=930e-3
+    DATAPATH=None
 
     yaml_file=r"testconfig.yaml"
     y_file = open(yaml_file, 'r', encoding='utf-8')
