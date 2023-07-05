@@ -147,7 +147,7 @@ if __name__ == "__main__":
     lines=f.readlines()
     f.close()
     if 'PROCESSING FINISHED.\n' in lines:
-        print('Processing completed')
+        print('Processing completed successfully')
     else:
         print("error encountered during processing, view slurm file below for details. Press 'q' to stop viewing file ")
         subprocess.run([f"less {Path.home()}/fast_rsm/{endslurms[-1]}"])
