@@ -145,7 +145,7 @@ if __name__ == "__main__":
     if limit==1:
         print('Timer limit reached before new slurm ouput file found')
     else:
-        print(f'Job finished\nSlurm output file: f'{Path.home()}/fast_rsm'/{endslurms[-1]}')
+        print(f'Job finished\nSlurm output file: f'{Path.home()}/fast_rsm/{endslurms[-1]}')
 
 
 
