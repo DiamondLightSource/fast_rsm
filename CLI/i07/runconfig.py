@@ -99,7 +99,7 @@ if __name__ == "__main__":
     lines=f.readlines()
     f.close()
 
-    f=open('~/fast_rsm/mapscript.sh','w')
+    f=open('../../../../../../fast_rsm/mapscript.sh','w')
     for line in lines:
         if '$' in line:
             phrase=line[line.find('$'):line.find('}')+1]
