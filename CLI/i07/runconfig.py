@@ -131,7 +131,7 @@ if __name__ == "__main__":
     #have check loop to find a new slurm out file
     while endslurms[-1]==startslurms[-1]:
         endfiles=os.listdir(f'{Path.home()}/fast_rsm')
-        endslurms=[x for x in endslurms if '.out' in x]
+        endslurms=[x for x in endfiles if '.out' in x]
         if count >50:
             limit=1
             break
