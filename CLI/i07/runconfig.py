@@ -18,6 +18,7 @@ import argparse
 import os
 from yaml import load, dump, Loader
 from pathlib import Path
+import subprocess
 
 if __name__ == "__main__":
 
@@ -80,9 +81,12 @@ if __name__ == "__main__":
         if i > 1e7:
             raise ValueError(
                 "naming counter hit limit therefore exiting ")
+    #load in job template lines
     f=open(args.template_path)
     lines=f.readlines()
     f.close()
+
+    #save variables to job file using job template
     f=open(save_path,'x')
     for line in lines:
         if '$' in line:
@@ -95,10 +99,12 @@ if __name__ == "__main__":
             f.write(line)
     f.close()
     
+    #load in template mapscript
     f=open('../../../fast_rsm_diamond_config/Scripts/mapscript_template.sh')
     lines=f.readlines()
     f.close()
 
+    #update mapscript in the /home/fast_rsm  directory using template, and filling in variables
     f=open('../../../../../../fast_rsm/mapscript.sh','w')
     for line in lines:
         if '$' in line:
@@ -111,4 +117,6 @@ if __name__ == "__main__":
             f.write(line)
     f.close()
 
+    #call subprocess to submit job using wilson
+    subprocess.run(["ssh","wilson","cd fast_rsm \nsbatch mapscript.sh"])
 
