@@ -150,7 +150,8 @@ if __name__ == "__main__":
         print('Processing completed successfully')
     else:
         print("error encountered during processing, view slurm file below for details. Press 'q' to stop viewing file ")
-        subprocess.run([f"less {Path.home()}/fast_rsm/{endslurms[-1]}"])
+        #subprocess.run([f"less {Path.home()}/fast_rsm/{endslurms[-1]}"])
+        os.system(f"less {Path.home()}/fast_rsm/{endslurms[-1]}")
 
 
 
