@@ -144,7 +144,7 @@ if __name__ == "__main__":
     else:
         print(f'Job finished\nSlurm output file: {Path.home()}/fast_rsm/{endslurms[-1]}')
         print(f'Checking slurm output')
-        time.sleep(5)
+        time.sleep(15)
         f=open(f'{Path.home()}/fast_rsm/{endslurms[-1]}')
         lines=f.readlines()
         f.close()
