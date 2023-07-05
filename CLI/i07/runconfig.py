@@ -93,7 +93,7 @@ if __name__ == "__main__":
             phrase=line[line.find('$'):line.find('}')+1]
             outphrase=phrase.strip('$').strip('{').strip('}')
             outline=line.replace(phrase,str(locals()[f'{outphrase}']))
-            print(outline)
+            #print(outline)
             f.write(outline)
         else:
             f.write(line)
@@ -135,7 +135,7 @@ if __name__ == "__main__":
         if count >50:
             limit=1
             break
-        #print(f'Job submitted, waiting for SLURM output.  Timer={5*count}',end="\r")
+        print(f'Job submitted, waiting for SLURM output.  Timer={5*count}',end="\r")
         time.sleep(5)
         count+=1
     if limit==1:
