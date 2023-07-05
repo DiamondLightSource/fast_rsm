@@ -9,9 +9,9 @@ visit:
   data_sub_directory : "sample1/"
   # The year the experiment took place.
   year : '2022' #list(range(415, 418+ 1))
-setup:
-  # The beam centre, as can be read out from GDA, in pixel_x, pixel_y. If your
-  # map looks wacky, you probably cocked this up.
+equipment:
+  setup: 'vertical'
+  # The beam centre, as can be read out from GDA, in pixel_x, pixel_y. 
   beam_centre: (243, 92)
   # The distance between the sample and the detector (or, if using the DCD, the
   # distance between the receiving slit and the detector). Units of meters.
@@ -20,6 +20,3 @@ paths:
   # Set local_data_path if your data isn't stored on the diamond system any more
   # (for example if it's on a memory stick or scratch drive).
   local_data_path: None
-  # Set this if you want to save the output somewhere other than the processing
-  # folder. Be warned, this could take up a lot of space.
-  local_output_path: None

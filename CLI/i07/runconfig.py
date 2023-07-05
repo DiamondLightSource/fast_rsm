@@ -56,14 +56,14 @@ if __name__ == "__main__":
 
     EXP_N=recipe['visit']['experiment_number']
     YEAR=recipe['visit']['year']#
-    SCANS=args.scan_nums
-    OUTDIR=args.out_path
-    SETUP='vertical'
-    DATASUB=None
-    BEAMCEN=(243, 92)
-    DETDIST=930e-3
-    DATAPATH=None
+    SETUP=recipe['equiupment']['setup']
+    DATASUB=recipe['equipment']['data_sub_directory']
+    BEAMCEN=recipe['equipment']['beam_centre']
+    DETDIST=recipe['equipment']['detector_distance']
+    DATAPATH=recipe['paths']
 
+    OUTDIR=args.out_path
+    SCANS=args.scan_nums
     yaml_file=r"testconfig.yaml"
     y_file = open(yaml_file, 'r', encoding='utf-8')
     recipe = load(y_file, Loader=Loader)
