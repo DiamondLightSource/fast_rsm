@@ -94,6 +94,21 @@ if __name__ == "__main__":
         else:
             f.write(line)
     f.close()
-
+    
+    f=open('..fast_rsm_diamond_config/Scripts/mapscript_template.sh')
+    lines=f.readlines()
+    f.close()
+    
+    f=open('..fast_rsm_diamond_config/Scripts/mapscript.sh','w')
+    for line in lines:
+        if '$' in line:
+            phrase=line[line.find('$'):line.find('}')+1]
+            outphrase=phrase.strip('$').strip('{').strip('}')
+            outline=line.replace(phrase,str(locals()[f'{outphrase}']))
+            print(outline)
+            f.write(outline)
+        else:
+            f.write(line)
+    f.close()
 
 
