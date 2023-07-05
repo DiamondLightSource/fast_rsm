@@ -38,10 +38,10 @@ from diffraction_utils import Frame, Region
 from fast_rsm.experiment import Experiment
 
 setup = '${SETUP}'
-local_data_path = ${DATAPATH}
-local_output_path = ${OUTDIR}
+local_data_path = '${DATAPATH}'
+local_output_path = '${OUTDIR}'
 experiment_number = '${EXP_N}'
-data_sub_directory = ${DATASUB}
+data_sub_directory = '${DATASUB}'
 year = '${YEAR}'
 scan_numbers = ${SCANS}
 beam_centre = ${BEAMCEN}
