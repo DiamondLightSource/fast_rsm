@@ -127,19 +127,23 @@ if __name__ == "__main__":
     subprocess.run(["ssh","wilson","cd fast_rsm \nsbatch mapscript.sh"])
 
     endfiles=os.listdir(f'{Path.home()}/fast_rsm')
-    endslurms=[x for x in files if '.out' in x]
+    endslurms=[x for x in endfiles if '.out' in x]
     count=0
-
+    limit=0
     while endslurms[-1]==startslurms[-1]:
         clear_output(wait=True)
         endfiles=os.listdir(f'{Path.home()}/fast_rsm')
         endslurms=[x for x in endslurms if '.out' in x]
         if count >50:
+            limit=1
             break
         print(f'Job submitted, waiting for SLURM output.  Couter={count}')
         time.sleep(5)
         count+=1
-    print(f'Job finished\nOutput slurm file: {endslurms[-1]}')
+    if limit=1:
+        print('Timer limit reached before new slurm ouput file found')
+    else:
+        print(f'Job finished\nOutput slurm file: {endslurms[-1]}')
 
 
 
