@@ -143,15 +143,17 @@ if __name__ == "__main__":
         print('Timer limit reached before new slurm ouput file found')
     else:
         print(f'Job finished\nSlurm output file: {Path.home()}/fast_rsm/{endslurms[-1]}')
-    f=open(f'{Path.home()}/fast_rsm/{endslurms[-1]}')
-    lines=f.readlines()
-    f.close()
-    if 'PROCESSING FINISHED.\n' in lines:
-        print('Processing completed successfully')
-    else:
-        print("error encountered during processing, view slurm file below for details. Press 'q' to stop viewing file ")
-        #subprocess.run([f"less {Path.home()}/fast_rsm/{endslurms[-1]}"])
-        os.system(f"less {Path.home()}/fast_rsm/{endslurms[-1]}")
+        print(f'Checking slurm output')
+        time.sleep(5)
+        f=open(f'{Path.home()}/fast_rsm/{endslurms[-1]}')
+        lines=f.readlines()
+        f.close()
+        if 'PROCESSING FINISHED.\n' in lines:
+            print('Processing completed successfully')
+        else:
+            print("error encountered during processing, view slurm file below for details. Press 'q' to stop viewing file ")
+            #subprocess.run([f"less {Path.home()}/fast_rsm/{endslurms[-1]}"])
+            os.system(f"less {Path.home()}/fast_rsm/{endslurms[-1]}")
 
 
 
