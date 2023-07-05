@@ -71,7 +71,11 @@ if __name__ == "__main__":
     y_file.close()
 
     i=1
-    save_file_name = f"job_scan_{SCANS[0]}_{i}.py"
+    if len(SCANS)>1:
+        namescan=SCANS[0]
+    else:
+        namescan=SCANS
+    save_file_name = f"job_scan_{namescan}_{i}.py"
     save_path = Path(OUTDIR)/Path(save_file_name)
     # Make sure that this name hasn't been used in the past.
     while (os.path.exists(str(save_path))):
@@ -141,7 +145,7 @@ if __name__ == "__main__":
     if limit==1:
         print('Timer limit reached before new slurm ouput file found')
     else:
-        print(f'Job finished\nSlurm output file: {OUTDIR}/{endslurms[-1]}')
+        print(f'Job finished\nSlurm output file: f'{Path.home()}/fast_rsm'/{endslurms[-1]}')
 
 
 
