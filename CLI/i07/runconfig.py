@@ -78,7 +78,7 @@ if __name__ == "__main__":
     f=open(args.template_path)
     lines=f.readlines()
     f.close()
-    f=open(save_path,'w')
+    f=open(save_path,'x')
     for line in lines:
         if '$' in line:
             phrase=line[line.find('$'):line.find('}')+1]
