@@ -40,7 +40,7 @@ from fast_rsm.experiment import Experiment
 setup = '${SETUP}'
 local_data_path = '${DATAPATH}'
 local_output_path = '${OUTDIR}'
-experiment_number = '${EXPERIMENT}'
+experiment_number = '${EXP_N}'
 data_sub_directory = '${DATASUB}'
 year = '${YEAR}'
 scan_numbers = ${SCANS}
