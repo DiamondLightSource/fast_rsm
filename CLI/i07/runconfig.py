@@ -31,6 +31,11 @@ if __name__ == "__main__":
         "Path to the YAML file with configuration settings. "
     )
     parser.add_argument("-y", "--yaml_path", help=HELP_STR)
+
+    HELP_STR = (
+        "Path to the template job file. "
+    )
+    parser.add_argument("-t", "--template_path", help=HELP_STR)
     
     HELP_STR = (
         "Scan numbers to be mapped into one reciprocal volume"
@@ -70,7 +75,9 @@ if __name__ == "__main__":
         if i > 1e7:
             raise ValueError(
                 "naming counter hit limit therefore exiting ")
-
+    f=open(args.template_path)
+    lines=f.readlines()
+    f.close()
     f=open(save_path,'w')
     for line in lines:
         if '$' in line:
