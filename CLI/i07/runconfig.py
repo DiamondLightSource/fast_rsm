@@ -40,7 +40,7 @@ if __name__ == "__main__":
     HELP_STR = (
         "Scan numbers to be mapped into one reciprocal volume"
     )
-    parser.add_argument("-s", "--scan_nums", help=HELP_STR, type=int)
+    parser.add_argument("-s", "--scan_nums", help=HELP_STR)
 
     HELP_STR = (
         "Path to the directory for saving output files to. "
