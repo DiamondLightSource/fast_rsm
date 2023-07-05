@@ -71,11 +71,8 @@ if __name__ == "__main__":
     y_file.close()
 
     i=1
-    if len(SCANS)>1:
-        namescan=SCANS[0]
-    else:
-        namescan=SCANS
-    save_file_name = f"job_scan_{namescan}_{i}.py"
+
+    save_file_name = f"job_scan_{SCANS[0]}_{i}.py"
     save_path = Path(OUTDIR)/Path(save_file_name)
     # Make sure that this name hasn't been used in the past.
     while (os.path.exists(str(save_path))):
