@@ -140,7 +140,7 @@ if __name__ == "__main__":
         print(f'Job submitted, waiting for SLURM output.  Couter={count}')
         time.sleep(5)
         count+=1
-    if limit=1:
+    if limit==1:
         print('Timer limit reached before new slurm ouput file found')
     else:
         print(f'Job finished\nOutput slurm file: {endslurms[-1]}')
