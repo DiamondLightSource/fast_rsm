@@ -119,41 +119,41 @@ if __name__ == "__main__":
     f.close()
     #get list of slurm out files in home directory
     
-    startfiles=os.listdir(f'{Path.home()}/fast_rsm')
-    startslurms=[x for x in startfiles if '.out' in x]
-    #get latest slurm file  before submitting job
-    endfiles=os.listdir(f'{Path.home()}/fast_rsm')
-    endslurms=[x for x in endfiles if '.out' in x]
-    count=0
-    limit=0
-    #call subprocess to submit job using wilson
-    subprocess.run(["ssh","wilson","cd fast_rsm \nsbatch mapscript.sh"])
+    # startfiles=os.listdir(f'{Path.home()}/fast_rsm')
+    # startslurms=[x for x in startfiles if '.out' in x]
+    # #get latest slurm file  before submitting job
+    # endfiles=os.listdir(f'{Path.home()}/fast_rsm')
+    # endslurms=[x for x in endfiles if '.out' in x]
+    # count=0
+    # limit=0
+    # #call subprocess to submit job using wilson
+    # subprocess.run(["ssh","wilson","cd fast_rsm \nsbatch mapscript.sh"])
 
-    #have check loop to find a new slurm out file
-    while endslurms[-1]==startslurms[-1]:
-        endfiles=os.listdir(f'{Path.home()}/fast_rsm')
-        endslurms=[x for x in endfiles if '.out' in x]
-        if count >50:
-            limit=1
-            break
-        print(f'Job submitted, waiting for SLURM output.  Timer={5*count}',end="\r")
-        time.sleep(5)
-        count+=1
-    if limit==1:
-        print('Timer limit reached before new slurm ouput file found')
-    else:
-        print(f'Job finished\nSlurm output file: {Path.home()}/fast_rsm/{endslurms[-1]}')
-        print(f'Checking slurm output')
-        time.sleep(15)
-        f=open(f'{Path.home()}/fast_rsm/{endslurms[-1]}')
-        lines=f.readlines()
-        f.close()
-        if 'PROCESSING FINISHED.\n' in lines:
-            print('Processing completed successfully')
-        else:
-            print("error encountered during processing, view slurm file for details")
-            #subprocess.run([f"less {Path.home()}/fast_rsm/{endslurms[-1]}"])
-            #os.system(f"less {Path.home()}/fast_rsm/{endslurms[-1]}")
+    # #have check loop to find a new slurm out file
+    # while endslurms[-1]==startslurms[-1]:
+    #     endfiles=os.listdir(f'{Path.home()}/fast_rsm')
+    #     endslurms=[x for x in endfiles if '.out' in x]
+    #     if count >50:
+    #         limit=1
+    #         break
+    #     print(f'Job submitted, waiting for SLURM output.  Timer={5*count}',end="\r")
+    #     time.sleep(5)
+    #     count+=1
+    # if limit==1:
+    #     print('Timer limit reached before new slurm ouput file found')
+    # else:
+    #     print(f'Job finished\nSlurm output file: {Path.home()}/fast_rsm/{endslurms[-1]}')
+    #     print(f'Checking slurm output')
+    #     time.sleep(15)
+    #     f=open(f'{Path.home()}/fast_rsm/{endslurms[-1]}')
+    #     lines=f.readlines()
+    #     f.close()
+    #     if 'PROCESSING FINISHED.\n' in lines:
+    #         print('Processing completed successfully')
+    #     else:
+    #         print("error encountered during processing, view slurm file for details")
+    #         #subprocess.run([f"less {Path.home()}/fast_rsm/{endslurms[-1]}"])
+    #         #os.system(f"less {Path.home()}/fast_rsm/{endslurms[-1]}")
 
 
 

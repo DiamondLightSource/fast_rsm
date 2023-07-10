@@ -20,3 +20,52 @@ paths:
   # Set local_data_path if your data isn't stored on the diamond system any more
   # (for example if it's on a memory stick or scratch drive).
   local_data_path: None
+calculation:
+    # The frame/coordinate system you want the map to be carried out in.
+    # Options for frame_name argument are:
+    #     Frame.hkl     (map into hkl space - requires UB matrix in nexus file)
+    #     Frame.sample_holder   (standard map into 1/Å)
+    #     Frame.lab     (map into frame attached to lab.)
+    #
+    # Options for coordinates argument are:
+    #     Frame.cartesian   (normal cartesian coords: hkl, Qx Qy Qz, etc.)
+    #     Frame.polar       (cylindrical polar with cylinder axis set by the
+    #                        cylinder_axis variable)
+    #
+    # Frame.polar will give an output like a more general version of PyFAI.
+    # Frame.cartesian is for hkl maps and Qx/Qy/Qz. Any combination of frame_name
+    # and coordinates will work, so try them out; get a feel for them.
+    # Note that if you want something like a q_parallel, q_perpendicular projection,
+    # you should choose Frame.lab with cartesian coordinates. From this data, your
+    # projection can be easily computed.
+    frame_name: Frame.hkl
+    coordinates: 'Frame.cartesian'
+    # Ignore this unless you selected Frame.polar.
+    # This sets the axis about which your polar coordinates will be generated.
+    # Options are 'x', 'y' and 'z'. These are the synchrotron coordinates, rotated
+    # according to your requested frame_name. For instance, if you select
+    # Frame.lab, then 'x', 'y' and 'z' will correspond exactly to the synchrotron
+    # coordinate system (z along beam, y up). If you select frame.sample_holder and
+    # rotate your sample by an azimuthal angle µ, then 'y' will still be vertically
+    # up, but 'x' and 'z' will have been rotated about 'y' by the angle µ.
+    # Leave this as "None" if you aren't using cylindrical coordinates.
+    cylinder_axis: None
+
+    # Set this to True if you would like each image to be mapped independently.
+    # If this is False, all images in all scans will be combined into one large
+    # reciprocal space map.
+    map_per_image: False
+
+    # How large would you like your output file to be, in MB? 100MB normally gives
+    # very good resolution without sacrificing performance. If you want something
+    # higher resolution, feel free, but be aware that the performance of the map and
+    # the analysis will start to suffer above around 1GB.
+    # Max file size is 2GB (2048MB).
+    output_file_size: 10
+
+    # This is for loading into binoculars. If set to false, .npy and .vtr files
+    # will be saved, for manual analysis and paraview, respectively.
+    save_binoculars_h5: True
+
+    # Are you using the DPS system?
+    using_dps: False
