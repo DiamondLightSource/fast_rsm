@@ -79,7 +79,7 @@ if __name__ == "__main__":
     #save variables to job file using job template
     f=open(save_path,'x')
     f.write(' '.join(lines1))
-    f.write(f'scan_numers= {SCANS}\n')
+    f.write(f'scan_numbers= {SCANS}\n')
     f.write(' '.join(lines2))
     f.close()
     
