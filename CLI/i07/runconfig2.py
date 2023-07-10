@@ -102,12 +102,14 @@ if __name__ == "__main__":
             f.write(line)
     f.close()
     #get list of slurm out files in home directory
-    
     startfiles=os.listdir(f'{Path.home()}/fast_rsm')
     startslurms=[x for x in startfiles if '.out' in x]
+    startslurms.sort(key=lambda x: os.path.getmtime(f'{Path.home()}/fast_rsm/{x}'))
+
     #get latest slurm file  before submitting job
     endfiles=os.listdir(f'{Path.home()}/fast_rsm')
     endslurms=[x for x in endfiles if '.out' in x]
+    endslurms.sort(key=lambda x: os.path.getmtime(f'{Path.home()}/fast_rsm/{x}'))
     count=0
     limit=0
     #call subprocess to submit job using wilson
@@ -117,6 +119,7 @@ if __name__ == "__main__":
     while endslurms[-1]==startslurms[-1]:
         endfiles=os.listdir(f'{Path.home()}/fast_rsm')
         endslurms=[x for x in endfiles if '.out' in x]
+        endslurms.sort(key=lambda x: os.path.getmtime(f'{Path.home()}/fast_rsm/{x}'))
         if count >50:
             limit=1
             break
