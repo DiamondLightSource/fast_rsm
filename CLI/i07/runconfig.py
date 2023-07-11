@@ -29,14 +29,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=HELP_STR)
 
     HELP_STR = (
-        "Path to the YAML file with configuration settings. "
+        "Path to experiment setup options. "
     )
-    parser.add_argument("-y", "--yaml_path", help=HELP_STR)
+    parser.add_argument("-exp", "--exp_path", help=HELP_STR)
 
     HELP_STR = (
-        "Path to the template job file. "
+        "Path to the calcuation options. "
     )
-    parser.add_argument("-t", "--template_path", help=HELP_STR)
+    parser.add_argument("-calc", "--calc_path", help=HELP_STR)
     
     HELP_STR = (
         "Scan numbers to be mapped into one reciprocal volume"
@@ -50,25 +50,18 @@ if __name__ == "__main__":
 
     # Extract the arguments from the parser.
     args = parser.parse_args()
+    f=open(args.exp_path)
+    lines1=f.readlines()
+    f.close()
+    f=open(args.calc_path)
+    lines2=f.readlines()
+    f.close()
 
-    y_file = open(args.yaml_path, 'r', encoding='utf-8')
-    recipe = load(y_file, Loader=Loader)
-    y_file.close()
 
-    EXP_N=recipe['visit']['experiment_number']
-    YEAR=recipe['visit']['year']#
-    DATASUB=recipe['visit']['data_sub_directory']
-    SETUP=recipe['equipment']['setup']
-    BEAMCEN=recipe['equipment']['beam_centre']
-    DETDIST=recipe['equipment']['detector_distance']
-    DATAPATH=recipe['paths']['local_data_path']
+
 
     OUTDIR=args.out_path
     SCANS=args.scan_nums
-    yaml_file=r"testconfig.yaml"
-    y_file = open(yaml_file, 'r', encoding='utf-8')
-    recipe = load(y_file, Loader=Loader)
-    y_file.close()
 
     i=1
 
@@ -82,23 +75,14 @@ if __name__ == "__main__":
         if i > 1e7:
             raise ValueError(
                 "naming counter hit limit therefore exiting ")   
-    #load in job template lines
-    f=open(args.template_path)
-    lines=f.readlines()
-    f.close()
-
+    
     #save variables to job file using job template
     f=open(save_path,'x')
-    for line in lines:
-        if '$' in line:
-            phrase=line[line.find('$'):line.find('}')+1]
-            outphrase=phrase.strip('$').strip('{').strip('}')
-            outline=line.replace(phrase,str(locals()[f'{outphrase}']))
-            #print(outline)
-            f.write(outline)
-        else:
-            f.write(line)
+    f.write(''.join(lines1))
+    f.write(f'scan_numbers= {SCANS}\n')
+    f.write(''.join(lines2))
     f.close()
+    
     
     #load in template mapscript, new paths
     f=open(f'{Path.home()}/fast_rsm/mapscript_template.sh')
@@ -118,42 +102,45 @@ if __name__ == "__main__":
             f.write(line)
     f.close()
     #get list of slurm out files in home directory
-    
-    # startfiles=os.listdir(f'{Path.home()}/fast_rsm')
-    # startslurms=[x for x in startfiles if '.out' in x]
-    # #get latest slurm file  before submitting job
-    # endfiles=os.listdir(f'{Path.home()}/fast_rsm')
-    # endslurms=[x for x in endfiles if '.out' in x]
-    # count=0
-    # limit=0
-    # #call subprocess to submit job using wilson
-    # subprocess.run(["ssh","wilson","cd fast_rsm \nsbatch mapscript.sh"])
+    startfiles=os.listdir(f'{Path.home()}/fast_rsm')
+    startslurms=[x for x in startfiles if '.out' in x]
+    startslurms.sort(key=lambda x: os.path.getmtime(f'{Path.home()}/fast_rsm/{x}'))
 
-    # #have check loop to find a new slurm out file
-    # while endslurms[-1]==startslurms[-1]:
-    #     endfiles=os.listdir(f'{Path.home()}/fast_rsm')
-    #     endslurms=[x for x in endfiles if '.out' in x]
-    #     if count >50:
-    #         limit=1
-    #         break
-    #     print(f'Job submitted, waiting for SLURM output.  Timer={5*count}',end="\r")
-    #     time.sleep(5)
-    #     count+=1
-    # if limit==1:
-    #     print('Timer limit reached before new slurm ouput file found')
-    # else:
-    #     print(f'Job finished\nSlurm output file: {Path.home()}/fast_rsm/{endslurms[-1]}')
-    #     print(f'Checking slurm output')
-    #     time.sleep(15)
-    #     f=open(f'{Path.home()}/fast_rsm/{endslurms[-1]}')
-    #     lines=f.readlines()
-    #     f.close()
-    #     if 'PROCESSING FINISHED.\n' in lines:
-    #         print('Processing completed successfully')
-    #     else:
-    #         print("error encountered during processing, view slurm file for details")
-    #         #subprocess.run([f"less {Path.home()}/fast_rsm/{endslurms[-1]}"])
-    #         #os.system(f"less {Path.home()}/fast_rsm/{endslurms[-1]}")
+    #get latest slurm file  before submitting job
+    endfiles=os.listdir(f'{Path.home()}/fast_rsm')
+    endslurms=[x for x in endfiles if '.out' in x]
+    endslurms.sort(key=lambda x: os.path.getmtime(f'{Path.home()}/fast_rsm/{x}'))
+    count=0
+    limit=0
+    #call subprocess to submit job using wilson
+    subprocess.run(["ssh","wilson","cd fast_rsm \nsbatch mapscript.sh"])
+
+    #have check loop to find a new slurm out file
+    while endslurms[-1]==startslurms[-1]:
+        endfiles=os.listdir(f'{Path.home()}/fast_rsm')
+        endslurms=[x for x in endfiles if '.out' in x]
+        endslurms.sort(key=lambda x: os.path.getmtime(f'{Path.home()}/fast_rsm/{x}'))
+        if count >50:
+            limit=1
+            break
+        print(f'Job submitted, waiting for SLURM output.  Timer={5*count}',end="\r")
+        time.sleep(5)
+        count+=1
+    if limit==1:
+        print('Timer limit reached before new slurm ouput file found')
+    else:
+        print(f'Job finished\nSlurm output file: {Path.home()}/fast_rsm/{endslurms[-1]}')
+        print(f'Checking slurm output')
+        time.sleep(15)
+        f=open(f'{Path.home()}/fast_rsm/{endslurms[-1]}')
+        lines=f.readlines()
+        f.close()
+        if 'PROCESSING FINISHED.\n' in lines:
+            print('Processing completed successfully')
+        else:
+            print("error encountered during processing, view slurm file for details")
+            #subprocess.run([f"less {Path.home()}/fast_rsm/{endslurms[-1]}"])
+            #os.system(f"less {Path.home()}/fast_rsm/{endslurms[-1]}")
 
 
 
