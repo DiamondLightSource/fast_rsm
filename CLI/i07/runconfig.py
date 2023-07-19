@@ -39,9 +39,14 @@ if __name__ == "__main__":
     parser.add_argument("-calc", "--calc_path", help=HELP_STR)
     
     HELP_STR = (
-        "Scan numbers to be mapped into one reciprocal volume"
+        "Separate scan numbers to be mapped into one reciprocal volume without brackets e.g 441124 441128"
     )
     parser.add_argument("-s", "--scan_nums",nargs="+", help=HELP_STR)
+
+    HELP_STR = (
+        "Evenly spaced range of scans to be mapped into one reciprocal volume of the format [start,stop,step]"
+    )
+    parser.add_argument("-sr", "--scan_range",nargs="+", help=HELP_STR,default=0)
 
     HELP_STR = (
         "Path to the directory for saving output files to. "
@@ -61,7 +66,10 @@ if __name__ == "__main__":
 
 
     OUTDIR=args.out_path
-    SCANS=args.scan_nums
+    if args.scan_range==0:
+        SCANS=args.scan_nums
+    else:
+        SCANS=list(range(args.scan_range[0],args.scan_range[1],args.scan_range[2]))
 
     i=1
 
