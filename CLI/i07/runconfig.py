@@ -69,7 +69,7 @@ if __name__ == "__main__":
     if args.scan_range==0:
         SCANS=args.scan_nums
     else:
-        SCANS=list(range(args.scan_range[0],args.scan_range[1],args.scan_range[2]))
+        SCANS=list(range(args.scan_range[0],args.scan_range[1]+1,args.scan_range[2]))
 
     i=1
 
