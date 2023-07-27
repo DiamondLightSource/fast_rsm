@@ -46,7 +46,7 @@ if __name__ == "__main__":
     HELP_STR = (
         "Evenly spaced range of scans to be mapped into one reciprocal volume of the format [start,stop,step]"
     )
-    parser.add_argument("-sr", "--scan_range",nargs="+", help=HELP_STR,default=0)
+    parser.add_argument("-sr", "--scan_range", help=HELP_STR,default=0)
 
     HELP_STR = (
         "Path to the directory for saving output files to. "
