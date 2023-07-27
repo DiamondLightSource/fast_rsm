@@ -62,14 +62,20 @@ if __name__ == "__main__":
     lines2=f.readlines()
     f.close()
 
-
-    print(eval(args.scan_range))
-
     OUTDIR=args.out_path
     if args.scan_range==0:
         SCANS=args.scan_nums
     else:
-        SCANS=list(range(int(args.scan_range[0]),int(args.scan_range[1])+1,int(args.scan_range[2])))
+        rlist=eval(args.scan_range)
+        if len(np.shape(rlist))==1:
+            scanrange=rlist
+            SCANS=list(range(int(scanrange[0]),int(scanrange[1])+1,int(scanrange[2])))
+        else:
+            SCANS=[]
+            for r in rlist:
+                scanrange=r
+                SCANS.extend(list(range(int(scanrange[0]),int(scanrange[1])+1,int(scanrange[2]))))
+
 
     i=1
 
