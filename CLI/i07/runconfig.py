@@ -63,7 +63,7 @@ if __name__ == "__main__":
     f.close()
 
 
-
+    print(args.scan_range)
 
     OUTDIR=args.out_path
     if args.scan_range==0:
