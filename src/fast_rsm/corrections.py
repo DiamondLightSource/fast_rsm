@@ -89,7 +89,7 @@ def linear_polarisation(intensities: np.ndarray, k_out: np.ndarray,
 
     # Call the C function. This directly affects the elements of the
     # intensities array.
-    mapper_c_utils.lorentz_correction(polarisation_vector, k_out, intensities)
+    mapper_c_utils.linear_pol_correction(polarisation_vector, k_out, intensities)
 
     # Return the shapes to their original values.
     intensities = intensities.reshape(intensity_shape)
