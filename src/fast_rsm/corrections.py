@@ -49,11 +49,11 @@ def lorentz(intensities: np.ndarray, k_in: np.ndarray, k_out: np.ndarray):
     # intensities array.
     mapper_c_utils.lorentz_correction(k_in, k_out, intensities)
 
-    #hardcode debugging lines to save correction factors
-    intensitiesones=np.ones(np.shape(intensities))
-    mapper_c_utils.lorentz_correction(k_in, k_out, intensitiesones)
-    intensitiesones = intensitiesones.reshape(intensity_shape)
-    np.save('/home/rpy65944/fast_rsm/lorentzcorrs',intensitiesones)
+    # #hardcode debugging lines to save correction factors
+    # intensitiesones=np.ones(np.shape(intensities))
+    # mapper_c_utils.lorentz_correction(k_in, k_out, intensitiesones)
+    # intensitiesones = intensitiesones.reshape(intensity_shape)
+    # np.save('/home/rpy65944/fast_rsm/lorentzcorrs',intensitiesones)
 
 
     # Return the shapes to their original values.
@@ -99,11 +99,11 @@ def linear_polarisation(intensities: np.ndarray, k_out: np.ndarray,
     # intensities array.
     mapper_c_utils.linear_pol_correction(polarisation_vector, k_out, intensities)
 
-    #hardcode debugging lines to save correction factors
-    intensitiesones=np.ones(np.shape(intensities))
-    mapper_c_utils.linear_pol_correction(polarisation_vector, k_out, intensitiesones)
-    intensitiesones = intensitiesones.reshape(intensity_shape)
-    np.save('/home/rpy65944/fast_rsm/linpolcorrs',intensitiesones)
+    # #hardcode debugging lines to save correction factors
+    # intensitiesones=np.ones(np.shape(intensities))
+    # mapper_c_utils.linear_pol_correction(polarisation_vector, k_out, intensitiesones)
+    # intensitiesones = intensitiesones.reshape(intensity_shape)
+    # np.save('/home/rpy65944/fast_rsm/linpolcorrs',intensitiesones)
 
 
 
