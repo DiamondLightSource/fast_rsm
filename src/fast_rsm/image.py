@@ -273,9 +273,9 @@ class Image:
             if lorentz_correction:
                 corrections.lorentz(
                     self._raw_data, incident_beam_arr, k_out_array)
-                lorones=np.ones(np.shape(self._raw_data))
-                corrections.lorentz(lorones, incident_beam_arr, k_out_array)
-                np.save('/home/rpy65944/fast_rsm/lorcorrs',lorones)
+                self.lorones=np.ones(np.shape(self._raw_data))
+                corrections.lorentz(self.lorones, incident_beam_arr, k_out_array)
+                np.save('/home/rpy65944/fast_rsm/lorcorrs',self.lorones)
             # The kind of polarisation correction that we want to apply of
             # depends, rather obviously, on the polarisation of the beam!
             polarisation = self.metadata.data_file.polarisation
@@ -290,9 +290,9 @@ class Image:
                     corrections.linear_polarisation(
                         self._raw_data, k_out_array, pol_vec.array)
                     #hardcode debugging lines to save correction factors
-                    linones=np.ones(np.shape(self._raw_data))
-                    corrections.linear_polarisation(linones, k_out_array, pol_vec.array)
-                    np.save('/home/rpy65944/fast_rsm/linpolcorrs',linones)
+                    self.linones=np.ones(np.shape(self._raw_data))
+                    corrections.linear_polarisation(self.linones, k_out_array, pol_vec.array)
+                    np.save('/home/rpy65944/fast_rsm/linpolcorrs',self.linones)
         # Now simply subtract and rescale to get the q_vectors!
         # Note that this is an order of magnitude faster than:
         # k_out_array -= incident_beam_arr
