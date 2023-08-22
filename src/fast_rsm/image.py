@@ -183,6 +183,8 @@ class Image:
         else:
             i = indices[0]
             j = indices[1]
+        print(i)
+        print(j)
         # Make sure that our frame of reference has the correct index and
         # diffractometer.
         frame.scan_index = self.index

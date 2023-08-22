@@ -362,6 +362,7 @@ class Scan:
         bottom_left = (-1, 0)
         bottom_right = (-1, -1)
         poni = self.metadata.beam_centre
+        print(poni)
         extremal_q_points = np.array(
             [top_left, top_right, bottom_left, bottom_right, poni])
         extremal_q_points = (extremal_q_points[:, 0], extremal_q_points[:, 1])
@@ -369,6 +370,7 @@ class Scan:
         # Get some sort of starting value.
         img = self.load_image(0, load_data=False)
         q_vec = img.q_vectors(frame, poni, oop)
+
 
         start, stop = q_vec, q_vec
 
