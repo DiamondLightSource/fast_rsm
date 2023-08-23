@@ -77,10 +77,8 @@ class Image:
                 # f#!@ you.
                 self._raw_data = self._raw_data.transpose()
                 self._raw_data = np.flip(self._raw_data, axis=0)
-                #need to account for rotation in beamcentre values as well 
-                self.metadata.beam_centre=(self.metadata.beam_centre[1],self.metadata.beam_centre[0])
+                
                 print(f'rotation check correct image after: {np.shape(self._raw_data)}')
-
 
     def generate_mask(self, min_intensity: Union[float, int]) -> np.ndarray:
         """
@@ -189,8 +187,11 @@ class Image:
         else:
             i = indices[0]
             j = indices[1]
-        print(i)
-        print(j)
+            #need additional swap of axis if image is rotated
+            if self.metadata.data_file.is_rotated:
+                i=indices[1]
+                j=indices[0]
+ 
         # Make sure that our frame of reference has the correct index and
         # diffractometer.
         frame.scan_index = self.index
