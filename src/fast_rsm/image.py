@@ -188,10 +188,9 @@ class Image:
             i = indices[0]
             j = indices[1]
             #need additional swap of axis if image is rotated
-            if self.metadata.data_file.is_rotated:
-                #test changing to be same as before
-                i=indices[0]
-                j=indices[1]
+            # if self.metadata.data_file.is_rotated:
+            #     i=indices[1]
+            #     j=indices[0]
  
         # Make sure that our frame of reference has the correct index and
         # diffractometer.
@@ -233,11 +232,11 @@ class Image:
         detector_distance = np.array(detector_distance, np.float32)
         vertical = self.metadata.get_vertical_pixel_distances(self.index)
         horizontal = self.metadata.get_horizontal_pixel_distances(self.index)
-        if self.metadata.data_file.is_rotated:
-            vertical = vertical.transpose()
-            vertical = np.flip(vertical, axis=0)
-            horizontal = horizontal.transpose()
-            horizontal = np.flip(horizontal, axis=0)
+        # if self.metadata.data_file.is_rotated:
+        #     vertical = vertical.transpose()
+        #     vertical = np.flip(vertical, axis=0)
+        #     horizontal = horizontal.transpose()
+        #     horizontal = np.flip(horizontal, axis=0)
         print(f'vertical shape= {np.shape(vertical)}')
         print(f'horizontal shape= {np.shape(horizontal)}')
         print(f'k_out shape ={np.shape(k_out_array)}')
