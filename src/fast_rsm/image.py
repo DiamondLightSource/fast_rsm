@@ -200,6 +200,9 @@ class Image:
         # We need num_x_pixels, num_y_pixels, 3 to be our shape.
         # Note that we need the extra "3" to store qx, qy, qz (3d vector).
         desired_shape = tuple(list(self._raw_data.shape) + [3])
+        if self.metadata.data_file.is_rotated:
+            desired_shape= tuple(list([self._raw_data.shape[1],self._raw_data.shape[0]]) + [3])
+
         # Don't bother initializing this.
         k_out_array = np.ndarray(desired_shape, np.float32)
 
@@ -234,8 +237,6 @@ class Image:
             vertical = np.flip(vertical, axis=0)
             horizontal = horizontal.transpose()
             horizontal = np.flip(horizontal, axis=0)
-            k_out_array=k_out_array.transpose()
-            k_out_array=np.flip(k_out_array,axis=0)
 
         k_out_array[i, j, 0] = (
             det_displacement.array[0]*detector_distance +
