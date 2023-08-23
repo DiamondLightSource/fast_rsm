@@ -48,7 +48,6 @@ class Image:
         self.index = index
 
         self._delta_q = None#
-        print(f'rotation check: {self.metadata.data_file.is_rotated}')
 
         # Carry out transposes etc. if necessary:
         # We want self.data[0, 0] to be the top left pixel.
@@ -73,15 +72,12 @@ class Image:
         necessary at this point.
         """
         if isinstance(self.metadata.data_file, I07Nexus):
-            print(f'rotation check correct image before: {np.shape(self._raw_data)}')
             if self.metadata.data_file.is_rotated:
                 # The detector has been rotated in the experiment!
                 # NOTE: this is slow. If you flip your detector and run fscans,
                 # f#!@ you.
                 self._raw_data = self._raw_data.transpose()
                 self._raw_data = np.flip(self._raw_data, axis=0)
-                
-                print(f'rotation check correct image after: {np.shape(self._raw_data)}')
 
     def generate_mask(self, min_intensity: Union[float, int]) -> np.ndarray:
         """
@@ -235,9 +231,7 @@ class Image:
         detector_distance = np.array(detector_distance, np.float32)
         vertical = self.metadata.get_vertical_pixel_distances(self.index)
         horizontal = self.metadata.get_horizontal_pixel_distances(self.index)
-        print(f'vertical shape= {np.shape(vertical)}')
-        print(f'horizontal shape= {np.shape(horizontal)}')
-        print(f'k_out shape ={np.shape(k_out_array)}')
+
         k_out_array[i, j, 0] = (
             det_displacement.array[0]*detector_distance +
             det_vertical.array[0]*vertical[i, j] +

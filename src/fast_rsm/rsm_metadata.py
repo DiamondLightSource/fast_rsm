@@ -77,7 +77,7 @@ class RSMMetadata:
         user should enter that the beam_centre=[0, 0]. This seems unlikely; this
         would probably be given as [0, -1] in typical software!
         """
-        print(f'starting centre before correction: {self.beam_centre}')
+
         if isinstance(self.data_file, I07Nexus):
             # I07 beam centres are given (x, y) (the wrong way around).
             self.beam_centre = (self.beam_centre[1], self.beam_centre[0])
@@ -339,7 +339,6 @@ class RSMMetadata:
         pixel_offsets = np.arange(num_x_pixels-1, -1, -1)
         x_beam_centre = self.beam_centre[1]
         pixel_offsets -= ((num_x_pixels-1) - x_beam_centre)
-        print(f'length pixel horiz offsets: {len(pixel_offsets)}')
         # Save this value to an array with the same shape as the images.
         self._horizontal_pixel_offsets = np.zeros(image_shape, np.float32)
         for i, pixel_offset in enumerate(pixel_offsets):

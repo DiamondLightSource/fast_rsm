@@ -213,9 +213,7 @@ class Experiment:
             map_frame.frame_name = Frame.lab
 
         # Compute the optimal finite differences volume.
-        print('reached qbounds in binned rsm')
         start, stop = self.q_bounds(map_frame, oop)
-        print('finished qbounds in binned rsm')
         # Overwrite whichever of these we were given explicitly.
         if volume_start is not None:
             start = np.array(volume_start)
