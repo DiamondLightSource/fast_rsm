@@ -82,9 +82,13 @@ class RSMMetadata:
             self.beam_centre = (self.beam_centre[1], self.beam_centre[0])
 
             if self.data_file.is_rotated:
+                # #OLD  CALCULATION - LEADING TO CLASH OF SIZES
+                # self.beam_centre = (
+                #     self.data_file.image_shape[0] - self.beam_centre[0],
+                #     self.beam_centre[1])
                 self.beam_centre = (
-                    self.data_file.image_shape[0] - self.beam_centre[0],
-                    self.beam_centre[1])
+                    self.beam_centre[1],
+                    self.data_file.image_shape[0] - self.beam_centre[0])
 
         # Make sure that the beam_centre can lie within the image.
         test_arr = np.ndarray(self.data_file.image_shape)
