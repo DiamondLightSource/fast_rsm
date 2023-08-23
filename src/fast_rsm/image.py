@@ -237,7 +237,9 @@ class Image:
             vertical = np.flip(vertical, axis=0)
             horizontal = horizontal.transpose()
             horizontal = np.flip(horizontal, axis=0)
-
+        print(f'vertical shape= {vertical.shape()}')
+        print(f'horizontal shape= {horizontal.shape()}')
+        print(f'k_out shape ={k_out_array.shape()}')
         k_out_array[i, j, 0] = (
             det_displacement.array[0]*detector_distance +
             det_vertical.array[0]*vertical[i, j] +
