@@ -54,7 +54,10 @@ class Image:
         # We want self.data[0, 0] to be the top left pixel.
         # We want self.data[-1, 0] to be th top right pixel.
         # self.metadata should contain enough information for us to do this.
-        self._correct_img_axes()
+        #need to make this conditional on loading an image, as the predefined imageshapes
+        #already have account for rotation. 
+        if load_image:
+            self._correct_img_axes()
 
         # Storage for all of the processing steps to be applied to the _raw_data
         # prior to mapping.
