@@ -77,6 +77,7 @@ class RSMMetadata:
         user should enter that the beam_centre=[0, 0]. This seems unlikely; this
         would probably be given as [0, -1] in typical software!
         """
+        print(f'starting centre before correction: {self.beam_centre}')
         if isinstance(self.data_file, I07Nexus):
             # I07 beam centres are given (x, y) (the wrong way around).
             self.beam_centre = (self.beam_centre[1], self.beam_centre[0])
