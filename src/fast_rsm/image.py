@@ -229,6 +229,11 @@ class Image:
         detector_distance = np.array(detector_distance, np.float32)
         vertical = self.metadata.get_vertical_pixel_distances(self.index)
         horizontal = self.metadata.get_horizontal_pixel_distances(self.index)
+        if self.metadata.data_file.is_rotated:
+            vertical = vertical.transpose()
+            vertical = np.flip(vertical, axis=0)
+            horizontal = horizontal.transpose()
+            horizontal = np.flip(horizontal, axis=0)
 
         k_out_array[i, j, 0] = (
             det_displacement.array[0]*detector_distance +
