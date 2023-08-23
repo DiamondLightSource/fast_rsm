@@ -77,6 +77,8 @@ class Image:
                 # f#!@ you.
                 self._raw_data = self._raw_data.transpose()
                 self._raw_data = np.flip(self._raw_data, axis=0)
+                #need to account for rotation in beamcentre values as well 
+                self.beam_centre = (self.beam_centre[1], self.beam_centre[0])
                 print(f'rotation check correct image after: {np.shape(self._raw_data)}')
 
 
