@@ -193,7 +193,6 @@ def _bin_one_map(start: np.ndarray,
     if map_each_image:
         rsm_before = np.copy(RSM)
         count_before = np.copy(COUNT)
-    print(f'bin index: {idx}')
 
     image = Image(METADATA, idx)
     image._processing_steps = processing_steps
