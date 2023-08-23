@@ -189,8 +189,9 @@ class Image:
             j = indices[1]
             #need additional swap of axis if image is rotated
             if self.metadata.data_file.is_rotated:
-                i=indices[1]
-                j=indices[0]
+                #test changing to be same as before
+                i=indices[0]
+                j=indices[1]
  
         # Make sure that our frame of reference has the correct index and
         # diffractometer.
