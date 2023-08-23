@@ -47,7 +47,8 @@ class Image:
         self.diffractometer = self.metadata.diffractometer
         self.index = index
 
-        self._delta_q = None
+        self._delta_q = None#
+        print(f'rotation check: {self.metadata.data_file.is_rotated}'
 
         # Carry out transposes etc. if necessary:
         # We want self.data[0, 0] to be the top left pixel.
