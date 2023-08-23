@@ -304,10 +304,8 @@ class RSMMetadata:
         """
         if image_shape is None:
             image_shape = self.data_file.image_shape
-        if self.data_file.is_rotated:
-            num_y_pixels = image_shape[1]
-        else:
-            num_y_pixels = image_shape[0]
+
+        num_y_pixels = image_shape[0]
         # Imagine num_y_pixels = 11.
         # pixel_offsets = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
         pixel_offsets = np.arange(num_y_pixels-1, -1, -1)
@@ -336,10 +334,7 @@ class RSMMetadata:
 
         # Follow the recipe from above.
         # The azimuthal angle is larger towards the left of the image.
-        if self.data_file.is_rotated:
-            num_x_pixels = image_shape[0]
-        else:
-            num_x_pixels = image_shape[1]
+        num_x_pixels = image_shape[1]
         pixel_offsets = np.arange(num_x_pixels-1, -1, -1)
         x_beam_centre = self.beam_centre[1]
         pixel_offsets -= ((num_x_pixels-1) - x_beam_centre)
