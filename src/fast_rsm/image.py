@@ -155,7 +155,7 @@ class Image:
                   frame: Frame,
                   indices: tuple = None,
                   oop='y',
-                  lorentz_correction: bool = True,
+                  lorentz_correction: bool = False,
                   pol_correction: bool = True) -> np.ndarray:
         """
         Calculates the wavevector through which light had to scatter to reach
