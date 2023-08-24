@@ -297,6 +297,7 @@ class Image:
             if polarisation.kind == Polarisation.linear:
                 pol_vec = polarisation.vector
                 pol_vec.to_frame(frame)
+                np.save('/home/rpy65944/fast_rsm/rawbeforepol',self._raw_data)
                 if pol_correction:
                     corrections.linear_polarisation(
                         self._raw_data, k_out_array, pol_vec.array)
@@ -304,6 +305,7 @@ class Image:
                     self.linones=np.ones(np.shape(self._raw_data))
                     corrections.linear_polarisation(self.linones, k_out_array, pol_vec.array)
                     np.save('/home/rpy65944/fast_rsm/linpolcorrs',self.linones)
+                np.save('/home/rpy65944/fast_rsm/rawafterpol',self._raw_data)
         # Now simply subtract and rescale to get the q_vectors!
         # Note that this is an order of magnitude faster than:
         # k_out_array -= incident_beam_arr
