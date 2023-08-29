@@ -42,21 +42,21 @@ setup = 'horizontal'
 
 # Set local_data_path if your data isn't stored on the diamond system any more
 # (for example if it's on a memory stick or scratch drive).
-local_data_path = '/dls/i07/data/2023/cm33856-2/processing/si28599-1'
+local_data_path = None
 # Set this if you want to save the output somewhere other than the processing
 # folder. Be warned, this could take up a lot of space.
-local_output_path = "/home/rpy65944/fast_rsm/"
+local_output_path = None
 
 # If you're processing on the cluster, you need to populate the next few fields.
 # The experiment number, used to work out where your data is stored.
-experiment_number = 'si28599-1'
+experiment_number = 'cm33856-2'
 
 # The sub-directory containing your experimental data. Leave as None if unused.
 # Otherwise, if the data was stored in a subdirectory called "day_1", e.g.
 #   /dls/i07/data/2022/si32333-1/day_1/
 # then you should use:
 #   data_sub_directory = "day_1"
-data_sub_directory = None #"baby2/"
+data_sub_directory = None
 
 # The year the experiment took place.
 year = 2023
@@ -65,11 +65,11 @@ year = 2023
 
 # The beam centre, as can be read out from GDA, in pixel_x, pixel_y. If your
 # map looks wacky, you probably cocked this up.
-beam_centre = (250,580)
+beam_centre = (955, 300)
 
 # The distance between the sample and the detector (or, if using the DCD, the
 # distance between the receiving slit and the detector). Units of meters.
-detector_distance = 930e-3
+detector_distance = 898e-3
 
 # The frame/coordinate system you want the map to be carried out in.
 # Options for frame_name argument are:
@@ -100,7 +100,7 @@ coordinates = Frame.cartesian
 # rotate your sample by an azimuthal angle µ, then 'y' will still be vertically
 # up, but 'x' and 'z' will have been rotated about 'y' by the angle µ.
 # Leave this as "None" if you aren't using cylindrical coordinates.
-cylinder_axis = None
+cylinder_axis = 'None'
 
 # Set this to True if you would like each image to be mapped independently.
 # If this is False, all images in all scans will be combined into one large
@@ -112,7 +112,7 @@ map_per_image = False
 # higher resolution, feel free, but be aware that the performance of the map and
 # the analysis will start to suffer above around 1GB.
 # Max file size is 2GB (2048MB).
-output_file_size = 50
+output_file_size = 200
 
 # This is for loading into binoculars. If set to false, .npy and .vtr files
 # will be saved, for manual analysis and paraview, respectively.
@@ -171,10 +171,10 @@ specific_pixels = None
 # This is done using a "Region" object. To make a Region, give it start_x, 
 # stop_x, start_y, start_y, as follows:
 # 
-mask_1 = Region(0, 1050, 0, 515)
-mask_2 = Region(1135, 2069, 0, 515)
-mask_3 = Region(1050, 1135, 0, 80)
-mask_4 = Region(1050, 1135, 245, 515)
+mask_1 = Region(0, 180, 0, 30)
+mask_2 = Region(320, -1, 165, -1)
+mask_3 = Region(0, -1, 0, 30)
+mask_4 = Region(0, -1, 165, -1)
  
 # Where my_mask_region runs in x from pixel 3 to 6 inclusive, and runs in y from
 # pixel 84 to 120 inclusive. You can make as many mask regions as you like, just
@@ -183,8 +183,8 @@ mask_4 = Region(1050, 1135, 245, 515)
 # 
 # If you don't want to use any mask regions, just leave mask_regions equal to
 # None.
-mask_regions = [mask_1, mask_2, mask_3, mask_4]
-#mask_regions = None
+# mask_regions = [mask_1, mask_2, mask_3, mask_4]
+mask_regions = None
 
 # Ignore pixels with an intensity below this value. If you don't want to ignore
 # any pixels, then set min_intensity = None. This is useful for dynamically

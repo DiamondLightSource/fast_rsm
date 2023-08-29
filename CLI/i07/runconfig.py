@@ -99,7 +99,7 @@ if __name__ == "__main__":
     
     
     #load in template mapscript, new paths
-    f=open(f'{Path.home()}/fast_rsm/mapscript_template.sh')
+    f=open(f'{Path.home()}/fast_rsm/mapscript_testtemplate.sh')
     lines=f.readlines()
     f.close()
 
