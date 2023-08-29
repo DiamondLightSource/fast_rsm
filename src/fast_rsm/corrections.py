@@ -97,7 +97,12 @@ def linear_polarisation(intensities: np.ndarray, k_out: np.ndarray,
 
     # Call the C function. This directly affects the elements of the
     # intensities array.
+    print('corrected version with linear polarisation correction')
     mapper_c_utils.linear_pol_correction(polarisation_vector, k_out, intensities)
+    
+    ##add in incorrect line to replicate previous version
+    #print("previous version - incorrectly has double  'lorentz'")
+    #mapper_c_utils.lorentz_correction(polarisation_vector, k_out, intensities)
 
     # #hardcode debugging lines to save correction factors
     # intensitiesones=np.ones(np.shape(intensities))

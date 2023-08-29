@@ -362,7 +362,6 @@ class Scan:
         bottom_left = (-1, 0)
         bottom_right = (-1, -1)
         poni = self.metadata.beam_centre
-        print(poni)
         extremal_q_points = np.array(
             [top_left, top_right, bottom_left, bottom_right, poni])
         extremal_q_points = (extremal_q_points[:, 0], extremal_q_points[:, 1])
