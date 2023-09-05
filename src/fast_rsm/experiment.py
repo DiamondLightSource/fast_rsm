@@ -227,23 +227,29 @@ class Experiment:
         shape = finite_diff_shape(start, stop, step)
 
         time_1 = time()
-        # Make a pool on which we'll carry out the processing.
-        with Pool(
+        #map_mem_total=[]
+        #count_mem_total=[]
+        map_arrays=0
+        count_arrays=0
+        norm_arrays=0
+        images_so_far = 0
+
+        for scan in self.scans:
+            async_results = []
+            # Make a pool on which we'll carry out the processing.
+            with Pool(
             processes=num_threads,  # The size of our pool.
             initializer=init_process_pool,  # Our pool's initializer.
             initargs=(locks,  # The initializer makes this lock global.
-                      num_threads,  # Initializer makes num_threads global.
-                      self.scans[0].metadata,
-                      map_frame,
-                      shape,
-                      output_file_name)
+                  num_threads,  # Initializer makes num_threads global.
+                  self.scans[0].metadata,
+                  map_frame,
+                  shape,
+                  output_file_name)
         ) as pool:
-            # Submit all maps for all images in all scans.
-            async_results = []
-            images_so_far = 0
-            for scan in self.scans:
+
                 for indices in chunk(list(range(
-                        scan.metadata.data_file.scan_length)), num_threads):
+                    scan.metadata.data_file.scan_length)), num_threads):
 
                     new_motors = scan.metadata.data_file.get_motors()
                     new_metadata = scan.metadata.data_file.get_metadata()
@@ -252,57 +258,71 @@ class Experiment:
                     # Note that serializing the map_frame and the scan.metadata
                     # are the only things that take finite time.
                     async_results.append(pool.apply_async(
-                        bin_maps_with_indices,
-                        (indices, start, stop, step,
-                         min_intensity_mask,  new_motors, new_metadata,
-                         scan.processing_steps, scan.skip_images, oop,
-                         map_each_image, images_so_far)))
+                    bin_maps_with_indices,
+                    (indices, start, stop, step,
+                     min_intensity_mask,  new_motors, new_metadata,
+                     scan.processing_steps, scan.skip_images, oop,
+                     map_each_image, images_so_far)))
 
                     images_so_far += scan.metadata.data_file.scan_length
 
-            print(f"Took {time() - time_1}s to prepare the calculation.")
-            map_names = []
-            count_names = []
-            for result in async_results:
-                # Make sure that we're storing the location of the shared memory
-                # block.
-                shared_rsm_name, shared_count_name = result.get()
-                if shared_rsm_name not in map_names:
-                    map_names.append(shared_rsm_name)
-                if shared_count_name not in count_names:
-                    count_names.append(shared_count_name)
+                print(f"Took {time() - time_1}s to prepare the calculation.")
+                map_names = []
+                count_names = []
+                map_mem =[]
+                count_mem =[]
+                for result in async_results:
+                    # Make sure that we're storing the location of the shared memory
+                    # block.
+                    shared_rsm_name, shared_count_name = result.get()
+                    if shared_rsm_name not in map_names:
+                        map_names.append(shared_rsm_name)
+                    if shared_count_name not in count_names:
+                        count_names.append(shared_count_name)
 
-                # Make sure that no error was thrown while mapping.
-                if not result.successful():
-                    raise ValueError(
+                    # Make sure that no error was thrown while mapping.
+                    if not result.successful():
+                        raise ValueError(
                         "Could not carry out map for an unknown reason. "
                         "Probably one of the threads segfaulted, or something.")
-            print("\nCalculation complete. Finishing up...")
+                print("\nCalculation complete. Finishing up...")
+                map_mem = [SharedMemory(x) for x in map_names]
+                count_mem = [SharedMemory(x) for x in count_names]
 
-            map_mem = [SharedMemory(x) for x in map_names]
-            count_mem = [SharedMemory(x) for x in count_names]
+                new_map_arrays = np.array([
+                    np.ndarray(shape=shape, dtype=np.float32, buffer=x.buf)
+                    for x in map_mem])
+                new_count_arrays = np.array([
+                    np.ndarray(shape=shape, dtype=np.uint32, buffer=y.buf)
+                    for y in count_mem])
 
-            map_arrays = np.array([
-                np.ndarray(shape=shape, dtype=np.float32, buffer=x.buf)
-                for x in map_mem])
-            count_arrays = np.array([
-                np.ndarray(shape=shape, dtype=np.uint32, buffer=y.buf)
-                for y in count_mem])
-
-            map_arrays = np.mean(map_arrays, axis=0)
-            count_arrays = np.mean(count_arrays, axis=0)
-
-            normalised_map = map_arrays/(count_arrays.astype(np.float32))
-
-            # Make sure all our shared memory has been closed nicely.
+                #map_mem_total+=map_mem
+                #count_mem_total+=(count_mem)
+                if np.size(map_arrays)==1:
+                    map_arrays=np.sum(new_map_arrays,axis=0)
+                    count_arrays=np.sum(new_count_arrays,axis=0)
+                else:
+                    new_maps=np.sum(new_map_arrays,axis=0)
+                    new_counts=np.sum(new_count_arrays,axis=0)
+                    map_arrays=np.sum([map_arrays,new_maps],axis=0)
+                    count_arrays=np.sum([count_arrays,new_counts],axis=0)
+                #           normalised_map = map_arrays/(count_arrays.astype(np.float32))
+                # Make sure all our shared memory has been closed nicely.
+                pool.close()
             for shared_mem in map_mem:
                 shared_mem.close()
-                shared_mem.unlink()
-
+                try:
+                    shared_mem.unlink()
+                except:
+                    pass
             for shared_mem in count_mem:
                 shared_mem.close()
-                shared_mem.unlink()
-
+                try:
+                    shared_mem.unlink()
+                except:
+                    pass
+            
+        normalised_map=np.divide(map_arrays,count_arrays,where=count_arrays!=0)
         # Only save the vtk/npy files if we've been asked to.
         if save_vtk:
             print("\n**READ THIS**")
