@@ -178,8 +178,8 @@ mask_4 = Region(1050, 1135, 245, 515)
 # 
 # If you don't want to use any mask regions, just leave mask_regions equal to
 # None.
-mask_regions = [mask_1, mask_2, mask_3, mask_4]
-#mask_regions = None
+#mask_regions = [mask_1, mask_2, mask_3, mask_4]
+mask_regions = None
 
 # Ignore pixels with an intensity below this value. If you don't want to ignore
 # any pixels, then set min_intensity = None. This is useful for dynamically
