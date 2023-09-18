@@ -1,8 +1,5 @@
 """
-**IGNORE**
-
-First we need to import some stuff. Feel free to ignore this cell.
-
+First we need to import some stuff. 
 If you're interested, each import has an associated comment that explains why
 the import is useful/necessary.
 """
@@ -32,9 +29,7 @@ from diffraction_utils import Frame, Region
 from fast_rsm.experiment import Experiment
 
 """
-**ESSENTIAL**
-
-This cell requires action! Make sure you set all of the variables defined here.
+This section requires action! Make sure you set all of the variables defined here.
 """
 
 # How was your sample mounted? Options are 'horizontal', 'vertical' and 'DCD'.
@@ -42,10 +37,10 @@ setup = 'horizontal'
 
 # Set local_data_path if your data isn't stored on the diamond system any more
 # (for example if it's on a memory stick or scratch drive).
-local_data_path = '/dls/i07/data/2023/cm33856-2/processing/si28599-1'
+local_data_path = None
 # Set this if you want to save the output somewhere other than the processing
 # folder. Be warned, this could take up a lot of space.
-local_output_path = "/home/rpy65944/fast_rsm/"
+local_output_path = None
 
 # If you're processing on the cluster, you need to populate the next few fields.
 # The experiment number, used to work out where your data is stored.
@@ -56,7 +51,7 @@ experiment_number = 'si28599-1'
 #   /dls/i07/data/2022/si32333-1/day_1/
 # then you should use:
 #   data_sub_directory = "day_1"
-data_sub_directory = None #"baby2/"
+data_sub_directory = None 
 
 # The year the experiment took place.
 year = 2023
@@ -147,7 +142,7 @@ load_from_dat = False
 """
 **MASKING**
 
-This cell contains details on how to mask pixels. You can either mask a series
+This section contains details on how to mask pixels. You can either mask a series
 of individual pixels, mask rectangular regions of pixels, or dynamically mask
 pixels based on their intensity (not recommended).
 """
