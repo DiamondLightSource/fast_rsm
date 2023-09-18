@@ -143,9 +143,18 @@ if __name__ == "__main__":
     if limit==1:
         print('Timer limit reached before new slurm ouput file found')
     else:
+        print('\n')
+        waitcount=0
+        while (os.path.getsize(f'{Path.home()}/fast_rsm/{endslurms[-1]}')<2000)& (waitcount<15):
+                print(f'SLURM out file found but very small filesize, waiting for file to be populated - {waitcount*10}s',end="\r")
+                time.sleep(10)
+                waitcount+=1
+        print('\n')
+        print('filesize:')
+        print(os.path.getsize(f'{Path.home()}/fast_rsm/{endslurms[-1]}'))
+        print('\n')
         print(f'Job finished\nSlurm output file: {Path.home()}/fast_rsm/{endslurms[-1]}')
         print(f'Checking slurm output')
-        time.sleep(15)
         f=open(f'{Path.home()}/fast_rsm/{endslurms[-1]}')
         lines=f.readlines()
         f.close()
