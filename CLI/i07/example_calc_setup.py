@@ -1,6 +1,5 @@
 """
-**IGNORE**
-This cell prepares the calculation. You probably shouldn't change anything here
+This section prepares the calculation. You probably shouldn't change anything here
 unless you know what you're doing.
 """
 
@@ -104,9 +103,7 @@ experiment.mask_pixels(specific_pixels)
 experiment.mask_regions(mask_regions)
 
 """
-**POTENTIALLY REQUIRED**
-
-This cell is for changing metadata that is stored in, or inferred from, the
+This section is for changing metadata that is stored in, or inferred from, the
 nexus file. This is generally for more nonstandard stuff.
 """
 
@@ -174,9 +171,7 @@ for i, scan in enumerate(experiment.scans):
     #     scan.skip_images.append(8)
 
 """
-**IGNORE**
-
-This cell contains all of the logic for running the calculation. You shouldn't
+This section contains all of the logic for running the calculation. You shouldn't
 run this on your local computer, it'll either raise an exception or take
 forever.
 """
