@@ -123,6 +123,7 @@ if __name__ == "__main__":
     #get latest slurm file  before submitting job
     endfiles=os.listdir(f'{Path.home()}/fast_rsm')
     endslurms=[x for x in endfiles if '.out' in x]
+    endslurms.append(endfiles[0])
     endslurms.sort(key=lambda x: os.path.getmtime(f'{Path.home()}/fast_rsm/{x}'))
     count=0
     limit=0
