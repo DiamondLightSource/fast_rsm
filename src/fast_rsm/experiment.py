@@ -213,15 +213,20 @@ class Experiment:
             map_frame.frame_name = Frame.lab
 
         # Compute the optimal finite differences volume.
-        start, stop = self.q_bounds(map_frame, oop)
-        # Overwrite whichever of these we were given explicitly.
-        if volume_start is not None:
-            start = np.array(volume_start)
-        if volume_stop is not None:
-            stop = np.array(volume_stop)
-        step = get_step_from_filesize(start, stop, output_file_size)
-        if volume_step is not None:
+        if volume_step is None:
+            # Overwrite whichever of these we were given explicitly.
+            if volume_start is not None:
+                start = np.array(volume_start)
+            if volume_stop is not None:
+                stop = np.array(volume_stop)
+            step = get_step_from_filesize(start, stop, output_file_size)
+        else:
             step = np.array(volume_step)
+            _start, _stop = self.q_bounds(map_frame, oop)
+            start, stop = match_start_stop_to_step(
+                step=step,
+                user_bounds=(volume_start, volume_stop),
+                auto_bounds=(_start, _stop))
 
         locks = [Lock() for _ in range(num_threads)]
         shape = finite_diff_shape(start, stop, step)
@@ -628,3 +633,41 @@ class Experiment:
             for x in nexus_paths]
         print(f"Took {time() - t1}s to load all nexus files.")
         return cls(scans)
+
+
+def _clean_mod(val, div):
+    return abs((val) % div - div)
+
+
+def _match_start_stop_to_step(
+                step,
+                user_bounds,
+                auto_bounds,
+                eps = 1e-5):
+    if user_bounds == (None, None):
+        # use auto bounds and expand both ways
+        diff = _clean_mod(auto_bounds[1] - auto_bounds[0], step)
+        if diff < eps:
+            return auto_bounds[0], auto_bounds[1]
+        return auto_bounds[0] - diff/2, auto_bounds[1] + diff/2
+    elif user_bounds[0] is None:
+        # keep user value and expand to right
+        diff = _clean_mod(user_bounds[1] - auto_bounds[0], step)
+        if diff < eps:
+            return auto_bounds[0], user_bounds[1]
+        return auto_bounds[0] - diff, user_bounds[1]
+    elif user_bounds[1] is None:
+        # keep user value and expand to left
+        diff = _clean_mod(auto_bounds[1] - user_bounds[0], step)
+        if diff < eps:
+            return user_bounds[0], auto_bounds[1]
+        return user_bounds[0], auto_bounds[1] + diff
+    else:
+        diff = _clean_mod(user_bounds[1] - user_bounds[0], step)
+        if diff > eps:
+            raise ValueError("Provided values for reciprocal value start, "
+                            "stop and step that are incompatible. Please make "
+                            "sure that the boundaries fulfill volume_start -"
+                            " volume_stop = volume_step * n, where n is an "
+                            "integer.")
+        return user_bounds[0], user_bounds[1]
