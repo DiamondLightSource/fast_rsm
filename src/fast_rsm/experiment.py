@@ -223,7 +223,7 @@ class Experiment:
         else:
             step = np.array(volume_step)
             _start, _stop = self.q_bounds(map_frame, oop)
-            start, stop = match_start_stop_to_step(
+            start, stop = _match_start_stop_to_step(
                 step=step,
                 user_bounds=(volume_start, volume_stop),
                 auto_bounds=(_start, _stop))
