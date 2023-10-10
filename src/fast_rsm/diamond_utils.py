@@ -418,12 +418,12 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str):
     volume = np.nan_to_num(volume)
 
     # Make h, k and l arrays in the expected format.
-    h_arr = np.array([0, start[0], stop[0], step[0],
-                      start[0]/step[0], stop[0]/step[0]])
-    k_arr = np.array([1, start[1], stop[1], step[1],
-                      start[1]/step[1], stop[1]/step[1]])
-    l_arr = np.array([2, start[2], stop[2], step[2],
-                      start[2]/step[2], stop[2]/step[2]])
+    h_arr, k_arr, l_arr = (
+        tuple(np.array([i, start[i], stop[i], step[i],
+                        int(np.floor(start[i]/step[i])),
+                        int(np.ceil(stop[i]/step[i]))])
+              for i in range(3))
+    )
 
     # Turn those into an axes group.
     axes_group = nx.NXgroup(h=h_arr, k=k_arr, l=l_arr)
