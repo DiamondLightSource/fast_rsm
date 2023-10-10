@@ -647,19 +647,19 @@ def _match_start_stop_to_step(
     if user_bounds == (None, None):
         # use auto bounds and expand both ways
         diff = _clean_mod(auto_bounds[1] - auto_bounds[0], step)
-        if np.any(diff > eps):
+        if np.any(diff < eps):
             return auto_bounds[0], auto_bounds[1]
         return auto_bounds[0] - diff/2, auto_bounds[1] + diff/2
     elif user_bounds[0] is None:
         # keep user value and expand to right
         diff = _clean_mod(user_bounds[1] - auto_bounds[0], step)
-        if np.any(diff > eps):
+        if np.any(diff < eps):
             return auto_bounds[0], user_bounds[1]
         return auto_bounds[0] - diff, user_bounds[1]
     elif user_bounds[1] is None:
         # keep user value and expand to left
         diff = _clean_mod(auto_bounds[1] - user_bounds[0], step)
-        if np.any(diff > eps):
+        if np.any(diff < eps):
             return user_bounds[0], auto_bounds[1]
         return user_bounds[0], auto_bounds[1] + diff
     else:
