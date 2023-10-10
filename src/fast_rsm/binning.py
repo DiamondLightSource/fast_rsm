@@ -34,9 +34,8 @@ def finite_diff_shape(start: np.ndarray, stop: np.ndarray, step: np.ndarray):
     to store data with this start, stop and step.
     """
     return (
-        len(np.arange(start[0], stop[0], step[0])),
-        len(np.arange(start[1], stop[1], step[1])),
-        len(np.arange(start[2], stop[2], step[2]))
+        tuple(int(np.ceil(_stop/_step)) - int(np.floor(_start/_step)) + 1
+         for (_start, _stop, _step) in zip(start, stop, step))
     )
 
 
