@@ -28,15 +28,19 @@ def _fix_intensity_geometry(arr: np.ndarray) -> np.ndarray:
     return arr
 
 
+def finite_diff_grid(start: np.ndarray, stop: np.ndarray, step: np.ndarray):
+    """
+    Works out the shape of the finite differences grid and returns it.
+    """
+    return tuple(np.arange(start[i], stop[i], step[i]) for i in range(3))
+
+
 def finite_diff_shape(start: np.ndarray, stop: np.ndarray, step: np.ndarray):
     """
     Works out the shape of the finite differences grid that we're going to need
     to store data with this start, stop and step.
     """
-    return (
-        tuple(int(np.ceil(_stop/_step)) - int(np.floor(_start/_step)) + 1
-         for (_start, _stop, _step) in zip(start, stop, step))
-    )
+    return tuple(len(arr) for arr in finite_diff_grid(start, stop, step))
 
 
 def linear_bin(coords: np.ndarray,  # Coordinates of each intensity.

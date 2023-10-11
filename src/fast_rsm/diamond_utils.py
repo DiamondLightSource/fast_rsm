@@ -12,7 +12,7 @@ from scipy.constants import physical_constants
 
 import nexusformat.nexus as nx
 
-from .binning import weighted_bin_1d
+from .binning import weighted_bin_1d, finite_diff_grid
 
 
 def load_exact_map(
@@ -417,11 +417,18 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str):
     contributions[~np.isnan(volume)] = 1
     volume = np.nan_to_num(volume)
 
+    # make sure to use consistent conventions for the grid.
+    # internally, the used grid is defined by np.arange(start, stop, step)
+    # which may be missing the last element!
+    true_grid = finite_diff_grid(start, stop, step)
+    true_start = true_grid[0, 0, 0]
+    true_stop = true_grid[1, 1, 1]
+
     # Make h, k and l arrays in the expected format.
     h_arr, k_arr, l_arr = (
-        tuple(np.array([i, start[i], stop[i], step[i],
-                        int(np.floor(start[i]/step[i])),
-                        int(np.ceil(stop[i]/step[i]))])
+        tuple(np.array([i, true_gridstart[i], true_gridstop[i], step[i],
+                        int(np.floor(true_gridstart[i]/step[i])),
+                        int(np.ceil(true_gridstop[i]/step[i]))])
               for i in range(3))
     )
 
