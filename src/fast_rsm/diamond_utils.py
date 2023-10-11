@@ -421,8 +421,8 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str):
     # internally, the used grid is defined by np.arange(start, stop, step)
     # which may be missing the last element!
     true_grid = finite_diff_grid(start, stop, step)
-    true_start = true_grid[0, 0, 0]
-    true_stop = true_grid[1, 1, 1]
+    true_start = (interval[0] for interval in true_grid)
+    true_stop = (interval[1] for interval in true_grid)
 
     # Make h, k and l arrays in the expected format.
     h_arr, k_arr, l_arr = (
