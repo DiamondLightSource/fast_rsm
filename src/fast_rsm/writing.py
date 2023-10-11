@@ -19,7 +19,7 @@ def linear_bin_to_vtk(binned_data: np.ndarray,
 
     # Coordinates
     x_range, y_range , z_range = tuple(
-        np.linspace(start[i], stop[i], num=binned_data.shape[i],
+        np.linspace(start[i], stop[i]+step[i], num=binned_data.shape[i],
                     dtype=np.float32) for i in range(3)
     )
 
