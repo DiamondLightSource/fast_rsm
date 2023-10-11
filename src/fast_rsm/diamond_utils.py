@@ -426,9 +426,9 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str):
 
     # Make h, k and l arrays in the expected format.
     h_arr, k_arr, l_arr = (
-        tuple(np.array([i, true_gridstart[i], true_gridstop[i], step[i],
-                        int(np.floor(true_gridstart[i]/step[i])),
-                        int(np.ceil(true_gridstop[i]/step[i]))])
+        tuple(np.array([i, true_start[i], true_stop[i], step[i],
+                        int(np.floor(true_start[i]/step[i])),
+                        int(np.ceil(true_stop[i]/step[i]))])
               for i in range(3))
     )
 
