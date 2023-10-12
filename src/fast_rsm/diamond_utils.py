@@ -425,7 +425,7 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str):
     binoculars_start = [interval[0] for interval in true_grid]
     binoculars_start_int = [int(np.floor(start[i]/step[i])) for i in range(3)]
     binoculars_stop_int = [
-        int(binoculars_start_int[i] + volume.shape[i])
+        int(binoculars_start_int[i] + volume.shape[i] - 1)
         for i in range(3)
         ]
     binoculars_stop = [binoculars_stop_int[i]*binoculars_step[i]
@@ -435,8 +435,8 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str):
     h_arr, k_arr, l_arr = (
         tuple(np.array([i, binoculars_start[i], binoculars_stop[i],
                         binoculars_step[i],
-                        float(binoculars_start_int[i])+0.01,  # binoculars
-                        float(binoculars_stop_int[i])-0.01])  # uses np.floor,ceil
+                        float(binoculars_start_int[i]),  # binoculars
+                        float(binoculars_stop_int[i])])  # uses int()
               for i in range(3))
     )
 
