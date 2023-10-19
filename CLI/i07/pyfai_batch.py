@@ -11,11 +11,6 @@ import os
 from datetime import datetime
 
 import numpy as np
-
-from diffraction_utils import I07Nexus, Frame
-from fast_rsm.scan import Scan
-import argparse
-import os
 from yaml import load, dump, Loader
 from pathlib import Path
 import subprocess
@@ -66,12 +61,6 @@ if __name__ == "__main__":
 
     # Extract the arguments from the parser.
     args = parser.parse_args()
-    f=open(args.exp_path)
-    lines1=f.readlines()
-    f.close()
-    f=open(args.calc_path)
-    lines2=f.readlines()
-    f.close()
 
     OUTDIR=args.out_path
     if args.scan_range==0:
@@ -96,9 +85,9 @@ tiflist=[file for file in alllist if file.endswith('.tif')]
 ai = pyFAI.load(args.ponipath)
 print("\nIntegrator: \n", ai)
 for scan in SCANS:
-    fnames=[[file for file in tiflist if str(scan) in file]]
+    fnames=[file for file in tiflist if str(scan) in file]
     fname=fnames[0]
-    img = fabio.open(fr'{fname}')
+    img = fabio.open(fr'{args.imagespath}/{fname}')
     print("Image:", img)
     
 
@@ -110,12 +99,13 @@ for scan in SCANS:
     mask = maskimg.data
     
     datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
-    save_as = str(args.scan_number) +'_'+ datetime_str + ".dat"
-    savepath=f'{args.out_path}/{save_as}'
+    save_as = str(scan) +'_'+ datetime_str + ".dat"
+    savepath=f'{OUTDIR}/{save_as}'
     
     res = ai.integrate1d_ng(img_array,
                             args.bins,
                             mask=mask,
                             unit="2th_deg",
                             filename=savepath,polarization_factor=1)
+    print(f'process scan {scan}\n')
 print('Finished processing images')
