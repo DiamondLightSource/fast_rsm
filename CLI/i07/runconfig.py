@@ -69,12 +69,18 @@ if __name__ == "__main__":
         rlist=eval(args.scan_range)
         if len(np.shape(rlist))==1:
             scanrange=rlist
-            SCANS=list(range(int(scanrange[0]),int(scanrange[1])+1,int(scanrange[2])))
+            SCANS=list(range(
+                int(scanrange[0]),
+                int(scanrange[1])+1,
+                int(scanrange[2])))
         else:
             SCANS=[]
             for r in rlist:
                 scanrange=r
-                SCANS.extend(list(range(int(scanrange[0]),int(scanrange[1])+1,int(scanrange[2]))))
+                SCANS.extend(list(range(
+                    int(scanrange[0]),
+                    int(scanrange[1])+1,
+                    int(scanrange[2]))))
 
 
     i=1
@@ -88,16 +94,16 @@ if __name__ == "__main__":
         save_path = Path(OUTDIR)/Path(save_file_name)
         if i > 1e7:
             raise ValueError(
-                "naming counter hit limit therefore exiting ")   
-    
+                "naming counter hit limit therefore exiting ")
+
     #save variables to job file using job template
     f=open(save_path,'x')
     f.write(''.join(lines1))
     f.write(f'scan_numbers= {SCANS}\n')
     f.write(''.join(lines2))
     f.close()
-    
-    
+
+
     #load in template mapscript, new paths
     f=open(f'{Path.home()}/fast_rsm/mapscript_testtemplate.sh')
     lines=f.readlines()
@@ -123,6 +129,7 @@ if __name__ == "__main__":
     #get latest slurm file  before submitting job
     endfiles=os.listdir(f'{Path.home()}/fast_rsm')
     endslurms=[x for x in endfiles if '.out' in x]
+    endslurms.append(endfiles[0])
     endslurms.sort(key=lambda x: os.path.getmtime(f'{Path.home()}/fast_rsm/{x}'))
     count=0
     limit=0
@@ -133,6 +140,7 @@ if __name__ == "__main__":
     while endslurms[-1]==startslurms[-1]:
         endfiles=os.listdir(f'{Path.home()}/fast_rsm')
         endslurms=[x for x in endfiles if '.out' in x]
+        endslurms.append(endfiles[0])
         endslurms.sort(key=lambda x: os.path.getmtime(f'{Path.home()}/fast_rsm/{x}'))
         if count >50:
             limit=1
@@ -143,9 +151,18 @@ if __name__ == "__main__":
     if limit==1:
         print('Timer limit reached before new slurm ouput file found')
     else:
+        print('\n')
+        waitcount=0
+        while (os.path.getsize(f'{Path.home()}/fast_rsm/{endslurms[-1]}')<2000)& (waitcount<15):
+                print(f'SLURM out file found but very small filesize, waiting for file to be populated - {waitcount*10}s',end="\r")
+                time.sleep(10)
+                waitcount+=1
+        print('\n')
+        print('filesize:')
+        print(os.path.getsize(f'{Path.home()}/fast_rsm/{endslurms[-1]}'))
+        print('\n')
         print(f'Job finished\nSlurm output file: {Path.home()}/fast_rsm/{endslurms[-1]}')
         print(f'Checking slurm output')
-        time.sleep(15)
         f=open(f'{Path.home()}/fast_rsm/{endslurms[-1]}')
         lines=f.readlines()
         f.close()
@@ -155,6 +172,3 @@ if __name__ == "__main__":
             print("error encountered during processing, view slurm file for details")
             #subprocess.run([f"less {Path.home()}/fast_rsm/{endslurms[-1]}"])
             #os.system(f"less {Path.home()}/fast_rsm/{endslurms[-1]}")
-
-
-

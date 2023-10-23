@@ -1,5 +1,8 @@
 """
-First we need to import some stuff. 
+**IGNORE**
+
+First we need to import some stuff. Feel free to ignore this cell.
+
 If you're interested, each import has an associated comment that explains why
 the import is useful/necessary.
 """
@@ -29,7 +32,9 @@ from diffraction_utils import Frame, Region
 from fast_rsm.experiment import Experiment
 
 """
-This section requires action! Make sure you set all of the variables defined here.
+**ESSENTIAL**
+
+This cell requires action! Make sure you set all of the variables defined here.
 """
 
 # How was your sample mounted? Options are 'horizontal', 'vertical' and 'DCD'.
@@ -44,14 +49,14 @@ local_output_path = None
 
 # If you're processing on the cluster, you need to populate the next few fields.
 # The experiment number, used to work out where your data is stored.
-experiment_number = 'si28599-1'
+experiment_number = 'cm33856-2'
 
 # The sub-directory containing your experimental data. Leave as None if unused.
 # Otherwise, if the data was stored in a subdirectory called "day_1", e.g.
 #   /dls/i07/data/2022/si32333-1/day_1/
 # then you should use:
 #   data_sub_directory = "day_1"
-data_sub_directory = None 
+data_sub_directory = None
 
 # The year the experiment took place.
 year = 2023
@@ -60,11 +65,11 @@ year = 2023
 
 # The beam centre, as can be read out from GDA, in pixel_x, pixel_y. If your
 # map looks wacky, you probably cocked this up.
-beam_centre = (250,580)
+beam_centre = (955, 300)
 
 # The distance between the sample and the detector (or, if using the DCD, the
 # distance between the receiving slit and the detector). Units of meters.
-detector_distance = 930e-3
+detector_distance = 898e-3
 
 # The frame/coordinate system you want the map to be carried out in.
 # Options for frame_name argument are:
@@ -95,7 +100,7 @@ coordinates = Frame.cartesian
 # rotate your sample by an azimuthal angle µ, then 'y' will still be vertically
 # up, but 'x' and 'z' will have been rotated about 'y' by the angle µ.
 # Leave this as "None" if you aren't using cylindrical coordinates.
-cylinder_axis = None
+cylinder_axis = 'None'
 
 # Set this to True if you would like each image to be mapped independently.
 # If this is False, all images in all scans will be combined into one large
@@ -107,7 +112,7 @@ map_per_image = False
 # higher resolution, feel free, but be aware that the performance of the map and
 # the analysis will start to suffer above around 1GB.
 # Max file size is 2GB (2048MB).
-output_file_size = 50
+output_file_size = 200
 
 # This is for loading into binoculars. If set to false, .npy and .vtr files
 # will be saved, for manual analysis and paraview, respectively.
@@ -142,7 +147,7 @@ load_from_dat = False
 """
 **MASKING**
 
-This section contains details on how to mask pixels. You can either mask a series
+This cell contains details on how to mask pixels. You can either mask a series
 of individual pixels, mask rectangular regions of pixels, or dynamically mask
 pixels based on their intensity (not recommended).
 """
@@ -166,10 +171,10 @@ specific_pixels = None
 # This is done using a "Region" object. To make a Region, give it start_x, 
 # stop_x, start_y, start_y, as follows:
 # 
-mask_1 = Region(0, 1050, 0, 515)
-mask_2 = Region(1135, 2069, 0, 515)
-mask_3 = Region(1050, 1135, 0, 80)
-mask_4 = Region(1050, 1135, 245, 515)
+mask_1 = Region(0, 180, 0, 30)
+mask_2 = Region(320, -1, 165, -1)
+mask_3 = Region(0, -1, 0, 30)
+mask_4 = Region(0, -1, 165, -1)
  
 # Where my_mask_region runs in x from pixel 3 to 6 inclusive, and runs in y from
 # pixel 84 to 120 inclusive. You can make as many mask regions as you like, just
@@ -178,7 +183,7 @@ mask_4 = Region(1050, 1135, 245, 515)
 # 
 # If you don't want to use any mask regions, just leave mask_regions equal to
 # None.
-#mask_regions = [mask_1, mask_2, mask_3, mask_4]
+# mask_regions = [mask_1, mask_2, mask_3, mask_4]
 mask_regions = None
 
 # Ignore pixels with an intensity below this value. If you don't want to ignore

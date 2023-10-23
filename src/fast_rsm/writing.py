@@ -19,6 +19,7 @@ def linear_bin_to_vtk(binned_data: np.ndarray,
     file_path = str(file_path)
 
     # Coordinates
+
     x_range = np.arange(start[0], stop[0], step[0], dtype="float32")
     x_range = list(x_range)
     x_range.append(stop[0])

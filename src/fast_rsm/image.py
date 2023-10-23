@@ -47,13 +47,16 @@ class Image:
         self.diffractometer = self.metadata.diffractometer
         self.index = index
 
-        self._delta_q = None
+        self._delta_q = None#
 
         # Carry out transposes etc. if necessary:
         # We want self.data[0, 0] to be the top left pixel.
         # We want self.data[-1, 0] to be th top right pixel.
         # self.metadata should contain enough information for us to do this.
-        self._correct_img_axes()
+        #need to make this conditional on loading an image, as the predefined imageshapes
+        #already have account for rotation. 
+        if load_image:
+            self._correct_img_axes()
 
         # Storage for all of the processing steps to be applied to the _raw_data
         # prior to mapping.
@@ -183,6 +186,11 @@ class Image:
         else:
             i = indices[0]
             j = indices[1]
+            # #may need additional swap of axis if image is rotated
+            # if self.metadata.data_file.is_rotated:
+            #     i=indices[1]
+            #     j=indices[0]
+ 
         # Make sure that our frame of reference has the correct index and
         # diffractometer.
         frame.scan_index = self.index
@@ -191,6 +199,9 @@ class Image:
         # We need num_x_pixels, num_y_pixels, 3 to be our shape.
         # Note that we need the extra "3" to store qx, qy, qz (3d vector).
         desired_shape = tuple(list(self._raw_data.shape) + [3])
+        # if self.metadata.data_file.is_rotated:
+        #     desired_shape= tuple(list([self._raw_data.shape[1],self._raw_data.shape[0]]) + [3])
+
         # Don't bother initializing this.
         k_out_array = np.ndarray(desired_shape, np.float32)
 
@@ -269,11 +280,11 @@ class Image:
         # At exactly this point, while k_in and k_out are normalised "for
         # free", Lorentz/polarisation corrections should be applied. Only do
         # this if we're mapping the entire image (i.e. indices is None).
+     # this if we're mapping the entire image (i.e. indices is None).
         if indices is None:
             if lorentz_correction:
                 corrections.lorentz(
                     self._raw_data, incident_beam_arr, k_out_array)
-
             # The kind of polarisation correction that we want to apply of
             # depends, rather obviously, on the polarisation of the beam!
             polarisation = self.metadata.data_file.polarisation
@@ -287,8 +298,6 @@ class Image:
                 if pol_correction:
                     corrections.linear_polarisation(
                         self._raw_data, k_out_array, pol_vec.array)
-
-        # Now simply subtract and rescale to get the q_vectors!
         # Note that this is an order of magnitude faster than:
         # k_out_array -= incident_beam_arr
         k_out_array[i, j, 0] -= incident_beam_arr[0]

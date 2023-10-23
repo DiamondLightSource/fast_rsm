@@ -370,6 +370,7 @@ class Scan:
         img = self.load_image(0, load_data=False)
         q_vec = img.q_vectors(frame, poni, oop)
 
+
         start, stop = q_vec, q_vec
 
         # Iterate over every image in the scan.
