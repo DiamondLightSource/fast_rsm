@@ -211,18 +211,24 @@ class Experiment:
         original_frame_name = map_frame.frame_name
         if map_frame.frame_name == Frame.qpar_qperp:
             map_frame.frame_name = Frame.lab
-
-        # Compute the optimal finite differences volume.
+          # Compute the optimal finite differences volume.
         if volume_step is None:
             # Overwrite whichever of these we were given explicitly.
-            if volume_start is not None:
+            if (volume_start is not None)&(volume_stop is not None):
                 _start = np.array(volume_start)
-            if volume_stop is not None:
                 _stop = np.array(volume_stop)
-            step = get_step_from_filesize(start, stop, output_file_size)
+            else:
+                _start, _stop = self.q_bounds(map_frame, oop)
+            step = get_step_from_filesize(_start, _stop, output_file_size)
+            start, stop = _match_start_stop_to_step(
+                step=step,
+                user_bounds=(volume_start, volume_stop),
+                auto_bounds=(_start, _stop))
+
         else:
             step = np.array(volume_step)
             _start, _stop = self.q_bounds(map_frame, oop)
+
 
         # Make sure start and stop match the step as required by binoculars.
             start, stop = _match_start_stop_to_step(
