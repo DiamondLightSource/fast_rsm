@@ -12,7 +12,7 @@ from scipy.constants import physical_constants
 
 import nexusformat.nexus as nx
 
-from .binning import weighted_bin_1d
+from .binning import weighted_bin_1d, finite_diff_grid
 
 
 def load_exact_map(
@@ -417,13 +417,28 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str):
     contributions[~np.isnan(volume)] = 1
     volume = np.nan_to_num(volume)
 
+    # make sure to use consistent conventions for the grid.
+    # internally, the used grid is defined by np.arange(start, stop, step)
+    # which may be missing the last element!
+    true_grid = finite_diff_grid(start, stop, step)
+    binoculars_step = step
+    binoculars_start = [interval[0] for interval in true_grid]
+    binoculars_start_int = [int(np.floor(start[i]/step[i])) for i in range(3)]
+    binoculars_stop_int = [
+        int(binoculars_start_int[i] + volume.shape[i] - 1)
+        for i in range(3)
+        ]
+    binoculars_stop = [binoculars_stop_int[i]*binoculars_step[i]
+                       for i in range(3)]
+
     # Make h, k and l arrays in the expected format.
-    h_arr = np.array([0, start[0], stop[0], step[0],
-                      start[0]/step[0], stop[0]/step[0]])
-    k_arr = np.array([1, start[1], stop[1], step[1],
-                      start[1]/step[1], stop[1]/step[1]])
-    l_arr = np.array([2, start[2], stop[2], step[2],
-                      start[2]/step[2], stop[2]/step[2]])
+    h_arr, k_arr, l_arr = (
+        tuple(np.array([i, binoculars_start[i], binoculars_stop[i],
+                        binoculars_step[i],
+                        float(binoculars_start_int[i]),  # binoculars
+                        float(binoculars_stop_int[i])])  # uses int()
+              for i in range(3))
+    )
 
     # Turn those into an axes group.
     axes_group = nx.NXgroup(h=h_arr, k=k_arr, l=l_arr)

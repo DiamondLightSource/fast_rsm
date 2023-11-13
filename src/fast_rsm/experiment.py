@@ -211,17 +211,30 @@ class Experiment:
         original_frame_name = map_frame.frame_name
         if map_frame.frame_name == Frame.qpar_qperp:
             map_frame.frame_name = Frame.lab
+          # Compute the optimal finite differences volume.
+        if volume_step is None:
+            # Overwrite whichever of these we were given explicitly.
+            if (volume_start is not None)&(volume_stop is not None):
+                _start = np.array(volume_start)
+                _stop = np.array(volume_stop)
+            else:
+                _start, _stop = self.q_bounds(map_frame, oop)
+            step = get_step_from_filesize(_start, _stop, output_file_size)
+            start, stop = _match_start_stop_to_step(
+                step=step,
+                user_bounds=(volume_start, volume_stop),
+                auto_bounds=(_start, _stop))
 
-        # Compute the optimal finite differences volume.
-        start, stop = self.q_bounds(map_frame, oop)
-        # Overwrite whichever of these we were given explicitly.
-        if volume_start is not None:
-            start = np.array(volume_start)
-        if volume_stop is not None:
-            stop = np.array(volume_stop)
-        step = get_step_from_filesize(start, stop, output_file_size)
-        if volume_step is not None:
+        else:
             step = np.array(volume_step)
+            _start, _stop = self.q_bounds(map_frame, oop)
+
+
+        # Make sure start and stop match the step as required by binoculars.
+            start, stop = _match_start_stop_to_step(
+                step=step,
+                user_bounds=(volume_start, volume_stop),
+                auto_bounds=(_start, _stop))
 
         locks = [Lock() for _ in range(num_threads)]
         shape = finite_diff_shape(start, stop, step)
@@ -628,3 +641,38 @@ class Experiment:
             for x in nexus_paths]
         print(f"Took {time() - t1}s to load all nexus files.")
         return cls(scans)
+
+
+def _match_start_stop_to_step(
+                step,
+                user_bounds,
+                auto_bounds,
+                eps = 1e-5):
+    warning_str = ("User provided bounds (volume_start, volume_stop) do not "
+                   "match the step size volume_step. Bounds will be adjusted "
+                   "automatically. If you want to avoid this warning, make "
+                   "that the bounds match the step size, i.e. volume_bound = "
+                   "volume_step * integer.")
+    if user_bounds == (None, None):
+        # use auto bounds and expand both ways
+        return (np.floor(auto_bounds[0]/step)*step,
+                np.ceil(auto_bounds[1]/step)*step)
+    elif user_bounds[0] is None:
+        # keep user value and expand to right
+        stop = np.ceil(user_bounds[1]/step)*step
+        if np.any(abs(stop - user_bounds[1]) > eps):
+            print(warning_str)
+        return np.floor(auto_bounds[0]/step)*step, stop
+    elif user_bounds[1] is None:
+        # keep user value and expand to left
+        start = np.floor(user_bounds[0]/step)*step
+        if np.any(abs(user_bounds[0] - start) > eps):
+            print(warning_str)
+        return start, np.ceil(auto_bounds[1]/step)*step
+    else:
+        start, stop = (np.floor(user_bounds[0]/step)*step,
+                       np.ceil(user_bounds[1]/step)*step)
+        if np.any(abs(start - user_bounds[0]) > eps or
+                  abs(stop - user_bounds[1]) > eps):
+            print(warning_str)
+        return start, stop

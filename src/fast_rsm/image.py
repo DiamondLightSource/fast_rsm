@@ -348,9 +348,17 @@ class Image:
 
         ub_mat = np.matmul(ub_mat, coord_change_mat)
 
+        # #ADD IN HERE INVERSE OF OMEGA AND ALPHA ROTATIONS, WHICH ARE NOT INCLUDED IN THE UB MATRIX. Currently only have kout-kin which is Hlab. For hkl in vertical mode we need 
+        # # B^(-1)  U^(-1) (Ω^(-1)  A^(-1)  H_lab)
+        # #or for horizontal 
+        # #B^(-1)  U^(-1) (Θ^(-1)  χ^(-1)  H_lab)
+        # #incorrectly labelled U matrix, is actually the necessary omega+alpha or theta-chi- rotations
+        # samplerotations=self.diffractometer.get_u_matrix(frame.scan_index)
+        # invSampRot=np.linalg.inv(samplerotations)
+        # ub_mat=np.matmul(ub_mat,invSampRot)
+
         # The custom, high performance linear_map expects float32's.
         ub_mat = ub_mat.astype(np.float32)
-
         # pylint: disable=c-extension-no-member
         if indices is not None:
             to_map = np.ascontiguousarray(k_out_array[i, j, :])

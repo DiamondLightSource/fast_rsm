@@ -69,12 +69,18 @@ if __name__ == "__main__":
         rlist=eval(args.scan_range)
         if len(np.shape(rlist))==1:
             scanrange=rlist
-            SCANS=list(range(int(scanrange[0]),int(scanrange[1])+1,int(scanrange[2])))
+            SCANS=list(range(
+                int(scanrange[0]),
+                int(scanrange[1])+1,
+                int(scanrange[2])))
         else:
             SCANS=[]
             for r in rlist:
                 scanrange=r
-                SCANS.extend(list(range(int(scanrange[0]),int(scanrange[1])+1,int(scanrange[2]))))
+                SCANS.extend(list(range(
+                    int(scanrange[0]),
+                    int(scanrange[1])+1,
+                    int(scanrange[2]))))
 
 
     i=1
@@ -88,18 +94,18 @@ if __name__ == "__main__":
         save_path = Path(OUTDIR)/Path(save_file_name)
         if i > 1e7:
             raise ValueError(
-                "naming counter hit limit therefore exiting ")   
-    
+                "naming counter hit limit therefore exiting ")
+
     #save variables to job file using job template
     f=open(save_path,'x')
     f.write(''.join(lines1))
     f.write(f'scan_numbers= {SCANS}\n')
     f.write(''.join(lines2))
     f.close()
-    
-    
+
+
     #load in template mapscript, new paths
-    f=open(f'{Path.home()}/fast_rsm/mapscript_template.sh')
+    f=open(f'{Path.home()}/fast_rsm/mapscript_testtemplate.sh')
     lines=f.readlines()
     f.close()
 
@@ -166,6 +172,3 @@ if __name__ == "__main__":
             print("error encountered during processing, view slurm file for details")
             #subprocess.run([f"less {Path.home()}/fast_rsm/{endslurms[-1]}"])
             #os.system(f"less {Path.home()}/fast_rsm/{endslurms[-1]}")
-
-
-
