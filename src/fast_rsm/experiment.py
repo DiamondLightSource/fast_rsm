@@ -334,8 +334,9 @@ class Experiment:
                     shared_mem.unlink()
                 except:
                     pass
-            
-        normalised_map=np.divide(map_arrays,count_arrays,where=count_arrays!=0)
+        fcounts= count_arrays.astype(np.float32) #makes sure counts are floats ready for division
+        normalised_map=np.divide(map_arrays,fcounts, out=np.copy(map_arrays),where=fcounts!=0.0)#need to specify out location to avoid working with non-initialised data
+        
         # Only save the vtk/npy files if we've been asked to.
         if save_vtk:
             print("\n**READ THIS**")
