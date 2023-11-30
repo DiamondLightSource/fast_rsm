@@ -102,10 +102,23 @@ for scan in SCANS:
     save_as = str(scan) +'_'+ datetime_str + ".dat"
     savepath=f'{OUTDIR}/{save_as}'
     
-    res = ai.integrate1d_ng(img_array,
+    
+    tth,I = ai.integrate1d_ng(img_array,
                             args.bins,
                             mask=mask,
-                            unit="2th_deg",
-                            filename=savepath,polarization_factor=1)
+                            unit="2th_deg",polarization_factor=1)
+    Q,I = ai.integrate1d_ng(img_array,
+                        args.bins,
+                        mask=mask,
+                       unit="q_A^-1",polarization_factor=1)
+    outdata=pd.DataFrame({'2theta':tth,'Q_angstrom^-1':Q,'Intensity':I})
+    print(outdata.head())
+    f=open(savepath,'w')
+    f.write("#2theta\tQ_angstrom^-1\tIntensity\n")
+    f.close()
+
+    outdata.to_csv(savepath,sep='\t',index=False,header=False,mode='a')
+    print(f'finished processing scan {scan}')
+    print(f'saved 1D profile to {savepath}\n')
     print(f'process scan {scan}\n')
 print('Finished processing images')
