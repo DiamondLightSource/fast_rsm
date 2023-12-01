@@ -149,13 +149,13 @@ pixels based on their intensity (not recommended).
 
 # If you have a small number of hot pixels to mask, specify them one at a time
 # in a list. In other words, it should look like:
-# specific_pixels = [(pixel_x1, pixel_y1), (pixel_x2, pixel_y2)]
+# specific_pixels = [(pixel_x1, pixel_x1), (pixel_y1, pixel_y2)]
 # Or, an exact example, where we want to mask pixel (233, 83) and pixel 
 # (234, 83), where pixel coordinates are (x, y):
 # 
 # specific_pixels = [
-#     (233, 83),
-#     (234, 83)
+#     (233, 234),
+#     (83, 83)
 # ]
 # 
 # Leave specific pixels as None if you dont want to mask any specific pixels.
