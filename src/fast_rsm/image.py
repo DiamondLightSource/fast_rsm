@@ -218,6 +218,10 @@ class Image:
         # detector in this frame of reference.
         det_horizontal = self.diffractometer.get_detector_horizontal(frame)
         det_horizontal.array = det_horizontal.array.astype(np.float32)
+        if self.index==1:
+            np.save(det_vertical.array,r"/dls/i07/data/2023/cm33856-2/processing/PhilM_testing/detvert.npy")
+            np.save(det_horizontal.array,r"/dls/i07/data/2023/cm33856-2/processing/PhilM_testing/dethor.npy")
+            np.save(det_displacement.array,r"/dls/i07/data/2023/cm33856-2/processing/PhilM_testing/detvec.npy")
 
         # Now we have an orthonormal basis: det_displacement points from the
         # sample to the detector, det_vertical points vertically up the detector
