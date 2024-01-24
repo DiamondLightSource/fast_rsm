@@ -321,7 +321,8 @@ class Experiment:
                     count_arrays=np.sum([count_arrays,new_counts],axis=0)
                 #           normalised_map = map_arrays/(count_arrays.astype(np.float32))
                 # Make sure all our shared memory has been closed nicely.
-                
+                pool.close()
+                pool.join()
                 for shared_mem in map_mem:
                     shared_mem.close()
                     try:
@@ -334,7 +335,7 @@ class Experiment:
                         shared_mem.unlink()
                     except:
                         pass
-                pool.close()
+                
         fcounts= count_arrays.astype(np.float32) #makes sure counts are floats ready for division
         normalised_map=np.divide(map_arrays,fcounts, out=np.copy(map_arrays),where=fcounts!=0.0)#need to specify out location to avoid working with non-initialised data
         
