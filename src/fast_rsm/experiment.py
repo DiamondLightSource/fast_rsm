@@ -22,8 +22,7 @@ from .scan import Scan, init_process_pool, bin_maps_with_indices, chunk
 from .writing import linear_bin_to_vtk
 import pandas as pd
 import pyFAI,fabio
-from datetime import datetime
-import time
+#from datetime import datetime
 import h5py
 
 def _remove_file(path: Union[str, Path]):
@@ -302,7 +301,8 @@ class Experiment:
                         raise ValueError(
                         "Could not carry out map for an unknown reason. "
                         "Probably one of the threads segfaulted, or something.")
-                print("\nCalculation complete. Finishing up...")
+                scanname=scan.metadata.data_file.diamond_scan.nxfilename.split('/')[-1]
+                print(f"\nCalculation for scan {scanname} complete.")
                 map_mem = [SharedMemory(x) for x in map_names]
                 count_mem = [SharedMemory(x) for x in count_names]
 
