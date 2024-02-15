@@ -735,9 +735,9 @@ class Experiment:
         f.close()
         return fr'{outpath}/fast_rsm.poni'
     
-    def save_projection(self,local_output_path,projected_name,projected2d,azimuthal_int,config):
+    def save_projection(self,output_path,projected_name,projected2d,azimuthal_int,config):
         
-        hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
+        hf=h5py.File(f'{output_path}/{projected_name}.hdf5',"w")
         dset=hf.create_group("projection")
         dset.create_dataset("projection_2d",data=projected2d[0])
         dset.create_dataset("config",data=str(config))
@@ -745,8 +745,8 @@ class Experiment:
             dset.create_dataset(f"{key}",data=azimuthal_int[f'{key}']) 
         hf.close()
     
-    def save_integration(self,local_output_path,integrated_name,azimuthal_int,config):
-        hf=h5py.File(f'{local_output_path}/{integrated_name}.hdf5',"w")
+    def save_integration(self,output_path,integrated_name,azimuthal_int,config):
+        hf=h5py.File(f'{output_path}/{integrated_name}.hdf5',"w")
         dset=hf.create_group("integration")
         dset.create_dataset("config",data=str(config))
         for key in azimuthal_int.keys():
