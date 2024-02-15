@@ -35,28 +35,13 @@ This section requires action! Make sure you set all of the variables defined her
 # How was your sample mounted? Options are 'horizontal', 'vertical' and 'DCD'.
 setup = 'horizontal'
 
-# Set local_data_path if your data isn't stored on the diamond system any more
-# (for example if it's on a memory stick or scratch drive).
-local_data_path = None
-# Set this if you want to save the output somewhere other than the processing
-# folder. Be warned, this could take up a lot of space.
-local_output_path = None
-
-# If you're processing on the cluster, you need to populate the next few fields.
-# The experiment number, used to work out where your data is stored.
-experiment_number = 'si28599-1'
-
-# The sub-directory containing your experimental data. Leave as None if unused.
-# Otherwise, if the data was stored in a subdirectory called "day_1", e.g.
-#   /dls/i07/data/2022/si32333-1/day_1/
-# then you should use:
-#   data_sub_directory = "day_1"
-data_sub_directory = None 
-
-# The year the experiment took place.
-year = 2023
-
-
+# Set path for where the data is stored. 
+#This will either be on the diamond servers e.g."/dls/i07/data/{year}/{experiment_number}/{any subfolders if saved per sample}" 
+#Or this will be on your local computer 
+data_path = None 
+# Set path for where to save the files output from the fast_rsm mapper
+# Be warned, this could take up a lot of space.
+output_path = None 
 
 # The beam centre, as can be read out from GDA, in pixel_x, pixel_y. If your
 # map looks wacky, you probably cocked this up.
@@ -185,6 +170,27 @@ mask_regions = None
 # any pixels, then set min_intensity = None. This is useful for dynamically
 # creating masks (which is really useful for generating masks from -ve numbers).
 min_intensity = 0.
+
+#for pyfai integration of an image, PONI and mask files need to be created
+#first using pyfai calibration. Add the path locations to poni and mask files here
+PYFAI_PONI = None#  '/home/rpy65944/Documents/project2d.poni' #manualcalib2.poni'#   project2d.poni'
+PYFAI_MASK = None # '/home/rpy65944/Documents/maskAyo.edf' #'/home/rpy65944/test2dFromImages.edf'
+
+
+#define what outputs you would like form the processing here, choose from:
+# 'full_reciprocal_map' = calculates a full reciprocal space map combining all
+#                           scans listed into a single volume
+#
+# 'curved_projection_2D' = projects a series of detector images into a single 2D,
+#                           treating the images as if there were all from a curved detector.
+
+# 'pyfai_1D' =  Does an azimuthal integration on an image using PONI and MASK 
+#               settings described in corresponding files
+#
+# 'save_binoculars_h5'= saved a hdf5 format as well as other output
+#
+#
+process_outputs=[]#'curved_projection_2D']#'pyfai_1D']#]#
 
 
 # The scan numbers of the scans that you want to use to produce this reciprocal
