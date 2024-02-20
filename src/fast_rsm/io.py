@@ -20,7 +20,8 @@ def from_i07(path_to_nx: Union[str, Path],
              detector_distance: float,
              setup: str,
              path_to_data: str = '',
-             using_dps: bool = False) -> 'Scan':
+             using_dps: bool = False,
+             experimental_hutch=0) -> 'Scan':
     """
     Instantiates a Scan from the path to an I07 nexus file, a beam centre
     coordinate tuple, a detector distance and a sample out-of-plane vector.
@@ -49,7 +50,7 @@ def from_i07(path_to_nx: Union[str, Path],
     """
     # Load the nexus file.
     i07_nexus = I07Nexus(path_to_nx, path_to_data,
-                         detector_distance, setup, using_dps=using_dps)
+                         detector_distance, setup, using_dps=using_dps,experimental_hutch=experimental_hutch)
 
     # Not used at the moment, but not deleted in case full UB matrix
     # calculations become important in the future (in which case we'll also
