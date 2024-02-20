@@ -141,13 +141,13 @@ class Image:
             pass
 
         #normalise image data to count time
-        detectorname=self.metadata.data_file._parse_detector_name()
         scan_entry=self.metadata.diffractometer.data_file.nxfile
-        count_time=scan_entry.entry.instrument[f'{detectorname}'].count_time[self.index]
         try:
-            arr /= count_time
+            if isinstance(scan_entry.entry.attenuation.count_time.nxdata,np.ndarray):
+                arr /= scan_entry.entry.attenuation.count_time.nxdata[self.index]
+            else:
+                arr /= scan_entry.entry.attenuation.count_time.nxdata
         except AttributeError:
-            print('could not normalise to count time')
             pass
         
 
