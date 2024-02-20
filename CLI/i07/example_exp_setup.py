@@ -35,6 +35,8 @@ This section requires action! Make sure you set all of the variables defined her
 # How was your sample mounted? Options are 'horizontal', 'vertical' and 'DCD'.
 setup = 'horizontal'
 
+#which experimental hutch was used 0 = unsure, 1= experimental hutch 1, 2=experimental hutch 2
+experimental_hutch=1
 # Set local_data_path if your data isn't stored on the diamond system any more
 # (for example if it's on a memory stick or scratch drive).
 local_data_path = None
