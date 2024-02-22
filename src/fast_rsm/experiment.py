@@ -735,69 +735,82 @@ class Experiment:
         f.close()
         return fr'{outpath}/fast_rsm.poni'
     
-    def save_projection(self,local_output_path,projected_name,projected2d,azimuthal_int,config):
+    
+    def save_projection(self,hf,local_output_path,projected_name,projected2d,azimuthal_int,config):
         
-        hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
+        #hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
         dset=hf.create_group("projection")
         dset.create_dataset("projection_2d",data=projected2d[0])
         dset.create_dataset("config",data=str(config))
         for key in azimuthal_int.keys():
             dset.create_dataset(f"{key}",data=azimuthal_int[f'{key}']) 
-        hf.close()
+        #hf.close()
     
-    def save_integration(self,local_output_path,integrated_name,azimuthal_int,config):
-        hf=h5py.File(f'{local_output_path}/{integrated_name}.hdf5',"w")
-        dset=hf.create_group("integration")
-        dset.create_dataset("config",data=str(config))
-        for key in azimuthal_int.keys():
-            dset.create_dataset(f"{key}",data=azimuthal_int[f'{key}']) 
-        hf.close()
+    def save_integration(self,hf,local_output_path,integrated_name,twothetas,Qangs,intensities,configs):
+       # hf=h5py.File(f'{local_output_path}/{integrated_name}.hdf5',"w")
+        dset=hf.create_group("integrations")
+        
+        dset.create_dataset("configs",data=str(configs))
+        dset.create_dataset("2thetas",data=twothetas)
+        dset.create_dataset("Q_angstrom^-1",data=Qangs)
+        dset.create_dataset("Intensity",data=intensities)
+        #hf.close()
     
-    def save_qperp_qpara(self,local_output_path,out_name,qperp_qpara_map):
-        hf=h5py.File(f'{local_output_path}/{out_name}.hdf5',"w")
+    def save_qperp_qpara(self,hf,local_output_path,out_name,qperp_qpara_map):
+        #hf=h5py.File(f'{local_output_path}/{out_name}.hdf5',"w")
         dset=hf.create_group("qperp_qpara")
-        dset.create_dataset("image",data=qperp_qpara_map[0])
-        dset.create_dataset("qperprange",data=qperp_qpara_map[1])
-        dset.create_dataset("qpararange",data=qperp_qpara_map[2])
-        hf.close()
+        dset.create_dataset("images",data=qperp_qpara_map[0])
+        dset.create_dataset("qpararanges",data=qperp_qpara_map[1])
+        dset.create_dataset("qperpranges",data=qperp_qpara_map[2])
+        #hf.close()
 
     def pyfai1D(self,imagespath,maskpath,ponipath,outpath,scan,projected2d=None,bins=1000):
+        images=scan.metadata.data_file.local_image_paths
+        tiflist=[file.split(f'{imagespath}')[-1] for file in images]
+        twothetas=[]
+        intensities=[]
+        Qangs=[]
+        configs=[]
+        for i,tiff in enumerate(tiflist):
 
-        if projected2d==None:
-            images=scan.metadata.data_file.local_image_paths
-            tiflist=[file.split(f'{imagespath}')[-1] for file in images]
-            fname=tiflist[0]
-            scan_number=fname.split('_')[1]
-            img = fabio.open(fr'{imagespath}/{fname}')
-            img_array = img.data
-            maskimg = fabio.open(maskpath)
-            mask = maskimg.data
-
-        else:
-            img_array=projected2d[0]
-            mask=np.less_equal(projected2d[1],0)
-        
-        ai = pyFAI.load(ponipath)       
-        print("\nIntegrator: \n", ai)
+            if projected2d==None:  
+               
+                fname=tiflist[0]
+                img = fabio.open(fr'{imagespath}/{fname}')
+                img_array = img.data
+                maskimg = fabio.open(maskpath)
+                mask = maskimg.data
     
+            else:
+                img_array=projected2d[0]
+                mask=np.less_equal(projected2d[1],0)
+            
+            ai = pyFAI.load(ponipath)       
+            print("\nIntegrator: \n", ai)
         
-        print("img_array:", type(img_array), img_array.shape, img_array.dtype)
-        
-        #GIVE PATH TO MASK FILE
-
-        
-        
-        tth,I = ai.integrate1d_ng(img_array,
+            
+            print("img_array:", type(img_array), img_array.shape, img_array.dtype)
+            
+            #GIVE PATH TO MASK FILE
+    
+            
+            
+            tth,I = ai.integrate1d_ng(img_array,
+                                    bins,
+                                    mask=mask,
+                                    unit="2th_deg",polarization_factor=1)
+            Q,I = ai.integrate1d_ng(img_array,
                                 bins,
                                 mask=mask,
-                                unit="2th_deg",polarization_factor=1)
-        Q,I = ai.integrate1d_ng(img_array,
-                            bins,
-                            mask=mask,
-                           unit="q_A^-1",polarization_factor=1)
-        outdata=pd.DataFrame({'2theta':tth,'Q_angstrom^-1':Q,'Intensity':I})
+                               unit="q_A^-1",polarization_factor=1)
+            #outdata={'2theta':tth,'Q_angstrom^-1':Q,'Intensity':I}
+            Qangs.append(Q)
+            intensities.append(I)
+            twothetas.append(tth)
+            #outdatas.append(outdata)
+            configs.append(ai.get_config())
         
-        return outdata,ai.get_config()
+        return twothetas,Qangs,intensities,configs
 
     
     def calc_qpara_qper(self,scan,frame: Frame):
@@ -805,7 +818,7 @@ class Experiment:
         mapnorms=[]
         rangeqparas=[]
         rangeqperps=[]
-        for imnum in np.arange(5):
+        for imnum in np.arange(number_images):
             pdata=scan.load_image(imnum).data
             allints=np.reshape(pdata,np.size(pdata))
             mapints=allints
