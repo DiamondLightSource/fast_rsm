@@ -798,41 +798,50 @@ class Experiment:
         outdata=pd.DataFrame({'2theta':tth,'Q_angstrom^-1':Q,'Intensity':I})
         
         return outdata,ai.get_config()
-        
-    def calc_qpara_qper(self,scan,frame: Frame):
-        pdata=scan.load_image(0).data
-        allints=np.reshape(pdata,np.size(pdata))
-        mapints=allints
-        qvals=scan.load_image(0).q_vectors(frame=frame)
 
-        qzvalues=np.reshape(qvals[:,:,0],np.size(pdata))
-        qxvalues=np.reshape(qvals[:,:,1],np.size(pdata))
-        qyvalues=np.reshape(qvals[:,:,2],np.size(pdata))
-        
-        qperp=qzvalues
-        qpara=np.sqrt(np.square(qxvalues)+np.square(qyvalues))*np.copysign(1,np.sign(qxvalues))
-        
-        perpstep=0.01
-        parastep=0.01
-        rangeqperp=np.linspace(qperp.min(),qperp.max(),int((qperp.max()-qperp.min())/perpstep))
-        rangeqpara=np.linspace(qpara.min(),qpara.max(),int((qpara.max()-qpara.min())/parastep))
-        qperpbin=[int(val)-1 for val in (qperp-qperp.min())/perpstep]
-        qparabin=[int(val)-1 for val in (qpara-qpara.min())/parastep]
-        
-        
-        qmap=np.zeros([len(rangeqperp),len(rangeqpara)])
-        counts=np.zeros([len(rangeqperp),len(rangeqpara)])
-        for i in np.arange(len(qparabin)):
-            qpara,qperp=qparabin[i],qperpbin[i]
-            intval=mapints[i]
-            try:
-                qmap[qperp,qpara]+=intval
-                counts[qperp,qpara]+=1
-            except:
-                print(f'failed on {qpara}  {qperp}  {intval} ')
-        mapnorm=np.zeros([len(rangeqperp),len(rangeqpara)])
-        np.divide(qmap,counts,out=mapnorm,where=counts!=0)
-        return mapnorm,rangeqpara,rangeqperp
+    
+    def calc_qpara_qper(self,scan,frame: Frame):
+        number_images=scan.metadata.data_file.scan_length
+        mapnorms=[]
+        rangeqparas=[]
+        rangeqperps=[]
+        for imnum in np.arange(5):
+            pdata=scan.load_image(imnum).data
+            allints=np.reshape(pdata,np.size(pdata))
+            mapints=allints
+            qvals=scan.load_image(imnum).q_vectors(frame=frame)
+    
+            qzvalues=np.reshape(qvals[:,:,0],np.size(pdata))
+            qxvalues=np.reshape(qvals[:,:,1],np.size(pdata))
+            qyvalues=np.reshape(qvals[:,:,2],np.size(pdata))
+            
+            qperp=qzvalues
+            qpara=np.sqrt(np.square(qxvalues)+np.square(qyvalues))*np.copysign(1,np.sign(qxvalues))
+            
+            perpstep=0.005
+            parastep=0.005
+            rangeqperp=np.linspace(qperp.min(),qperp.max(),int((qperp.max()-qperp.min())/perpstep))
+            rangeqpara=np.linspace(qpara.min(),qpara.max(),int((qpara.max()-qpara.min())/parastep))
+            qperpbin=[int(val)-1 for val in (qperp-qperp.min())/perpstep]
+            qparabin=[int(val)-1 for val in (qpara-qpara.min())/parastep]
+            
+            
+            qmap=np.zeros([len(rangeqperp),len(rangeqpara)])
+            counts=np.zeros([len(rangeqperp),len(rangeqpara)])
+            for i in np.arange(len(qparabin)):
+                qpara,qperp=qparabin[i],qperpbin[i]
+                intval=mapints[i]
+                try:
+                    qmap[qperp,qpara]+=intval
+                    counts[qperp,qpara]+=1
+                except:
+                    print(f'failed on {qpara}  {qperp}  {intval} ')
+            mapnorm=np.zeros([len(rangeqperp),len(rangeqpara)])
+            np.divide(qmap,counts,out=mapnorm,where=counts!=0)
+            mapnorms.append(mapnorm)
+            rangeqparas.append(rangeqpara)
+            rangeqperps.append(rangeqperp)
+        return mapnorms,rangeqparas,rangeqperps
 
     @classmethod
     def from_i07_nxs(cls,
