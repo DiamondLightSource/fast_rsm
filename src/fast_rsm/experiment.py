@@ -735,9 +735,9 @@ class Experiment:
         f.close()
         return fr'{outpath}/fast_rsm.poni'
     
-    def save_projection(self,output_path,projected_name,projected2d,azimuthal_int,config):
+    def save_projection(self,local_output_path,projected_name,projected2d,azimuthal_int,config):
         
-        hf=h5py.File(f'{output_path}/{projected_name}.hdf5',"w")
+        hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
         dset=hf.create_group("projection")
         dset.create_dataset("projection_2d",data=projected2d[0])
         dset.create_dataset("config",data=str(config))
@@ -745,12 +745,20 @@ class Experiment:
             dset.create_dataset(f"{key}",data=azimuthal_int[f'{key}']) 
         hf.close()
     
-    def save_integration(self,output_path,integrated_name,azimuthal_int,config):
-        hf=h5py.File(f'{output_path}/{integrated_name}.hdf5',"w")
+    def save_integration(self,local_output_path,integrated_name,azimuthal_int,config):
+        hf=h5py.File(f'{local_output_path}/{integrated_name}.hdf5',"w")
         dset=hf.create_group("integration")
         dset.create_dataset("config",data=str(config))
         for key in azimuthal_int.keys():
             dset.create_dataset(f"{key}",data=azimuthal_int[f'{key}']) 
+        hf.close()
+    
+    def save_qperp_qpara(self,local_output_path,out_name,qperp_qpara_map):
+        hf=h5py.File(f'{local_output_path}/{out_name}.hdf5',"w")
+        dset=hf.create_group("qperp_qpara")
+        dset.create_dataset("image",data=qperp_qpara_map[0])
+        dset.create_dataset("qperprange",data=qperp_qpara_map[1])
+        dset.create_dataset("qpararange",data=qperp_qpara_map[2])
         hf.close()
 
     def pyfai1D(self,imagespath,maskpath,ponipath,outpath,scan,projected2d=None,bins=1000):
@@ -791,8 +799,40 @@ class Experiment:
         
         return outdata,ai.get_config()
         
+    def calc_qpara_qper(self,scan,frame: Frame):
+        pdata=scan.load_image(0).data
+        allints=np.reshape(pdata,np.size(pdata))
+        mapints=allints
+        qvals=scan.load_image(0).q_vectors(frame=frame)
 
-
+        qzvalues=np.reshape(qvals[:,:,0],np.size(pdata))
+        qxvalues=np.reshape(qvals[:,:,1],np.size(pdata))
+        qyvalues=np.reshape(qvals[:,:,2],np.size(pdata))
+        
+        qperp=qzvalues
+        qpara=np.sqrt(np.square(qxvalues)+np.square(qyvalues))*np.copysign(1,np.sign(qxvalues))
+        
+        perpstep=0.01
+        parastep=0.01
+        rangeqperp=np.linspace(qperp.min(),qperp.max(),int((qperp.max()-qperp.min())/perpstep))
+        rangeqpara=np.linspace(qpara.min(),qpara.max(),int((qpara.max()-qpara.min())/parastep))
+        qperpbin=[int(val)-1 for val in (qperp-qperp.min())/perpstep]
+        qparabin=[int(val)-1 for val in (qpara-qpara.min())/parastep]
+        
+        
+        qmap=np.zeros([len(rangeqperp),len(rangeqpara)])
+        counts=np.zeros([len(rangeqperp),len(rangeqpara)])
+        for i in np.arange(len(qparabin)):
+            qpara,qperp=qparabin[i],qperpbin[i]
+            intval=mapints[i]
+            try:
+                qmap[qperp,qpara]+=intval
+                counts[qperp,qpara]+=1
+            except:
+                print(f'failed on {qpara}  {qperp}  {intval} ')
+        mapnorm=np.zeros([len(rangeqperp),len(rangeqpara)])
+        np.divide(qmap,counts,out=mapnorm,where=counts!=0)
+        return mapnorm,rangeqpara,rangeqperp
 
     @classmethod
     def from_i07_nxs(cls,
