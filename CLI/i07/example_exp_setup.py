@@ -39,34 +39,21 @@ setup = 'horizontal'
 experimental_hutch=1
 # Set local_data_path if your data isn't stored on the diamond system any more
 # (for example if it's on a memory stick or scratch drive).
-local_data_path = None
+local_data_path = '/dls/i07/data/2024/si32266-3/QIchunfilms'
 # Set this if you want to save the output somewhere other than the processing
 # folder. Be warned, this could take up a lot of space.
-local_output_path = None
+local_output_path =  '/dls/i07/data/2024/cm37245-1/PhilMousley_testing/output'
 
-# If you're processing on the cluster, you need to populate the next few fields.
-# The experiment number, used to work out where your data is stored.
-experiment_number = 'si28599-1'
-
-# The sub-directory containing your experimental data. Leave as None if unused.
-# Otherwise, if the data was stored in a subdirectory called "day_1", e.g.
-#   /dls/i07/data/2022/si32333-1/day_1/
-# then you should use:
-#   data_sub_directory = "day_1"
-data_sub_directory = None 
-
-# The year the experiment took place.
-year = 2023
 
 
 
 # The beam centre, as can be read out from GDA, in pixel_x, pixel_y. If your
 # map looks wacky, you probably cocked this up.
-beam_centre = (250,580)
+beam_centre = (119,1564)
 
 # The distance between the sample and the detector (or, if using the DCD, the
 # distance between the receiving slit and the detector). Units of meters.
-detector_distance = 930e-3
+detector_distance = 0.18
 
 # The frame/coordinate system you want the map to be carried out in.
 # Options for frame_name argument are:
@@ -85,7 +72,7 @@ detector_distance = 930e-3
 # Note that if you want something like a q_parallel, q_perpendicular projection,
 # you should choose Frame.lab with cartesian coordinates. From this data, your
 # projection can be easily computed.
-frame_name = Frame.hkl
+frame_name = Frame.lab
 coordinates = Frame.cartesian
 
 # Ignore this unless you selected Frame.polar.
@@ -141,6 +128,7 @@ volume_step = None
 load_from_dat = False
 
 
+
 """
 **MASKING**
 
@@ -151,42 +139,56 @@ pixels based on their intensity (not recommended).
 
 # If you have a small number of hot pixels to mask, specify them one at a time
 # in a list. In other words, it should look like:
-# specific_pixels = [(pixel_x1, pixel_x2), (pixel_y1, pixel_y2)]
+# specific_pixels = [(pixel_x1, pixel_y1), (pixel_x2, pixel_y2)]
 # Or, an exact example, where we want to mask pixel (233, 83) and pixel 
 # (234, 83), where pixel coordinates are (x, y):
 # 
-# specific_pixels = [
-#     (233, 234),
-#     (83, 83)
-# ]
+specific_pixels = [(233, 234),(83, 83)]
 # 
 # Leave specific pixels as None if you dont want to mask any specific pixels.
 # For this dataset we need to mask pixel (x=233, y=83)
-specific_pixels = None
+# specific_pixels = None
 
 # If you want to specify an entire region of pixels to mask, do so here.
 # This is done using a "Region" object. To make a Region, give it start_x, 
 # stop_x, start_y, start_y, as follows:
 # 
-mask_1 = Region(0, 1050, 0, 515)
-mask_2 = Region(1135, 2069, 0, 515)
-mask_3 = Region(1050, 1135, 0, 80)
-mask_4 = Region(1050, 1135, 245, 515)
- 
-# Where my_mask_region runs in x from pixel 3 to 6 inclusive, and runs in y from
-# pixel 84 to 120 inclusive. You can make as many mask regions as you like, just
-# make sure that you put them in the mask_regions list, as follows:
-# mask_regions = [my_mask_region, Region(1, 2, 3, 4)]
+# mask_1 = Region(0, 75, 0, 194)
+# mask_2 = Region(425, 485, 0, 194)
+#mask_3 = Region(1050, 1135, 0, 80)
+#mask_4 = Region(1050, 1135, 245, 515)
+
 # 
 # If you don't want to use any mask regions, just leave mask_regions equal to
 # None.
-#mask_regions = [mask_1, mask_2, mask_3, mask_4]
+#mmask_regions = [mask_1, mask_2]
 mask_regions = None
 
 # Ignore pixels with an intensity below this value. If you don't want to ignore
 # any pixels, then set min_intensity = None. This is useful for dynamically
 # creating masks (which is really useful for generating masks from -ve numbers).
 min_intensity = 0.
+
+#for pyfai integration of an image, PONI and mask files need to be created
+#first using pyfai calibration. Add the path locations to poni and mask files here
+PYFAI_MASK =  '/home/i07user/fast_rsm/example_mask_Qichun.edf' #'/home/rpy65944/test2dFromImages.edf'
+
+
+#define what outputs you would like form the processing here, choose from:
+# 'full_reciprocal_map' = calculates a full reciprocal space map combining all
+#                           scans listed into a single volume
+#
+# 'curved_projection_2D' = projects a series of detector images into a single 2D,
+#                           treating the images as if there were all from a curved detector.
+
+# 'pyfai_1D' =  Does an azimuthal integration on an image using PONI and MASK 
+#               settings described in corresponding files
+#
+# 'save_binoculars_h5'= saved a hdf5 format as well as other output
+#
+# 'qperp_qpara_map'  - project GIWAXS image into q_para,q_perp plot
+process_outputs=['qperp_qpara_map','pyfai_1D']#]#'qperp_qpara_map' ,'pyfai_1D']#'qperp_qpara_map','pyfai_1D']#'qperp_qpara_map','full_reciprocal_map']#'curved_projection_2D']#'pyfai_1D']#]#
+
 
 
 # The scan numbers of the scans that you want to use to produce this reciprocal

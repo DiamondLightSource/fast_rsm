@@ -1,5 +1,5 @@
 """
-This section prepares the calculation. You probably shouldn't change anything here
+This section prepares the calculation. You probably shouldn't change any'qperp_qpara_map',thing here
 unless you know what you're doing.
 """
 
@@ -36,18 +36,16 @@ num_threads = multiprocessing.cpu_count()
 
 # Work out where the data is.
 if local_data_path is None:
-    data_dir = Path(f"/dls/i07/data/{year}/{experiment_number}/")
+    data_dir = None#Path(f"/dls/i07/data/{year}/{experiment_number}/")
 else:
     data_dir = Path(local_data_path)
-# data_dir = Path(f"/Users/richard/Data/i07/{experiment_number}/")
+
 
 # Store this for later.
 if local_output_path is None:
     processing_dir = data_dir / "processing"
 else:
     processing_dir = Path(local_output_path)
-if data_sub_directory is not None:
-    data_dir /= Path(data_sub_directory)
 
 # Here we calculate a sensible file name that hasn't been taken.
 i = 0
@@ -70,7 +68,7 @@ while (os.path.exists(str(save_path) + ".npy") or
             "Either you tried to save this file 10000000 times, or something "
             "went wrong. I'm going with the latter, but exiting out anyway.")
 
-
+from datetime import datetime
 # Work out the paths to each of the nexus files. Store as pathlib.Path objects.
 nxs_paths = [data_dir / f"i07-{x}.nxs" for x in scan_numbers]
 
@@ -96,11 +94,12 @@ if mask_regions is not None:
 
 # Finally, instantiate the Experiment object.
 experiment = Experiment.from_i07_nxs(
-    nxs_paths, beam_centre, detector_distance, setup, 
+    nxs_paths,beam_centre, detector_distance, setup, 
     using_dps=using_dps,experimental_hutch=experimental_hutch)
 
 experiment.mask_pixels(specific_pixels)
 experiment.mask_regions(mask_regions)
+
 
 """
 This section is for changing metadata that is stored in, or inferred from, the
@@ -164,40 +163,102 @@ for i, scan in enumerate(experiment.scans):
     #     [0, 1, 0],
     #     [0, 0, 1]
     # ])
+    #     # Would you like to skip any images in any scans? Do so here!
+    #     # This shows how to skip the 9th in the 3rd scan (note the zero counting).
+    #     # if i == 2:
+    #     #     scan.skip_images.append(8)PYFAI_MASK
+    
+    # """
 
-    # Would you like to skip any images in any scans? Do so here!
-    # This shows how to skip the 9th in the 3rd scan (note the zero counting).
-    # if i == 2:
-    #     scan.skip_images.append(8)
-
-"""
-This section contains all of the logic for running the calculation. You shouldn't
-run this on your local computer, it'll either raise an exception or take
-forever.
-"""
+# """
+# This section contains all of the logic for running the calculation. 
+# If calculating a full map you shouldn't run this on your local computer,
+#    it'll either raise an exception or take
+# forever.
+# """
 from fast_rsm.diamond_utils import save_binoculars_hdf5
 from time import time
+import nexusformat.nexus as nx
+import h5py
+        
 
 
-if __name__ == "__main__":
+
+for i, scan in enumerate(experiment.scans):
     start_time = time()
-    # Calculate and save a binned reciprocal space map, if requested.
-    experiment.binned_reciprocal_space_map(
-        num_threads, map_frame, output_file_size=output_file_size, oop=oop,
-        min_intensity_mask=min_intensity,
-        output_file_name=save_path, 
-        volume_start=volume_start, volume_stop=volume_stop,
-        volume_step=volume_step,
-        map_each_image=map_per_image)
+    datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+    name_end=scan_numbers[i]
+    out_name=f'GIWAXS_{name_end}_{datetime_str}'
+    hf=h5py.File(f'{local_output_path}/{out_name}.hdf5',"w")
+    if 'curved_projection_2D' in process_outputs:
+     
+        projected2d=experiment.curved_to_2d(scan)
+        PYFAI_PONI=experiment.createponi(local_output_path,experiment.projshape,experiment.vertoffset)
+        azimuthal_int,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
+                            local_output_path,scan,projected2d=projected2d)
+        
+        projected_name=f'proj2d_{name_end}_{datetime_str}'
+        experiment.save_projection(hf,projected2d,azimuthal_int,config)
+        
 
-    if save_binoculars_h5:
-        save_binoculars_hdf5(str(save_path) + ".npy", str(save_path) + '.hdf5')
-        print(f"\nSaved BINoculars file to {save_path}.hdf5.\n")
+        print(f"added projection to {local_output_path}/{out_name}.hdf5")
+        
+        total_time = time() - start_time
+        print(f"\nProjecting 2d took {total_time}s")
+        
+    #if 'azimuthal_integration' in process_outputs:
+        
+    if 'pyfai_1D' in process_outputs:
+        print('start calculating 1D profiles')
+    
+        experiment.load_curve_values(scan)
+        name_end=scan_numbers[i]
+        #image2dshape=experiment.scans[i].metadata.data_file.image_shape
+        PYFAI_PONI=experiment.createponi(local_output_path,(beam_centre[1],beam_centre[0]))
+        twothetas,Qangs,intensities,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
+                           local_output_path,scan)
 
-    # Finally, print that it's finished We'll use this to work out when the
-    # processing is done.
-    total_time = time() - start_time
-    print(f"\nProcessing took {total_time}s")
-    print(f"This corresponds to {total_time*1000/total_images}ms per image.\n")
+        experiment.save_integration(hf,twothetas,Qangs,intensities,config)
 
-    print("PROCESSING FINISHED.")
+        
+        print(f'added 1D profile to {local_output_path}/{out_name}.hdf5')
+
+        #print('Finished fast azimuthal integration')
+        
+    if 'qperp_qpara_map' in process_outputs:
+        print('start calculating Qpara_Qperp maps')
+        name_end=scan_numbers[i]
+        qperp_qpara_map=experiment.calc_qpara_qper(scan,oop, map_frame)
+        datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+        experiment.save_qperp_qpara(hf, qperp_qpara_map)
+        print(f'saved qperp_qpara_map to {local_output_path}/{out_name}.hdf5')
+
+        #print('Finished qperp_qpara mapping')
+    
+    hf.close()
+    print(f'finished processing scan {name_end}')
+    
+if __name__ == "__main__":
+    
+    if 'full_reciprocal_map' in process_outputs:
+        start_time = time()
+        # Calculate and save a binned reciprocal space map, if requested.
+        experiment.binned_reciprocal_space_map(
+            num_threads, map_frame, output_file_size=output_file_size, oop=oop,
+            min_intensity_mask=min_intensity,
+            output_file_name=save_path, 
+            volume_start=volume_start, volume_stop=volume_stop,
+            volume_step=volume_step,
+            map_each_image=map_per_image)
+    
+        if 'save_binoculars_h5' in process_outputs:
+            save_binoculars_hdf5(str(save_path) + ".npy", str(save_path) + '.hdf5')
+            print(f"\nSaved BINoculars file to {save_path}.hdf5.\n")
+
+        # Finally, print that it's finished We'll use this to work out when the
+        # processing is done.
+        total_time = time() - start_time
+        print(f"\nProcessing took {total_time}s")
+        print(f"This corresponds to {total_time*1000/total_images}ms per image.\n")
+    
+print("PROCESSING FINISHED.")

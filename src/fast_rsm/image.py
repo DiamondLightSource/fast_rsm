@@ -139,7 +139,7 @@ class Image:
                 arr /= self.metadata.data_file.transmission
         except AttributeError:
             pass
-
+        
         #normalise image data to count time
         scan_entry=self.metadata.diffractometer.data_file.nxfile
         try:
@@ -150,7 +150,6 @@ class Image:
         except AttributeError:
             pass
         
-
         # If there are pixels to mask, mask them.
         if self.metadata.mask_pixels is not None:
             arr[self.metadata.mask_pixels] = np.nan
