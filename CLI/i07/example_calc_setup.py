@@ -290,7 +290,7 @@ if __name__ == "__main__":
             volume_step=volume_step,
             map_each_image=map_per_image)
     
-        if 'save_binoculars_h5' in process_outputs:
+        if save_binoculars_h5==True:
             save_binoculars_hdf5(str(save_path) + ".npy", str(save_path) + '.hdf5')
             print(f"\nSaved BINoculars file to {save_path}.hdf5.\n")
 

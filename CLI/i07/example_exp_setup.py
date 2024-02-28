@@ -17,16 +17,13 @@ setup = 'horizontal'
 
 #which experimental hutch was used 0 = unsure, 1= experimental hutch 1, 2=experimental hutch 2
 experimental_hutch=1
-# Set local_data_path if your data isn't stored on the diamond system any more
-# (for example if it's on a memory stick or scratch drive).
+# Set this to the directory path where your files are saved, note you will need to include any subdirectories in this path
 local_data_path = '/dls/i07/data/2024/si32266-3/QIchunfilms'
-# Set this if you want to save the output somewhere other than the processing
-# folder. Be warned, this could take up a lot of space.
+# Set this to the path where you want the output from the data processing to be saved
 local_output_path =  '/dls/i07/data/2024/cm37245-1/PhilMousley_testing/output'
 
 
-# The beam centre, as can be read out from GDA, in pixel_x, pixel_y. If your
-# map looks wacky, you probably cocked this up.
+# The beam centre, as can be read out from GDA, in pixel_x, pixel_y.
 beam_centre = (119,1564)
 
 # The distance between the sample and the detector (or, if using the DCD, the
@@ -130,11 +127,8 @@ min_intensity = 0.
 # 'pyfai_1D' =  Does an azimuthal integration on an image using PONI and MASK 
 #               settings described in corresponding files
 #
-# 'save_binoculars_h5'= saved a hdf5 format as well as other output
-#
 # 'qperp_qpara_map'  - project GIWAXS image into q_para,q_perp plot
-process_outputs=['qperp_qpara_map','pyfai_1D']#]#'qperp_qpara_map' ,'pyfai_1D']#'qperp_qpara_map','pyfai_1D']#'qperp_qpara_map','full_reciprocal_map']#'curved_projection_2D']#'pyfai_1D']#]#
-
+process_outputs=['qperp_qpara_map','pyfai_1D']
 
 
 # The scan numbers of the scans that you want to use to produce this reciprocal
