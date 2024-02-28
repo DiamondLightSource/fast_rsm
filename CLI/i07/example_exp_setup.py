@@ -4,34 +4,14 @@ If you're interested, each import has an associated comment that explains why
 the import is useful/necessary.
 """
 
-# Needed for various filesystem tasks (os.path.exists etc.)
 import os
-# Used for checking how many cores are available for processing.
 import multiprocessing
-# Used for constructing paths.
 from pathlib import Path
-
-# Essential for all mathematical operations we'll be carrying out.
 import numpy as np
-
-# diffraction_utils is a library developed at Diamond by Richard Brearton
-# (richard.brearton@diamond.ac.uk) to ease the task of parsing data files and
-# carrying out some common calculations. Here, we'll be using it to define
-# frames of reference, and parse nexus files.
-# We also use diffraction_utils' Region object to specify regions of interest/
-# background regions.
 from diffraction_utils import Frame, Region
-
-# The following imports are required for the core of the calculation code, also
-# written by Richard Brearton (richard.brearton@diamond.ac.uk).
-# This is the central Experiment object, which stores all the logic related to
-# mapping the experiment.
 from fast_rsm.experiment import Experiment
 
-"""
-This section requires action! Make sure you set all of the variables defined here.
-"""
-
+#=====================EXPERIMENTAL DETAILS============
 # How was your sample mounted? Options are 'horizontal', 'vertical' and 'DCD'.
 setup = 'horizontal'
 
@@ -53,6 +33,8 @@ beam_centre = (119,1564)
 # distance between the receiving slit and the detector). Units of meters.
 detector_distance = 0.18
 
+
+#========CALCULATION INFORMATION==========
 # Set this to True if you would like each image to be mapped independently.
 # If this is False, all images in all scans will be combined into one large
 # reciprocal space map.
@@ -96,14 +78,12 @@ load_from_dat = False
 
 
 
-"""
-**MASKING**
+#===========MASKING=============
+#add path to edfmaskfile created with pyFAI gui accessed via 'makemask' option in fast_rsm
+edfmaskfile =  '/home/i07user/fast_rsm/example_mask_Qichun.edf' #'/home/rpy65944/test2dFromImages.edf'
 
-This section contains details on how to mask pixels. You can either mask a series
-of individual pixels, mask rectangular regions of pixels, or dynamically mask
-pixels based on their intensity (not recommended).
-"""
 
+# alternatively specify masked regions with pixels and regions
 # If you have a small number of hot pixels to mask, specify them one at a time
 # in a list. In other words, it should look like:
 # specific_pixels = [(pixel_x1, pixel_y1), (pixel_x2, pixel_y2)]
@@ -136,11 +116,10 @@ mask_regions = None
 # creating masks (which is really useful for generating masks from -ve numbers).
 min_intensity = 0.
 
-#for pyfai integration of an image, PONI and mask files need to be created
-#first using pyfai calibration. Add the path locations to poni and mask files here
-edfmaskfile =  '/home/i07user/fast_rsm/example_mask_Qichun.edf' #'/home/rpy65944/test2dFromImages.edf'
 
 
+
+#============OUTPUTS==========
 #define what outputs you would like form the processing here, choose from:
 # 'full_reciprocal_map' = calculates a full reciprocal space map combining all
 #                           scans listed into a single volume
