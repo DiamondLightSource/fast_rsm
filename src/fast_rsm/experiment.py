@@ -170,6 +170,17 @@ class Experiment:
             regions = [regions]
         for scan in self.scans:
             scan.metadata.mask_regions = regions
+            
+    def mask_edf(self,edfmask):
+        if edfmask!=None:
+            maskimg=fabio.open(edfmask)
+            mask=maskimg.data
+        else:
+            mask=None
+        for scan in self.scans:
+            scan.metadata.edfmask = mask
+
+            
 
     def binned_reciprocal_space_map(self,
                                     num_threads: int,
@@ -824,9 +835,10 @@ class Experiment:
             mapints=allints
             qvals=scan.load_image(imnum).q_vectors(frame=frame,oop=oop)
     
-            qzvalues=np.reshape(qvals[:,:,2],np.size(pdata))
+            
             qxvalues=np.reshape(qvals[:,:,0],np.size(pdata))
             qyvalues=np.reshape(qvals[:,:,1],np.size(pdata))
+            qzvalues=np.reshape(qvals[:,:,2],np.size(pdata))
             
             qperp=qzvalues
             qpara=np.sqrt(np.square(qxvalues)+np.square(qyvalues))*np.copysign(1,np.sign(qxvalues))

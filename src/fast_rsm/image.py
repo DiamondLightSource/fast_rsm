@@ -149,6 +149,9 @@ class Image:
                 arr /= scan_entry.entry.attenuation.count_time.nxdata
         except AttributeError:
             pass
+        #if there is an edf mask file loaded, apply mask
+        if self.metadata.edfmask is not None:
+            arr[self.metadata.edfmask.astype(bool)]=np.nan
         
         # If there are pixels to mask, mask them.
         if self.metadata.mask_pixels is not None:
