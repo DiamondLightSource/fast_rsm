@@ -22,10 +22,10 @@ else:
     raise ValueError(
         "Setup not recognised. Must be 'vertical', 'horizontal' or 'DCD.")
 
-# Overwrite the above oop value depending on requested cylinder axis for polar
-# coords.
-if cylinder_axis is not None:
-    oop = cylinder_axis
+# # Overwrite the above oop value depending on requested cylinder axis for polar
+# # coords.
+# if cylinder_axis is not None:
+#     oop = cylinder_axis
 
 if output_file_size > 2000:
     raise ValueError("output_file_size must not exceed 2000. "
@@ -36,10 +36,10 @@ num_threads = multiprocessing.cpu_count()
 
 # Work out where the data is.
 if local_data_path is None:
-    data_dir = None#Path(f"/dls/i07/data/{year}/{experiment_number}/")
+    data_dir = Path(f"/dls/i07/data/{year}/{experiment_number}/")
 else:
     data_dir = Path(local_data_path)
-
+# data_dir = Path(f"/Users/richard/Data/i07/{experiment_number}/")
 
 # Store this for later.
 if local_output_path is None:
@@ -72,8 +72,41 @@ from datetime import datetime
 # Work out the paths to each of the nexus files. Store as pathlib.Path objects.
 nxs_paths = [data_dir / f"i07-{x}.nxs" for x in scan_numbers]
 
-# Construct the Frame object from the user's preferred frame/coords.
-map_frame = Frame(frame_name=frame_name, coordinates=coordinates)
+
+# # The frame/coordinate system you want the map to be carried out in.
+# # Options for frame_name argument are:
+# #     Frame.hkl     (map into hkl space - requires UB matrix in nexus file)
+# #     Frame.sample_holder   (standard map into 1/Å)
+# #     Frame.lab     (map into frame attached to lab.)
+# #
+# # Options for coordinates argument are:
+# #     Frame.cartesian   (normal cartesian coords: hkl, Qx Qy Qz, etc.)
+# #     Frame.polar       (cylindrical polar with cylinder axis set by the
+# #                        cylinder_axis variable)
+# #
+# # Frame.polar will give an output like a more general version of PyFAI.
+# # Frame.cartesian is for hkl maps and Qx/Qy/Qz. Any combination of frame_name
+# # and coordinates will work, so try them out; get a feel for them.
+# # Note that if you want something like a q_parallel, q_perpendicular projection,
+# # you should choose Frame.lab with cartesian coordinates. From this data, your
+# # projection can be easily computed.
+# frame_name = Frame.hkl
+# coordinates = Frame.cartesian
+
+# # Ignore this unless you selected Frame.polar.
+# # This sets the axis about which your polar coordinates will be generated.
+# # Options are 'x', 'y' and 'z'. These are the synchrotron coordinates, rotated
+# # according to your requested frame_name. For instance, if you select
+# # Frame.lab, then 'x', 'y' and 'z' will correspond exactly to the synchrotron
+# # coordinate system (z along beam, y up). If you select frame.sample_holder and
+# # rotate your sample by an azimuthal angle µ, then 'y' will still be vertically
+# # up, but 'x' and 'z' will have been rotated about 'y' by the angle µ.
+# # Leave this as "None" if you aren't using cylindrical coordinates.
+cylinder_axis = None
+
+
+# # Construct the Frame object from the user's preferred frame/coords.
+# map_frame = Frame(frame_name=frame_name, coordinates=coordinates)
 
 # Prepare the pixel mask. First, deal with any specific pixels that we have.
 # Note that these are defined (x, y) and we need (y, x) which are the
@@ -95,8 +128,9 @@ if mask_regions is not None:
 # Finally, instantiate the Experiment object.
 experiment = Experiment.from_i07_nxs(
     nxs_paths,beam_centre, detector_distance, setup, 
-    using_dps=using_dps,experimental_hutch=experimental_hutch)
+    using_dps=using_dps)
 
+experiment.mask_edf(edfmaskfile)
 experiment.mask_pixels(specific_pixels)
 experiment.mask_regions(mask_regions)
 
@@ -182,16 +216,15 @@ import nexusformat.nexus as nx
 import h5py
         
 
-
-
 for i, scan in enumerate(experiment.scans):
     start_time = time()
     datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
     name_end=scan_numbers[i]
-    out_name=f'GIWAXS_{name_end}_{datetime_str}'
-    hf=h5py.File(f'{local_output_path}/{out_name}.hdf5',"w")
+    projected_name=f'GIWAXS_{name_end}_{datetime_str}'
+    hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
+    PYFAI_MASK=edfmaskfile
     if 'curved_projection_2D' in process_outputs:
-     
+        
         projected2d=experiment.curved_to_2d(scan)
         PYFAI_PONI=experiment.createponi(local_output_path,experiment.projshape,experiment.vertoffset)
         azimuthal_int,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
@@ -201,7 +234,7 @@ for i, scan in enumerate(experiment.scans):
         experiment.save_projection(hf,projected2d,azimuthal_int,config)
         
 
-        print(f"added projection to {local_output_path}/{out_name}.hdf5")
+        print(f"saved projection to {local_output_path}/{projected_name}.hdf5")
         
         total_time = time() - start_time
         print(f"\nProjecting 2d took {total_time}s")
@@ -209,7 +242,6 @@ for i, scan in enumerate(experiment.scans):
     #if 'azimuthal_integration' in process_outputs:
         
     if 'pyfai_1D' in process_outputs:
-        print('start calculating 1D profiles')
     
         experiment.load_curve_values(scan)
         name_end=scan_numbers[i]
@@ -217,19 +249,23 @@ for i, scan in enumerate(experiment.scans):
         PYFAI_PONI=experiment.createponi(local_output_path,(beam_centre[1],beam_centre[0]))
         twothetas,Qangs,intensities,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
                            local_output_path,scan)
-
+        datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+        integrated_name=f'proj2d_{name_end}_{datetime_str}'
         experiment.save_integration(hf,twothetas,Qangs,intensities,config)
 
         
-        print(f'added 1D profile to {local_output_path}/{out_name}.hdf5')
+        print(f'saved 1D profile to {local_output_path}/{integrated_name}.hdf5')
 
         #print('Finished fast azimuthal integration')
         
     if 'qperp_qpara_map' in process_outputs:
-        print('start calculating Qpara_Qperp maps')
+        frame_name = Frame.lab
+        coordinates = Frame.cartesian
+        map_frame = Frame(frame_name=frame_name, coordinates=coordinates)
         name_end=scan_numbers[i]
         qperp_qpara_map=experiment.calc_qpara_qper(scan,oop, map_frame)
         datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+        out_name=f'proj2d_{name_end}_{datetime_str}'
         experiment.save_qperp_qpara(hf, qperp_qpara_map)
         print(f'saved qperp_qpara_map to {local_output_path}/{out_name}.hdf5')
 
@@ -241,6 +277,9 @@ for i, scan in enumerate(experiment.scans):
 if __name__ == "__main__":
     
     if 'full_reciprocal_map' in process_outputs:
+        frame_name = Frame.hkl
+        coordinates = Frame.cartesian
+        map_frame = Frame(frame_name=frame_name, coordinates=coordinates)
         start_time = time()
         # Calculate and save a binned reciprocal space map, if requested.
         experiment.binned_reciprocal_space_map(

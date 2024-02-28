@@ -45,8 +45,6 @@ local_data_path = '/dls/i07/data/2024/si32266-3/QIchunfilms'
 local_output_path =  '/dls/i07/data/2024/cm37245-1/PhilMousley_testing/output'
 
 
-
-
 # The beam centre, as can be read out from GDA, in pixel_x, pixel_y. If your
 # map looks wacky, you probably cocked this up.
 beam_centre = (119,1564)
@@ -54,37 +52,6 @@ beam_centre = (119,1564)
 # The distance between the sample and the detector (or, if using the DCD, the
 # distance between the receiving slit and the detector). Units of meters.
 detector_distance = 0.18
-
-# The frame/coordinate system you want the map to be carried out in.
-# Options for frame_name argument are:
-#     Frame.hkl     (map into hkl space - requires UB matrix in nexus file)
-#     Frame.sample_holder   (standard map into 1/Å)
-#     Frame.lab     (map into frame attached to lab.)
-#
-# Options for coordinates argument are:
-#     Frame.cartesian   (normal cartesian coords: hkl, Qx Qy Qz, etc.)
-#     Frame.polar       (cylindrical polar with cylinder axis set by the
-#                        cylinder_axis variable)
-#
-# Frame.polar will give an output like a more general version of PyFAI.
-# Frame.cartesian is for hkl maps and Qx/Qy/Qz. Any combination of frame_name
-# and coordinates will work, so try them out; get a feel for them.
-# Note that if you want something like a q_parallel, q_perpendicular projection,
-# you should choose Frame.lab with cartesian coordinates. From this data, your
-# projection can be easily computed.
-frame_name = Frame.lab
-coordinates = Frame.cartesian
-
-# Ignore this unless you selected Frame.polar.
-# This sets the axis about which your polar coordinates will be generated.
-# Options are 'x', 'y' and 'z'. These are the synchrotron coordinates, rotated
-# according to your requested frame_name. For instance, if you select
-# Frame.lab, then 'x', 'y' and 'z' will correspond exactly to the synchrotron
-# coordinate system (z along beam, y up). If you select frame.sample_holder and
-# rotate your sample by an azimuthal angle µ, then 'y' will still be vertically
-# up, but 'x' and 'z' will have been rotated about 'y' by the angle µ.
-# Leave this as "None" if you aren't using cylindrical coordinates.
-cylinder_axis = None
 
 # Set this to True if you would like each image to be mapped independently.
 # If this is False, all images in all scans will be combined into one large
@@ -171,7 +138,7 @@ min_intensity = 0.
 
 #for pyfai integration of an image, PONI and mask files need to be created
 #first using pyfai calibration. Add the path locations to poni and mask files here
-PYFAI_MASK =  '/home/i07user/fast_rsm/example_mask_Qichun.edf' #'/home/rpy65944/test2dFromImages.edf'
+edfmaskfile =  '/home/i07user/fast_rsm/example_mask_Qichun.edf' #'/home/rpy65944/test2dFromImages.edf'
 
 
 #define what outputs you would like form the processing here, choose from:
