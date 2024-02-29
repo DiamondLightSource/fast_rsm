@@ -1,16 +1,35 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Feb 26 09:37:13 2024
+
+@author: rpy65944
+"""
 import os
 import nexusformat.nexus as nx
 from  diffraction_utils import I07Nexus
 import subprocess
 import argparse
+import h5py
+from PIL import Image
 
 
 def get_im_path(directorypath,scan_number):
     files=[file for file in os.listdir(f'{directorypath}') if '.nxs' in file]
     found_file=[file for file in files if str(scan_number)+'.nxs' in file][0]
     filepath=f'{directorypath}/{found_file}'
-    found_nexus=I07Nexus(filepath,directorypath)#
+    found_nexus=I07Nexus(filepath,directorypath)
+    if found_nexus.has_hdf5_data==True:
+        hf=h5py.File(found_nexus.local_hdf5_path)
+        imdata=hf[found_nexus.hdf5_internal_path][0]
+        imout=Image.fromarray(imdata,mode='F')
+        fname=found_nexus.local_hdf5_path.split('/')[-1].strip('.h5')
+        outpath=f'/dls/i07/data/2024/cm37245-1/maskimage_{fname}_0.tiff'
+        imout.save(outpath,"TIFF")
+        
+        return outpath
     return found_nexus.local_image_paths[0]
+
 
 
 if __name__ == "__main__":
@@ -30,9 +49,12 @@ if __name__ == "__main__":
     )
     parser.add_argument("-s", "--scan_number", help=HELP_STR)
     args = parser.parse_args()
-    
-    directorypath=args.dir_path
-    scan=args.scan_number
 
-    impath=get_im_path(directorypath,scan)
+    print(args.dir_path)
+    
+
+    directorypath=args.dir_path
+    scan_number=args.scan_number
+
+    impath=get_im_path(directorypath,scan_number)
     subprocess.run(['pyFAI-drawmask', f'{impath}'])
