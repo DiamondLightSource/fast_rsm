@@ -49,10 +49,6 @@ if __name__ == "__main__":
     )
     parser.add_argument("-s", "--scan_number", help=HELP_STR)
     args = parser.parse_args()
-
-    print(args.dir_path)
-    
-
     directorypath=args.dir_path
     scan_number=args.scan_number
 
