@@ -217,62 +217,58 @@ import h5py
         
 
 for i, scan in enumerate(experiment.scans):
-    start_time = time()
-    datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
-    name_end=scan_numbers[i]
-    projected_name=f'GIWAXS_{name_end}_{datetime_str}'
-    hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
-    PYFAI_MASK=edfmaskfile
-    if 'curved_projection_2D' in process_outputs:
-        
-        projected2d=experiment.curved_to_2d(scan)
-        PYFAI_PONI=experiment.createponi(local_output_path,experiment.projshape,experiment.vertoffset)
-        azimuthal_int,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
-                            local_output_path,scan,projected2d=projected2d)
-        
-        projected_name=f'proj2d_{name_end}_{datetime_str}'
-        experiment.save_projection(hf,projected2d,azimuthal_int,config)
-        
-
-        print(f"saved projection to {local_output_path}/{projected_name}.hdf5")
-        
-        total_time = time() - start_time
-        print(f"\nProjecting 2d took {total_time}s")
-        
-    #if 'azimuthal_integration' in process_outputs:
-        
-    if 'pyfai_1D' in process_outputs:
-    
-        experiment.load_curve_values(scan)
-        name_end=scan_numbers[i]
-        #image2dshape=experiment.scans[i].metadata.data_file.image_shape
-        PYFAI_PONI=experiment.createponi(local_output_path,(beam_centre[1],beam_centre[0]))
-        twothetas,Qangs,intensities,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
-                           local_output_path,scan)
-        datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
-        integrated_name=f'proj2d_{name_end}_{datetime_str}'
-        experiment.save_integration(hf,twothetas,Qangs,intensities,config)
-
-        
-        print(f'saved 1D profile to {local_output_path}/{integrated_name}.hdf5')
-
-        #print('Finished fast azimuthal integration')
-        
-    if 'qperp_qpara_map' in process_outputs:
-        frame_name = Frame.lab
-        coordinates = Frame.cartesian
-        map_frame = Frame(frame_name=frame_name, coordinates=coordinates)
-        name_end=scan_numbers[i]
-        qperp_qpara_map=experiment.calc_qpara_qper(scan,oop, map_frame)
-        datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
-        out_name=f'proj2d_{name_end}_{datetime_str}'
-        experiment.save_qperp_qpara(hf, qperp_qpara_map)
-        print(f'saved qperp_qpara_map to {local_output_path}/{out_name}.hdf5')
-
-        #print('Finished qperp_qpara mapping')
-    
-    hf.close()
-    print(f'finished processing scan {name_end}')
+   start_time = time()
+   datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+   name_end=scan_numbers[i]
+   GIWAXS_names=['curved_projection_2D','pyfai_1D','qperp_qpara_map' ]
+   GIWAXScheck=np.isin(GIWAXS_names,process_outputs)
+   if GIWAXScheck.sum()>0:
+       projected_name=f'GIWAXS_{name_end}_{datetime_str}'
+       hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
+       PYFAI_MASK=edfmaskfile
+       if 'curved_projection_2D' in process_outputs:
+           
+           projected2d=experiment.curved_to_2d(scan)
+           PYFAI_PONI=experiment.createponi(local_output_path,experiment.projshape,experiment.vertoffset)
+           azimuthal_int,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
+                               local_output_path,scan,projected2d=projected2d)
+           
+   
+           print(f"saved projection to {local_output_path}/{projected_name}.hdf5")
+           
+           total_time = time() - start_time
+           print(f"\nProjecting 2d took {total_time}s")
+           
+       #if 'azimuthal_integration' in process_outputs:
+           
+       if 'pyfai_1D' in process_outputs:
+       
+           experiment.load_curve_values(scan)
+           name_end=scan_numbers[i]
+           #image2dshape=experiment.scans[i].metadata.data_file.image_shape
+           PYFAI_PONI=experiment.createponi(local_output_path,(beam_centre[1],beam_centre[0]))
+           twothetas,Qangs,intensities,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
+                              local_output_path,scan)
+           experiment.save_integration(hf,twothetas,Qangs,intensities,config)
+   
+           
+           print(f'saved 1D profile to {local_output_path}/{projected_name}.hdf5')
+   
+           #print('Finished fast azimuthal integration')
+           
+       if 'qperp_qpara_map' in process_outputs:
+           frame_name = Frame.lab
+           coordinates = Frame.cartesian
+           map_frame = Frame(frame_name=frame_name, coordinates=coordinates)
+           name_end=scan_numbers[i]
+           qperp_qpara_map=experiment.calc_qpara_qper(scan,oop, map_frame)
+           experiment.save_qperp_qpara(hf, qperp_qpara_map)
+           print(f'saved qperp_qpara_map to {local_output_path}/{projected_name}.hdf5')
+   
+           #print('Finished qperp_qpara mapping')
+       
+       hf.close()
+   print(f'finished processing scan {name_end}'))
     
 if __name__ == "__main__":
     
