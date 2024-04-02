@@ -268,7 +268,7 @@ for i, scan in enumerate(experiment.scans):
            #print('Finished qperp_qpara mapping')
        
        hf.close()
-   print(f'finished processing scan {name_end}'))
+   print(f'finished processing scan {name_end}')
     
 if __name__ == "__main__":
     
