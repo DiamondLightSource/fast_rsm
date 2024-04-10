@@ -22,7 +22,7 @@ def get_im_path(directorypath,scan_number):
     if found_nexus.has_hdf5_data==True:
         hf=h5py.File(found_nexus.local_hdf5_path)
         imdata=hf[found_nexus.hdf5_internal_path][0]
-        imout=Image.fromarray(imdata,mode='F')
+        imout=Image.fromarray(imdata,mode='I')
         fname=found_nexus.local_hdf5_path.split('/')[-1].strip('.h5')
         outpath=f'/dls/i07/data/2024/cm37245-1/maskimage_{fname}_0.tiff'
         imout.save(outpath,"TIFF")
