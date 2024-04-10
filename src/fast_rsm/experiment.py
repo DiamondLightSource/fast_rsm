@@ -172,11 +172,17 @@ class Experiment:
             scan.metadata.mask_regions = regions
             
     def mask_edf(self,edfmask):
+
+
         if edfmask!=None:
             maskimg=fabio.open(edfmask)
             mask=maskimg.data
+            if self.scans[0].metadata.data_file.is_rotated==True:
+                mask=np.flip(mask.transpose(),axis=0)
         else:
             mask=None
+
+        
         for scan in self.scans:
             scan.metadata.edfmask = mask
 
@@ -792,6 +798,8 @@ class Experiment:
 
             if projected2d==None:  
                
+                # fname=scan.
+                # img = fabio.open(fr'{imagespath}/{fname}')
                 img_array = scan.load_image(i).data
                 maskimg = fabio.open(maskpath)
                 mask = maskimg.data
