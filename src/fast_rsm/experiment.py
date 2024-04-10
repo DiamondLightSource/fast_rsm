@@ -680,7 +680,6 @@ class Experiment:
         self.entry=scan.metadata.data_file.nx_entry
         self.detector_distance=scan.metadata.diffractometer.data_file.detector_distance
         self.incident_wavelength= 1e-10*scan.metadata.incident_wavelength
-        self.entry=scan.metadata.data_file.nx_entry
         self.gammadata=np.array( self.entry.instrument.diff1gamma.value)
         self.deltadata=np.array( self.entry.instrument.diff1delta.value)
         self.dcdrad=np.array( self.entry.instrument.dcdc2rad.value)
@@ -706,7 +705,7 @@ class Experiment:
         self.vertoffset=int((self.imshape[0]-self.beam_centre[0])*self.maxratiodist)
         self.project2d=np.zeros(projshape)
         self.counts=np.zeros(projshape)
-        scanlength=5#scan.metadata.data_file.scan_length
+        scanlength=scan.metadata.data_file.scan_length
         
         gamshifts=-1*(np.arange(self.imshape[1])-self.beam_centre[1])
         delshifts=np.abs(np.arange(self.imshape[0])-self.beam_centre[1])
@@ -747,14 +746,17 @@ class Experiment:
         return fr'{outpath}/fast_rsm.poni'
     
     
-    def save_projection(self,hf,projected2d,azimuthal_int,config):
+    def save_projection(self,hf,projected2d,twothetas,Qangs,intensities,config):
         
         #hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
         dset=hf.create_group("projection")
         dset.create_dataset("projection_2d",data=projected2d[0])
         dset.create_dataset("config",data=str(config))
-        for key in azimuthal_int.keys():
-            dset.create_dataset(f"{key}",data=azimuthal_int[f'{key}']) 
+
+        dset=hf.create_group("integrations")
+        dset.create_dataset("2thetas",data=twothetas)
+        dset.create_dataset("Q_angstrom^-1",data=Qangs)
+        dset.create_dataset("Intensity",data=intensities)
         #hf.close()
     
     def save_integration(self,hf,twothetas,Qangs,intensities,configs):
@@ -776,19 +778,21 @@ class Experiment:
         #hf.close()
 
     def pyfai1D(self,imagespath,maskpath,ponipath,outpath,scan,projected2d=None,bins=1000):
-        images=scan.metadata.data_file.local_image_paths
-        tiflist=[file.split(f'{imagespath}')[-1] for file in images]
+        #images=scan.metadata.data_file.local_image_paths
+        if projected2d==None:
+            scanlength=scan.metadata.data_file.scan_length
+        else:
+            scanlength=1
+        #tiflist=[file.split(f'{imagespath}')[-1] for file in images]
         twothetas=[]
         intensities=[]
         Qangs=[]
         configs=[]
-        for i,tiff in enumerate(tiflist):
+        for i in np.arange(scanlength):
 
             if projected2d==None:  
                
-                fname=tiflist[i]
-                img = fabio.open(fr'{imagespath}/{fname}')
-                img_array = img.data
+                img_array = scan.load_image(i).data
                 maskimg = fabio.open(maskpath)
                 mask = maskimg.data
     
