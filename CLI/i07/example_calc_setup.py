@@ -230,9 +230,9 @@ for i, scan in enumerate(experiment.scans):
            
            projected2d=experiment.curved_to_2d(scan)
            PYFAI_PONI=experiment.createponi(local_output_path,experiment.projshape,experiment.vertoffset)
-           azimuthal_int,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
+           twothetas,Qangs,intensities,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
                                local_output_path,scan,projected2d=projected2d)
-           
+           experiment.save_projection(hf,projected2d,twothetas,Qangs,intensities,config)
    
            print(f"saved projection to {local_output_path}/{projected_name}.hdf5")
            
