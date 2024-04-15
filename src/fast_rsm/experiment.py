@@ -645,7 +645,9 @@ class Experiment:
         
         #calculate the maximum value for the projected width measured in the final image
         maxwidth=np.ceil(self.detector_distance*np.tan(np.radians(two_theta_start[-1]))/self.pixel_size)
-                
+        
+        #account for pixels after beam centre
+        maxwidth+=self.beam_centre[1]        
         projshape=(int(maxheight),int(maxwidth))
         return projshape    
 
