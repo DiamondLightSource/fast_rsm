@@ -945,6 +945,7 @@ def _match_start_stop_to_step(
                    "automatically. If you want to avoid this warning, make "
                    "that the bounds match the step size, i.e. volume_bound = "
                    "volume_step * integer.")
+    
     if user_bounds == (None, None):
         # use auto bounds and expand both ways
         return (np.floor(auto_bounds[0]/step)*step,
@@ -952,20 +953,24 @@ def _match_start_stop_to_step(
     elif user_bounds[0] is None:
         # keep user value and expand to rightdone image {i+1}/{totalimages}
         stop = np.ceil(user_bounds[1]/step)*step
-        if np.any(abs(stop - user_bounds[1]) > eps):
+        checkstop=np.sum(np.any(abs(stop - user_bounds[1]) > eps))
+        if checkstop>0:
             print(warning_str)
         return np.floor(auto_bounds[0]/step)*step, stop
     elif user_bounds[1] is None:
         # keep user value and expand to left
         start = np.floor(user_bounds[0]/step)*step
-        if np.any(abs(user_bounds[0] - start) > eps):
+        checkstart=np.sum(abs(user_bounds[0] - start) > eps)
+        if checkstart>0:
             print(warning_str)
         return start, np.ceil(auto_bounds[1]/step)*step
     else:
         start, stop = (np.floor(user_bounds[0]/step)*step,
                        np.ceil(user_bounds[1]/step)*step)
-        if np.any(abs(start - user_bounds[0]) > eps or
-                  abs(stop - user_bounds[1]) > eps):
+        checkstart=np.sum(abs(user_bounds[0] - start) > eps)
+        checkstop=np.sum(np.any(abs(stop - user_bounds[1]) > eps))
+        checkboth=checkstart+checkstop
+        if checkboth>0:
             print(warning_str)
         return start, stop
     
