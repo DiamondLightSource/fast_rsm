@@ -638,7 +638,10 @@ class Experiment:
     def calc_projected_size(self, two_theta_start):
         self.maxdist2D=self.detector_distance/np.cos(np.radians(two_theta_start[-1]))
         maxdistdiff=self.maxdist2D-self.detector_distance
-        startheight=self.imshape[0]*self.pixel_size
+        if self.rotval==0:
+            startheight=self.imshape[1]*self.pixel_size
+        else:
+            startheight=self.imshape[0]*self.pixel_size
         maxdist=startheight+(maxdistdiff*(startheight/self.detector_distance))
         maxheight=np.ceil(maxdist/self.pixel_size)
         self.maxratiodist=self.maxdist2D/self.detector_distance
