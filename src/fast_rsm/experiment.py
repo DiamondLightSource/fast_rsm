@@ -646,8 +646,14 @@ class Experiment:
         #calculate the maximum value for the projected width measured in the final image
         maxwidth=np.ceil(self.detector_distance*np.tan(np.radians(two_theta_start[-1]))/self.pixel_size)
         
+        
         #account for pixels after beam centre
-        maxwidth+=self.beam_centre[1]        
+        if self.rotval==0:
+            maxwidth+=self.beam_centre[0]
+        else:
+            maxwidth+=self.beam_centre[1] 
+        
+               
         projshape=(int(maxheight),int(maxwidth))
         return projshape    
 
@@ -695,6 +701,7 @@ class Experiment:
         self.projectionx=1e-3* self.dcdrad*np.cos(np.radians(self.dcdomega))
         self.imshape=scan.metadata.data_file.image_shape
         self.beam_centre=scan.metadata.beam_centre
+        self.rotval=round(scan.metadata.data_file.det_rot)
 
         
     def curved_to_2d(self,scan):
