@@ -636,25 +636,34 @@ class Experiment:
     
 
     def calc_projected_size(self, two_theta_start):
-        self.maxdist2D=self.detector_distance/np.cos(np.radians(two_theta_start[-1]))
+        
+        if self.rotval==0:
+            extrahorizontal=self.beam_centre[1]*self.pixel_size
+            startheight=self.imshape[0]*self.pixel_size
+        else:
+            extrahorizontal=self.beam_centre[0]*self.pixel_size
+            startheight=self.imshape[1]*self.pixel_size
+            
+        extratwotheta=np.degrees(np.arctan(extrahorizontal/self.detector_distance))
+        self.maxdist2D=self.detector_distance/np.cos(np.radians(two_theta_start[-1]+extratwotheta))
         maxdistdiff=self.maxdist2D-self.detector_distance
         if self.rotval==0:
-            startheight=self.imshape[1]*self.pixel_size
-        else:
             startheight=self.imshape[0]*self.pixel_size
+        else:
+            startheight=self.imshape[1]*self.pixel_size
         maxdist=startheight+(maxdistdiff*(startheight/self.detector_distance))
         maxheight=np.ceil(maxdist/self.pixel_size)
         self.maxratiodist=self.maxdist2D/self.detector_distance
         
         #calculate the maximum value for the projected width measured in the final image
-        maxwidth=np.ceil(self.detector_distance*np.tan(np.radians(two_theta_start[-1]))/self.pixel_size)
+        maxwidth=np.ceil(self.detector_distance*np.tan(np.radians(two_theta_start[-1]+extratwotheta))/self.pixel_size)
         
         
-        #account for pixels after beam centre
-        if self.rotval==0:
-            maxwidth+=self.beam_centre[0]
-        else:
-            maxwidth+=self.beam_centre[1] 
+        # #account for pixels after beam centre
+        # if self.rotval==0:
+        #     maxwidth+=self.beam_centre[0]
+        # else:
+        #     maxwidth+=self.beam_centre[1] 
         
                
         projshape=(int(maxheight),int(maxwidth))
@@ -720,7 +729,9 @@ class Experiment:
 
         self.gamma2d=np.degrees(np.arctan((np.arange(projshape[1])*self.pixel_size)/self.detector_distance))
         self.projshape=self.calc_projected_size(two_theta_start)
+
         self.vertoffset=int((self.imshape[0]-self.beam_centre[0])*self.maxratiodist)
+
         self.project2d=np.zeros(projshape)
         self.counts=np.zeros(projshape)
         scanlength=scan.metadata.data_file.scan_length
@@ -729,7 +740,9 @@ class Experiment:
         delshifts=np.abs(np.arange(self.imshape[0])-self.beam_centre[1])
         im1gammas=np.zeros(self.imshape)
         for col in np.arange(np.shape(im1gammas)[1]):
-            im1gammas[:,col]=two_theta_start[0]+(gamshifts[col]*self.degperpix)
+            O=gamshifts[col]*self.pixel_size
+            tantheta=O/self.detector_distance
+            im1gammas[:,col]=two_theta_start[0]+(np.degrees(np.arctan(tantheta)))
         self.imgamma=im1gammas
         print(f'projecting {scanlength} images   completed images:  ')
         for imnum in np.arange(scanlength):
