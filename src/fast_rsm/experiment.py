@@ -20,7 +20,10 @@ from .binning import weighted_bin_1d, finite_diff_shape
 from .meta_analysis import get_step_from_filesize
 from .scan import Scan, init_process_pool, bin_maps_with_indices, chunk
 from .writing import linear_bin_to_vtk
-
+import pandas as pd
+import pyFAI,fabio
+#from datetime import datetime
+import h5py
 
 def _remove_file(path: Union[str, Path]):
     """
@@ -167,6 +170,23 @@ class Experiment:
             regions = [regions]
         for scan in self.scans:
             scan.metadata.mask_regions = regions
+            
+    def mask_edf(self,edfmask):
+
+
+        if edfmask!=None:
+            maskimg=fabio.open(edfmask)
+            mask=maskimg.data
+            if self.scans[0].metadata.data_file.is_rotated==True:
+                mask=np.flip(mask.transpose(),axis=0)
+        else:
+            mask=None
+
+        
+        for scan in self.scans:
+            scan.metadata.edfmask = mask
+
+            
 
     def binned_reciprocal_space_map(self,
                                     num_threads: int,
@@ -298,7 +318,8 @@ class Experiment:
                         raise ValueError(
                         "Could not carry out map for an unknown reason. "
                         "Probably one of the threads segfaulted, or something.")
-                print("\nCalculation complete. Finishing up...")
+                scanname=scan.metadata.data_file.diamond_scan.nxfilename.split('/')[-1]
+                print(f"\nCalculation for scan {scanname} complete.")
                 map_mem = [SharedMemory(x) for x in map_names]
                 count_mem = [SharedMemory(x) for x in count_names]
 
@@ -595,6 +616,294 @@ class Experiment:
         # Return the min of the starts and the max of the stops.
         starts, stops = np.array(starts), np.array(stops)
         return np.min(starts, axis=0), np.max(stops, axis=0)
+    
+    
+
+    
+    def calcupplow(self, gamma):
+        nearlow=np.abs(self.gamma2d-gamma).argmin()
+        if self.gamma2d[nearlow]>gamma:
+            low=nearlow-1
+        else:
+            low=nearlow
+        gammaupp=gamma+self.degperpix
+        nearupp=np.abs(self.gamma2d-(gammaupp)).argmin()
+        if self.gamma2d[nearupp]>(gammaupp):
+            upp=nearupp
+        else:
+            upp=nearupp+1
+        return low,upp
+    
+
+    def calc_projected_size(self, two_theta_start):
+        
+        if self.rotval==0:
+            extrahorizontal=self.beam_centre[1]*self.pixel_size
+            startheight=self.imshape[0]*self.pixel_size
+        else:
+            extrahorizontal=self.beam_centre[0]*self.pixel_size
+            startheight=self.imshape[1]*self.pixel_size
+            
+        extratwotheta=np.degrees(np.arctan(extrahorizontal/self.detector_distance))
+        self.maxdist2D=self.detector_distance/np.cos(np.radians(two_theta_start[-1]+extratwotheta))
+        maxdistdiff=self.maxdist2D-self.detector_distance
+        if self.rotval==0:
+            startheight=self.imshape[0]*self.pixel_size
+        else:
+            startheight=self.imshape[1]*self.pixel_size
+        maxdist=startheight+(maxdistdiff*(startheight/self.detector_distance))
+        maxheight=np.ceil(maxdist/self.pixel_size)
+        self.maxratiodist=self.maxdist2D/self.detector_distance
+        
+        #calculate the maximum value for the projected width measured in the final image
+        maxwidth=np.ceil(self.detector_distance*np.tan(np.radians(two_theta_start[-1]+extratwotheta))/self.pixel_size)
+        
+        
+        # #account for pixels after beam centre
+        # if self.rotval==0:
+        #     maxwidth+=self.beam_centre[0]
+        # else:
+        #     maxwidth+=self.beam_centre[1] 
+        
+               
+        projshape=(int(maxheight),int(maxwidth))
+        return projshape    
+
+
+    def projectimage(self, scan,imnum,im1gammas):
+        
+        data=scan.load_image(imnum).data
+        
+        #cropshape,cropdata,cropbc,gamshifts,delshifts=calc_cropshifts(xylimits,data,self.degperpix,two_theta_start,originalbc)
+        if imnum==0:
+            imgammas=im1gammas
+    
+        else:
+            imgammas=im1gammas+(imnum*self.gammastep)
+            
+        
+        for j in np.arange(self.imshape[1]):
+            gamma=imgammas[0,j]
+            horlow,horupp=self.calcupplow(gamma)
+            avgamma=(gamma +gamma+self.degperpix)/2
+            dist2D=self.detector_distance/np.cos(np.radians(avgamma)) 
+            ratiodist=dist2D/self.detector_distance
+            pixvals=data[:,j]
+            self.nonenans=np.where(~np.isnan(pixvals))[0]
+            for ind in self.nonenans:            
+                deltaind=(ind-self.beam_centre[0])*-1
+                vertstart=int(np.floor(deltaind*(ratiodist)))+self.vertoffset
+                vertend=int(np.ceil((deltaind+1)*(ratiodist)))+self.vertoffset
+                self.project2d[self.projshape[0]-vertend:self.projshape[0]-vertstart,-horupp:-horlow]+=data[ind][j]
+                self.counts[self.projshape[0]-vertend:self.projshape[0]-vertstart,-horupp:-horlow]+=1
+
+        
+                
+ 
+            
+    def load_curve_values(self,scan):
+        self.pixel_size=scan.metadata.diffractometer.data_file.pixel_size
+        self.entry=scan.metadata.data_file.nx_entry
+        self.detector_distance=scan.metadata.diffractometer.data_file.detector_distance
+        self.incident_wavelength= 1e-10*scan.metadata.incident_wavelength
+        self.gammadata=np.array( self.entry.instrument.diff1gamma.value)
+        self.deltadata=np.array( self.entry.instrument.diff1delta.value)
+        self.dcdrad=np.array( self.entry.instrument.dcdc2rad.value)
+        self.dcdomega=np.array( self.entry.instrument.dcdomega.value)
+        self.projectionx=1e-3* self.dcdrad*np.cos(np.radians(self.dcdomega))
+        self.imshape=scan.metadata.data_file.image_shape
+        self.beam_centre=scan.metadata.beam_centre
+        self.rotval=round(scan.metadata.data_file.det_rot)
+
+        
+    def curved_to_2d(self,scan):
+        self.load_curve_values(scan)
+        dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance
+        gammadirect=-1*np.degrees(np.arctan(self.projectionx/dcd_sample_dist))
+        two_theta_start=self.gammadata-gammadirect
+        self.twothetastart=two_theta_start
+        projshape=self.calc_projected_size(two_theta_start)
+        self.degperpix=np.degrees(np.arctan(self.pixel_size/(self.detector_distance)))
+    
+        self.gammastep=(two_theta_start[-1]-two_theta_start[0])/(len(two_theta_start)-1)
+
+        self.gamma2d=np.degrees(np.arctan((np.arange(projshape[1])*self.pixel_size)/self.detector_distance))
+        self.projshape=self.calc_projected_size(two_theta_start)
+
+        self.vertoffset=int((self.imshape[0]-self.beam_centre[0])*self.maxratiodist)
+
+        self.project2d=np.zeros(projshape)
+        self.counts=np.zeros(projshape)
+        scanlength=scan.metadata.data_file.scan_length
+        
+        gamshifts=-1*(np.arange(self.imshape[1])-self.beam_centre[1])
+        delshifts=np.abs(np.arange(self.imshape[0])-self.beam_centre[1])
+        im1gammas=np.zeros(self.imshape)
+        for col in np.arange(np.shape(im1gammas)[1]):
+            O=gamshifts[col]*self.pixel_size
+            tantheta=O/self.detector_distance
+            im1gammas[:,col]=two_theta_start[0]+(np.degrees(np.arctan(tantheta)))
+        self.imgamma=im1gammas
+        print(f'projecting {scanlength} images   completed images:  ')
+        for imnum in np.arange(scanlength):
+            self.projectimage(scan, imnum,im1gammas)
+            if (imnum+1)%10==0:
+                print('\n')
+            print(fr'{imnum+1}','\r', end='')
+            #print(f' projected image {outstring}','\r', end='')
+        norm2d=np.divide(self.project2d,self.counts,where=self.counts!=0)
+        projected_data=[norm2d,self.counts,self.vertoffset]
+        return projected_data
+    
+    
+    def createponi(self,outpath,image2dshape,offset=0):
+        f=open(fr'{outpath}/fast_rsm.poni','w')
+        f.write('# PONI file created by fast_rsm\n#\n')
+        f.write('poni_version: 2\n')
+        f.write('Detector: Detector\n')
+        f.write('Detector_config: {"pixel1":')
+        f.write(f'{self.pixel_size}, "pixel2": {self.pixel_size}, "max_shape": [{image2dshape[0]}, {image2dshape[1]}]') 
+        f.write('}\n')
+        f.write(f'Distance: {self.detector_distance}\n')
+        poni1=(image2dshape[0]-offset)*self.pixel_size
+        poni2=image2dshape[1]*self.pixel_size
+        f.write(f'Poni1: {poni1}\n')
+        f.write(f'Poni2: {poni2}\n')
+        f.write('Rot1: 0.0\n')
+        f.write('Rot2: 0.0\n')
+        f.write('Rot3: 0.0\n')
+        f.write(f'Wavelength: {self.incident_wavelength}')
+        f.close()
+        return fr'{outpath}/fast_rsm.poni'
+    
+    
+    def save_projection(self,hf,projected2d,twothetas,Qangs,intensities,config):
+        
+        #hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
+        dset=hf.create_group("projection")
+        dset.create_dataset("projection_2d",data=projected2d[0])
+        dset.create_dataset("config",data=str(config))
+
+        dset=hf.create_group("integrations")
+        dset.create_dataset("2thetas",data=twothetas)
+        dset.create_dataset("Q_angstrom^-1",data=Qangs)
+        dset.create_dataset("Intensity",data=intensities)
+        #hf.close()
+    
+    def save_integration(self,hf,twothetas,Qangs,intensities,configs):
+       # hf=h5py.File(f'{local_output_path}/{integrated_name}.hdf5',"w")
+        dset=hf.create_group("integrations")
+        
+        dset.create_dataset("configs",data=str(configs))
+        dset.create_dataset("2thetas",data=twothetas)
+        dset.create_dataset("Q_angstrom^-1",data=Qangs)
+        dset.create_dataset("Intensity",data=intensities)
+        #hf.close()
+    
+    def save_qperp_qpara(self,hf,qperp_qpara_map):
+        #hf=h5py.File(f'{local_output_path}/{out_name}.hdf5',"w")
+        dset=hf.create_group("qperp_qpara")
+        dset.create_dataset("images",data=qperp_qpara_map[0])
+        dset.create_dataset("qpararanges",data=qperp_qpara_map[1])
+        dset.create_dataset("qperpranges",data=qperp_qpara_map[2])
+        #hf.close()
+
+    def pyfai1D(self,imagespath,maskpath,ponipath,outpath,scan,projected2d=None,bins=1000):
+        #images=scan.metadata.data_file.local_image_paths
+        if projected2d==None:
+            scanlength=scan.metadata.data_file.scan_length
+        else:
+            scanlength=1
+        #tiflist=[file.split(f'{imagespath}')[-1] for file in images]
+        twothetas=[]
+        intensities=[]
+        Qangs=[]
+        configs=[]
+        for i in np.arange(scanlength):
+
+            if projected2d==None:  
+               
+                # fname=scan.
+                # img = fabio.open(fr'{imagespath}/{fname}')
+                img_array = scan.load_image(i).data
+                maskimg = fabio.open(maskpath)
+                mask = maskimg.data
+    
+            else:
+                img_array=projected2d[0]
+                mask=np.less_equal(projected2d[1],0)
+            
+            ai = pyFAI.load(ponipath)       
+            # print("\nIntegrator: \n", ai)
+        
+            
+            # print("img_array:", type(img_array), img_array.shape, img_array.dtype)
+            
+            #GIVE PATH TO MASK FILE
+    
+            
+            
+            tth,I = ai.integrate1d_ng(img_array,
+                                    bins,
+                                    mask=mask,
+                                    unit="2th_deg",polarization_factor=1)
+            Q,I = ai.integrate1d_ng(img_array,
+                                bins,
+                                mask=mask,
+                               unit="q_A^-1",polarization_factor=1)
+            #outdata={'2theta':tth,'Q_angstrom^-1':Q,'Intensity':I}
+            Qangs.append(Q)
+            intensities.append(I)
+            twothetas.append(tth)
+            #outdatas.append(outdata)
+            configs.append(ai.get_config())
+        
+        return twothetas,Qangs,intensities,configs
+
+    
+    def calc_qpara_qper(self,scan,oop,frame: Frame):
+        number_images=scan.metadata.data_file.scan_length
+        mapnorms=[]
+        rangeqparas=[]
+        rangeqperps=[]
+        for imnum in np.arange(number_images):
+            pdata=scan.load_image(imnum).data
+            allints=np.reshape(pdata,np.size(pdata))
+            mapints=allints
+            qvals=scan.load_image(imnum).q_vectors(frame=frame,oop=oop)
+    
+            
+            qxvalues=np.reshape(qvals[:,:,0],np.size(pdata))
+            qyvalues=np.reshape(qvals[:,:,1],np.size(pdata))
+            qzvalues=np.reshape(qvals[:,:,2],np.size(pdata))
+            
+            qperp=qzvalues
+            qpara=np.sqrt(np.square(qxvalues)+np.square(qyvalues))*np.copysign(1,np.sign(qxvalues))
+            
+            perpstep=0.005
+            parastep=0.005
+            rangeqperp=np.linspace(qperp.min(),qperp.max(),int((qperp.max()-qperp.min())/perpstep))
+            rangeqpara=np.linspace(qpara.min(),qpara.max(),int((qpara.max()-qpara.min())/parastep))
+            qperpbin=[int(val)-1 for val in (qperp-qperp.min())/perpstep]
+            qparabin=[int(val)-1 for val in (qpara-qpara.min())/parastep]
+            
+            
+            qmap=np.zeros([len(rangeqperp),len(rangeqpara)])
+            counts=np.zeros([len(rangeqperp),len(rangeqpara)])
+            for i in np.arange(len(qparabin)):
+                qpara,qperp=qparabin[i],qperpbin[i]
+                intval=mapints[i]
+                try:
+                    qmap[qperp,qpara]+=intval
+                    counts[qperp,qpara]+=1
+                except:
+                    print(f'failed on {qpara}  {qperp}  {intval} ')
+            mapnorm=np.zeros([len(rangeqperp),len(rangeqpara)])
+            np.divide(qmap,counts,out=mapnorm,where=counts!=0)
+            mapnorms.append(mapnorm)
+            rangeqparas.append(rangeqpara)
+            rangeqperps.append(rangeqperp)
+        return mapnorms,rangeqparas,rangeqperps
 
     @classmethod
     def from_i07_nxs(cls,
@@ -603,7 +912,8 @@ class Experiment:
                      detector_distance: float,
                      setup: str,
                      path_to_data: str = '',
-                     using_dps: bool = False):
+                     using_dps: bool = False,
+                     experimental_hutch=0):
         """
         Generates an instance of Experiment from paths to nexus files obtained
         from the i07 beamline. Also requires a few other essential pieces of
@@ -640,11 +950,13 @@ class Experiment:
         # Instantiate all of the scans.
         scans = [
             io.from_i07(x, beam_centre, detector_distance,
-                        setup, path_to_data, using_dps)
+                        setup, path_to_data, using_dps,experimental_hutch)
             for x in nexus_paths]
         print(f"Took {time() - t1}s to load all nexus files.")
         return cls(scans)
+    
 
+        
 
 def _match_start_stop_to_step(
                 step,
@@ -656,26 +968,33 @@ def _match_start_stop_to_step(
                    "automatically. If you want to avoid this warning, make "
                    "that the bounds match the step size, i.e. volume_bound = "
                    "volume_step * integer.")
+    
     if user_bounds == (None, None):
         # use auto bounds and expand both ways
         return (np.floor(auto_bounds[0]/step)*step,
                 np.ceil(auto_bounds[1]/step)*step)
     elif user_bounds[0] is None:
-        # keep user value and expand to right
+        # keep user value and expand to rightdone image {i+1}/{totalimages}
         stop = np.ceil(user_bounds[1]/step)*step
-        if np.any(abs(stop - user_bounds[1]) > eps):
+        checkstop=np.sum(np.any(abs(stop - user_bounds[1]) > eps))
+        if checkstop>0:
             print(warning_str)
         return np.floor(auto_bounds[0]/step)*step, stop
     elif user_bounds[1] is None:
         # keep user value and expand to left
         start = np.floor(user_bounds[0]/step)*step
-        if np.any(abs(user_bounds[0] - start) > eps):
+        checkstart=np.sum(abs(user_bounds[0] - start) > eps)
+        if checkstart>0:
             print(warning_str)
         return start, np.ceil(auto_bounds[1]/step)*step
     else:
         start, stop = (np.floor(user_bounds[0]/step)*step,
                        np.ceil(user_bounds[1]/step)*step)
-        if np.any(abs(start - user_bounds[0]) > eps or
-                  abs(stop - user_bounds[1]) > eps):
+        checkstart=np.sum(abs(user_bounds[0] - start) > eps)
+        checkstop=np.sum(np.any(abs(stop - user_bounds[1]) > eps))
+        checkboth=checkstart+checkstop
+        if checkboth>0:
             print(warning_str)
         return start, stop
+    
+    

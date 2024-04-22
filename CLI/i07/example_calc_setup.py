@@ -1,5 +1,5 @@
 """
-This section prepares the calculation. You probably shouldn't change anything here
+This section prepares the calculation. You probably shouldn't change any'qperp_qpara_map',thing here
 unless you know what you're doing.
 """
 
@@ -22,10 +22,10 @@ else:
     raise ValueError(
         "Setup not recognised. Must be 'vertical', 'horizontal' or 'DCD.")
 
-# Overwrite the above oop value depending on requested cylinder axis for polar
-# coords.
-if cylinder_axis is not None:
-    oop = cylinder_axis
+# # Overwrite the above oop value depending on requested cylinder axis for polar
+# # coords.
+# if cylinder_axis is not None:
+#     oop = cylinder_axis
 
 if output_file_size > 2000:
     raise ValueError("output_file_size must not exceed 2000. "
@@ -46,8 +46,6 @@ if local_output_path is None:
     processing_dir = data_dir / "processing"
 else:
     processing_dir = Path(local_output_path)
-if data_sub_directory is not None:
-    data_dir /= Path(data_sub_directory)
 
 # Here we calculate a sensible file name that hasn't been taken.
 i = 0
@@ -70,12 +68,45 @@ while (os.path.exists(str(save_path) + ".npy") or
             "Either you tried to save this file 10000000 times, or something "
             "went wrong. I'm going with the latter, but exiting out anyway.")
 
-
+from datetime import datetime
 # Work out the paths to each of the nexus files. Store as pathlib.Path objects.
 nxs_paths = [data_dir / f"i07-{x}.nxs" for x in scan_numbers]
 
-# Construct the Frame object from the user's preferred frame/coords.
-map_frame = Frame(frame_name=frame_name, coordinates=coordinates)
+
+# # The frame/coordinate system you want the map to be carried out in.
+# # Options for frame_name argument are:
+# #     Frame.hkl     (map into hkl space - requires UB matrix in nexus file)
+# #     Frame.sample_holder   (standard map into 1/Å)
+# #     Frame.lab     (map into frame attached to lab.)
+# #
+# # Options for coordinates argument are:
+# #     Frame.cartesian   (normal cartesian coords: hkl, Qx Qy Qz, etc.)
+# #     Frame.polar       (cylindrical polar with cylinder axis set by the
+# #                        cylinder_axis variable)
+# #
+# # Frame.polar will give an output like a more general version of PyFAI.
+# # Frame.cartesian is for hkl maps and Qx/Qy/Qz. Any combination of frame_name
+# # and coordinates will work, so try them out; get a feel for them.
+# # Note that if you want something like a q_parallel, q_perpendicular projection,
+# # you should choose Frame.lab with cartesian coordinates. From this data, your
+# # projection can be easily computed.
+# frame_name = Frame.hkl
+# coordinates = Frame.cartesian
+
+# # Ignore this unless you selected Frame.polar.
+# # This sets the axis about which your polar coordinates will be generated.
+# # Options are 'x', 'y' and 'z'. These are the synchrotron coordinates, rotated
+# # according to your requested frame_name. For instance, if you select
+# # Frame.lab, then 'x', 'y' and 'z' will correspond exactly to the synchrotron
+# # coordinate system (z along beam, y up). If you select frame.sample_holder and
+# # rotate your sample by an azimuthal angle µ, then 'y' will still be vertically
+# # up, but 'x' and 'z' will have been rotated about 'y' by the angle µ.
+# # Leave this as "None" if you aren't using cylindrical coordinates.
+cylinder_axis = None
+
+
+# # Construct the Frame object from the user's preferred frame/coords.
+# map_frame = Frame(frame_name=frame_name, coordinates=coordinates)
 
 # Prepare the pixel mask. First, deal with any specific pixels that we have.
 # Note that these are defined (x, y) and we need (y, x) which are the
@@ -96,11 +127,13 @@ if mask_regions is not None:
 
 # Finally, instantiate the Experiment object.
 experiment = Experiment.from_i07_nxs(
-    nxs_paths, beam_centre, detector_distance, setup, 
+    nxs_paths,beam_centre, detector_distance, setup, 
     using_dps=using_dps)
 
+experiment.mask_edf(edfmaskfile)
 experiment.mask_pixels(specific_pixels)
 experiment.mask_regions(mask_regions)
+
 
 """
 This section is for changing metadata that is stored in, or inferred from, the
@@ -164,40 +197,103 @@ for i, scan in enumerate(experiment.scans):
     #     [0, 1, 0],
     #     [0, 0, 1]
     # ])
+    #     # Would you like to skip any images in any scans? Do so here!
+    #     # This shows how to skip the 9th in the 3rd scan (note the zero counting).
+    #     # if i == 2:
+    #     #     scan.skip_images.append(8)PYFAI_MASK
+    
+    # """
 
-    # Would you like to skip any images in any scans? Do so here!
-    # This shows how to skip the 9th in the 3rd scan (note the zero counting).
-    # if i == 2:
-    #     scan.skip_images.append(8)
-
-"""
-This section contains all of the logic for running the calculation. You shouldn't
-run this on your local computer, it'll either raise an exception or take
-forever.
-"""
+# """
+# This section contains all of the logic for running the calculation. 
+# If calculating a full map you shouldn't run this on your local computer,
+#    it'll either raise an exception or take
+# forever.
+# """
 from fast_rsm.diamond_utils import save_binoculars_hdf5
 from time import time
+import nexusformat.nexus as nx
+import h5py
+        
 
-
+for i, scan in enumerate(experiment.scans):
+   start_time = time()
+   datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+   name_end=scan_numbers[i]
+   GIWAXS_names=['curved_projection_2D','pyfai_1D','qperp_qpara_map' ]
+   GIWAXScheck=np.isin(GIWAXS_names,process_outputs)
+   if GIWAXScheck.sum()>0:
+       projected_name=f'GIWAXS_{name_end}_{datetime_str}'
+       hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
+       PYFAI_MASK=edfmaskfile
+       if 'curved_projection_2D' in process_outputs:
+           
+           projected2d=experiment.curved_to_2d(scan)
+           PYFAI_PONI=experiment.createponi(local_output_path,experiment.projshape,experiment.vertoffset)
+           twothetas,Qangs,intensities,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
+                               local_output_path,scan,projected2d=projected2d)
+           experiment.save_projection(hf,projected2d,twothetas,Qangs,intensities,config)
+   
+           print(f"saved projection to {local_output_path}/{projected_name}.hdf5")
+           
+           total_time = time() - start_time
+           print(f"\nProjecting 2d took {total_time}s")
+           
+       #if 'azimuthal_integration' in process_outputs:
+           
+       if 'pyfai_1D' in process_outputs:
+       
+           experiment.load_curve_values(scan)
+           name_end=scan_numbers[i]
+           #image2dshape=experiment.scans[i].metadata.data_file.image_shape
+           PYFAI_PONI=experiment.createponi(local_output_path,(beam_centre[1],beam_centre[0]))
+           twothetas,Qangs,intensities,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
+                              local_output_path,scan)
+           experiment.save_integration(hf,twothetas,Qangs,intensities,config)
+   
+           
+           print(f'saved 1D profile to {local_output_path}/{projected_name}.hdf5')
+   
+           #print('Finished fast azimuthal integration')
+           
+       if 'qperp_qpara_map' in process_outputs:
+           frame_name = Frame.lab
+           coordinates = Frame.cartesian
+           map_frame = Frame(frame_name=frame_name, coordinates=coordinates)
+           name_end=scan_numbers[i]
+           qperp_qpara_map=experiment.calc_qpara_qper(scan,oop, map_frame)
+           experiment.save_qperp_qpara(hf, qperp_qpara_map)
+           print(f'saved qperp_qpara_map to {local_output_path}/{projected_name}.hdf5')
+   
+           #print('Finished qperp_qpara mapping')
+       
+       hf.close()
+       print(f'finished processing scan {name_end}')
+    
 if __name__ == "__main__":
-    start_time = time()
-    # Calculate and save a binned reciprocal space map, if requested.
-    experiment.binned_reciprocal_space_map(
-        num_threads, map_frame, output_file_size=output_file_size, oop=oop,
-        min_intensity_mask=min_intensity,
-        output_file_name=save_path, 
-        volume_start=volume_start, volume_stop=volume_stop,
-        volume_step=volume_step,
-        map_each_image=map_per_image)
+    
+    if 'full_reciprocal_map' in process_outputs:
+        frame_name = Frame.hkl
+        coordinates = Frame.cartesian
+        map_frame = Frame(frame_name=frame_name, coordinates=coordinates)
+        start_time = time()
+        # Calculate and save a binned reciprocal space map, if requested.
+        experiment.binned_reciprocal_space_map(
+            num_threads, map_frame, output_file_size=output_file_size, oop=oop,
+            min_intensity_mask=min_intensity,
+            output_file_name=save_path, 
+            volume_start=volume_start, volume_stop=volume_stop,
+            volume_step=volume_step,
+            map_each_image=map_per_image)
+    
+        if save_binoculars_h5==True:
+            save_binoculars_hdf5(str(save_path) + ".npy", str(save_path) + '.hdf5')
+            print(f"\nSaved BINoculars file to {save_path}.hdf5.\n")
 
-    if save_binoculars_h5:
-        save_binoculars_hdf5(str(save_path) + ".npy", str(save_path) + '.hdf5')
-        print(f"\nSaved BINoculars file to {save_path}.hdf5.\n")
-
-    # Finally, print that it's finished We'll use this to work out when the
-    # processing is done.
-    total_time = time() - start_time
-    print(f"\nProcessing took {total_time}s")
-    print(f"This corresponds to {total_time*1000/total_images}ms per image.\n")
-
-    print("PROCESSING FINISHED.")
+        # Finally, print that it's finished We'll use this to work out when the
+        # processing is done.
+        total_time = time() - start_time
+        print(f"\nProcessing took {total_time}s")
+        print(f"This corresponds to {total_time*1000/total_images}ms per image.\n")
+    
+print("PROCESSING FINISHED.")
