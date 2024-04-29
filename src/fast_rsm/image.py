@@ -317,7 +317,7 @@ class Image:
         k_out_array[i, j, 1] -= incident_beam_arr[1]
         k_out_array[i, j, 2] -= incident_beam_arr[2]
 
-        # It turns out that diffcalc assumes that k has an extra factor of
+        # Richard:  It turns out that diffcalc assumes that k has an extra factor of
         # 2π. I would never in my life have realised this had it not been
         # for an offhand comment by my colleague Dean. Thanks, Dean.
         k_out_array[i, j, :] *= k_incident_len * 2*np.pi
