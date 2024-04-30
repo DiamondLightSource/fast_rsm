@@ -10,10 +10,11 @@ from multiprocessing import Lock
 from pathlib import Path
 from time import time
 from typing import List, Tuple, Union
-
+import mapper_c_utils
 import numpy as np
 from diffraction_utils import Frame, Region
 from scipy.constants import physical_constants
+from datetime import datetime
 
 from . import io
 from .binning import weighted_bin_1d, finite_diff_shape
@@ -643,14 +644,16 @@ class Experiment:
         else:
             extrahorizontal=self.beam_centre[0]*self.pixel_size
             startheight=self.imshape[1]*self.pixel_size
-            
+
         extratwotheta=np.degrees(np.arctan(extrahorizontal/self.detector_distance))
+
         self.maxdist2D=self.detector_distance/np.cos(np.radians(two_theta_start[-1]+extratwotheta))
         maxdistdiff=self.maxdist2D-self.detector_distance
-        if self.rotval==0:
-            startheight=self.imshape[0]*self.pixel_size
-        else:
-            startheight=self.imshape[1]*self.pixel_size
+
+        # if self.rotval==0:
+        #     startheight=self.imshape[0]*self.pixel_size
+        # else:
+        startheight=self.imshape[0]*self.pixel_size
         maxdist=startheight+(maxdistdiff*(startheight/self.detector_distance))
         maxheight=np.ceil(maxdist/self.pixel_size)
         self.maxratiodist=self.maxdist2D/self.detector_distance
@@ -680,24 +683,33 @@ class Experiment:
     
         else:
             imgammas=im1gammas+(imnum*self.gammastep)
+         
             
-        
+        self.imcounts=np.zeros(self.projshape)
         for j in np.arange(self.imshape[1]):
             gamma=imgammas[0,j]
+            if j==0:
+                gammaprevious=0
+            else:
+                gammaprevious=imgammas[0,j-1]
             horlow,horupp=self.calcupplow(gamma)
-            avgamma=(gamma +gamma+self.degperpix)/2
+            avgamma=(gamma +gammaprevious)/2
+            distpixhor=abs(j-self.beam_centre[1])*self.pixel_size
+            dist_to_pix=np.sqrt(np.square(distpixhor)+np.square(self.detector_distance))
             dist2D=self.detector_distance/np.cos(np.radians(avgamma)) 
-            ratiodist=dist2D/self.detector_distance
+            ratiodist=dist2D/dist_to_pix
             pixvals=data[:,j]
             self.nonenans=np.where(~np.isnan(pixvals))[0]
-            for ind in self.nonenans:            
+            for ind in self.nonenans:
+                
                 deltaind=(ind-self.beam_centre[0])*-1
                 vertstart=int(np.floor(deltaind*(ratiodist)))+self.vertoffset
                 vertend=int(np.ceil((deltaind+1)*(ratiodist)))+self.vertoffset
-                self.project2d[self.projshape[0]-vertend:self.projshape[0]-vertstart,-horupp:-horlow]+=data[ind][j]
-                self.counts[self.projshape[0]-vertend:self.projshape[0]-vertstart,-horupp:-horlow]+=1
+                totalpixels=(1+vertend-vertstart)*(1+horupp-horlow)
+                self.project2d[self.projshape[0]-vertend:self.projshape[0]-vertstart,-horupp:-horlow]+=data[ind][j]/totalpixels
+                self.imcounts[self.projshape[0]-vertend:self.projshape[0]-vertstart,-horupp:-horlow]=1
 
-        
+        self.counts+=self.imcounts
                 
  
             
@@ -719,21 +731,24 @@ class Experiment:
     def curved_to_2d(self,scan):
         self.load_curve_values(scan)
         dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance
-        gammadirect=-1*np.degrees(np.arctan(self.projectionx/dcd_sample_dist))
+        if self.setup=='DCD':
+            gammadirect=-1*np.degrees(np.arctan(self.projectionx/dcd_sample_dist))
+        else:
+            gammadirect=0
         two_theta_start=self.gammadata-gammadirect
         self.twothetastart=two_theta_start
-        projshape=self.calc_projected_size(two_theta_start)
+        self.projshape=self.calc_projected_size(two_theta_start)
         self.degperpix=np.degrees(np.arctan(self.pixel_size/(self.detector_distance)))
     
         self.gammastep=(two_theta_start[-1]-two_theta_start[0])/(len(two_theta_start)-1)
 
-        self.gamma2d=np.degrees(np.arctan((np.arange(projshape[1])*self.pixel_size)/self.detector_distance))
-        self.projshape=self.calc_projected_size(two_theta_start)
+        self.gamma2d=np.degrees(np.arctan((np.arange(self.projshape[1])*self.pixel_size)/self.detector_distance))
+        
 
         self.vertoffset=int((self.imshape[0]-self.beam_centre[0])*self.maxratiodist)
 
-        self.project2d=np.zeros(projshape)
-        self.counts=np.zeros(projshape)
+        self.project2d=np.zeros(self.projshape)
+        self.counts=np.zeros(self.projshape)
         scanlength=scan.metadata.data_file.scan_length
         
         gamshifts=-1*(np.arange(self.imshape[1])-self.beam_centre[1])
@@ -743,13 +758,13 @@ class Experiment:
             O=gamshifts[col]*self.pixel_size
             tantheta=O/self.detector_distance
             im1gammas[:,col]=two_theta_start[0]+(np.degrees(np.arctan(tantheta)))
-        self.imgamma=im1gammas
+        #self.imgamma=im1gammas
         print(f'projecting {scanlength} images   completed images:  ')
         for imnum in np.arange(scanlength):
             self.projectimage(scan, imnum,im1gammas)
-            if (imnum+1)%10==0:
-                print('\n')
-            print(fr'{imnum+1}','\r', end='')
+            #if (imnum+1)%10==0:
+               # print('\n')
+            #print(fr'{imnum+1}','\r', end='')
             #print(f' projected image {outstring}','\r', end='')
         norm2d=np.divide(self.project2d,self.counts,where=self.counts!=0)
         projected_data=[norm2d,self.counts,self.vertoffset]
@@ -757,7 +772,9 @@ class Experiment:
     
     
     def createponi(self,outpath,image2dshape,offset=0):
-        f=open(fr'{outpath}/fast_rsm.poni','w')
+        datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+        ponioutpath=fr'{outpath}/fast_rsm_{datetime_str}.poni'
+        f=open(ponioutpath,'w')
         f.write('# PONI file created by fast_rsm\n#\n')
         f.write('poni_version: 2\n')
         f.write('Detector: Detector\n')
@@ -774,7 +791,7 @@ class Experiment:
         f.write('Rot3: 0.0\n')
         f.write(f'Wavelength: {self.incident_wavelength}')
         f.close()
-        return fr'{outpath}/fast_rsm.poni'
+        return ponioutpath
     
     
     def save_projection(self,hf,projected2d,twothetas,Qangs,intensities,config):
@@ -859,51 +876,186 @@ class Experiment:
             configs.append(ai.get_config())
         
         return twothetas,Qangs,intensities,configs
+    
+    def calc_mapnorm_ranges(self,pdata,qvals,mapnorms,rangeqparas,rangeqperps,mapints):
+        qxvalues=np.reshape(qvals[:,:,0],np.size(pdata))
+        qyvalues=np.reshape(qvals[:,:,1],np.size(pdata))
+        qzvalues=np.reshape(qvals[:,:,2],np.size(pdata))
+        
+        qperp=qzvalues
+        qpara=np.sqrt(np.square(qxvalues)+np.square(qyvalues))*np.copysign(1,np.sign(qxvalues))
+        
+        perpstep=0.005
+        parastep=0.005
+
+        rangeqperp=np.linspace(qperp.min(),qperp.max(),int((qperp.max()-qperp.min())/perpstep))
+        rangeqpara=np.linspace(qpara.min(),qpara.max(),int((qpara.max()-qpara.min())/parastep))
+        qperpbin=[int(val)-1 for val in (qperp-qperp.min())/perpstep]
+        qparabin=[int(val)-1 for val in (qpara-qpara.min())/parastep]
+        
+        
+        qmap=np.zeros([len(rangeqperp),len(rangeqpara)])
+        counts=np.zeros([len(rangeqperp),len(rangeqpara)])
+        for i in np.arange(len(qparabin)):
+            qpara,qperp=qparabin[i],qperpbin[i]
+            intval=mapints[i]
+            try:
+                qmap[qperp,qpara]+=intval
+                counts[qperp,qpara]+=1
+            except:
+                print(f'failed on {qpara}  {qperp}  {intval} ')
+        mapnorm=np.zeros([len(rangeqperp),len(rangeqpara)])
+        np.divide(qmap,counts,out=mapnorm,where=counts!=0)
+        mapnorms.append(mapnorm)
+        rangeqparas.append(rangeqpara)
+        rangeqperps.append(rangeqperp)
+        return mapnorms,rangeqparas,rangeqperps
+        
 
     
-    def calc_qpara_qper(self,scan,oop,frame: Frame):
-        number_images=scan.metadata.data_file.scan_length
+    def calc_qpara_qper(self,scan,oop,frame: Frame,proj2d):
         mapnorms=[]
         rangeqparas=[]
         rangeqperps=[]
-        for imnum in np.arange(number_images):
-            pdata=scan.load_image(imnum).data
+        if proj2d==None:
+            number_images=scan.metadata.data_file.scan_length
+            for imnum in np.arange(number_images):
+                pdata=scan.load_image(imnum).data
+                allints=np.reshape(pdata,np.size(pdata))
+                mapints=allints
+                qvals=scan.load_image(imnum).q_vectors(frame=frame,oop=oop)
+                mapnorms, rangeqparas, rangeqperps =self.calc_mapnorm_ranges(pdata,qvals,mapnorms,rangeqparas,rangeqperps,mapints)
+        else:
+            pdata=proj2d[0]
             allints=np.reshape(pdata,np.size(pdata))
             mapints=allints
-            qvals=scan.load_image(imnum).q_vectors(frame=frame,oop=oop)
-    
-            
-            qxvalues=np.reshape(qvals[:,:,0],np.size(pdata))
-            qyvalues=np.reshape(qvals[:,:,1],np.size(pdata))
-            qzvalues=np.reshape(qvals[:,:,2],np.size(pdata))
-            
-            qperp=qzvalues
-            qpara=np.sqrt(np.square(qxvalues)+np.square(qyvalues))*np.copysign(1,np.sign(qxvalues))
-            
-            perpstep=0.005
-            parastep=0.005
-            rangeqperp=np.linspace(qperp.min(),qperp.max(),int((qperp.max()-qperp.min())/perpstep))
-            rangeqpara=np.linspace(qpara.min(),qpara.max(),int((qpara.max()-qpara.min())/parastep))
-            qperpbin=[int(val)-1 for val in (qperp-qperp.min())/perpstep]
-            qparabin=[int(val)-1 for val in (qpara-qpara.min())/parastep]
-            
-            
-            qmap=np.zeros([len(rangeqperp),len(rangeqpara)])
-            counts=np.zeros([len(rangeqperp),len(rangeqpara)])
-            for i in np.arange(len(qparabin)):
-                qpara,qperp=qparabin[i],qperpbin[i]
-                intval=mapints[i]
-                try:
-                    qmap[qperp,qpara]+=intval
-                    counts[qperp,qpara]+=1
-                except:
-                    print(f'failed on {qpara}  {qperp}  {intval} ')
-            mapnorm=np.zeros([len(rangeqperp),len(rangeqpara)])
-            np.divide(qmap,counts,out=mapnorm,where=counts!=0)
-            mapnorms.append(mapnorm)
-            rangeqparas.append(rangeqpara)
-            rangeqperps.append(rangeqperp)
+            kin = scan.metadata.k_incident_length
+            qvals=self.projected2dQvecs(pdata,self.vertoffset,oop,kin)
+            mapnorms, rangeqparas, rangeqperps =self.calc_mapnorm_ranges(pdata,qvals,mapnorms,rangeqparas,rangeqperps,mapints)
         return mapnorms,rangeqparas,rangeqperps
+    
+    
+    def projected2dQvecs(self,projectedimage,vertoffset,oop,kin,horoffset=0):
+        i = slice(None)
+        j = slice(None)
+        desired_shape = tuple(list(np.shape(projectedimage)) + [3])
+        # if self.metadata.data_file.is_rotated:
+        #     desired_shape= tuple(list([self._raw_data.shape[1],self._raw_data.shape[0]]) + [3])
+        
+        # Don't bother initializing this.
+        k_out_array = np.ndarray(desired_shape, np.float32)
+        
+        # Get a unit vector pointing towards the detector.
+        # Get a unit vector pointing towards the detector.
+        det_displacement = [0,0,1]
+        det_vertical=[0,1,0]
+        det_horizontal=[1,0,0]
+        detector_distance=self.detector_distance
+        
+        vertical_pixel_offsets = np.zeros(np.shape(projectedimage), np.float32)
+        vertoffset1d= np.arange(np.shape(projectedimage)[0],0,-1) -vertoffset    
+        for ival, pixel_offset in enumerate(vertoffset1d):
+             vertical_pixel_offsets[ival, :] = pixel_offset
+             
+        horizontal_pixel_offsets = np.zeros(np.shape(projectedimage),np.float32)
+        horoffset1d= np.arange(np.shape(projectedimage)[1],0,-1) -horoffset    
+        for ival, pixel_offset in enumerate(horoffset1d):
+             horizontal_pixel_offsets[:, ival] = pixel_offset
+             
+        
+        vertical = vertical_pixel_offsets*self.pixel_size
+        horizontal = horizontal_pixel_offsets*self.pixel_size
+        
+        k_out_array[i, j, 0] = (
+            det_displacement[0]*detector_distance +
+            det_vertical[0]*vertical[i, j] +
+            det_horizontal[0]*horizontal[i, j])
+        k_out_array[i, j, 1] = (
+            det_displacement[1]*detector_distance +
+            det_vertical[1]*vertical[i, j] +
+            det_horizontal[1]*horizontal[i, j])
+        k_out_array[i, j, 2] = (
+            det_displacement[2]*detector_distance +
+            det_vertical[2]*vertical[i, j] +
+            det_horizontal[2]*horizontal[i, j])
+
+        # addition is an order of magnitude faster than using sum(.., axis=-1)
+        k_out_squares = np.square(k_out_array[i, j, :])
+
+        # k_out_sqares' shape depends on what i and j are. Handle all 3 cases.
+        if len(k_out_squares.shape) == 1:
+            norms = np.sum(k_out_squares)
+        elif len(k_out_squares.shape) == 2:
+            norms = (k_out_squares[:, 0] +
+                     k_out_squares[:, 1] +
+                     k_out_squares[:, 2])
+        elif len(k_out_squares.shape) == 3:
+            norms = (k_out_squares[:, :, 0] +
+                     k_out_squares[:, :, 1] +
+                     k_out_squares[:, :, 2])
+        norms = np.sqrt(norms)
+
+        # Right now, k_out_array[a, b] has units of meters for all a, b. We want
+        # k_out_array[a, b] to be normalized (elastic scattering). This can be
+        # done now that norms has been created because it has the right shape.
+        k_out_array[i, j, 0] /= norms
+        k_out_array[i, j, 1] /= norms
+        k_out_array[i, j, 2] /= norms
+
+        # For performance reasons these should also be float32.
+        incident_beam_arr = [0,0,1]
+        k_incident_len=kin
+        
+
+        # Note that this is an order of magnitude faster than:
+        # k_out_array -= incident_beam_arr
+        k_out_array[i, j, 0] -= incident_beam_arr[0]
+        k_out_array[i, j, 1] -= incident_beam_arr[1]
+        k_out_array[i, j, 2] -= incident_beam_arr[2]
+
+        # It turns out that diffcalc assumes that k has an extra factor of
+        # 2π. I would never in my life have realised this had it not been
+        # for an offhand comment by my colleague Dean. Thanks, Dean.
+        k_out_array[i, j, :] *= k_incident_len * 2*np.pi
+
+        ub_mat = np.array([
+                [1, 0, 0],
+                [0, 1, 0],
+                [0, 0, 1]
+            ])
+        
+        # Finally, we make it so that (001) will end up OOP.
+        if oop == 'y':
+            coord_change_mat = np.array([
+                [1, 0, 0],
+                [0, 0, -1],
+                [0, 1, 0]
+            ])
+        elif oop == 'x':
+            coord_change_mat = np.array([
+                [0, 1, 0],
+                [0, 0, 1],
+                [1, 0, 0]
+            ])
+        elif oop == 'z':
+            coord_change_mat = np.array([
+                [1, 0, 0],
+                [0, 1, 0],
+                [0, 0, 1]
+            ])
+
+        ub_mat = np.matmul(ub_mat, coord_change_mat)
+        ub_mat = ub_mat.astype(np.float32)
+        
+        
+        k_out_array = k_out_array.reshape(
+            (desired_shape[0]*desired_shape[1], 3))
+        # This takes CPU time: mapping every vector.
+        mapper_c_utils.linear_map(k_out_array, ub_mat)
+        # Reshape the k_out_array to have the same shape as the image.
+        k_out_array = k_out_array.reshape(desired_shape)
+        return k_out_array
+    
 
     @classmethod
     def from_i07_nxs(cls,
