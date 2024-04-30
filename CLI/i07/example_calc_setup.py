@@ -34,18 +34,9 @@ if output_file_size > 2000:
 # Max number of cores available for processing.
 num_threads = multiprocessing.cpu_count()
 
-# Work out where the data is.
-if local_data_path is None:
-    data_dir = Path(f"/dls/i07/data/{year}/{experiment_number}/")
-else:
-    data_dir = Path(local_data_path)
-# data_dir = Path(f"/Users/richard/Data/i07/{experiment_number}/")
+data_dir = Path(local_data_path)
 
-# Store this for later.
-if local_output_path is None:
-    processing_dir = data_dir / "processing"
-else:
-    processing_dir = Path(local_output_path)
+processing_dir = Path(local_output_path)
 
 # Here we calculate a sensible file name that hasn't been taken.
 i = 0
@@ -133,7 +124,7 @@ experiment = Experiment.from_i07_nxs(
 experiment.mask_edf(edfmaskfile)
 experiment.mask_pixels(specific_pixels)
 experiment.mask_regions(mask_regions)
-
+experiment.setup=setup
 
 """
 This section is for changing metadata that is stored in, or inferred from, the
@@ -223,6 +214,7 @@ for i, scan in enumerate(experiment.scans):
    GIWAXS_names=['curved_projection_2D','pyfai_1D','qperp_qpara_map' ]
    GIWAXScheck=np.isin(GIWAXS_names,process_outputs)
    if GIWAXScheck.sum()>0:
+       projected2d=None
        projected_name=f'GIWAXS_{name_end}_{datetime_str}'
        hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
        PYFAI_MASK=edfmaskfile
@@ -261,7 +253,7 @@ for i, scan in enumerate(experiment.scans):
            coordinates = Frame.cartesian
            map_frame = Frame(frame_name=frame_name, coordinates=coordinates)
            name_end=scan_numbers[i]
-           qperp_qpara_map=experiment.calc_qpara_qper(scan,oop, map_frame)
+           qperp_qpara_map=experiment.calc_qpara_qper(scan,oop, map_frame,proj2d=projected2d)
            experiment.save_qperp_qpara(hf, qperp_qpara_map)
            print(f'saved qperp_qpara_map to {local_output_path}/{projected_name}.hdf5')
    
