@@ -128,7 +128,7 @@ if mask_regions is not None:
 # Finally, instantiate the Experiment object.
 experiment = Experiment.from_i07_nxs(
     nxs_paths,beam_centre, detector_distance, setup, 
-    using_dps=using_dps)
+    using_dps=using_dps,experimental_hutch=experimental_hutch)
 
 experiment.mask_edf(edfmaskfile)
 experiment.mask_pixels(specific_pixels)
