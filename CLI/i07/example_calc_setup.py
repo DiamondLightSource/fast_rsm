@@ -188,10 +188,11 @@ for i, scan in enumerate(experiment.scans):
     #     [0, 1, 0],
     #     [0, 0, 1]
     # ])
+
     #     # Would you like to skip any images in any scans? Do so here!
     #     # This shows how to skip the 9th in the 3rd scan (note the zero counting).
-    #     # if i == 2:
-    #     #     scan.skip_images.append(8)PYFAI_MASK
+        if scan_numbers[i] in skipscans:
+            scan.skip_images+=skipimages[np.where(skipscans==scan_number[i])[0][0]]
     
     # """
 
