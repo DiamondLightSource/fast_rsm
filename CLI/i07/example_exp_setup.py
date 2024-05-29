@@ -93,27 +93,27 @@ specific_pixels = [(233, 234),(83, 83)]
 # For this dataset we need to mask pixel (x=233, y=83)
 # specific_pixels = None
 
-# If you want to specify an entire region of pixels to mask, do so here.
-# This is done using a "Region" object. To make a Region, give it start_x, 
-# stop_x, start_y, start_y, as follows:
+# to allow saving masks to hdf5 file, creating regions was moved to calc_setup, 
+# here give just start_x,  stop_x, start_y, start_y, as follows:
 # 
-# mask_1 = Region(0, 75, 0, 194)
-# mask_2 = Region(425, 485, 0, 194)
-#mask_3 = Region(1050, 1135, 0, 80)
-#mask_4 = Region(1050, 1135, 245, 515)
+mask_1 =(0, 75, 0, 194)
+mask_2 = (425, 485, 0, 194)
 
 # 
 # If you don't want to use any mask regions, just leave mask_regions equal to
 # None.
-#mmask_regions = [mask_1, mask_2]
-mask_regions = None
+mmask_regions = [mask_1, mask_2]
 
 # Ignore pixels with an intensity below this value. If you don't want to ignore
 # any pixels, then set min_intensity = None. This is useful for dynamically
 # creating masks (which is really useful for generating masks from -ve numbers).
 min_intensity = 0.
 
+skipscans=[1235,\
+           1237]
 
+skipimages=[[4,12],\
+            [45,67,69]]
 
 
 #============OUTPUTS==========

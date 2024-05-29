@@ -107,12 +107,15 @@ if specific_pixels is not None:
 
 # Now deal with any regions that may have been defined.
 # First make sure we have a list of regions.
-if isinstance(mask_regions, Region):
-    mask_regions = [mask_regions]
+# if isinstance(mask_regions, Region):
+#     mask_regions_list = [mask_regions]
+# else:
+#     mask_regions_list=[Region(*maskval) for maskval in mask_regions]
+mask_regions_list=[maskval if isinstance(maskval,Region) else Region(*maskval) for maskval in mask_regions]
 
 # Now swap (x, y) for each of the regions.
-if mask_regions is not None:
-    for region in mask_regions:
+if mask_regions_list is not None:
+    for region in mask_regions_list:
         region.x_start, region.y_start = region.y_start, region.x_start
         region.x_end, region.y_end = region.y_end, region.x_end
 
@@ -123,7 +126,7 @@ experiment = Experiment.from_i07_nxs(
 
 experiment.mask_edf(edfmaskfile)
 experiment.mask_pixels(specific_pixels)
-experiment.mask_regions(mask_regions)
+experiment.mask_regions(mask_regions_list)
 experiment.setup=setup
 
 """
@@ -191,8 +194,9 @@ for i, scan in enumerate(experiment.scans):
 
     #     # Would you like to skip any images in any scans? Do so here!
     #     # This shows how to skip the 9th in the 3rd scan (note the zero counting).
-        if scan_numbers[i] in skipscans:
-            scan.skip_images+=skipimages[np.where(skipscans==scan_number[i])[0][0]]
+    
+    if int(scan_numbers[i]) in skipscans:
+        scan.skip_images+=skipimages[np.where(np.array(skipscans)==int(scan_numbers[i]))[0][0]]
     
     # """
 

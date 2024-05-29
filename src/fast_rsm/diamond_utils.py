@@ -442,10 +442,19 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str):
 
     # Turn those into an axes group.
     axes_group = nx.NXgroup(h=h_arr, k=k_arr, l=l_arr)
+
+    config_group=nx.NXgroup()
+    configlist=['setup','experimental_hutch', 'using_dps','beam_centre','detector_distance','dpsx_central_pixel','dpsy_central_pixel','dpsz_central_pixel',\
+                'local_data_path','local_output_path','output_file_size','save_binoculars_h5','map_per_image','volume_start','volume_step','volume_stop',\
+                'load_from_dat', 'edfmaskfile','specific_pixels','mask_regions','process_outputs','scan_numbers']
+    for name, value in locals().items() :
+        if name in configlist:
+            config_group[name]=str(value)
     # Make a corresponding (mandatory) "binoculars" group.
     binoculars_group = nx.NXgroup(
-        axes=axes_group, contributions=contributions, counts=(volume))
+        axes=axes_group, contributions=contributions, counts=(volume),i07configuration=config_group)
     binoculars_group.attrs['type'] = 'Space'
+
 
     # Make a root which contains the binoculars group.
     bin_hdf = nx.NXroot(binoculars=binoculars_group)
