@@ -284,7 +284,8 @@ if __name__ == "__main__":
             map_each_image=map_per_image)
     
         if save_binoculars_h5==True:
-            save_binoculars_hdf5(str(save_path) + ".npy", str(save_path) + '.hdf5')
+            outvars=globals()
+            save_binoculars_hdf5(str(save_path) + ".npy", str(save_path) + '.hdf5',outvars)
             print(f"\nSaved BINoculars file to {save_path}.hdf5.\n")
 
         # Finally, print that it's finished We'll use this to work out when the

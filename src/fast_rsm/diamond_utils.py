@@ -4,6 +4,7 @@ specifically at Diamond.
 """
 
 import os
+import sys
 from typing import Tuple
 
 import fast_histogram
@@ -401,7 +402,7 @@ def intensity_vs_l(output_file_name: str,
     np.savetxt(output_file_name, to_save, header="l intensity")
 
 
-def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str):
+def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str,outvars=None):
     """
     Saves the .npy file as a binoculars-readable hdf5 file.
     """
@@ -447,9 +448,20 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str):
     configlist=['setup','experimental_hutch', 'using_dps','beam_centre','detector_distance','dpsx_central_pixel','dpsy_central_pixel','dpsz_central_pixel',\
                 'local_data_path','local_output_path','output_file_size','save_binoculars_h5','map_per_image','volume_start','volume_step','volume_stop',\
                 'load_from_dat', 'edfmaskfile','specific_pixels','mask_regions','process_outputs','scan_numbers']
-    for name, value in locals().items() :
-        if name in configlist:
-            config_group[name]=str(value)
+    # Get a list of all available variables
+    if outvars!=None:
+        variables = list(outvars.keys())
+
+        # Iterate through the variables
+        for var_name in variables:
+            # Check if the variable name is in configlist
+            if var_name in configlist:
+                # Get the variable value
+                var_value = outvars[var_name]
+            
+                # Add the variable to config_group
+                config_group[var_name] = str(var_value)
+    config_group['python_version']=str(sys.executable)
     # Make a corresponding (mandatory) "binoculars" group.
     binoculars_group = nx.NXgroup(
         axes=axes_group, contributions=contributions, counts=(volume),i07configuration=config_group)
