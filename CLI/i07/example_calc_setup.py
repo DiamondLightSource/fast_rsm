@@ -34,18 +34,9 @@ if output_file_size > 2000:
 # Max number of cores available for processing.
 num_threads = multiprocessing.cpu_count()
 
-# Work out where the data is.
-if local_data_path is None:
-    data_dir = Path(f"/dls/i07/data/{year}/{experiment_number}/")
-else:
-    data_dir = Path(local_data_path)
-# data_dir = Path(f"/Users/richard/Data/i07/{experiment_number}/")
+data_dir = Path(local_data_path)
 
-# Store this for later.
-if local_output_path is None:
-    processing_dir = data_dir / "processing"
-else:
-    processing_dir = Path(local_output_path)
+processing_dir = Path(local_output_path)
 
 # Here we calculate a sensible file name that hasn't been taken.
 i = 0
@@ -116,12 +107,15 @@ if specific_pixels is not None:
 
 # Now deal with any regions that may have been defined.
 # First make sure we have a list of regions.
-if isinstance(mask_regions, Region):
-    mask_regions = [mask_regions]
+# if isinstance(mask_regions, Region):
+#     mask_regions_list = [mask_regions]
+# else:
+#     mask_regions_list=[Region(*maskval) for maskval in mask_regions]
+mask_regions_list=[maskval if isinstance(maskval,Region) else Region(*maskval) for maskval in mask_regions]
 
 # Now swap (x, y) for each of the regions.
-if mask_regions is not None:
-    for region in mask_regions:
+if mask_regions_list is not None:
+    for region in mask_regions_list:
         region.x_start, region.y_start = region.y_start, region.x_start
         region.x_end, region.y_end = region.y_end, region.x_end
 
@@ -132,8 +126,8 @@ experiment = Experiment.from_i07_nxs(
 
 experiment.mask_edf(edfmaskfile)
 experiment.mask_pixels(specific_pixels)
-experiment.mask_regions(mask_regions)
-
+experiment.mask_regions(mask_regions_list)
+experiment.setup=setup
 
 """
 This section is for changing metadata that is stored in, or inferred from, the
@@ -197,10 +191,12 @@ for i, scan in enumerate(experiment.scans):
     #     [0, 1, 0],
     #     [0, 0, 1]
     # ])
+
     #     # Would you like to skip any images in any scans? Do so here!
     #     # This shows how to skip the 9th in the 3rd scan (note the zero counting).
-    #     # if i == 2:
-    #     #     scan.skip_images.append(8)PYFAI_MASK
+    
+    if int(scan_numbers[i]) in skipscans:
+        scan.skip_images+=skipimages[np.where(np.array(skipscans)==int(scan_numbers[i]))[0][0]]
     
     # """
 
@@ -223,6 +219,7 @@ for i, scan in enumerate(experiment.scans):
    GIWAXS_names=['curved_projection_2D','pyfai_1D','qperp_qpara_map' ]
    GIWAXScheck=np.isin(GIWAXS_names,process_outputs)
    if GIWAXScheck.sum()>0:
+       projected2d=None
        projected_name=f'GIWAXS_{name_end}_{datetime_str}'
        hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
        PYFAI_MASK=edfmaskfile
@@ -261,7 +258,7 @@ for i, scan in enumerate(experiment.scans):
            coordinates = Frame.cartesian
            map_frame = Frame(frame_name=frame_name, coordinates=coordinates)
            name_end=scan_numbers[i]
-           qperp_qpara_map=experiment.calc_qpara_qper(scan,oop, map_frame)
+           qperp_qpara_map=experiment.calc_qpara_qper(scan,oop, map_frame,proj2d=projected2d)
            experiment.save_qperp_qpara(hf, qperp_qpara_map)
            print(f'saved qperp_qpara_map to {local_output_path}/{projected_name}.hdf5')
    
@@ -287,7 +284,8 @@ if __name__ == "__main__":
             map_each_image=map_per_image)
     
         if save_binoculars_h5==True:
-            save_binoculars_hdf5(str(save_path) + ".npy", str(save_path) + '.hdf5')
+            outvars=globals()
+            save_binoculars_hdf5(str(save_path) + ".npy", str(save_path) + '.hdf5',outvars)
             print(f"\nSaved BINoculars file to {save_path}.hdf5.\n")
 
         # Finally, print that it's finished We'll use this to work out when the
