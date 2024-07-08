@@ -705,7 +705,7 @@ class Experiment:
                 vertend=int(np.ceil((deltaind+1)*(ratiodist)))+self.vertoffset
                 totalpixels=(1+vertend-vertstart)*(1+horupp-horlow)
                 self.project2d[self.projshape[0]-vertend:self.projshape[0]-vertstart,-horupp:-horlow]+=data[ind][j]/totalpixels
-                self.imcounts[self.projshape[0]-vertend:self.projshape[0]-vertstart,-horupp:-horlow]=1
+                self.imcounts[self.projshape[0]-vertend:self.projshape[0]-vertstart,-horupp:-horlow]+=1
 
         self.counts+=self.imcounts
                 
