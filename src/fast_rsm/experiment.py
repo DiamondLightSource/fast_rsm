@@ -749,7 +749,7 @@ class Experiment:
         bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
         
         return bin_centers, hist, hist_normalized, counts
-    
+        
     def pyfai_perp_para(self,hf,scan,ind,pyfaiponi):
         ai=pyFAI.load(pyfaiponi)    
         ai.set_mask(scan.metadata.edfmask)
@@ -759,10 +759,9 @@ class Experiment:
         #qoop = ai.array_from_unit(unit=unit_qoop)
         imagedata=scan.load_image(ind)
         res2d = ai.integrate2d(imagedata, 1000,1000, unit=(unit_qip, unit_qoop))
-        return res2d
+        return res2d    
     
-    
-    def pyfaidiffractometer(self,hf,scan,num_threads,gammastepval,output_file_path,pyfaiponi):
+    def pyfaidiffractometer(self,scan,num_threads,map_frame,gammastepval,output_file_path):
         self.load_curve_values(scan)
         
         dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance
@@ -809,6 +808,7 @@ class Experiment:
             initargs=(locks,  # The initializer makes this lock global.
                   num_threads,  # Initializer makes num_threads global.
                   self.scans[0].metadata,
+                  map_frame,
                   shapeqi,
                   #(shapeqi[0],int(shapeqi[1]/50)),
                   shapecake,
@@ -819,7 +819,7 @@ class Experiment:
             for indices in chunk(np.arange(0,len(two_theta_start),scalegamma), num_threads):
                 async_results.append(pool.apply_async(
                     pyfaicalcint,
-                    (self,indices,scan,shapecake,shapeqi,two_theta_start,gammastepval,pyfaiponi)))
+                    (self,indices,scan,shapecake,shapeqi,two_theta_start,gammastepval)))
                 #print(f'done  {indices[0]  - indices[1]} with {num_threads}\n')
             print('finished preparing chunked data')
             pyfai_qi_names=[]
@@ -908,7 +908,7 @@ class Experiment:
         # outdf=pd.DataFrame(pyfai_qi_arrays,index=['Intensity','Q','2th'])
         # sortoutdf=outdf.sort_values(by='Q',axis=1)
         
-        #hf=h5py.File(f'{output_path}/multiponiQI__{datetime_str}.hdf5',"w")
+        hf=h5py.File(f'{output_path}/multiponiQI__{datetime_str}.hdf5',"w")
         dset=hf.create_group("integrations")
         dset.create_dataset("2thetas",data=gammavals)
         dset.create_dataset("Q_angstrom^-1",data=qvals)
@@ -928,6 +928,7 @@ class Experiment:
         # dset2.create_dataset("cakeimage_2theta",data=result2d[1])
         # dset2.create_dataset("cakeimage_azimuthal",data=result2d[2])
         
+        hf.close()
         
         minutes=(end_time-start_time)/60
         print(f'total calculation took {minutes}  minutes')
@@ -985,7 +986,7 @@ class Experiment:
             im1gammas[:,col]=two_theta_start[0]+(np.degrees(np.arctan(tantheta)))
         #self.imgamma=im1gammas
         print(f'projecting {scanlength} images   completed images:  ')
-        imstep=int(np.floor(scanlength/50))
+        imstep=int(np.floor(scanlength/1))
         for imnum in np.arange(0,scanlength,imstep):
             self.projectimage(scan, imnum,im1gammas)
             #if (imnum+1)%10==0:
@@ -995,13 +996,9 @@ class Experiment:
         norm2d=np.divide(self.project2d,self.counts,where=self.counts!=0)
         projected_data=[norm2d,self.counts,self.vertoffset]
         return projected_data
-
-        
-        
-        
     
     
-    def createponi(self,outpath,image2dshape,beam_centre):
+    def createponi(self,outpath,image2dshape,offset=0):
         datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
         ponioutpath=fr'{outpath}/fast_rsm_{datetime_str}.poni'
         f=open(ponioutpath,'w')
@@ -1012,8 +1009,8 @@ class Experiment:
         f.write(f'{self.pixel_size}, "pixel2": {self.pixel_size}, "max_shape": [{image2dshape[0]}, {image2dshape[1]}]') 
         f.write('}\n')
         f.write(f'Distance: {self.detector_distance}\n')
-        poni1=beam_centre[0]*self.pixel_size
-        poni2=beam_centre[1]*self.pixel_size
+        poni1=(image2dshape[0]-offset)*self.pixel_size
+        poni2=image2dshape[1]*self.pixel_size
         f.write(f'Poni1: {poni1}\n')
         f.write(f'Poni2: {poni2}\n')
         f.write('Rot1: 0.0\n')
@@ -1054,7 +1051,7 @@ class Experiment:
         dset.create_dataset("qpararanges",data=qperp_qpara_map[1])
         dset.create_dataset("qperpranges",data=qperp_qpara_map[2])
         #hf.close()
-    def save_config_variables(self,hf,joblines,pythonlocation):
+    def save_config_variables(self,hf):
         config_group=hf.create_group('config')
         configlist=['setup','experimental_hutch', 'using_dps','beam_centre','detector_distance','dpsx_central_pixel','dpsy_central_pixel','dpsz_central_pixel',\
                     'local_data_path','local_output_path','output_file_size','save_binoculars_h5','map_per_image','volume_start','volume_step','volume_stop',\
@@ -1062,8 +1059,6 @@ class Experiment:
         for name, value in globals().items() :
             if name in configlist:
                 config_group.create_dataset(f"{name}",data=value)
-        config_group.create_dataset('joblines',data=joblines)
-        config_group.create_dataset('python_location',data=pythonlocation)
 
     def pyfai1D(self,imagespath,maskpath,ponipath,outpath,scan,projected2d=None,gammastep=0.005):
         #images=scan.metadata.data_file.local_image_paths
