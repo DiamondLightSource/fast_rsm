@@ -402,7 +402,7 @@ def intensity_vs_l(output_file_name: str,
     np.savetxt(output_file_name, to_save, header="l intensity")
 
 
-def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str,outvars=None):
+def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str,joblines,pythonlocation,outvars=None):
     """
     Saves the .npy file as a binoculars-readable hdf5 file.
     """
@@ -461,7 +461,8 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str,outvars=None)
             
                 # Add the variable to config_group
                 config_group[var_name] = str(var_value)
-    config_group['python_version']=str(sys.executable)
+    config_group['python_version']=pythonlocation
+    config_group['joblines']=joblines
     # Make a corresponding (mandatory) "binoculars" group.
     binoculars_group = nx.NXgroup(
         axes=axes_group, contributions=contributions, counts=(volume),i07configuration=config_group)

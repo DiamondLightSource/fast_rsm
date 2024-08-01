@@ -23,6 +23,10 @@ from .image import Image
 from .rsm_metadata import RSMMetadata
 from .writing import linear_bin_to_vtk
 
+import pyFAI
+import copy
+
+
 
 def check_shared_memory(shared_mem_name: str) -> None:
     """
@@ -124,6 +128,167 @@ def init_process_pool(
 
     print(f"Finished initializing worker {current_process().name}.")
 
+def init_pyfai_process_pool(
+        locks: List[Lock],
+        num_threads: int,
+        metadata: RSMMetadata,
+        shapeqi: tuple,
+		shapecake: tuple,
+        output_file_name: str = None
+) -> None:
+    """
+    Initializes a processing pool to have a global shared lock.
+
+    Args:
+        locks:
+            A list of the locks that will be shared between spawned processes.
+        num_threads:
+            The total number of processes that are being spawned in the pool.
+        shape:
+            Passed if you want to make PYFAI_QI and CAKE arrays global.
+    """
+    # pylint: disable=global-variable-undefined.
+
+    # Make a global lock for the shared memory block used in parallel code.
+    global LOCKS
+
+    # Some metadata that a worker thread should always have access to.
+    global NUM_THREADS
+    global METADATA
+
+    # Not always necessary and may be set to None.
+    global OUTPUT_FILE_NAME
+
+    # These are numpy arrays whose buffer corresponds to the shared memory
+    # buffer. It's more convenient to access these later than to directly work
+    # with the shared memory buffer.
+    global PYFAI_QI
+    global CAKE
+
+    # We want to keep track of what we've called our shared memory arrays.
+    global SHARED_PYFAI_QI_NAME
+    global SHARED_CAKE_NAME
+
+    # Why do we need to make the shared memory blocks global, if we're giving
+    # global access to them via the numpy 'PYFAI_QI' and 'CAKE' arrays? The answer
+    # is that we need the shared memory arrays to remain in scope, or they'll be
+    # freed.
+    global SHARED_PYFAI_QI
+    global SHARED_CAKE
+
+    LOCKS = locks
+    NUM_THREADS = num_threads
+    METADATA = metadata
+
+    OUTPUT_FILE_NAME = output_file_name
+
+    # Work out how many bytes we're going to need by making a dummy array.
+    arrqi = np.ndarray(shape=shapeqi, dtype=np.float32)
+    arrcake =np.ndarray(shape=shapecake, dtype=np.float32)
+
+    # Construct the shared memory buffers.
+    SHARED_PYFAI_QI_NAME = f'pyfai_qi_{current_process().name}'
+    SHARED_CAKE_NAME = f'cake_{current_process().name}'
+    check_shared_memory(SHARED_PYFAI_QI_NAME)
+    check_shared_memory(SHARED_CAKE_NAME)
+    SHARED_PYFAI_QI = SharedMemory(
+        name=SHARED_PYFAI_QI_NAME, create=True, size=arrqi.nbytes)
+    SHARED_CAKE = SharedMemory(
+        name=SHARED_CAKE_NAME, create=True, size=arrcake.nbytes)
+
+    # Construct the global references to the shared memory arrays.
+    PYFAI_QI = np.ndarray(shapeqi, dtype=np.float32, buffer=SHARED_PYFAI_QI.buf)
+    CAKE = np.ndarray(shapecake, dtype=np.float32, buffer=SHARED_CAKE.buf)
+
+    # Initialize the shared memory arrays.
+    PYFAI_QI.fill(0)
+    CAKE.fill(0)
+
+    print(f"Finished initializing worker {current_process().name}.")
+
+    
+def pyfaicalcint(experiment,imageindices,scan,shapecake,shapeqi,two_theta_start,gammastepval,pyfaiponi)->None:
+    choiceims=imageindices
+    #ais=[]
+   
+    aistart=pyFAI.load(pyfaiponi)    
+    aistart.set_mask(scan.metadata.edfmask)
+    totaloutqi=np.zeros((3,shapeqi[1]))
+    totalcake=np.zeros(shapecake[1:])
+    totalcount=np.zeros(shapecake[1:])
+    runningtotal=0
+    groupnum=15
+    imagegammas=experiment.calcimagegammarange()
+    binpertwothetaval=int(np.ceil((two_theta_start[1]-two_theta_start[0])/gammastepval))
+    if len(choiceims)>1:
+        binstep=((choiceims[1]-choiceims[0])*groupnum*binpertwothetaval)
+    else:
+        binstep=1
+    #method1=pyFAI.method_registry.IntegrationMethod.parse("full", dim=1)
+    groups=[choiceims[i:i+groupnum] for i in range(0,len(choiceims),groupnum)]
+    for group in groups:
+        ais=[]
+        for i in group:
+            my_ai = copy.deepcopy(aistart)
+            my_ai.rot1 = np.radians(-two_theta_start[i])
+            my_ai.rot2 =-np.radians( scan.metadata.diffractometer.data_file.delta[i])
+            ais.append(my_ai)
+        img_data=[scan.load_image(i).data for i in group]  
+        
+        radrange=(two_theta_start[group[0]]-imagegammas[1],two_theta_start[group[-1]]+imagegammas[2])
+        Qrange=(experiment.calcq(radrange[0],experiment.incident_wavelength),\
+                experiment.calcq(radrange[1],experiment.incident_wavelength))
+        nbins=int(np.ceil((radrange[1]-radrange[0])/gammastepval))
+        #nbins=len(group)
+        mg = pyFAI.multi_geometry.MultiGeometry(ais,  unit="2th_deg",wavelength=experiment.incident_wavelength,radial_range=(0,75))
+        result2d=mg.integrate2d(img_data, shapecake[2],shapecake[1])
+
+        mg = pyFAI.multi_geometry.MultiGeometry(ais,  unit="2th_deg",wavelength=experiment.incident_wavelength,radial_range=radrange)
+        #result2d=mg.integrate2d(img_data, shapecake[2],shapecake[1],mask=scan.metadata.edfmask)
+        result1d= mg.integrate1d(img_data, nbins)
+        two_theta_arr=result1d[0]
+        I_arr=result1d[1]
+        
+        mg= pyFAI.multi_geometry.MultiGeometry(ais,  unit= "q_A^-1",wavelength=experiment.incident_wavelength,radial_range=Qrange)
+        result1d= mg.integrate1d(img_data, nbins)        
+        q_arr=result1d[0]
+        
+        #outarr=np.vstack((I_arr,q_arr,two_theta_arr))
+        #print(f'len I = {len(I_arr)}    nbins={nbins}')
+        
+        totaloutqi[0, runningtotal:runningtotal+nbins]+=I_arr
+        totaloutqi[1, runningtotal:runningtotal+nbins]+=q_arr
+        totaloutqi[2, runningtotal:runningtotal+nbins]+=two_theta_arr
+        
+        cakeout_array=np.zeros(np.shape(result2d[0]))
+        cakeout_array[0:int(shapecake[1]/2),:]=result2d[0][int(shapecake[1]/2):shapecake[1],:]
+        cakeout_array[int(shapecake[1]/2):shapecake[1],:]=result2d[0][0:int(shapecake[1]/2),:]
+        countresult=np.array(cakeout_array>0).astype(int)
+
+
+        
+        totalcake+=cakeout_array
+        totalcount+=countresult
+        runningtotal+=binstep
+        # pyfai_qi_arrays =np.concatenate(new_pyfai_qi_arrays,axis=1)
+        # cake_arrays =np.sum(new_cake_arrays,axis=0)
+    
+        
+        # Q, I = mg.integrate1d(img_data, nbins)
+        # tthstep=(radrange[1]-radrange[0])/nbins
+        # two_theta_arr=np.arange(radrange[0],radrange[0]+(tthstep*(nbins)),tthstep)
+        # qstep=(Qrange[1]-Qrange[0])/nbins
+        # q_arr=np.arange(Qrange[0],Qrange[0]+((nbins)*qstep),qstep)
+
+        #
+  
+    #PYFAI_QI[:,:]=0
+    # 
+    # totaloutqi,totalcake,totalcount
+    PYFAI_QI[:,:]=totaloutqi
+    CAKE[0] = totalcake
+    CAKE[1]=totalcount
+    return SHARED_PYFAI_QI_NAME, SHARED_CAKE_NAME  
 
 def _on_exit(shared_mem: SharedMemory) -> None:
     """
