@@ -211,6 +211,16 @@ from time import time
 import nexusformat.nexus as nx
 import h5py
         
+import os,sys
+
+# Get the full path of the current file
+full_path = __file__
+
+f =open(full_path)
+joblines=f.readlines()
+f.close()
+pythonlocation=sys.executable
+
 
 for i, scan in enumerate(experiment.scans):
    start_time = time()
@@ -285,7 +295,7 @@ if __name__ == "__main__":
     
         if save_binoculars_h5==True:
             outvars=globals()
-            save_binoculars_hdf5(str(save_path) + ".npy", str(save_path) + '.hdf5',outvars)
+            save_binoculars_hdf5(str(save_path) + ".npy", str(save_path) + '.hdf5',joblines,pythonlocation,outvars)
             print(f"\nSaved BINoculars file to {save_path}.hdf5.\n")
 
         # Finally, print that it's finished We'll use this to work out when the
