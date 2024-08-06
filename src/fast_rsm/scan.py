@@ -23,6 +23,7 @@ from .image import Image
 from .rsm_metadata import RSMMetadata
 from .writing import linear_bin_to_vtk
 
+from pyFAI.multi_geometry import MultiGeometry
 import pyFAI
 import copy
 
@@ -206,25 +207,20 @@ def init_pyfai_process_pool(
 
     print(f"Finished initializing worker {current_process().name}.")
 
-    
-def pyfaicalcint(experiment,imageindices,scan,shapecake,shapeqi,two_theta_start,gammastepval,pyfaiponi)->None:
+  
+def pyfaicalcint(experiment,imageindices,scan,shapecake,shapeqi,two_theta_start,pyfaiponi,radrange,radstepval)->None:
     choiceims=imageindices
     #ais=[]
    
     aistart=pyFAI.load(pyfaiponi)    
     aistart.set_mask(scan.metadata.edfmask)
-    totaloutqi=np.zeros((3,shapeqi[1]))
+    totaloutqi=np.zeros((3,shapeqi[2]))
+    totaloutcounts=np.zeros((3,shapeqi[2]))
     totalcake=np.zeros(shapecake[1:])
     totalcount=np.zeros(shapecake[1:])
     runningtotal=0
     groupnum=15
-    imagegammas=experiment.calcimagegammarange()
-    binpertwothetaval=int(np.ceil((two_theta_start[1]-two_theta_start[0])/gammastepval))
-    if len(choiceims)>1:
-        binstep=((choiceims[1]-choiceims[0])*groupnum*binpertwothetaval)
-    else:
-        binstep=1
-    #method1=pyFAI.method_registry.IntegrationMethod.parse("full", dim=1)
+
     groups=[choiceims[i:i+groupnum] for i in range(0,len(choiceims),groupnum)]
     for group in groups:
         ais=[]
@@ -234,31 +230,37 @@ def pyfaicalcint(experiment,imageindices,scan,shapecake,shapeqi,two_theta_start,
             my_ai.rot2 =-np.radians( scan.metadata.diffractometer.data_file.delta[i])
             ais.append(my_ai)
         img_data=[scan.load_image(i).data for i in group]  
+
         
-        radrange=(two_theta_start[group[0]]-imagegammas[1],two_theta_start[group[-1]]+imagegammas[2])
+        nbins=int(np.ceil((radrange[1]-radrange[0])/radstepval))
         Qrange=(experiment.calcq(radrange[0],experiment.incident_wavelength),\
                 experiment.calcq(radrange[1],experiment.incident_wavelength))
-        nbins=int(np.ceil((radrange[1]-radrange[0])/gammastepval))
-        #nbins=len(group)
-        mg = pyFAI.multi_geometry.MultiGeometry(ais,  unit="2th_deg",wavelength=experiment.incident_wavelength,radial_range=(0,75))
+
+        mg = MultiGeometry(ais,  unit="2th_deg",wavelength=experiment.incident_wavelength,radial_range=(0,75))
         result2d=mg.integrate2d(img_data, shapecake[2],shapecake[1])
 
-        mg = pyFAI.multi_geometry.MultiGeometry(ais,  unit="2th_deg",wavelength=experiment.incident_wavelength,radial_range=radrange)
-        #result2d=mg.integrate2d(img_data, shapecake[2],shapecake[1],mask=scan.metadata.edfmask)
+        mg = MultiGeometry(ais,  unit="2th_deg",wavelength=experiment.incident_wavelength,radial_range=radrange)
+
         result1d= mg.integrate1d(img_data, nbins)
-        two_theta_arr=result1d[0]
-        I_arr=result1d[1]
-        
-        mg= pyFAI.multi_geometry.MultiGeometry(ais,  unit= "q_A^-1",wavelength=experiment.incident_wavelength,radial_range=Qrange)
+        two_theta_arr=result1d.radial
+        I_arr=result1d.sum_signal
+        I_counts=result1d.count
+        mg= MultiGeometry(ais,  unit= "q_A^-1",wavelength=experiment.incident_wavelength,radial_range=Qrange)
         result1d= mg.integrate1d(img_data, nbins)        
         q_arr=result1d[0]
+        qmin,qmax=q_arr.min(),q_arr.max()
+        thmin,thmax=two_theta_arr.min(),two_theta_arr.max()
+
         
-        #outarr=np.vstack((I_arr,q_arr,two_theta_arr))
-        #print(f'len I = {len(I_arr)}    nbins={nbins}')
         
-        totaloutqi[0, runningtotal:runningtotal+nbins]+=I_arr
-        totaloutqi[1, runningtotal:runningtotal+nbins]+=q_arr
-        totaloutqi[2, runningtotal:runningtotal+nbins]+=two_theta_arr
+        totaloutqi[0]+=I_arr
+        totaloutqi[1]=q_arr
+        totaloutqi[2]=two_theta_arr
+        
+        totaloutcounts[0]+=I_counts
+        totaloutcounts[1]=1
+        totaloutcounts[2]=1
+        
         
         cakeout_array=np.zeros(np.shape(result2d[0]))
         cakeout_array[0:int(shapecake[1]/2),:]=result2d[0][int(shapecake[1]/2):shapecake[1],:]
@@ -269,26 +271,14 @@ def pyfaicalcint(experiment,imageindices,scan,shapecake,shapeqi,two_theta_start,
         
         totalcake+=cakeout_array
         totalcount+=countresult
-        runningtotal+=binstep
-        # pyfai_qi_arrays =np.concatenate(new_pyfai_qi_arrays,axis=1)
-        # cake_arrays =np.sum(new_cake_arrays,axis=0)
-    
-        
-        # Q, I = mg.integrate1d(img_data, nbins)
-        # tthstep=(radrange[1]-radrange[0])/nbins
-        # two_theta_arr=np.arange(radrange[0],radrange[0]+(tthstep*(nbins)),tthstep)
-        # qstep=(Qrange[1]-Qrange[0])/nbins
-        # q_arr=np.arange(Qrange[0],Qrange[0]+((nbins)*qstep),qstep)
 
-        #
-  
-    #PYFAI_QI[:,:]=0
-    # 
-    # totaloutqi,totalcake,totalcount
-    PYFAI_QI[:,:]=totaloutqi
+    cakeaxisinfo=[result2d.azimuthal,result2d.radial,str(result2d.azimuthal_unit),str(result2d.radial_unit)]    
+
+    PYFAI_QI[0]=totaloutqi
+    PYFAI_QI[1]=totaloutcounts
     CAKE[0] = totalcake
     CAKE[1]=totalcount
-    return SHARED_PYFAI_QI_NAME, SHARED_CAKE_NAME  
+    return SHARED_PYFAI_QI_NAME, SHARED_CAKE_NAME , cakeaxisinfo 
 
 def _on_exit(shared_mem: SharedMemory) -> None:
     """

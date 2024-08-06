@@ -18,7 +18,7 @@ setup = 'horizontal'
 #which experimental hutch was used 0 = unsure, 1= experimental hutch 1, 2=experimental hutch 2
 experimental_hutch=1
 # Set this to the directory path where your files are saved, note you will need to include any subdirectories in this path
-local_data_path = '/dls/i07/data/2024/si32266-3/QIchunfilms'
+local_data_path = 
 # Set this to the path where you want the output from the data processing to be saved
 local_output_path =  '/dls/i07/data/2024/cm37245-1/PhilMousley_testing/output'
 
@@ -74,10 +74,14 @@ volume_step = None
 load_from_dat = False
 
 
+#if calculating pyfai integration on scan with moving detector and large number of images need to 
+# specify range of q or 2th so that number of bins can be calculated
+radialrange=(0,60)
+radialstepval=0.01
 
 #===========MASKING=============
 #add path to edfmaskfile created with pyFAI gui accessed via 'makemask' option in fast_rsm
-edfmaskfile =  '/home/i07user/fast_rsm/example_mask_Qichun.edf' #'/home/rpy65944/test2dFromImages.edf'
+edfmaskfile =  None
 
 
 # alternatively specify masked regions with pixels and regions
@@ -122,13 +126,19 @@ skipimages=[[4,12],\
 #                           scans listed into a single volume
 #
 # 'curved_projection_2D' = projects a series of detector images into a single 2D,
-#                           treating the images as if there were all from a curved detector.
+#                           treating the images as if there were all from a curved detector. 
+#                           NOTE: Currently does not work for scans with 1000s of images
 
 # 'pyfai_1D' =  Does an azimuthal integration on an image using PONI and MASK 
 #               settings described in corresponding files
 #
-# 'qperp_qpara_map'  - project GIWAXS image into q_para,q_perp plot
-process_outputs=['qperp_qpara_map','pyfai_1D']
+# 'qperp_qpara_map'  - project GIWAXS image into q_para,q_perp plot. 
+#                          NOTE: Currently does not work for scans with 1000s of images
+#
+# 'large_moving_det' - utilise MultiGeometry option in pyFAI for scan with a moving detector and a 
+#                       large number of images (~1000s), outputs: I, Q, two theta, caked image 
+#
+process_outputs=['large_moving_det']
 
 
 # The scan numbers of the scans that you want to use to produce this reciprocal

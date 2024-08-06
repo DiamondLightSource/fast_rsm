@@ -98,7 +98,7 @@ cylinder_axis = None
 
 # # Construct the Frame object from the user's preferred frame/coords.
 # map_frame = Frame(frame_name=frame_name, coordinates=coordinates)
-
+#projected2d==None
 # Prepare the pixel mask. First, deal with any specific pixels that we have.
 # Note that these are defined (x, y) and we need (y, x) which are the
 # (slow, fast) axes. So: first we need to deal with that!
@@ -124,8 +124,8 @@ experiment = Experiment.from_i07_nxs(
     nxs_paths,beam_centre, detector_distance, setup, 
     using_dps=using_dps,experimental_hutch=experimental_hutch)
 
-experiment.mask_edf(edfmaskfile)
 experiment.mask_pixels(specific_pixels)
+experiment.mask_edf(edfmaskfile)
 experiment.mask_regions(mask_regions_list)
 experiment.setup=setup
 
@@ -174,7 +174,7 @@ for i, scan in enumerate(experiment.scans):
             # If we aren't using the DCD, our life is much simpler.
             scan.metadata.data_file.dpsx -= dpsx_central_pixel
             scan.metadata.data_file.dpsy -= dpsy_central_pixel
-            scan.metadata.data_file.dpsz -= dpsz_central_pixel
+            scan.metadata.data_file.dpsz -= dpsz_cen/dls/i07/data/2024/cm37245-3/insptral_pixel
 
         # Load from .dat files if we've been asked.
         if load_from_dat:
@@ -200,17 +200,6 @@ for i, scan in enumerate(experiment.scans):
     
     # """
 
-# """
-# This section contains all of the logic for running the calculation. 
-# If calculating a full map you shouldn't run this on your local computer,
-#    it'll either raise an exception or take
-# forever.
-# """
-from fast_rsm.diamond_utils import save_binoculars_hdf5
-from time import time
-import nexusformat.nexus as nx
-import h5py
-        
 import os,sys
 
 # Get the full path of the current file
@@ -222,60 +211,86 @@ f.close()
 pythonlocation=sys.executable
 
 
+
+
+# """
+# This section contains all of the logic for running the calculation. 
+# If calculating a full map you shouldn't run this on your local computer,
+#    it'll either raise an exception or take
+# forever.
+# """
+from fast_rsm.diamond_utils import save_binoculars_hdf5
+from time import time
+import nexusformat.nexus as nx
+import h5py
+        
+
 for i, scan in enumerate(experiment.scans):
-   start_time = time()
-   datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
-   name_end=scan_numbers[i]
-   GIWAXS_names=['curved_projection_2D','pyfai_1D','qperp_qpara_map' ]
-   GIWAXScheck=np.isin(GIWAXS_names,process_outputs)
-   if GIWAXScheck.sum()>0:
-       projected2d=None
-       projected_name=f'GIWAXS_{name_end}_{datetime_str}'
-       hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
-       PYFAI_MASK=edfmaskfile
-       if 'curved_projection_2D' in process_outputs:
-           
-           projected2d=experiment.curved_to_2d(scan)
-           PYFAI_PONI=experiment.createponi(local_output_path,experiment.projshape,experiment.vertoffset)
-           twothetas,Qangs,intensities,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
-                               local_output_path,scan,projected2d=projected2d)
-           experiment.save_projection(hf,projected2d,twothetas,Qangs,intensities,config)
+    start_time = time()
+    datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+    name_end=scan_numbers[i]
+    GIWAXS_names=['curved_projection_2D','pyfai_1D','qperp_qpara_map' ,'large_moving_det']
+    GIWAXScheck=np.isin(GIWAXS_names,process_outputs)
+    if GIWAXScheck.sum()>0:
+        projected2d=None
+        projected_name=f'GIWAXS_{name_end}_{datetime_str}'
+        hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
+        PYFAI_MASK=edfmaskfile
+        if 'large_moving_det' in process_outputs:
+            experiment.load_curve_values(scan)
+            PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,experiment.beam_centre)
+            experiment.pyfaidiffractometer(hf,scan, num_threads,  local_output_path,PYFAI_PONI,radialrange,radialstepval)
+
    
-           print(f"saved projection to {local_output_path}/{projected_name}.hdf5")
+            print(f"saved integration data to {local_output_path}/{projected_name}.hdf5")
            
-           total_time = time() - start_time
-           print(f"\nProjecting 2d took {total_time}s")
+            total_time = time() - start_time
+            print(f"\n Azimuthal integration 2d took {total_time}s")
+            
+        if 'curved_projection_2D' in process_outputs:
+        
+            projected2d=experiment.curved_to_2d(scan)
+            PYFAI_PONI=experiment.createponi(local_output_path,experiment.projshape,experiment.vertoffset)
+            twothetas,Qangs,intensities,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
+                                local_output_path,scan,projected2d=projected2d)
+            experiment.save_projection(hf,projected2d,twothetas,Qangs,intensities,config)
+    
+            print(f"saved projection to {local_output_path}/{projected_name}.hdf5")
+            
+            total_time = time() - start_time
+            print(f"\nProjecting 2d took {total_time}s")
+
+
            
-       #if 'azimuthal_integration' in process_outputs:
+        if 'pyfai_1D' in process_outputs:
            
-       if 'pyfai_1D' in process_outputs:
        
-           experiment.load_curve_values(scan)
-           name_end=scan_numbers[i]
-           #image2dshape=experiment.scans[i].metadata.data_file.image_shape
-           PYFAI_PONI=experiment.createponi(local_output_path,(beam_centre[1],beam_centre[0]))
-           twothetas,Qangs,intensities,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
+            experiment.load_curve_values(scan)
+            name_end=scan_numbers[i]
+            #image2dshape=experiment.scans[i].metadata.data_file.image_shape
+            PYFAI_PONI=experiment.createponi(local_output_path,(beam_centre[1],beam_centre[0]))
+            twothetas,Qangs,intensities,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
                               local_output_path,scan)
-           experiment.save_integration(hf,twothetas,Qangs,intensities,config)
+            experiment.save_integration(hf,twothetas,Qangs,intensities,config)
    
            
-           print(f'saved 1D profile to {local_output_path}/{projected_name}.hdf5')
+            print(f'saved 1D profile to {local_output_path}/{projected_name}.hdf5')
    
-           #print('Finished fast azimuthal integration')
+
            
-       if 'qperp_qpara_map' in process_outputs:
-           frame_name = Frame.lab
-           coordinates = Frame.cartesian
-           map_frame = Frame(frame_name=frame_name, coordinates=coordinates)
-           name_end=scan_numbers[i]
-           qperp_qpara_map=experiment.calc_qpara_qper(scan,oop, map_frame,proj2d=projected2d)
-           experiment.save_qperp_qpara(hf, qperp_qpara_map)
-           print(f'saved qperp_qpara_map to {local_output_path}/{projected_name}.hdf5')
+        if 'qperp_qpara_map' in process_outputs:
+            frame_name = Frame.lab
+            coordinates = Frame.cartesian
+            map_frame = Frame(frame_name=frame_name, coordinates=coordinates)
+            name_end=scan_numbers[i]
+            qperp_qpara_map=experiment.calc_qpara_qper(scan,oop, map_frame,proj2d=projected2d)
+            experiment.save_qperp_qpara(hf, qperp_qpara_map)
+            print(f'saved qperp_qpara_map to {local_output_path}/{projected_name}.hdf5')
    
-           #print('Finished qperp_qpara mapping')
-       
-       hf.close()
-       print(f'finished processing scan {name_end}')
+            #print('Finished qperp_qpara mapping')
+        experiment.save_config_variables(hf,joblines,pythonlocation)
+        hf.close()
+        print(f'finished processing scan {name_end}')
     
 if __name__ == "__main__":
     
@@ -295,6 +310,7 @@ if __name__ == "__main__":
     
         if save_binoculars_h5==True:
             outvars=globals()
+            
             save_binoculars_hdf5(str(save_path) + ".npy", str(save_path) + '.hdf5',joblines,pythonlocation,outvars)
             print(f"\nSaved BINoculars file to {save_path}.hdf5.\n")
 

@@ -25,6 +25,8 @@ import pandas as pd
 import pyFAI,fabio
 #from datetime import datetime
 import h5py
+from memory_profiler import profile
+
 
 
 def _remove_file(path: Union[str, Path]):
@@ -749,7 +751,7 @@ class Experiment:
         bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
         
         return bin_centers, hist, hist_normalized, counts
-        
+    
     def pyfai_perp_para(self,hf,scan,ind,pyfaiponi):
         ai=pyFAI.load(pyfaiponi)    
         ai.set_mask(scan.metadata.edfmask)
@@ -759,47 +761,42 @@ class Experiment:
         #qoop = ai.array_from_unit(unit=unit_qoop)
         imagedata=scan.load_image(ind)
         res2d = ai.integrate2d(imagedata, 1000,1000, unit=(unit_qip, unit_qoop))
-        return res2d    
+        return res2d
     
-    def pyfaidiffractometer(self,scan,num_threads,map_frame,gammastepval,output_file_path):
+    #@profile
+    def pyfaidiffractometer(self,hf,scan,num_threads,output_file_path,pyfaiponi,radrange,radstepval):
         self.load_curve_values(scan)
         
         dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance
         if self.setup=='DCD':
-            gammadirect=-1*np.degrees(np.arctan(self.projectionx/dcd_sample_dist))
+            tthdirect=-1*np.degrees(np.arctan(self.projectionx/dcd_sample_dist))
         else:
-            gammadirect=0
-        two_theta_start=self.gammadata-gammadirect
+            tthdirect=0
+
+        two_theta_start=self.gammadata-tthdirect
+
         async_results = []
             # Make a pool on which we'll carry out the processing.
         locks = [Lock() for _ in range(num_threads)]
         start_time = time()
-        #radrange=(two_theta_start[0],two_theta_start[-1])
-        scalegamma=10
+
+        scalegamma=1
         imagegammas=self.calcimagegammarange()
-        #nbins=int(np.ceil((radrange[1]-radrange[0]+imagegammas[0])/(scalegamma*gammastepval)))
-        #shapeqifull=(3,nbins)
+
         scanlength=scan.metadata.data_file.scan_length
         chunksize=int(np.ceil(scanlength/(scalegamma*num_threads)))
-        #totalgammarange=(two_theta_start[-1]-two_theta_start[0]+imagegammas[0])
-        #nbins=int(np.ceil(totalgammarange/(scalegamma*gammastepval)))
+
 
         chunkgammarange=(two_theta_start[chunksize*scalegamma]-two_theta_start[0]+imagegammas[0])
-        shapeqi=(3,int(np.ceil((chunkgammarange/gammastepval))))
 
-        
-        #shapeqi=(3,int(nbins/(num_threads)))
-        #shapeqi=(3,int(len(self.gammadata)/(num_threads*scalegamma)))
-        #qstepval=self.calcqstep(gammastepval,two_theta_start[0],self.incident_wavelength)
-        #qrange=(self.calcq(two_theta_start[0],self.incident_wavelength),self.calcq(two_theta_start[-1],self.incident_wavelength))
-        #nbinsq=int(np.ceil((qrange[1]-qrange[0])/(scalegamma*qstepval)))
-        #shapeqifull=(3,len(np.arange(radrange[0],radrange[0]+(gammastepval*nbins),gammastepval)))
-        #shapeqi=(shapeqifull[0],int(np.ceil(shapeqifull[1]/(scalegamma*num_threads))))
-        
-        #shapecake=(360,1000)
+        nqbins=int(np.ceil((radrange[1]-radrange[0])/radstepval))
+        shapeqi=(2,3,nqbins)
+
+
         shapecake=(2, 360, 1800)
         output_path=fr"{output_file_path}"
-        pyfai_qi_arrays=np.zeros((3,shapeqi[1]*num_threads))
+        pyfai_qi_arrays=np.zeros((3,shapeqi[2]*num_threads))
+        count_qi_arrays=np.zeros((3,shapeqi[2]*num_threads))
         cake_arrays=0
         print('starting process pool')
         with Pool(
@@ -808,7 +805,6 @@ class Experiment:
             initargs=(locks,  # The initializer makes this lock global.
                   num_threads,  # Initializer makes num_threads global.
                   self.scans[0].metadata,
-                  map_frame,
                   shapeqi,
                   #(shapeqi[0],int(shapeqi[1]/50)),
                   shapecake,
@@ -817,15 +813,17 @@ class Experiment:
             
             print(f'started pool with num_threads={num_threads}')
             for indices in chunk(np.arange(0,len(two_theta_start),scalegamma), num_threads):
+            # startchunkval=0
+            # for indices in chunk(np.arange(startchunkval,startchunkval+80,1), num_threads):
                 async_results.append(pool.apply_async(
                     pyfaicalcint,
-                    (self,indices,scan,shapecake,shapeqi,two_theta_start,gammastepval)))
+                    (self,indices,scan,shapecake,shapeqi,two_theta_start,pyfaiponi,radrange,radstepval)))
                 #print(f'done  {indices[0]  - indices[1]} with {num_threads}\n')
             print('finished preparing chunked data')
             pyfai_qi_names=[]
             cake_names=[]
             for result in async_results:
-                shared_pyfai_qi_nameval, shared_cake_nameval=result.get()
+                shared_pyfai_qi_nameval, shared_cake_nameval,cakeaxisinfo=result.get()
                 if shared_pyfai_qi_nameval not in pyfai_qi_names:
                     pyfai_qi_names.append(shared_pyfai_qi_nameval)
                 if shared_cake_nameval not in cake_names:
@@ -837,21 +835,11 @@ class Experiment:
                     "Probably one of the threads segfaulted, or something.")
             
             
-            pyfai_qi_arrays=np.zeros((3,num_threads*shapeqi[1]))
-            pyfai_arraycount=0
-            
-            for x in pyfai_qi_names:
-                pyfai_qi_mem=SharedMemory(x)
-                new_pyfai_qi_array=np.ndarray(shape=shapeqi, dtype=np.float32, buffer=pyfai_qi_mem.buf)
-                pyfai_qi_arrays[:,pyfai_arraycount:pyfai_arraycount+shapeqi[1]]=new_pyfai_qi_array
-                pyfai_arraycount+=shapeqi[1]
-                pyfai_qi_mem.close()
-                pyfai_qi_mem.unlink()
-            
-            #pyfai_qi_mem=[SharedMemory(x) for x in pyfai_qi_names]
-            #new_pyfai_qi_arrays = np.array([np.ndarray(shape=shapeqi, dtype=np.float32, buffer=x.buf)
-               # for x in pyfai_qi_mem])
-            
+            qi_mem=[SharedMemory(x) for x in pyfai_qi_names ]
+            totalqi_arrays=np.array([np.ndarray(shape=shapeqi, dtype=np.float32, buffer=y.buf)[0]
+                for y in qi_mem])
+            totalcount_arrays=np.array([np.ndarray(shape=shapeqi, dtype=np.float32, buffer=y.buf)[1]
+                for y in qi_mem])            
             
             
             cake_mem=[SharedMemory(x) for x in cake_names]
@@ -863,39 +851,19 @@ class Experiment:
             count_arrays=np.sum(new_count_arrays,axis=0)
             cake_arrays =np.sum(new_cake_arrays,axis=0)
             cake_array=np.divide(cake_arrays,count_arrays, out=np.copy(cake_arrays), where=count_arrays !=0.0)
-            # cakeout_array=np.zeros(np.shape(cake_array))
-            # cakeout_array[0:180,:]=cake_array[180:360,:]
-            # cakeout_array[180:360,:]=cake_array[0:180,:]
             
-            out_pyfai_qi=pyfai_qi_arrays[:,pyfai_qi_arrays[0]>0]
-            # axisgroup=[1,2]
-            # ais=[]
-            # for i in axisgroup:
-            #     my_ai = copy.deepcopy(aistart)
-            #     my_ai.rot1 = np.radians(-two_theta_start[i])
-            #     my_ai.rot2 =-np.radians( scan.metadata.diffractometer.data_file.delta[i])
-            #     ais.append(my_ai)
-            # img_data=[scan.load_image(i).data for i in axisgroup]
-            # mg = pyFAI.multi_geometry.MultiGeometry(ais,  unit="2th_deg",wavelength=experiment.incident_wavelength,radial_range=(0,75))
+            new_totalcount_arrays=np.sum(totalcount_arrays,axis=0)
+            new_totalqi_arrays =np.sum(totalqi_arrays,axis=0)
+            qi_array=np.divide(new_totalqi_arrays,new_totalcount_arrays, out=np.copy(new_totalqi_arrays), where=new_totalcount_arrays !=0.0)
             
-            gammavals, hist, hist_normalized, counts=self.histogram_xy(out_pyfai_qi[2],out_pyfai_qi[0],gammastepval)
-            qvals=[self.calcq(x,self.incident_wavelength) for x in gammavals]
-            # if np.size(pyfai_qi_arrays)==1:
-            #     #pyfai_qi_arrays =np.concatenate(new_pyfai_qi_arrays,axis=1)
-            #     cake_arrays =np.sum(new_cake_arrays,axis=0)
-            # else:
-            #     #new_pyfai_qis =np.concatenate(new_pyfai_qi_arrays,axis=1)
-            #     new_cakes =np.sum(new_cake_arrays,axis=0)
-            #     #pyfai_qi_arrays =np.concatenate((pyfai_qi_arrays,new_pyfai_qis),axis=1)
-            #     cake_arrays =np.sum([cake_arrays,new_cakes],axis=0)
             pool.close()
             pool.join()
-            # for shared_mem in pyfai_qi_mem:
-            #     shared_mem.close()
-            #     try:
-            #         shared_mem.unlink()
-            #     except:
-            #         pass
+            for shared_mem in qi_mem:
+                shared_mem.close()
+                try:
+                    shared_mem.unlink()
+                except:
+                    pass
             for shared_mem in cake_mem:
                 shared_mem.close()
                 try:
@@ -905,34 +873,23 @@ class Experiment:
         
         end_time=time()
         datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
-        # outdf=pd.DataFrame(pyfai_qi_arrays,index=['Intensity','Q','2th'])
-        # sortoutdf=outdf.sort_values(by='Q',axis=1)
-        
-        hf=h5py.File(f'{output_path}/multiponiQI__{datetime_str}.hdf5',"w")
+
         dset=hf.create_group("integrations")
-        dset.create_dataset("2thetas",data=gammavals)
-        dset.create_dataset("Q_angstrom^-1",data=qvals)
-        dset.create_dataset("Intensity",data=hist_normalized)
-        dset.create_dataset("Counts",data=counts)
-        
-        # dset.create_dataset("2thetas",data=sortoutdf.loc['2th'])
-        # dset.create_dataset("Q_angstrom^-1",data=sortoutdf.loc['Q'])
-        # dset.create_dataset("Intensity",data=sortoutdf.loc['Intensity'])
-        
-        # dset.create_dataset("2thetas",data=pyfai_qi_arrays[2])
-        # dset.create_dataset("Q_angstrom^-1",data=pyfai_qi_arrays[1])
-        # dset.create_dataset("Intensity",data=pyfai_qi_arrays[0])
+        dset.create_dataset("Intensity",data=qi_array[0])
+        dset.create_dataset("Q_angstrom^-1",data=qi_array[1])
+        dset.create_dataset("2thetas",data=qi_array[2])
+
         
         dset2=hf.create_group("caked image")
         dset2.create_dataset("cakeimage",data=cake_array)
-        # dset2.create_dataset("cakeimage_2theta",data=result2d[1])
-        # dset2.create_dataset("cakeimage_azimuthal",data=result2d[2])
-        
-        hf.close()
+        dset2.create_dataset("cake_azimuthal",data=cakeaxisinfo[0])
+        dset2.create_dataset("cake_azimuthal_unit",data=cakeaxisinfo[2])
+        dset2.create_dataset("cake_radial",data=cakeaxisinfo[1])
+        dset2.create_dataset("cake_radial_unit",data=cakeaxisinfo[3])        
         
         minutes=(end_time-start_time)/60
         print(f'total calculation took {minutes}  minutes')
-        print(f'saved  {output_path}/multiponiQI_{datetime_str}.hdf5' )
+
 
     
     
@@ -986,7 +943,7 @@ class Experiment:
             im1gammas[:,col]=two_theta_start[0]+(np.degrees(np.arctan(tantheta)))
         #self.imgamma=im1gammas
         print(f'projecting {scanlength} images   completed images:  ')
-        imstep=int(np.floor(scanlength/1))
+        imstep=int(np.floor(scanlength/50))
         for imnum in np.arange(0,scanlength,imstep):
             self.projectimage(scan, imnum,im1gammas)
             #if (imnum+1)%10==0:
@@ -996,9 +953,13 @@ class Experiment:
         norm2d=np.divide(self.project2d,self.counts,where=self.counts!=0)
         projected_data=[norm2d,self.counts,self.vertoffset]
         return projected_data
+
+        
+        
+        
     
     
-    def createponi(self,outpath,image2dshape,offset=0):
+    def createponi(self,outpath,image2dshape,beam_centre):
         datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
         ponioutpath=fr'{outpath}/fast_rsm_{datetime_str}.poni'
         f=open(ponioutpath,'w')
@@ -1009,8 +970,8 @@ class Experiment:
         f.write(f'{self.pixel_size}, "pixel2": {self.pixel_size}, "max_shape": [{image2dshape[0]}, {image2dshape[1]}]') 
         f.write('}\n')
         f.write(f'Distance: {self.detector_distance}\n')
-        poni1=(image2dshape[0]-offset)*self.pixel_size
-        poni2=image2dshape[1]*self.pixel_size
+        poni1=beam_centre[0]*self.pixel_size
+        poni2=beam_centre[1]*self.pixel_size
         f.write(f'Poni1: {poni1}\n')
         f.write(f'Poni2: {poni2}\n')
         f.write('Rot1: 0.0\n')
@@ -1051,7 +1012,7 @@ class Experiment:
         dset.create_dataset("qpararanges",data=qperp_qpara_map[1])
         dset.create_dataset("qperpranges",data=qperp_qpara_map[2])
         #hf.close()
-    def save_config_variables(self,hf):
+    def save_config_variables(self,hf,joblines,pythonlocation):
         config_group=hf.create_group('config')
         configlist=['setup','experimental_hutch', 'using_dps','beam_centre','detector_distance','dpsx_central_pixel','dpsy_central_pixel','dpsz_central_pixel',\
                     'local_data_path','local_output_path','output_file_size','save_binoculars_h5','map_per_image','volume_start','volume_step','volume_stop',\
@@ -1059,6 +1020,8 @@ class Experiment:
         for name, value in globals().items() :
             if name in configlist:
                 config_group.create_dataset(f"{name}",data=value)
+        config_group.create_dataset('joblines',data=joblines)
+        config_group.create_dataset('python_location',data=pythonlocation)
 
     def pyfai1D(self,imagespath,maskpath,ponipath,outpath,scan,projected2d=None,gammastep=0.005):
         #images=scan.metadata.data_file.local_image_paths
@@ -1079,13 +1042,14 @@ class Experiment:
             bins=gammarange/gammastep 
         for i in np.arange(scanlength):
 
-            if projected2d==None:  
+            if (projected2d==None) or (projected2d==1):  
                
                 # fname=scan.
                 # img = fabio.open(fr'{imagespath}/{fname}')
                 img_array = scan.load_image(i).data
                 maskimg = fabio.open(maskpath)
                 mask = maskimg.data
+                
     
             else:
                 img_array=projected2d[0]
