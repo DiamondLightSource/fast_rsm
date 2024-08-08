@@ -174,7 +174,7 @@ for i, scan in enumerate(experiment.scans):
             # If we aren't using the DCD, our life is much simpler.
             scan.metadata.data_file.dpsx -= dpsx_central_pixel
             scan.metadata.data_file.dpsy -= dpsy_central_pixel
-            scan.metadata.data_file.dpsz -= dpsz_cen/dls/i07/data/2024/cm37245-3/insptral_pixel
+            scan.metadata.data_file.dpsz -= dpsz_central_pixel
 
         # Load from .dat files if we've been asked.
         if load_from_dat:
