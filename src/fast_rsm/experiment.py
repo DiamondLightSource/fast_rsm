@@ -1037,7 +1037,10 @@ class Experiment:
         intensities=[]
         Qangs=[]
         configs=[]
-        gammavalues=np.array(scan.metadata.diffractometer.data_file.nx_instrument.diff1gamma.value_set)
+        try:
+            gammavalues=np.array(scan.metadata.diffractometer.data_file.nx_instrument.diff1gamma.value)
+        except:
+            gammavalues=np.array(scan.metadata.diffractometer.data_file.nx_instrument.diff1gamma.value_set)
         gammarange=gammavalues.max()-gammavalues.min()
         if gammarange<3:
             bins=1000
