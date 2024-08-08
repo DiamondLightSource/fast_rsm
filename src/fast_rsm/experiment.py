@@ -901,7 +901,10 @@ class Experiment:
         self.entry=scan.metadata.data_file.nx_entry
         self.detector_distance=scan.metadata.diffractometer.data_file.detector_distance
         self.incident_wavelength= 1e-10*scan.metadata.incident_wavelength
-        self.gammadata=np.array( self.entry.instrument.diff1gamma.value_set)
+        try:
+            self.gammadata=np.array( self.entry.instrument.diff1gamma.value)
+        except:
+            self.gammadata=np.array( self.entry.instrument.diff1gamma.value_set)
         self.deltadata=np.array( self.entry.instrument.diff1delta.value)
         self.dcdrad=np.array( self.entry.instrument.dcdc2rad.value)
         self.dcdomega=np.array( self.entry.instrument.dcdomega.value)
