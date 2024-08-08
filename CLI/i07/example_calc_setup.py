@@ -250,7 +250,7 @@ for i, scan in enumerate(experiment.scans):
         if 'curved_projection_2D' in process_outputs:
         
             projected2d=experiment.curved_to_2d(scan)
-            PYFAI_PONI=experiment.createponi(local_output_path,experiment.projshape,experiment.vertoffset)
+            PYFAI_PONI=experiment.createponi(local_output_path,experiment.projshape,experiment.beam_centre)
             twothetas,Qangs,intensities,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
                                 local_output_path,scan,projected2d=projected2d)
             experiment.save_projection(hf,projected2d,twothetas,Qangs,intensities,config)
@@ -268,7 +268,7 @@ for i, scan in enumerate(experiment.scans):
             experiment.load_curve_values(scan)
             name_end=scan_numbers[i]
             #image2dshape=experiment.scans[i].metadata.data_file.image_shape
-            PYFAI_PONI=experiment.createponi(local_output_path,(beam_centre[1],beam_centre[0]))
+            PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,experiment.beam_centre)
             twothetas,Qangs,intensities,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
                               local_output_path,scan)
             experiment.save_integration(hf,twothetas,Qangs,intensities,config)
@@ -286,6 +286,7 @@ for i, scan in enumerate(experiment.scans):
             qperp_qpara_map=experiment.calc_qpara_qper(scan,oop, map_frame,proj2d=projected2d)
             experiment.save_qperp_qpara(hf, qperp_qpara_map)
             print(f'saved qperp_qpara_map to {local_output_path}/{projected_name}.hdf5')
+   
    
             #print('Finished qperp_qpara mapping')
         experiment.save_config_variables(hf,joblines,pythonlocation)
