@@ -25,7 +25,7 @@ import pandas as pd
 import pyFAI,fabio
 #from datetime import datetime
 import h5py
-
+from memory_profiler import profile
 
 
 
@@ -648,7 +648,10 @@ class Experiment:
 
         extratwotheta=np.degrees(np.arctan(extrahorizontal/self.detector_distance))
 
-        self.maxdist2D=self.detector_distance/np.cos(np.radians(two_theta_start[-1]+extratwotheta))
+        try: 
+            self.maxdist2D=self.detector_distance/np.cos(np.radians(two_theta_start[-1]+extratwotheta))
+        except:
+            self.maxdist2D=self.detector_distance/np.cos(np.radians(two_theta_start+extratwotheta))
         maxdistdiff=self.maxdist2D-self.detector_distance
 
         # if self.rotval==0:
@@ -660,7 +663,10 @@ class Experiment:
         self.maxratiodist=self.maxdist2D/self.detector_distance
         
         #calculate the maximum value for the projected width measured in the final image
-        maxwidth=np.ceil(self.detector_distance*np.tan(np.radians(two_theta_start[-1]+extratwotheta))/self.pixel_size)
+        try:
+            maxwidth=np.ceil(self.detector_distance*np.tan(np.radians(two_theta_start[-1]+extratwotheta))/self.pixel_size)
+        except:
+            maxwidth=np.ceil(self.detector_distance*np.tan(np.radians(two_theta_start+extratwotheta))/self.pixel_size)
         
         
         # #account for pixels after beam centre
@@ -752,19 +758,68 @@ class Experiment:
         
         return bin_centers, hist, hist_normalized, counts
     
-    def pyfai_perp_para(self,hf,scan,ind,pyfaiponi):
-        ai=pyFAI.load(pyfaiponi)    
-        ai.set_mask(scan.metadata.edfmask)
-        unit_qip = "qip_nm^-1"
-        unit_qoop = "qoop_nm^-1"
-        #qip = ai.array_from_unit(unit=unit_qip)
-        #qoop = ai.array_from_unit(unit=unit_qoop)
-        imagedata=scan.load_image(ind)
-        res2d = ai.integrate2d(imagedata, 1000,1000, unit=(unit_qip, unit_qoop))
-        return res2d
+    # def pyfaiqperpqpara(self,qlimits,mapbins,ai,ind=100):
+    #     # scan=self.scans[0]
+    #     # self.load_curve_values(scan)
+    #     # dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance
+    #     # if self.setup=='DCD':
+    #     #     tthdirect=-1*np.degrees(np.arctan(self.projectionx/dcd_sample_dist))
+    #     # else:
+    #     #     tthdirect=0
+    
+    #     # two_theta_start=self.gammadata-tthdirect
+        
+    #     #self.beam_centre=(self.imshape[1]-beam_centre[0],self.imshape[0]-beam_centre[1])
+    #    # newvals=(self.beam_centre[1],self.beam_centre[0])
+    #     #self.beam_centre=newvals
+    #     # PYFAI_PONI=self.createponi(local_output_path,self.imshape,self.beam_centre)
+    #     # ai=pyFAI.load(PYFAI_PONI)    
+    #     #ai.set_mask(np.rot90(scan.metadata.edfmask,-1))
+    #     unit_qip = "qip_A^-1"
+    #     unit_qoop = "qoop_A^-1"
+    #     # if self.setup=='vertical':
+    #     #     imagedata=np.flipud(np.rot90(scan.load_image(ind).data,-1))
+    #     # else:
+    #     #     imagedata=np.flipud(scan.load_image(ind).data)
+        
+    #     # if np.size(two_theta_start)>1:
+    #     #     ai.rot1 = np.radians(-two_theta_start[ind])
+    #     # else:
+    #     #     ai.rot1=np.radians(-two_theta_start)
+    #     # #ai.rot1=np.radians(-3)
+    #     # ai.rot2 =np.radians(-self.deltadata)
+
+    #     #qipright=5
+    #    # calcqlim(experiment,self.imshape[0]-self.beam_centre[1],'hor')
+    #    # =calcqlim(experiment,self.imshape[1]-self.beam_centre[0],'vert')*10
+       
+        
+    #     res2d = ai.integrate2d(imagedata, mapbins[0],mapbins[1], unit=(unit_qip, unit_qoop),radial_range=(qlimits[0]*1.05,qlimits[1]*1.05),azimuth_range=(30*qlimits[2],30*qlimits[3]), method=("no", "csr", "cython"))
+    #     #res2d = ai.integrate2d(imagedata, 1500,1500, unit=(unit_qip, unit_qoop),radial_range=(-3,3),azimuth_range=(-30,30), method=("no", "csr", "cython"))
+    
+    #     #ai.integrate2d(imagedata, 100,100,unit="q_nm^-1")#, unit=(unit_qip, unit_qoop))
+    #     return res2d        
+    def calcqlim(self,axis):
+        kmod=2*np.pi/ (self.incident_wavelength)
+        
+        if axis=='vert':
+            pixhigh=self.imshape[0]-self.beam_centre[0]
+            pixlow=self.beam_centre[0]
+            highsection=np.max(self.deltadata)
+            lowsection=np.min(self.deltadata)
+        elif axis=='hor':
+            pixhigh=-(self.beam_centre[1])
+            pixlow=-(self.imshape[1]-self.beam_centre[1])
+            highsection=-np.max(self.gammadata)
+            lowsection=-np.min(self.gammadata)
+        maxangle=highsection+np.degrees(np.atan((pixhigh*self.pixel_size)/self.detector_distance))
+        minangle=lowsection-np.degrees(np.atan((pixlow*self.pixel_size)/self.detector_distance))
+        qupp=2*np.sin(np.radians(maxangle/2))*kmod*1e-10
+        qlow=2*np.sin(np.radians(minangle/2))*kmod*1e-10
+        return qupp,qlow
     
     #@profile
-    def pyfaidiffractometer(self,hf,scan,num_threads,output_file_path,pyfaiponi,radrange,radstepval):
+    def pyfaidiffractometer(self,hf,scan,num_threads,output_file_path,pyfaiponi,radrange,radstepval,qmapbins):
         self.load_curve_values(scan)
         
         dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance
@@ -794,10 +849,12 @@ class Experiment:
 
 
         shapecake=(2, 360, 1800)
+        shapeqpqp=(2,qmapbins[1],qmapbins[0])
         output_path=fr"{output_file_path}"
         pyfai_qi_arrays=np.zeros((3,shapeqi[2]*num_threads))
         count_qi_arrays=np.zeros((3,shapeqi[2]*num_threads))
         cake_arrays=0
+        qpqp_arrays=0
         print('starting process pool')
         with Pool(
             processes=num_threads,  # The size of our pool.
@@ -808,6 +865,7 @@ class Experiment:
                   shapeqi,
                   #(shapeqi[0],int(shapeqi[1]/50)),
                   shapecake,
+                  shapeqpqp,
                   output_path)
         ) as pool:
             
@@ -817,17 +875,21 @@ class Experiment:
             # for indices in chunk(np.arange(startchunkval,startchunkval+80,1), num_threads):
                 async_results.append(pool.apply_async(
                     pyfaicalcint,
-                    (self,indices,scan,shapecake,shapeqi,two_theta_start,pyfaiponi,radrange,radstepval)))
+                    (self,indices,scan,shapecake,shapeqi,shapeqpqp,two_theta_start,pyfaiponi,radrange,radstepval,qmapbins)))
                 #print(f'done  {indices[0]  - indices[1]} with {num_threads}\n')
             print('finished preparing chunked data')
             pyfai_qi_names=[]
             cake_names=[]
+            qpqpmap_names=[]
+            mapaxisinfo=[1,2,3,4]
             for result in async_results:
-                shared_pyfai_qi_nameval, shared_cake_nameval,cakeaxisinfo=result.get()
+                shared_pyfai_qi_nameval, shared_cake_nameval,shared_qpqpmap_nameval,cakeaxisinfo,mapaxisinfo=result.get()#
                 if shared_pyfai_qi_nameval not in pyfai_qi_names:
                     pyfai_qi_names.append(shared_pyfai_qi_nameval)
                 if shared_cake_nameval not in cake_names:
                     cake_names.append(shared_cake_nameval)
+                if shared_qpqpmap_nameval not in qpqpmap_names:
+                    qpqpmap_names.append(shared_qpqpmap_nameval)
                     # Make sure that no error was thrown while mapping.
                 if not result.successful():
                     raise ValueError(
@@ -841,16 +903,28 @@ class Experiment:
             totalcount_arrays=np.array([np.ndarray(shape=shapeqi, dtype=np.float32, buffer=y.buf)[1]
                 for y in qi_mem])            
             
-            
             cake_mem=[SharedMemory(x) for x in cake_names]
             new_cake_arrays = np.array([np.ndarray(shape=shapecake, dtype=np.float32, buffer=y.buf)[0]
                 for y in cake_mem])
             new_count_arrays = np.array([np.ndarray(shape=shapecake, dtype=np.float32, buffer=y.buf)[1]
                 for y in cake_mem])
             
+            qpqp_mem=[SharedMemory(x) for x in qpqpmap_names]
+            new_qpqp_arrays=np.array([np.ndarray(shape=shapeqpqp, dtype=np.float32, buffer=y.buf)[0]
+                for y in qpqp_mem])
+            new_qpqp_counts=np.array([np.ndarray(shape=shapeqpqp, dtype=np.float32, buffer=y.buf)[1]
+                for y in qpqp_mem])
+            
+            #print(f'shape of new_qpqp_array = {np.shape(new_qpqp_arrays)}')
             count_arrays=np.sum(new_count_arrays,axis=0)
             cake_arrays =np.sum(new_cake_arrays,axis=0)
             cake_array=np.divide(cake_arrays,count_arrays, out=np.copy(cake_arrays), where=count_arrays !=0.0)
+            
+            qpqp_arrays=np.sum(new_qpqp_arrays,axis=0)
+            qpqp_counts=np.sum(new_qpqp_counts,axis=0)
+            #print(f'shape of qpqp_arrays = {np.shape(qpqp_arrays)}')
+            qpqp_array=np.divide(qpqp_arrays,qpqp_counts, out=np.copy(qpqp_arrays), where=qpqp_counts !=0.0)
+            #print(f'shape of qpqp_array  = {np.shape(qpqp_array)}')
             
             new_totalcount_arrays=np.sum(totalcount_arrays,axis=0)
             new_totalqi_arrays =np.sum(totalqi_arrays,axis=0)
@@ -870,7 +944,13 @@ class Experiment:
                     shared_mem.unlink()
                 except:
                     pass
-        
+            for shared_mem in qpqp_mem:
+                shared_mem.close()
+                try:
+                    shared_mem.unlink()
+                except:
+                    pass
+    
         end_time=time()
         datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
 
@@ -885,10 +965,18 @@ class Experiment:
         dset2.create_dataset("cake_azimuthal",data=cakeaxisinfo[0])
         dset2.create_dataset("cake_azimuthal_unit",data=cakeaxisinfo[2])
         dset2.create_dataset("cake_radial",data=cakeaxisinfo[1])
-        dset2.create_dataset("cake_radial_unit",data=cakeaxisinfo[3])        
+        dset2.create_dataset("cake_radial_unit",data=cakeaxisinfo[3])  
+        
+        dset3=hf.create_group("qpara_qperp")
+        dset3.create_dataset("qpara_qperp_image",data=qpqp_array)
+        dset3.create_dataset("map_azimuthal",data=mapaxisinfo[0])
+        dset3.create_dataset("map_azimuthal_unit",data=mapaxisinfo[2])
+        dset3.create_dataset("map_radial",data=-1*mapaxisinfo[1])
+        dset3.create_dataset("map_radial_unit",data=mapaxisinfo[3]) 
         
         minutes=(end_time-start_time)/60
         print(f'total calculation took {minutes}  minutes')
+        return mapaxisinfo
 
 
     
@@ -902,9 +990,9 @@ class Experiment:
         self.detector_distance=scan.metadata.diffractometer.data_file.detector_distance
         self.incident_wavelength= 1e-10*scan.metadata.incident_wavelength
         try:
-            self.gammadata=np.array( self.entry.instrument.diff1gamma.value)
-        except:
             self.gammadata=np.array( self.entry.instrument.diff1gamma.value_set)
+        except:
+            self.gammadata=np.array( self.entry.instrument.diff1gamma.value)
         self.deltadata=np.array( self.entry.instrument.diff1delta.value)
         self.dcdrad=np.array( self.entry.instrument.dcdc2rad.value)
         self.dcdomega=np.array( self.entry.instrument.dcdomega.value)
@@ -1038,9 +1126,9 @@ class Experiment:
         Qangs=[]
         configs=[]
         try:
-            gammavalues=np.array(scan.metadata.diffractometer.data_file.nx_instrument.diff1gamma.value)
-        except:
             gammavalues=np.array(scan.metadata.diffractometer.data_file.nx_instrument.diff1gamma.value_set)
+        except:
+            gammavalues=np.array(scan.metadata.diffractometer.data_file.nx_instrument.diff1gamma.value)
         gammarange=gammavalues.max()-gammavalues.min()
         if gammarange<3:
             bins=1000

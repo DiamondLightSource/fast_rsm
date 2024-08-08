@@ -135,6 +135,7 @@ def init_pyfai_process_pool(
         metadata: RSMMetadata,
         shapeqi: tuple,
 		shapecake: tuple,
+        shapeqpqpmap: tuple,
         output_file_name: str = None
 ) -> None:
     """
@@ -165,18 +166,20 @@ def init_pyfai_process_pool(
     # with the shared memory buffer.
     global PYFAI_QI
     global CAKE
+    global QPQPMAP
 
     # We want to keep track of what we've called our shared memory arrays.
     global SHARED_PYFAI_QI_NAME
     global SHARED_CAKE_NAME
-
+    global SHARED_QPQPMAP_NAME
     # Why do we need to make the shared memory blocks global, if we're giving
     # global access to them via the numpy 'PYFAI_QI' and 'CAKE' arrays? The answer
     # is that we need the shared memory arrays to remain in scope, or they'll be
     # freed.
     global SHARED_PYFAI_QI
     global SHARED_CAKE
-
+    global SHARED_QPQPMAP
+    
     LOCKS = locks
     NUM_THREADS = num_threads
     METADATA = metadata
@@ -186,29 +189,38 @@ def init_pyfai_process_pool(
     # Work out how many bytes we're going to need by making a dummy array.
     arrqi = np.ndarray(shape=shapeqi, dtype=np.float32)
     arrcake =np.ndarray(shape=shapecake, dtype=np.float32)
+    arrqpqpmap=np.ndarray(shape=shapeqpqpmap, dtype=np.float32)
 
     # Construct the shared memory buffers.
     SHARED_PYFAI_QI_NAME = f'pyfai_qi_{current_process().name}'
     SHARED_CAKE_NAME = f'cake_{current_process().name}'
+    SHARED_QPQPMAP_NAME = f'qpqpmap_{current_process().name}'
+    
     check_shared_memory(SHARED_PYFAI_QI_NAME)
     check_shared_memory(SHARED_CAKE_NAME)
+    check_shared_memory(SHARED_QPQPMAP_NAME)
+    
     SHARED_PYFAI_QI = SharedMemory(
         name=SHARED_PYFAI_QI_NAME, create=True, size=arrqi.nbytes)
     SHARED_CAKE = SharedMemory(
         name=SHARED_CAKE_NAME, create=True, size=arrcake.nbytes)
+    SHARED_QPQPMAP = SharedMemory(
+        name=SHARED_QPQPMAP_NAME, create=True, size=arrqpqpmap.nbytes)
 
     # Construct the global references to the shared memory arrays.
     PYFAI_QI = np.ndarray(shapeqi, dtype=np.float32, buffer=SHARED_PYFAI_QI.buf)
     CAKE = np.ndarray(shapecake, dtype=np.float32, buffer=SHARED_CAKE.buf)
+    QPQPMAP  = np.ndarray(shapeqpqpmap, dtype=np.float32, buffer=SHARED_QPQPMAP.buf)
 
     # Initialize the shared memory arrays.
     PYFAI_QI.fill(0)
     CAKE.fill(0)
+    QPQPMAP.fill(0)
 
     print(f"Finished initializing worker {current_process().name}.")
 
   
-def pyfaicalcint(experiment,imageindices,scan,shapecake,shapeqi,two_theta_start,pyfaiponi,radrange,radstepval)->None:
+def pyfaicalcint(experiment,imageindices,scan,shapecake,shapeqi,shapeqpqp,two_theta_start,pyfaiponi,radrange,radstepval,qmapbins)->None:
     choiceims=imageindices
     #ais=[]
    
@@ -216,10 +228,20 @@ def pyfaicalcint(experiment,imageindices,scan,shapecake,shapeqi,two_theta_start,
     aistart.set_mask(scan.metadata.edfmask)
     totaloutqi=np.zeros((3,shapeqi[2]))
     totaloutcounts=np.zeros((3,shapeqi[2]))
+    
     totalcake=np.zeros(shapecake[1:])
     totalcount=np.zeros(shapecake[1:])
+    
+    totalqpqpmap=np.zeros(shapeqpqp[1:])
+    totalqpqpcounts=np.zeros(shapeqpqp[1:])
+    unit_qip = "qip_A^-1"
+    unit_qoop = "qoop_A^-1"
+
     runningtotal=0
     groupnum=15
+    qlimhor=experiment.calcqlim( 'hor')
+    qlimver=experiment.calcqlim( 'vert')
+    qlimits=[qlimhor[0],qlimhor[1],qlimver[0],qlimver[1]]
 
     groups=[choiceims[i:i+groupnum] for i in range(0,len(choiceims),groupnum)]
     for group in groups:
@@ -229,8 +251,16 @@ def pyfaicalcint(experiment,imageindices,scan,shapecake,shapeqi,two_theta_start,
             my_ai.rot1 = np.radians(-two_theta_start[i])
             my_ai.rot2 =-np.radians( scan.metadata.diffractometer.data_file.delta[i])
             ais.append(my_ai)
-        img_data=[scan.load_image(i).data for i in group]  
-
+            
+        img_data=[np.flipud(scan.load_image(i).data) for i in group]
+        
+        for current_n,current_ai  in enumerate(ais):
+            current_img=img_data[current_n]
+            map2d = current_ai.integrate2d(current_img, qmapbins[0],qmapbins[1], unit=(unit_qip, unit_qoop),
+                                   radial_range=(qlimits[0]*1.05,qlimits[1]*1.05),azimuth_range=(30*qlimits[2],30*qlimits[3]), method=("no", "csr", "cython"))
+            totalqpqpmap+=map2d.sum_signal
+            totalqpqpcounts+=map2d.count
+        
         
         nbins=int(np.ceil((radrange[1]-radrange[0])/radstepval))
         Qrange=(experiment.calcq(radrange[0],experiment.incident_wavelength),\
@@ -272,13 +302,16 @@ def pyfaicalcint(experiment,imageindices,scan,shapecake,shapeqi,two_theta_start,
         totalcake+=cakeout_array
         totalcount+=countresult
 
-    cakeaxisinfo=[result2d.azimuthal,result2d.radial,str(result2d.azimuthal_unit),str(result2d.radial_unit)]    
+    cakeaxisinfo=[result2d.azimuthal,result2d.radial,str(result2d.azimuthal_unit),str(result2d.radial_unit)]
+    mapaxisinfo= [-1*map2d.azimuthal,map2d.radial,str(map2d.azimuthal_unit),str(map2d.radial_unit)]   
 
     PYFAI_QI[0]=totaloutqi
     PYFAI_QI[1]=totaloutcounts
     CAKE[0] = totalcake
     CAKE[1]=totalcount
-    return SHARED_PYFAI_QI_NAME, SHARED_CAKE_NAME , cakeaxisinfo 
+    QPQPMAP[0]=totalqpqpmap
+    QPQPMAP[1]=totalqpqpcounts
+    return SHARED_PYFAI_QI_NAME, SHARED_CAKE_NAME , SHARED_QPQPMAP_NAME, cakeaxisinfo, mapaxisinfo
 
 def _on_exit(shared_mem: SharedMemory) -> None:
     """
