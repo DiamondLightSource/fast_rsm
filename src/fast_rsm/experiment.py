@@ -25,7 +25,7 @@ import pandas as pd
 import pyFAI,fabio
 #from datetime import datetime
 import h5py
-from memory_profiler import profile
+#from memory_profiler import profile
 
 
 
