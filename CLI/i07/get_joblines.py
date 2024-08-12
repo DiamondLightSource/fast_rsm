@@ -12,8 +12,8 @@ import h5py
 
 def splitandopen(f,out):
     dataset=f['config/joblines']
-    exp_file_path=f'{out}/exp_setup_output.txt'
-    calc_file_path=f'{out}/calc_setup_output.txt'
+    exp_file_path=f'{out}/exp_setup_fromhdf5.txt'
+    calc_file_path=f'{out}/calc_setup_fromhdf5.txt'
     with open(exp_file_path, 'w') as text_file_exp,\
         open(calc_file_path, 'w') as text_file_calc:
         # Iterate over the dataset
