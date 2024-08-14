@@ -238,7 +238,7 @@ for i, scan in enumerate(experiment.scans):
         PYFAI_MASK=edfmaskfile
         if 'large_moving_det' in process_outputs:
             experiment.load_curve_values(scan)
-            PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,experiment.beam_centre)
+            PYFAI_PONI=experiment.createponi(local_output_path,experiment.beam_centre)
             experiment.pyfaidiffractometer(hf,scan, num_threads,  local_output_path,PYFAI_PONI,radialrange,radialstepval)
 
    
@@ -250,7 +250,7 @@ for i, scan in enumerate(experiment.scans):
         if 'curved_projection_2D' in process_outputs:
         
             projected2d=experiment.curved_to_2d(scan)
-            PYFAI_PONI=experiment.createponi(local_output_path,experiment.projshape,experiment.beam_centre)
+            PYFAI_PONI=experiment.createponi(local_output_path,experiment.projshape,experiment.vertoffset)
             twothetas,Qangs,intensities,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
                                 local_output_path,scan,projected2d=projected2d)
             experiment.save_projection(hf,projected2d,twothetas,Qangs,intensities,config)
