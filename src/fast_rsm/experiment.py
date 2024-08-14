@@ -1050,7 +1050,7 @@ class Experiment:
         
     
     
-   def createponi(self,outpath,image2dshape,offset=0):
+    def createponi(self,outpath,image2dshape,offset=0):
         datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
         ponioutpath=fr'{outpath}/fast_rsm_{datetime_str}.poni'
         f=open(ponioutpath,'w')
