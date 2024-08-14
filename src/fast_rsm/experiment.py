@@ -1050,7 +1050,7 @@ class Experiment:
         
     
     
-    def createponi(self,outpath,image2dshape,beam_centre):
+   def createponi(self,outpath,image2dshape,offset=0):
         datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
         ponioutpath=fr'{outpath}/fast_rsm_{datetime_str}.poni'
         f=open(ponioutpath,'w')
@@ -1061,8 +1061,8 @@ class Experiment:
         f.write(f'{self.pixel_size}, "pixel2": {self.pixel_size}, "max_shape": [{image2dshape[0]}, {image2dshape[1]}]') 
         f.write('}\n')
         f.write(f'Distance: {self.detector_distance}\n')
-        poni1=beam_centre[0]*self.pixel_size
-        poni2=beam_centre[1]*self.pixel_size
+        poni1=(image2dshape[0]-offset)*self.pixel_size
+        poni2=image2dshape[1]*self.pixel_size
         f.write(f'Poni1: {poni1}\n')
         f.write(f'Poni2: {poni2}\n')
         f.write('Rot1: 0.0\n')
