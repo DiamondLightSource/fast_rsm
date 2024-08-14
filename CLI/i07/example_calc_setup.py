@@ -268,7 +268,7 @@ for i, scan in enumerate(experiment.scans):
             experiment.load_curve_values(scan)
             name_end=scan_numbers[i]
             #image2dshape=experiment.scans[i].metadata.data_file.image_shape
-            PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,experiment.beam_centre)
+            PYFAI_PONI=experiment.createponi(local_output_path,(beam_centre[1],beam_centre[0]))
             twothetas,Qangs,intensities,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
                               local_output_path,scan)
             experiment.save_integration(hf,twothetas,Qangs,intensities,config)
