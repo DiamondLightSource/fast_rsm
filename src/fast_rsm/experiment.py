@@ -1086,7 +1086,7 @@ class Experiment:
         dset.create_dataset("Intensity",data=intensities)
         #hf.close()
     
-    def save_integration(self,hf,twothetas,Qangs,intensities,configs):
+    def save_integration(self,hf,twothetas,Qangs,intensities,configs,scan=0):
        # hf=h5py.File(f'{local_output_path}/{integrated_name}.hdf5',"w")
         dset=hf.create_group("integrations")
         
@@ -1094,14 +1094,24 @@ class Experiment:
         dset.create_dataset("2thetas",data=twothetas)
         dset.create_dataset("Q_angstrom^-1",data=Qangs)
         dset.create_dataset("Intensity",data=intensities)
+        if scan!=0:
+            scanned_names,scanned_values=self.get_scan_field_values(scan)
+            for i, field in enumerate(scanned_names):
+                dset.create_dataset(f"{field}",data=scanned_values[i])
         #hf.close()
     
-    def save_qperp_qpara(self,hf,qperp_qpara_map):
+    def save_qperp_qpara(self,hf,qperp_qpara_map,scan=0):
         #hf=h5py.File(f'{local_output_path}/{out_name}.hdf5',"w")
+
         dset=hf.create_group("qperp_qpara")
         dset.create_dataset("images",data=qperp_qpara_map[0])
         dset.create_dataset("qpararanges",data=qperp_qpara_map[1])
-        dset.create_dataset("qperpranges",data=qperp_qpara_map[2])
+        dset.create_dataset("qperpranges",data=qperp_qpara_map[2])       
+        if scan!=0:
+            scanned_names,scanned_values=self.get_scan_field_values()
+            for i, field in enumerate(scanned_names):
+                dset.create_dataset(f"{field}",data=scanned_values[i])
+                
         #hf.close()
     def save_config_variables(self,hf,joblines,pythonlocation):
         config_group=hf.create_group('config')
@@ -1115,7 +1125,7 @@ class Experiment:
         config_group.create_dataset('python_location',data=pythonlocation)
 
     def pyfai1D(self,imagespath,maskpath,ponipath,outpath,scan,projected2d=None,gammastep=0.005):
-        #images=scan.metadata.data_file.local_image_paths
+        images=scan.metadata.data_file.local_image_paths
         if projected2d==None:
             scanlength=scan.metadata.data_file.scan_length
         else:
@@ -1134,7 +1144,7 @@ class Experiment:
             bins=1000
         else:
             bins=gammarange/gammastep 
-        for i in np.arange(scanlength):
+        for i in np.arange(len(images)):
 
             if (projected2d==None) or (projected2d==1):  
                
@@ -1173,8 +1183,23 @@ class Experiment:
             twothetas.append(tth)
             #outdatas.append(outdata)
             configs.append(ai.get_config())
+        signal_shape=np.shape(scan.metadata.data_file.default_signal)
+        if len(signal_shape)>1:
+            out_qangs=self.reshape_to_signalshape(Qangs,signal_shape)
+            out_twothetas=self.reshape_to_signalshape(twothetas, signal_shape)
+            out_intensities=self.reshape_to_signalshape(intensities,signal_shape)
+            out_configs=self.reshape_to_signalshape(configs, signal_shape)
+            outlist=out_twothetas,out_qangs,out_intensities,out_configs
+        else:
+            outlist=twothetas,Qangs,intensities,configs
         
-        return twothetas,Qangs,intensities,configs
+        return outlist
+    
+    def reshape_to_signalshape(self,arr,signal_shape):
+        if len(np.shape(arr))==1:
+            return np.reshape(arr,signal_shape)
+        else:
+            return np.reshape(arr,signal_shape+np.shape(arr)[1:])
     
     def calc_mapnorm_ranges(self,pdata,qvals,mapnorms,rangeqparas,rangeqperps,mapints):
         qxvalues=np.reshape(qvals[:,:,0],np.size(pdata))
@@ -1217,7 +1242,8 @@ class Experiment:
         rangeqparas=[]
         rangeqperps=[]
         if proj2d==None:
-            number_images=scan.metadata.data_file.scan_length
+            number_images=np.size(scan.metadata.data_file.default_signal)
+            #scan.metadata.data_file.scan_length
             for imnum in np.arange(number_images):
                 pdata=scan.load_image(imnum).data
                 allints=np.reshape(pdata,np.size(pdata))
@@ -1231,7 +1257,18 @@ class Experiment:
             kin = scan.metadata.k_incident_length
             qvals=self.projected2dQvecs(pdata,self.vertoffset,oop,kin)
             mapnorms, rangeqparas, rangeqperps =self.calc_mapnorm_ranges(pdata,qvals,mapnorms,rangeqparas,rangeqperps,mapints)
-        return mapnorms,rangeqparas,rangeqperps
+        signal_shape=np.shape(scan.metadata.data_file.default_signal)
+        if len(signal_shape)>1:
+            out_mapnorms=self.reshape_to_signalshape(mapnorms,signal_shape)
+            out_rangeqparas=self.reshape_to_signalshape(rangeqparas, signal_shape)
+            out_rangeqperps=self.reshape_to_signalshape(rangeqperps,signal_shape)
+            outlist=out_mapnorms,out_rangeqparas, out_rangeqperps
+
+        else:
+            outlist=mapnorms,rangeqparas,rangeqperps
+        
+        
+        return outlist
     
     
     def projected2dQvecs(self,projectedimage,vertoffset,oop,kin,horoffset=0):
@@ -1355,7 +1392,12 @@ class Experiment:
         k_out_array = k_out_array.reshape(desired_shape)
         return k_out_array
     
-
+    def get_scan_field_values(self,scan):
+        rank=scan.metadata.data_file.diamond_scan.scan_rank.nxdata
+        fields=scan.metadata.data_file.diamond_scan.scan_fields
+        scanned=[x.decode('utf-8').split('.')[0] for x in fields[:rank].nxdata]
+        scannedvalues=[np.unique(scan.metadata.data_file.nx_instrument[field].value )for field in scanned]
+        return scanned,scannedvalues
     @classmethod
     def from_i07_nxs(cls,
                      nexus_paths: List[Union[str, Path]],

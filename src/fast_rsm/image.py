@@ -134,7 +134,8 @@ class Image:
         # This is not optional!
         try:
             if isinstance(self.metadata.data_file.transmission, np.ndarray):
-                arr /= self.metadata.data_file.transmission[self.index]
+                transmissionlist=self.metadata.data_file.transmission.flatten()
+                arr /= transmissionlist[self.index]
             else:
                 arr /= self.metadata.data_file.transmission
         except AttributeError:

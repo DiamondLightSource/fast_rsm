@@ -23,5 +23,5 @@ def test_do_calculations(path_to_frsm_example_data:str):
     calcfile=tests_dir/'CLI/i07/example_calc_setup.py'
     print(calcfile)
     eval_py_file(path_to_frsm_example_data+"/si28599_exp_setup.py")
-    scan_numbers=[531484]
+    exec("scan_numbers=[531484]")
     eval_py_file(calcfile)
