@@ -1108,7 +1108,7 @@ class Experiment:
         dset.create_dataset("qpararanges",data=qperp_qpara_map[1])
         dset.create_dataset("qperpranges",data=qperp_qpara_map[2])       
         if scan!=0:
-            scanned_names,scanned_values=self.get_scan_field_values()
+            scanned_names,scanned_values=self.get_scan_field_values(scan)
             for i, field in enumerate(scanned_names):
                 dset.create_dataset(f"{field}",data=scanned_values[i])
                 
