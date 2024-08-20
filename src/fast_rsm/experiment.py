@@ -1196,7 +1196,7 @@ class Experiment:
         return outlist
     
     def reshape_to_signalshape(self,arr,signal_shape):
-        testsize=np.product(signal_shape)-np.shape(arr)[0]
+        testsize=int(np.prod(signal_shape))-np.shape(arr)[0]
 
         fullshape=signal_shape+np.shape(arr)[1:]
         if testsize==0:
