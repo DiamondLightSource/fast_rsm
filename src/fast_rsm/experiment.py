@@ -1125,9 +1125,9 @@ class Experiment:
         config_group.create_dataset('python_location',data=pythonlocation)
 
     def pyfai1D(self,imagespath,maskpath,ponipath,outpath,scan,projected2d=None,gammastep=0.005):
-        images=scan.metadata.data_file.local_image_paths
+        #images=scan.metadata.data_file.local_image_paths
         if projected2d==None:
-            scanlength=scan.metadata.data_file.scan_length
+            scanlength=len(scan.metadata.data_file.local_image_paths)
         else:
             scanlength=1
         #tiflist=[file.split(f'{imagespath}')[-1] for file in images]
@@ -1144,7 +1144,7 @@ class Experiment:
             bins=1000
         else:
             bins=gammarange/gammastep 
-        for i in np.arange(len(images)):
+        for i in np.arange(scanlength):
 
             if (projected2d==None) or (projected2d==1):  
                
@@ -1196,10 +1196,15 @@ class Experiment:
         return outlist
     
     def reshape_to_signalshape(self,arr,signal_shape):
-        if len(np.shape(arr))==1:
-            return np.reshape(arr,signal_shape)
+        testsize=np.product(signal_shape)-np.shape(arr)[0]
+
+        fullshape=signal_shape+np.shape(arr)[1:]
+        if testsize==0:
+            return np.reshape(arr,fullshape)
         else:
-            return np.reshape(arr,signal_shape+np.shape(arr)[1:])
+            extradata=np.zeros((testsize,)+(np.shape(arr)[1:]))
+            outarr=np.concatenate((arr,extradata))
+            return np.reshape(outarr,fullshape)
     
     def calc_mapnorm_ranges(self,pdata,qvals,mapnorms,rangeqparas,rangeqperps,mapints):
         qxvalues=np.reshape(qvals[:,:,0],np.size(pdata))
@@ -1242,7 +1247,7 @@ class Experiment:
         rangeqparas=[]
         rangeqperps=[]
         if proj2d==None:
-            number_images=np.size(scan.metadata.data_file.default_signal)
+            number_images=len(scan.metadata.data_file.local_image_paths)
             #scan.metadata.data_file.scan_length
             for imnum in np.arange(number_images):
                 pdata=scan.load_image(imnum).data
