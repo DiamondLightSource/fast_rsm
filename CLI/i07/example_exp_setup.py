@@ -139,7 +139,7 @@ skipimages=[[4,12],\
 #                       large number of images (~1000s), outputs: I, Q, two theta, caked image 
 #
 process_outputs=['large_moving_det']
-
+qmapbins=(350,1050)
 
 # The scan numbers of the scans that you want to use to produce this reciprocal
 # space map. 

@@ -238,7 +238,8 @@ for i, scan in enumerate(experiment.scans):
         if 'large_moving_det' in process_outputs:
             experiment.load_curve_values(scan)
             PYFAI_PONI=experiment.createponi(local_output_path,experiment.beam_centre)
-            experiment.pyfaidiffractometer(hf,scan, num_threads,  local_output_path,PYFAI_PONI,radialrange,radialstepval)
+            
+            experiment.pyfaidiffractometer(hf,scan, num_threads,  local_output_path,PYFAI_PONI,radialrange,radialstepval,qmapbins)
 
    
             print(f"saved integration data to {local_output_path}/{projected_name}.hdf5")
