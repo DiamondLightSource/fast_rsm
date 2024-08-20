@@ -194,15 +194,9 @@ for i, scan in enumerate(experiment.scans):
 
     #     # Would you like to skip any images in any scans? Do so here!
     #     # This shows how to skip the 9th in the 3rd scan (note the zero counting).
-<<<<<<< HEAD
     if ('skipscans' in globals())&(int(scan_numbers[i]) in skipscans):
         scan.skip_images+=skipimages[np.where(np.array(skipscans)==int(scan_numbers[i]))[0][0]]
-    
-=======
-    if ('skipscans' in globals())&(int(scan_numbers[i]) in skipscans):
-        scan.skip_images+=skipimages[np.where(np.array(skipscans)==int(scan_numbers[i]))[0][0]]
-    
->>>>>>> 599224b7ec4d80c7096470b02a7869756649735a
+
     # """
 
 import os,sys
