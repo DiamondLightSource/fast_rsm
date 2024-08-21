@@ -243,14 +243,6 @@ def pyfaicalcint(experiment,imageindices,scan,shapecake,shapeqi,shapeqpqp,two_th
     qlimver=experiment.calcqlim( 'vert')
     qlimits=[qlimhor[0],qlimhor[1],qlimver[0],qlimver[1]]
     
-    #calculate map bins if not specified using resolution of 0.01 degrees 
-    
-    if qmapbins==0:
-        qstep=round(experiment.calcq(1.00,experiment.incident_wavelength)-\
-            experiment.calcq(1.01,experiment.incident_wavelength),4)
-        binshor=abs(round((qlimhor[1]-qlimhor[0])/qstep)*1.05)
-        binsver=abs(round((qlimver[1]-qlimver[0])/qstep)*1.05)
-        qmapbins=(binsver,binshor)
 
     groups=[choiceims[i:i+groupnum] for i in range(0,len(choiceims),groupnum)]
     for group in groups:

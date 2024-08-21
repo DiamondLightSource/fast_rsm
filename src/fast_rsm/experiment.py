@@ -734,8 +734,8 @@ class Experiment:
         dd=self.detector_distance
         leftside=beamcentre[1]*pixsize
         rightside=(imshape[1]-beamcentre[1])*pixsize
-        thetahigh=np.degrees(np.atan(leftside/dd))
-        thetalow=np.degrees(np.atan(rightside/dd))
+        thetahigh=np.degrees(np.arctan(leftside/dd))
+        thetalow=np.degrees(np.arctan(rightside/dd))
         totaltheta=thetahigh+thetalow
         return totaltheta,thetahigh,thetalow
     
@@ -812,14 +812,14 @@ class Experiment:
             pixlow=-(self.imshape[1]-self.beam_centre[1])
             highsection=-np.max(self.gammadata)
             lowsection=-np.min(self.gammadata)
-        maxangle=highsection+np.degrees(np.atan((pixhigh*self.pixel_size)/self.detector_distance))
-        minangle=lowsection-np.degrees(np.atan((pixlow*self.pixel_size)/self.detector_distance))
+        maxangle=highsection+np.degrees(np.arctan((pixhigh*self.pixel_size)/self.detector_distance))
+        minangle=lowsection-np.degrees(np.arctan((pixlow*self.pixel_size)/self.detector_distance))
         qupp=2*np.sin(np.radians(maxangle/2))*kmod*1e-10
         qlow=2*np.sin(np.radians(minangle/2))*kmod*1e-10
         return qupp,qlow
     
     #@profile
-    def pyfaidiffractometer(self,hf,scan,num_threads,output_file_path,pyfaiponi,radrange,radstepval,qmapbins):
+    def pyfaidiffractometer(self,hf,scan,num_threads,output_file_path,pyfaiponi,radrange,radstepval,qmapbins=0):
         self.load_curve_values(scan)
         
         dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance
@@ -829,6 +829,18 @@ class Experiment:
             tthdirect=0
 
         two_theta_start=self.gammadata-tthdirect
+        qlimhor=self.calcqlim( 'hor')
+        qlimver=self.calcqlim( 'vert')
+        
+        #calculate map bins if not specified using resolution of 0.01 degrees 
+        
+        if qmapbins==0:
+            qstep=round(self.calcq(1.00,self.incident_wavelength)-\
+                self.calcq(1.01,self.incident_wavelength),4)
+            binshor=abs(round(((qlimhor[1]-qlimhor[0])/qstep)*1.05))
+            binsver=abs(round(((qlimver[1]-qlimver[0])/qstep)*1.05))
+            qmapbins=(binshor,binsver)
+            
 
         async_results = []
             # Make a pool on which we'll carry out the processing.
@@ -1050,7 +1062,7 @@ class Experiment:
         
     
     
-    def createponi(self,outpath,image2dshape,offset=0):
+    def createponi(self,outpath,image2dshape,beam_centre=0,offset=0):
         datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
         ponioutpath=fr'{outpath}/fast_rsm_{datetime_str}.poni'
         f=open(ponioutpath,'w')
@@ -1061,8 +1073,13 @@ class Experiment:
         f.write(f'{self.pixel_size}, "pixel2": {self.pixel_size}, "max_shape": [{image2dshape[0]}, {image2dshape[1]}]') 
         f.write('}\n')
         f.write(f'Distance: {self.detector_distance}\n')
-        poni1=(image2dshape[0]-offset)*self.pixel_size
-        poni2=image2dshape[1]*self.pixel_size
+        if beam_centre==0:
+            poni1=(image2dshape[0]-offset)*self.pixel_size
+            poni2=image2dshape[1]*self.pixel_size
+        elif offset==0:
+            poni1=(beam_centre[0])*self.pixel_size
+            poni2=beam_centre[1]*self.pixel_size
+            
         f.write(f'Poni1: {poni1}\n')
         f.write(f'Poni2: {poni2}\n')
         f.write('Rot1: 0.0\n')
