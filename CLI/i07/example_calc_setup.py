@@ -199,6 +199,8 @@ for i, scan in enumerate(experiment.scans):
 
     # """
 
+if 'qmapbins' not in globals():
+    qmapbins=0
 import os,sys
 
 # Get the full path of the current file
