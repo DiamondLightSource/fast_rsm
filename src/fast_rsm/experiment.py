@@ -1243,11 +1243,11 @@ class Experiment:
         qmap=np.zeros([len(rangeqperp),len(rangeqpara)])
         counts=np.zeros([len(rangeqperp),len(rangeqpara)])
         for i in np.arange(len(qparabin)):
-            qpara,qperp=qparabin[i],qperpbin[i]
+            qpara_save,qperp_save=qparabin[i],qperpbin[i]
             intval=mapints[i]
             try:
-                qmap[qperp,qpara]+=intval
-                counts[qperp,qpara]+=1
+                qmap[qperp_save,qpara_save]+=intval
+                counts[qperp_save,qpara_save]+=1
             except:
                 print(f'failed on {qpara}  {qperp}  {intval} ')
         mapnorm=np.zeros([len(rangeqperp),len(rangeqpara)])
@@ -1263,8 +1263,12 @@ class Experiment:
         mapnorms=[]
         rangeqparas=[]
         rangeqperps=[]
+        
         if proj2d==None:
-            number_images=len(scan.metadata.data_file.local_image_paths)
+            try:
+                number_images=len(scan.metadata.data_file.local_image_paths)
+            except:
+                number_images=scan.metadata.data_file.scan_length
             #scan.metadata.data_file.scan_length
             for imnum in np.arange(number_images):
                 pdata=scan.load_image(imnum).data
