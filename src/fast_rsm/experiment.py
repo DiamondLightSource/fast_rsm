@@ -1144,7 +1144,10 @@ class Experiment:
     def pyfai1D(self,imagespath,maskpath,ponipath,outpath,scan,projected2d=None,gammastep=0.005):
         #images=scan.metadata.data_file.local_image_paths
         if projected2d==None:
-            scanlength=len(scan.metadata.data_file.local_image_paths)
+            try:
+                scanlength=len(scan.metadata.data_file.local_image_paths)
+            except:
+                scanlength=scan.metadata.data_file.scan_length
         else:
             scanlength=1
         #tiflist=[file.split(f'{imagespath}')[-1] for file in images]
