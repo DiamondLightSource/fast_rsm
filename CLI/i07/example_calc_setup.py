@@ -111,7 +111,9 @@ if specific_pixels is not None:
 #     mask_regions_list = [mask_regions]
 # else:
 #     mask_regions_list=[Region(*maskval) for maskval in mask_regions]
-mask_regions_list=[maskval if isinstance(maskval,Region) else Region(*maskval) for maskval in mask_regions]
+mask_regions_list=[]
+if mask_regions !=None:
+    mask_regions_list=[maskval if isinstance(maskval,Region) else Region(*maskval) for maskval in mask_regions]
 
 # Now swap (x, y) for each of the regions.
 if mask_regions_list is not None:
