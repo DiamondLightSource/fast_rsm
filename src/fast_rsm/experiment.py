@@ -1126,8 +1126,9 @@ class Experiment:
         dset.create_dataset("qperpranges",data=qperp_qpara_map[2])       
         if scan!=0:
             scanned_names,scanned_values=self.get_scan_field_values(scan)
-            for i, field in enumerate(scanned_names):
-                dset.create_dataset(f"{field}",data=scanned_values[i])
+            if scanned_names!=None:
+                for i, field in enumerate(scanned_names):
+                    dset.create_dataset(f"{field}",data=scanned_values[i])
                 
         #hf.close()
     def save_config_variables(self,hf,joblines,pythonlocation):
@@ -1164,6 +1165,10 @@ class Experiment:
             bins=1000
         else:
             bins=gammarange/gammastep 
+            
+        chivals=scan.metadata.data_file.nx_instrument.diff1chi.value.nxdata-\
+            scan.metadata.data_file.nx_instrument.diff1chioffset.value.nxdata
+        hryvals=scan.metadata.data_file.nx_instrument.hry.value.nxdata
         for i in np.arange(scanlength):
 
             if (projected2d==None) or (projected2d==1):  
@@ -1179,7 +1184,21 @@ class Experiment:
                 img_array=projected2d[0]
                 mask=np.less_equal(projected2d[1],0)
             
-            ai = pyFAI.load(ponipath)       
+            ai = pyFAI.load(ponipath)
+            hryval=0
+            chival=0
+            if np.isscalar(hryvals):
+                hryval=hryvals
+            elif len(hryvals)>1:
+                hryval=hryvals[i]
+            if np.isscalar(chivals):
+                chival=chivals
+            elif len(chivals)>1:
+                chival=chivals[i]
+            ai.rot2=np.radians(-hryval)
+            
+                
+
             # print("\nIntegrator: \n", ai)
         
             
@@ -1411,7 +1430,6 @@ class Experiment:
 
         ub_mat = np.matmul(ub_mat, coord_change_mat)
         ub_mat = ub_mat.astype(np.float32)
-        
         
         k_out_array = k_out_array.reshape(
             (desired_shape[0]*desired_shape[1], 3))
