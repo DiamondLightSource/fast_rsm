@@ -1046,7 +1046,7 @@ class Experiment:
             im1gammas[:,col]=two_theta_start[0]+(np.degrees(np.arctan(tantheta)))
         #self.imgamma=im1gammas
         print(f'projecting {scanlength} images   completed images:  ')
-        imstep=int(np.floor(scanlength/50))
+        imstep=1
         for imnum in np.arange(0,scanlength,imstep):
             self.projectimage(scan, imnum,im1gammas)
             #if (imnum+1)%10==0:
