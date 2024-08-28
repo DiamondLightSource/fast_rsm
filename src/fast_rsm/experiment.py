@@ -1422,10 +1422,13 @@ class Experiment:
         return k_out_array
     
     def get_scan_field_values(self,scan):
-        rank=scan.metadata.data_file.diamond_scan.scan_rank.nxdata
-        fields=scan.metadata.data_file.diamond_scan.scan_fields
-        scanned=[x.decode('utf-8').split('.')[0] for x in fields[:rank].nxdata]
-        scannedvalues=[np.unique(scan.metadata.data_file.nx_instrument[field].value )for field in scanned]
+        try:
+            rank=scan.metadata.data_file.diamond_scan.scan_rank.nxdata
+            fields=scan.metadata.data_file.diamond_scan.scan_fields
+            scanned=[x.decode('utf-8').split('.')[0] for x in fields[:rank].nxdata]
+            scannedvalues=[np.unique(scan.metadata.data_file.nx_instrument[field].value )for field in scanned]
+        except:
+            scanned,scannedvalues=None,None
         return scanned,scannedvalues
     @classmethod
     def from_i07_nxs(cls,
