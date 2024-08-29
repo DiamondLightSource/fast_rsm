@@ -1165,16 +1165,21 @@ class Experiment:
             bins=1000
         else:
             bins=gammarange/gammastep 
-            
+        
         chivals=[0]
         hryvals=[0]
-        
+        signal_shape=np.shape(scan.metadata.data_file.default_signal)
+
         if 'diff1chi' in scan.metadata.data_file.nx_instrument.keys():
-            chivals=scan.metadata.data_file.nx_instrument.diff1chi.value.nxdata#-\
+            chivals=scan.metadata.data_file.nx_instrument.diff1chi.value.nxdata
+            if len(np.shape(chivals))>1:
+                chivals=np.reshape(chivals,np.prod(np.shape(chivals)))
+            #-\
             #scan.metadata.data_file.nx_instrument.diff1chioffset.value.nxdata
         if 'hry' in scan.metadata.data_file.nx_instrument.keys():
             hryvals=scan.metadata.data_file.nx_instrument.hry.value.nxdata
-            
+            if len(np.shape(hryvals))>1:
+                hryvals=np.reshape(hryvals,np.prod(np.shape(hryvals)))
         for i in np.arange(scanlength):
 
             if (projected2d==None) or (projected2d==1):  
@@ -1228,7 +1233,6 @@ class Experiment:
             twothetas.append(tth)
             #outdatas.append(outdata)
             configs.append(ai.get_config())
-        signal_shape=np.shape(scan.metadata.data_file.default_signal)
         if len(signal_shape)>1:
             out_qangs=self.reshape_to_signalshape(Qangs,signal_shape)
             out_twothetas=self.reshape_to_signalshape(twothetas, signal_shape)
