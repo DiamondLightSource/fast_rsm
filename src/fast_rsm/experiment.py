@@ -1166,9 +1166,15 @@ class Experiment:
         else:
             bins=gammarange/gammastep 
             
-        chivals=scan.metadata.data_file.nx_instrument.diff1chi.value.nxdata-\
-            scan.metadata.data_file.nx_instrument.diff1chioffset.value.nxdata
-        hryvals=scan.metadata.data_file.nx_instrument.hry.value.nxdata
+        chivals=[0]
+        hryvals=[0]
+        
+        if 'diff1chi' in scan.metadata.data_file.nx_instrument.keys():
+            chivals=scan.metadata.data_file.nx_instrument.diff1chi.value.nxdata#-\
+            #scan.metadata.data_file.nx_instrument.diff1chioffset.value.nxdata
+        if 'hry' in scan.metadata.data_file.nx_instrument.keys():
+            hryvals=scan.metadata.data_file.nx_instrument.hry.value.nxdata
+            
         for i in np.arange(scanlength):
 
             if (projected2d==None) or (projected2d==1):  
