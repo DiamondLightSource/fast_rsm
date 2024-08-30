@@ -242,8 +242,8 @@ for i, scan in enumerate(experiment.scans):
         PYFAI_MASK=edfmaskfile
         if 'large_moving_det' in process_outputs:
             experiment.load_curve_values(scan)
-            PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,experiment.beam_centre)
-            
+            PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,beam_centre=experiment.beam_centre)
+
             experiment.pyfaidiffractometer(hf,scan, num_threads,  local_output_path,PYFAI_PONI,radialrange,radialstepval,qmapbins)
 
    
@@ -255,7 +255,7 @@ for i, scan in enumerate(experiment.scans):
         if 'curved_projection_2D' in process_outputs:
         
             projected2d=experiment.curved_to_2d(scan)
-            PYFAI_PONI=experiment.createponi(local_output_path,experiment.projshape,experiment.vertoffset)
+            PYFAI_PONI=experiment.createponi(local_output_path,experiment.projshape,offset=experiment.vertoffset)
             twothetas,Qangs,intensities,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
                                 local_output_path,scan,projected2d=projected2d)
             experiment.save_projection(hf,projected2d,twothetas,Qangs,intensities,config)
@@ -273,10 +273,11 @@ for i, scan in enumerate(experiment.scans):
             experiment.load_curve_values(scan)
             name_end=scan_numbers[i]
             #image2dshape=experiment.scans[i].metadata.data_file.image_shape
-            PYFAI_PONI=experiment.createponi(local_output_path,(beam_centre[1],beam_centre[0]))
+            PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,beam_centre=experiment.beam_centre)
             twothetas,Qangs,intensities,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
                               local_output_path,scan)
-            experiment.save_integration(hf,twothetas,Qangs,intensities,config,scan)
+            print(np.max(intensities))
+            #experiment.save_integration(hf,twothetas,Qangs,intensities,config,scan)
    
            
             print(f'saved 1D profile to {local_output_path}/{projected_name}.hdf5')
@@ -289,7 +290,7 @@ for i, scan in enumerate(experiment.scans):
             map_frame = Frame(frame_name=frame_name, coordinates=coordinates)
             name_end=scan_numbers[i]
             qperp_qpara_map=experiment.calc_qpara_qper(scan,oop, map_frame,proj2d=projected2d)
-            experiment.save_qperp_qpara(hf, qperp_qpara_map,scan)
+            #experiment.save_qperp_qpara(hf, qperp_qpara_map,scan)
             print(f'saved qperp_qpara_map to {local_output_path}/{projected_name}.hdf5')
    
    
