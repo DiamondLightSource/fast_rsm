@@ -19,12 +19,15 @@ from datetime import datetime
 from . import io
 from .binning import weighted_bin_1d, finite_diff_shape
 from .meta_analysis import get_step_from_filesize
-from .scan import Scan, init_process_pool, bin_maps_with_indices, chunk
+from .scan import Scan, init_process_pool, bin_maps_with_indices, chunk, init_pyfai_process_pool,pyfaicalcint
 from .writing import linear_bin_to_vtk
 import pandas as pd
 import pyFAI,fabio
 #from datetime import datetime
 import h5py
+#from memory_profiler import profile
+
+
 
 def _remove_file(path: Union[str, Path]):
     """
@@ -148,7 +151,7 @@ class Experiment:
 
         array[pixels] = np.nan
 
-        is going to be used at some point.
+        is going to be used at somencounterede point.
 
         Args:
             pixels:
@@ -645,7 +648,10 @@ class Experiment:
 
         extratwotheta=np.degrees(np.arctan(extrahorizontal/self.detector_distance))
 
-        self.maxdist2D=self.detector_distance/np.cos(np.radians(two_theta_start[-1]+extratwotheta))
+        try: 
+            self.maxdist2D=self.detector_distance/np.cos(np.radians(two_theta_start[-1]+extratwotheta))
+        except:
+            self.maxdist2D=self.detector_distance/np.cos(np.radians(two_theta_start+extratwotheta))
         maxdistdiff=self.maxdist2D-self.detector_distance
 
         # if self.rotval==0:
@@ -657,7 +663,10 @@ class Experiment:
         self.maxratiodist=self.maxdist2D/self.detector_distance
         
         #calculate the maximum value for the projected width measured in the final image
-        maxwidth=np.ceil(self.detector_distance*np.tan(np.radians(two_theta_start[-1]+extratwotheta))/self.pixel_size)
+        try:
+            maxwidth=np.ceil(self.detector_distance*np.tan(np.radians(two_theta_start[-1]+extratwotheta))/self.pixel_size)
+        except:
+            maxwidth=np.ceil(self.detector_distance*np.tan(np.radians(two_theta_start+extratwotheta))/self.pixel_size)
         
         
         # #account for pixels after beam centre
@@ -708,7 +717,283 @@ class Experiment:
                 self.imcounts[self.projshape[0]-vertend:self.projshape[0]-vertstart,-horupp:-horlow]+=1
 
         self.counts+=self.imcounts
-                
+    
+    
+    def calcq(self,twotheta,wavelength):
+        return (4*np.pi/wavelength)*np.sin(np.radians(twotheta/2))*1e-10
+    
+    
+    def calcqstep(self,gammastep,gammastart,wavelength):
+        qstep=self.calcq(gammastart+gammastep,wavelength)-self.calcq(gammastart,wavelength)
+        return qstep
+    
+    def calcimagegammarange(self):
+        imshape=self.imshape
+        beamcentre=self.beam_centre
+        pixsize=self.pixel_size
+        dd=self.detector_distance
+        leftside=beamcentre[1]*pixsize
+        rightside=(imshape[1]-beamcentre[1])*pixsize
+        thetahigh=np.degrees(np.arctan(leftside/dd))
+        thetalow=np.degrees(np.arctan(rightside/dd))
+        totaltheta=thetahigh+thetalow
+        return totaltheta,thetahigh,thetalow
+    
+    def histogram_xy(self,x, y, step_size):
+        # Calculate the bin edges based on the step size
+        bin_edges = np.arange(np.min(x), np.max(x) + step_size, step_size)
+        
+        # Use numpy's histogram function to bin the data
+        hist, _ = np.histogram(x, bins=bin_edges, weights=y)
+        
+        # Count the number of contributions to each bin
+        counts, _ = np.histogram(x, bins=bin_edges)
+        
+        # Normalize the histogram by dividing each bin by its number of contributions
+        # Use np.where to avoid division by zero
+        hist_normalized = np.where(counts > 0, hist / counts, 0)
+        
+        # Calculate the bin centers for plotting
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+        
+        return bin_centers, hist, hist_normalized, counts
+    
+    # def pyfaiqperpqpara(self,qlimits,mapbins,ai,ind=100):
+    #     # scan=self.scans[0]
+    #     # self.load_curve_values(scan)
+    #     # dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance
+    #     # if self.setup=='DCD':
+    #     #     tthdirect=-1*np.degrees(np.arctan(self.projectionx/dcd_sample_dist))
+    #     # else:
+    #     #     tthdirect=0
+    
+    #     # two_theta_start=self.gammadata-tthdirect
+        
+    #     #self.beam_centre=(self.imshape[1]-beam_centre[0],self.imshape[0]-beam_centre[1])
+    #    # newvals=(self.beam_centre[1],self.beam_centre[0])
+    #     #self.beam_centre=newvals
+    #     # PYFAI_PONI=self.createponi(local_output_path,self.imshape,self.beam_centre)
+    #     # ai=pyFAI.load(PYFAI_PONI)    
+    #     #ai.set_mask(np.rot90(scan.metadata.edfmask,-1))
+    #     unit_qip = "qip_A^-1"
+    #     unit_qoop = "qoop_A^-1"
+    #     # if self.setup=='vertical':
+    #     #     imagedata=np.flipud(np.rot90(scan.load_image(ind).data,-1))
+    #     # else:
+    #     #     imagedata=np.flipud(scan.load_image(ind).data)
+        
+    #     # if np.size(two_theta_start)>1:
+    #     #     ai.rot1 = np.radians(-two_theta_start[ind])
+    #     # else:
+    #     #     ai.rot1=np.radians(-two_theta_start)
+    #     # #ai.rot1=np.radians(-3)
+    #     # ai.rot2 =np.radians(-self.deltadata)
+
+    #     #qipright=5
+    #    # calcqlim(experiment,self.imshape[0]-self.beam_centre[1],'hor')
+    #    # =calcqlim(experiment,self.imshape[1]-self.beam_centre[0],'vert')*10
+       
+        
+    #     res2d = ai.integrate2d(imagedata, mapbins[0],mapbins[1], unit=(unit_qip, unit_qoop),radial_range=(qlimits[0]*1.05,qlimits[1]*1.05),azimuth_range=(30*qlimits[2],30*qlimits[3]), method=("no", "csr", "cython"))
+    #     #res2d = ai.integrate2d(imagedata, 1500,1500, unit=(unit_qip, unit_qoop),radial_range=(-3,3),azimuth_range=(-30,30), method=("no", "csr", "cython"))
+    
+    #     #ai.integrate2d(imagedata, 100,100,unit="q_nm^-1")#, unit=(unit_qip, unit_qoop))
+    #     return res2d        
+    def calcqlim(self,axis):
+        kmod=2*np.pi/ (self.incident_wavelength)
+        
+        if axis=='vert':
+            pixhigh=self.imshape[0]-self.beam_centre[0]
+            pixlow=self.beam_centre[0]
+            highsection=np.max(self.deltadata)
+            lowsection=np.min(self.deltadata)
+        elif axis=='hor':
+            pixhigh=-(self.beam_centre[1])
+            pixlow=-(self.imshape[1]-self.beam_centre[1])
+            highsection=-np.max(self.gammadata)
+            lowsection=-np.min(self.gammadata)
+        maxangle=highsection+np.degrees(np.arctan((pixhigh*self.pixel_size)/self.detector_distance))
+        minangle=lowsection-np.degrees(np.arctan((pixlow*self.pixel_size)/self.detector_distance))
+        qupp=2*np.sin(np.radians(maxangle/2))*kmod*1e-10
+        qlow=2*np.sin(np.radians(minangle/2))*kmod*1e-10
+        return qupp,qlow
+    
+    #@profile
+    def pyfaidiffractometer(self,hf,scan,num_threads,output_file_path,pyfaiponi,radrange,radstepval,qmapbins=0):
+        self.load_curve_values(scan)
+        
+        dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance
+        if self.setup=='DCD':
+            tthdirect=-1*np.degrees(np.arctan(self.projectionx/dcd_sample_dist))
+        else:
+            tthdirect=0
+
+        two_theta_start=self.gammadata-tthdirect
+        qlimhor=self.calcqlim( 'hor')
+        qlimver=self.calcqlim( 'vert')
+        
+        #calculate map bins if not specified using resolution of 0.01 degrees 
+        
+        if qmapbins==0:
+            qstep=round(self.calcq(1.00,self.incident_wavelength)-\
+                self.calcq(1.01,self.incident_wavelength),4)
+            binshor=abs(round(((qlimhor[1]-qlimhor[0])/qstep)*1.05))
+            binsver=abs(round(((qlimver[1]-qlimver[0])/qstep)*1.05))
+            qmapbins=(binshor,binsver)
+            
+
+        async_results = []
+            # Make a pool on which we'll carry out the processing.
+        locks = [Lock() for _ in range(num_threads)]
+        start_time = time()
+
+        scalegamma=1
+        imagegammas=self.calcimagegammarange()
+
+        scanlength=scan.metadata.data_file.scan_length
+        chunksize=int(np.ceil(scanlength/(scalegamma*num_threads)))
+
+
+        chunkgammarange=(two_theta_start[chunksize*scalegamma]-two_theta_start[0]+imagegammas[0])
+
+        nqbins=int(np.ceil((radrange[1]-radrange[0])/radstepval))
+        shapeqi=(2,3,nqbins)
+
+
+        shapecake=(2, 360, 1800)
+        shapeqpqp=(2,qmapbins[1],qmapbins[0])
+        output_path=fr"{output_file_path}"
+        pyfai_qi_arrays=np.zeros((3,shapeqi[2]*num_threads))
+        count_qi_arrays=np.zeros((3,shapeqi[2]*num_threads))
+        cake_arrays=0
+        qpqp_arrays=0
+        print('starting process pool')
+        with Pool(
+            processes=num_threads,  # The size of our pool.
+            initializer=init_pyfai_process_pool,  # Our pool's initializer.
+            initargs=(locks,  # The initializer makes this lock global.
+                  num_threads,  # Initializer makes num_threads global.
+                  self.scans[0].metadata,
+                  shapeqi,
+                  #(shapeqi[0],int(shapeqi[1]/50)),
+                  shapecake,
+                  shapeqpqp,
+                  output_path)
+        ) as pool:
+            
+            print(f'started pool with num_threads={num_threads}')
+            for indices in chunk(np.arange(0,len(two_theta_start),scalegamma), num_threads):
+            # startchunkval=0
+            # for indices in chunk(np.arange(startchunkval,startchunkval+80,1), num_threads):
+                async_results.append(pool.apply_async(
+                    pyfaicalcint,
+                    (self,indices,scan,shapecake,shapeqi,shapeqpqp,two_theta_start,pyfaiponi,radrange,radstepval,qmapbins)))
+                #print(f'done  {indices[0]  - indices[1]} with {num_threads}\n')
+            print('finished preparing chunked data')
+            pyfai_qi_names=[]
+            cake_names=[]
+            qpqpmap_names=[]
+            mapaxisinfo=[1,2,3,4]
+            for result in async_results:
+                shared_pyfai_qi_nameval, shared_cake_nameval,shared_qpqpmap_nameval,cakeaxisinfo,mapaxisinfo=result.get()#
+                if shared_pyfai_qi_nameval not in pyfai_qi_names:
+                    pyfai_qi_names.append(shared_pyfai_qi_nameval)
+                if shared_cake_nameval not in cake_names:
+                    cake_names.append(shared_cake_nameval)
+                if shared_qpqpmap_nameval not in qpqpmap_names:
+                    qpqpmap_names.append(shared_qpqpmap_nameval)
+                    # Make sure that no error was thrown while mapping.
+                if not result.successful():
+                    raise ValueError(
+                    "Could not carry out map for an unknown reason. "
+                    "Probably one of the threads segfaulted, or something.")
+            
+            
+            qi_mem=[SharedMemory(x) for x in pyfai_qi_names ]
+            totalqi_arrays=np.array([np.ndarray(shape=shapeqi, dtype=np.float32, buffer=y.buf)[0]
+                for y in qi_mem])
+            totalcount_arrays=np.array([np.ndarray(shape=shapeqi, dtype=np.float32, buffer=y.buf)[1]
+                for y in qi_mem])            
+            
+            cake_mem=[SharedMemory(x) for x in cake_names]
+            new_cake_arrays = np.array([np.ndarray(shape=shapecake, dtype=np.float32, buffer=y.buf)[0]
+                for y in cake_mem])
+            new_count_arrays = np.array([np.ndarray(shape=shapecake, dtype=np.float32, buffer=y.buf)[1]
+                for y in cake_mem])
+            
+            qpqp_mem=[SharedMemory(x) for x in qpqpmap_names]
+            new_qpqp_arrays=np.array([np.ndarray(shape=shapeqpqp, dtype=np.float32, buffer=y.buf)[0]
+                for y in qpqp_mem])
+            new_qpqp_counts=np.array([np.ndarray(shape=shapeqpqp, dtype=np.float32, buffer=y.buf)[1]
+                for y in qpqp_mem])
+            
+            #print(f'shape of new_qpqp_array = {np.shape(new_qpqp_arrays)}')
+            count_arrays=np.sum(new_count_arrays,axis=0)
+            cake_arrays =np.sum(new_cake_arrays,axis=0)
+            cake_array=np.divide(cake_arrays,count_arrays, out=np.copy(cake_arrays), where=count_arrays !=0.0)
+            
+            qpqp_arrays=np.sum(new_qpqp_arrays,axis=0)
+            qpqp_counts=np.sum(new_qpqp_counts,axis=0)
+            #print(f'shape of qpqp_arrays = {np.shape(qpqp_arrays)}')
+            qpqp_array=np.divide(qpqp_arrays,qpqp_counts, out=np.copy(qpqp_arrays), where=qpqp_counts !=0.0)
+            #print(f'shape of qpqp_array  = {np.shape(qpqp_array)}')
+            
+            new_totalcount_arrays=np.sum(totalcount_arrays,axis=0)
+            new_totalqi_arrays =np.sum(totalqi_arrays,axis=0)
+            qi_array=np.divide(new_totalqi_arrays,new_totalcount_arrays, out=np.copy(new_totalqi_arrays), where=new_totalcount_arrays !=0.0)
+            
+            pool.close()
+            pool.join()
+            for shared_mem in qi_mem:
+                shared_mem.close()
+                try:
+                    shared_mem.unlink()
+                except:
+                    pass
+            for shared_mem in cake_mem:
+                shared_mem.close()
+                try:
+                    shared_mem.unlink()
+                except:
+                    pass
+            for shared_mem in qpqp_mem:
+                shared_mem.close()
+                try:
+                    shared_mem.unlink()
+                except:
+                    pass
+    
+        end_time=time()
+        datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+
+        dset=hf.create_group("integrations")
+        dset.create_dataset("Intensity",data=qi_array[0])
+        dset.create_dataset("Q_angstrom^-1",data=qi_array[1])
+        dset.create_dataset("2thetas",data=qi_array[2])
+
+        
+        dset2=hf.create_group("caked image")
+        dset2.create_dataset("cakeimage",data=cake_array)
+        dset2.create_dataset("cake_azimuthal",data=cakeaxisinfo[0])
+        dset2.create_dataset("cake_azimuthal_unit",data=cakeaxisinfo[2])
+        dset2.create_dataset("cake_radial",data=cakeaxisinfo[1])
+        dset2.create_dataset("cake_radial_unit",data=cakeaxisinfo[3])  
+        
+        dset3=hf.create_group("qpara_qperp")
+        dset3.create_dataset("qpara_qperp_image",data=qpqp_array)
+        dset3.create_dataset("map_azimuthal",data=mapaxisinfo[0])
+        dset3.create_dataset("map_azimuthal_unit",data=mapaxisinfo[2])
+        dset3.create_dataset("map_radial",data=-1*mapaxisinfo[1])
+        dset3.create_dataset("map_radial_unit",data=mapaxisinfo[3]) 
+        
+        minutes=(end_time-start_time)/60
+        print(f'total calculation took {minutes}  minutes')
+        return mapaxisinfo
+
+
+    
+    
+
  
             
     def load_curve_values(self,scan):
@@ -716,7 +1001,10 @@ class Experiment:
         self.entry=scan.metadata.data_file.nx_entry
         self.detector_distance=scan.metadata.diffractometer.data_file.detector_distance
         self.incident_wavelength= 1e-10*scan.metadata.incident_wavelength
-        self.gammadata=np.array( self.entry.instrument.diff1gamma.value)
+        try:
+            self.gammadata=np.array( self.entry.instrument.diff1gamma.value_set)
+        except:
+            self.gammadata=np.array( self.entry.instrument.diff1gamma.value)
         self.deltadata=np.array( self.entry.instrument.diff1delta.value)
         self.dcdrad=np.array( self.entry.instrument.dcdc2rad.value)
         self.dcdomega=np.array( self.entry.instrument.dcdomega.value)
@@ -758,7 +1046,8 @@ class Experiment:
             im1gammas[:,col]=two_theta_start[0]+(np.degrees(np.arctan(tantheta)))
         #self.imgamma=im1gammas
         print(f'projecting {scanlength} images   completed images:  ')
-        for imnum in np.arange(scanlength):
+        imstep=1
+        for imnum in np.arange(0,scanlength,imstep):
             self.projectimage(scan, imnum,im1gammas)
             #if (imnum+1)%10==0:
                # print('\n')
@@ -767,9 +1056,13 @@ class Experiment:
         norm2d=np.divide(self.project2d,self.counts,where=self.counts!=0)
         projected_data=[norm2d,self.counts,self.vertoffset]
         return projected_data
+
+        
+        
+        
     
     
-    def createponi(self,outpath,image2dshape,offset=0):
+    def createponi(self,outpath,image2dshape,beam_centre=0,offset=0):
         datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
         ponioutpath=fr'{outpath}/fast_rsm_{datetime_str}.poni'
         f=open(ponioutpath,'w')
@@ -780,8 +1073,13 @@ class Experiment:
         f.write(f'{self.pixel_size}, "pixel2": {self.pixel_size}, "max_shape": [{image2dshape[0]}, {image2dshape[1]}]') 
         f.write('}\n')
         f.write(f'Distance: {self.detector_distance}\n')
-        poni1=(image2dshape[0]-offset)*self.pixel_size
-        poni2=image2dshape[1]*self.pixel_size
+        if beam_centre==0:
+            poni1=(image2dshape[0]-offset)*self.pixel_size
+            poni2=image2dshape[1]*self.pixel_size
+        elif offset==0:
+            poni1=(beam_centre[0])*self.pixel_size
+            poni2=beam_centre[1]*self.pixel_size
+            
         f.write(f'Poni1: {poni1}\n')
         f.write(f'Poni2: {poni2}\n')
         f.write('Rot1: 0.0\n')
@@ -805,7 +1103,7 @@ class Experiment:
         dset.create_dataset("Intensity",data=intensities)
         #hf.close()
     
-    def save_integration(self,hf,twothetas,Qangs,intensities,configs):
+    def save_integration(self,hf,twothetas,Qangs,intensities,configs,scan=0):
        # hf=h5py.File(f'{local_output_path}/{integrated_name}.hdf5',"w")
         dset=hf.create_group("integrations")
         
@@ -813,20 +1111,44 @@ class Experiment:
         dset.create_dataset("2thetas",data=twothetas)
         dset.create_dataset("Q_angstrom^-1",data=Qangs)
         dset.create_dataset("Intensity",data=intensities)
+        if scan!=0:
+            scanned_names,scanned_values=self.get_scan_field_values(scan)
+            for i, field in enumerate(scanned_names):
+                dset.create_dataset(f"{field}",data=scanned_values[i])
         #hf.close()
     
-    def save_qperp_qpara(self,hf,qperp_qpara_map):
+    def save_qperp_qpara(self,hf,qperp_qpara_map,scan=0):
         #hf=h5py.File(f'{local_output_path}/{out_name}.hdf5',"w")
+
         dset=hf.create_group("qperp_qpara")
         dset.create_dataset("images",data=qperp_qpara_map[0])
         dset.create_dataset("qpararanges",data=qperp_qpara_map[1])
-        dset.create_dataset("qperpranges",data=qperp_qpara_map[2])
+        dset.create_dataset("qperpranges",data=qperp_qpara_map[2])       
+        if scan!=0:
+            scanned_names,scanned_values=self.get_scan_field_values(scan)
+            if scanned_names!=None:
+                for i, field in enumerate(scanned_names):
+                    dset.create_dataset(f"{field}",data=scanned_values[i])
+                
         #hf.close()
+    def save_config_variables(self,hf,joblines,pythonlocation):
+        config_group=hf.create_group('config')
+        configlist=['setup','experimental_hutch', 'using_dps','beam_centre','detector_distance','dpsx_central_pixel','dpsy_central_pixel','dpsz_central_pixel',\
+                    'local_data_path','local_output_path','output_file_size','save_binoculars_h5','map_per_image','volume_start','volume_step','volume_stop',\
+                    'load_from_dat', 'edfmaskfile','specific_pixels','mask_regions','process_outputs','scan_numbers']
+        for name, value in globals().items() :
+            if name in configlist:
+                config_group.create_dataset(f"{name}",data=value)
+        config_group.create_dataset('joblines',data=joblines)
+        config_group.create_dataset('python_location',data=pythonlocation)
 
-    def pyfai1D(self,imagespath,maskpath,ponipath,outpath,scan,projected2d=None,bins=1000):
+    def pyfai1D(self,imagespath,maskpath,ponipath,outpath,scan,projected2d=None,gammastep=0.005):
         #images=scan.metadata.data_file.local_image_paths
         if projected2d==None:
-            scanlength=scan.metadata.data_file.scan_length
+            try:
+                scanlength=len(scan.metadata.data_file.local_image_paths)
+            except:
+                scanlength=scan.metadata.data_file.scan_length
         else:
             scanlength=1
         #tiflist=[file.split(f'{imagespath}')[-1] for file in images]
@@ -834,21 +1156,60 @@ class Experiment:
         intensities=[]
         Qangs=[]
         configs=[]
+        try:
+            gammavalues=np.array(scan.metadata.diffractometer.data_file.nx_instrument.diff1gamma.value_set)
+        except:
+            gammavalues=np.array(scan.metadata.diffractometer.data_file.nx_instrument.diff1gamma.value)
+        gammarange=gammavalues.max()-gammavalues.min()
+        if gammarange<3:
+            bins=1000
+        else:
+            bins=gammarange/gammastep 
+        
+        chivals=[0]
+        hryvals=[0]
+        signal_shape=np.shape(scan.metadata.data_file.default_signal)
+
+        if 'diff1chi' in scan.metadata.data_file.nx_instrument.keys():
+            chivals=scan.metadata.data_file.nx_instrument.diff1chi.value.nxdata
+            if len(np.shape(chivals))>1:
+                chivals=np.reshape(chivals,np.prod(np.shape(chivals)))
+            #-\
+            #scan.metadata.data_file.nx_instrument.diff1chioffset.value.nxdata
+        if 'hry' in scan.metadata.data_file.nx_instrument.keys():
+            hryvals=scan.metadata.data_file.nx_instrument.hry.value.nxdata
+            if len(np.shape(hryvals))>1:
+                hryvals=np.reshape(hryvals,np.prod(np.shape(hryvals)))
         for i in np.arange(scanlength):
 
-            if projected2d==None:  
+            if (projected2d==None) or (projected2d==1):  
                
                 # fname=scan.
                 # img = fabio.open(fr'{imagespath}/{fname}')
                 img_array = scan.load_image(i).data
                 maskimg = fabio.open(maskpath)
                 mask = maskimg.data
+                
     
             else:
                 img_array=projected2d[0]
                 mask=np.less_equal(projected2d[1],0)
             
-            ai = pyFAI.load(ponipath)       
+            ai = pyFAI.load(ponipath)
+            hryval=0
+            chival=0
+            if np.isscalar(hryvals):
+                hryval=hryvals
+            elif len(hryvals)>1:
+                hryval=hryvals[i]
+            if np.isscalar(chivals):
+                chival=chivals
+            elif len(chivals)>1:
+                chival=chivals[i]
+            ai.rot2=np.radians(-hryval)
+            
+                
+
             # print("\nIntegrator: \n", ai)
         
             
@@ -872,8 +1233,27 @@ class Experiment:
             twothetas.append(tth)
             #outdatas.append(outdata)
             configs.append(ai.get_config())
+        if len(signal_shape)>1:
+            out_qangs=self.reshape_to_signalshape(Qangs,signal_shape)
+            out_twothetas=self.reshape_to_signalshape(twothetas, signal_shape)
+            out_intensities=self.reshape_to_signalshape(intensities,signal_shape)
+            out_configs=self.reshape_to_signalshape(configs, signal_shape)
+            outlist=out_twothetas,out_qangs,out_intensities,out_configs
+        else:
+            outlist=twothetas,Qangs,intensities,configs
         
-        return twothetas,Qangs,intensities,configs
+        return outlist
+    
+    def reshape_to_signalshape(self,arr,signal_shape):
+        testsize=int(np.prod(signal_shape))-np.shape(arr)[0]
+
+        fullshape=signal_shape+np.shape(arr)[1:]
+        if testsize==0:
+            return np.reshape(arr,fullshape)
+        else:
+            extradata=np.zeros((testsize,)+(np.shape(arr)[1:]))
+            outarr=np.concatenate((arr,extradata))
+            return np.reshape(outarr,fullshape)
     
     def calc_mapnorm_ranges(self,pdata,qvals,mapnorms,rangeqparas,rangeqperps,mapints):
         qxvalues=np.reshape(qvals[:,:,0],np.size(pdata))
@@ -895,11 +1275,11 @@ class Experiment:
         qmap=np.zeros([len(rangeqperp),len(rangeqpara)])
         counts=np.zeros([len(rangeqperp),len(rangeqpara)])
         for i in np.arange(len(qparabin)):
-            qpara,qperp=qparabin[i],qperpbin[i]
+            qpara_save,qperp_save=qparabin[i],qperpbin[i]
             intval=mapints[i]
             try:
-                qmap[qperp,qpara]+=intval
-                counts[qperp,qpara]+=1
+                qmap[qperp_save,qpara_save]+=intval
+                counts[qperp_save,qpara_save]+=1
             except:
                 print(f'failed on {qpara}  {qperp}  {intval} ')
         mapnorm=np.zeros([len(rangeqperp),len(rangeqpara)])
@@ -915,8 +1295,13 @@ class Experiment:
         mapnorms=[]
         rangeqparas=[]
         rangeqperps=[]
+        
         if proj2d==None:
-            number_images=scan.metadata.data_file.scan_length
+            try:
+                number_images=len(scan.metadata.data_file.local_image_paths)
+            except:
+                number_images=scan.metadata.data_file.scan_length
+            #scan.metadata.data_file.scan_length
             for imnum in np.arange(number_images):
                 pdata=scan.load_image(imnum).data
                 allints=np.reshape(pdata,np.size(pdata))
@@ -930,7 +1315,18 @@ class Experiment:
             kin = scan.metadata.k_incident_length
             qvals=self.projected2dQvecs(pdata,self.vertoffset,oop,kin)
             mapnorms, rangeqparas, rangeqperps =self.calc_mapnorm_ranges(pdata,qvals,mapnorms,rangeqparas,rangeqperps,mapints)
-        return mapnorms,rangeqparas,rangeqperps
+        signal_shape=np.shape(scan.metadata.data_file.default_signal)
+        if len(signal_shape)>1:
+            out_mapnorms=self.reshape_to_signalshape(mapnorms,signal_shape)
+            out_rangeqparas=self.reshape_to_signalshape(rangeqparas, signal_shape)
+            out_rangeqperps=self.reshape_to_signalshape(rangeqperps,signal_shape)
+            outlist=out_mapnorms,out_rangeqparas, out_rangeqperps
+
+        else:
+            outlist=mapnorms,rangeqparas,rangeqperps
+        
+        
+        return outlist
     
     
     def projected2dQvecs(self,projectedimage,vertoffset,oop,kin,horoffset=0):
@@ -1045,7 +1441,6 @@ class Experiment:
         ub_mat = np.matmul(ub_mat, coord_change_mat)
         ub_mat = ub_mat.astype(np.float32)
         
-        
         k_out_array = k_out_array.reshape(
             (desired_shape[0]*desired_shape[1], 3))
         # This takes CPU time: mapping every vector.
@@ -1054,7 +1449,15 @@ class Experiment:
         k_out_array = k_out_array.reshape(desired_shape)
         return k_out_array
     
-
+    def get_scan_field_values(self,scan):
+        try:
+            rank=scan.metadata.data_file.diamond_scan.scan_rank.nxdata
+            fields=scan.metadata.data_file.diamond_scan.scan_fields
+            scanned=[x.decode('utf-8').split('.')[0] for x in fields[:rank].nxdata]
+            scannedvalues=[np.unique(scan.metadata.data_file.nx_instrument[field].value )for field in scanned]
+        except:
+            scanned,scannedvalues=None,None
+        return scanned,scannedvalues
     @classmethod
     def from_i07_nxs(cls,
                      nexus_paths: List[Union[str, Path]],

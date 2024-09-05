@@ -17,6 +17,14 @@ from fast_rsm.scan import Scan
 
 
 @fixture
+def path_to_frsm_example_data():
+    """
+    Returns a path to example fast_rsm data stored in dls/science
+    """
+    return "/dls/science/groups/das/ExampleData/i07/fast_rsm_example_data/"
+
+
+@fixture
 def i10_nxs_path(path_to_resources: str) -> str:
     """
     Returns a path to a .nxs file acquired at beamline i10 in 2022.
