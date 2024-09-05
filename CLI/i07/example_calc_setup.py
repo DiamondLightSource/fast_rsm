@@ -277,7 +277,7 @@ for i, scan in enumerate(experiment.scans):
             twothetas,Qangs,intensities,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
                               local_output_path,scan)
             print(np.max(intensities))
-            #experiment.save_integration(hf,twothetas,Qangs,intensities,config,scan)
+            experiment.save_integration(hf,twothetas,Qangs,intensities,config,scan)
    
            
             print(f'saved 1D profile to {local_output_path}/{projected_name}.hdf5')
@@ -290,7 +290,7 @@ for i, scan in enumerate(experiment.scans):
             map_frame = Frame(frame_name=frame_name, coordinates=coordinates)
             name_end=scan_numbers[i]
             qperp_qpara_map=experiment.calc_qpara_qper(scan,oop, map_frame,proj2d=projected2d)
-            #experiment.save_qperp_qpara(hf, qperp_qpara_map,scan)
+            experiment.save_qperp_qpara(hf, qperp_qpara_map,scan)
             print(f'saved qperp_qpara_map to {local_output_path}/{projected_name}.hdf5')
    
    
