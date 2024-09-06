@@ -241,6 +241,7 @@ for i, scan in enumerate(experiment.scans):
         hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
         PYFAI_MASK=edfmaskfile
         if 'large_moving_det' in process_outputs:
+            process_start_time=time()
             experiment.load_curve_values(scan)
             PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,beam_centre=experiment.beam_centre)
 
@@ -249,20 +250,21 @@ for i, scan in enumerate(experiment.scans):
    
             print(f"saved 2d map and 1D integration data to {local_output_path}/{projected_name}.hdf5")           
            
-            total_time = time() - start_time
+            total_time = time() - process_start_time
             print(f"\n large_moving_det calculation took {total_time}s")
 
 
         if 'pyfai_2dqmap_IvsQ' in process_outputs:
+            process_start_time=time()
             experiment.load_curve_values(scan)
             PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,beam_centre=experiment.beam_centre)
-            experiment.pyfai_static_diff(hf,scan, num_threads,  local_output_path,PYFAI_PONI,radialrange,radialstepval,qmapbins)
-            print(f"saved 2d map and 1D integration data to {local_output_path}/{projected_name}.hdf5")           
-            total_time = time() - start_time
-            print(f"\n pyfai_2dqmap_IvsQ calculation took {total_time}s")
+            experiment.pyfai_static_diff(hf,scan, num_threads,  local_output_path,PYFAI_PONI,ivqbins,qmapbins)
+            print(f"saved 2d map and 1D integration data to {local_output_path}/{projected_name}.hdf5")
+            total_time = time() - process_start_time
+            print(f"\n Azimuthal integration 2d took {total_time}s")
             
         if 'curved_projection_2D' in process_outputs:
-        
+            process_start_time=time()
             projected2d=experiment.curved_to_2d(scan)
             PYFAI_PONI=experiment.createponi(local_output_path,experiment.projshape,offset=experiment.vertoffset)
             twothetas,Qangs,intensities,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
@@ -271,7 +273,7 @@ for i, scan in enumerate(experiment.scans):
     
             print(f"saved projection to {local_output_path}/{projected_name}.hdf5")
             
-            total_time = time() - start_time
+            total_time = time() - process_start_time
             print(f"\nProjecting 2d took {total_time}s")
 
 
