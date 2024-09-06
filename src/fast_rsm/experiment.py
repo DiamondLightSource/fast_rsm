@@ -19,7 +19,7 @@ from datetime import datetime
 from . import io
 from .binning import weighted_bin_1d, finite_diff_shape
 from .meta_analysis import get_step_from_filesize
-from .scan import Scan, init_process_pool, bin_maps_with_indices, chunk, init_pyfai_process_pool,pyfaicalcint
+from .scan import Scan, init_process_pool, bin_maps_with_indices, chunk, init_pyfai_process_pool,pyfaicalcint,pyfai_qmap_qvsI
 from .writing import linear_bin_to_vtk
 import pandas as pd
 import pyFAI,fabio
@@ -818,6 +818,116 @@ class Experiment:
         qlow=2*np.sin(np.radians(minangle/2))*kmod*1e-10
         return qupp,qlow
     
+    def pyfai_qmap_qvsI_wrapper(self,args):
+        current_experiment, index, scan, two_theta_start, pyfaiponi, qmapbins = args
+        return pyfai_qmap_qvsI(current_experiment,index, scan, two_theta_start, pyfaiponi, qmapbins)
+
+    def pyfai_static_diff(self,hf,scan,num_threads,output_file_path,pyfaiponi,radrange,radstepval,qmapbins=0):
+        self.load_curve_values(scan)
+        
+        dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance
+        if self.setup=='DCD':
+            tthdirect=-1*np.degrees(np.arctan(self.projectionx/dcd_sample_dist))
+        else:
+            tthdirect=0
+
+        two_theta_start=self.gammadata-tthdirect
+        qlimhor=self.calcqlim( 'hor')
+        qlimver=self.calcqlim( 'vert')
+        
+        #calculate map bins if not specified using resolution of 0.01 degrees 
+        
+        if qmapbins==0:
+            qstep=round(self.calcq(1.00,self.incident_wavelength)-\
+                self.calcq(1.01,self.incident_wavelength),4)
+            binshor=abs(round(((qlimhor[1]-qlimhor[0])/qstep)*1.05))
+            binsver=abs(round(((qlimver[1]-qlimver[0])/qstep)*1.05))
+            qmapbins=(binshor,binsver)
+            
+
+        async_results = []
+            # Make a pool on which we'll carry out the processing.
+        locks = [Lock() for _ in range(num_threads)]
+        start_time = time()
+
+        scalegamma=1
+        imagegammas=self.calcimagegammarange()
+
+        scanlength=scan.metadata.data_file.scan_length
+        #chunksize=int(np.ceil(scanlength/(scalegamma*num_threads)))
+
+
+        #chunkgammarange=(two_theta_start[chunksize*scalegamma]-two_theta_start[0]+imagegammas[0])
+
+        nqbins=int(np.ceil((radrange[1]-radrange[0])/radstepval))
+        shapeqi=(2,3,nqbins)
+
+
+        # shapecake=(2, 360, 1800)
+        # shapeqpqp=(2,qmapbins[1],qmapbins[0])
+        # output_path=fr"{output_file_path}"
+        # pyfai_qi_arrays=np.zeros((3,shapeqi[2]*num_threads))
+        # count_qi_arrays=np.zeros((3,shapeqi[2]*num_threads))
+        # cake_arrays=0
+        # qpqp_arrays=0
+        
+        print('starting process pool')
+        all_maps=[]
+        all_xlabels=[]
+        all_ylabels=[]
+        all_ints=[]
+        all_two_ths=[]
+        all_Qs=[]
+        
+        with Pool(processes=num_threads) as pool:
+            
+            print(f'started pool with num_threads={num_threads}')
+            #for indices in chunk(np.arange(0,scanlength,scalegamma), num_threads):
+            indices=np.arange(0,scanlength,scalegamma)
+            input_list = [(self,index,scan,two_theta_start,pyfaiponi,qmapbins) for index in indices]
+            results=pool.map(self.pyfai_qmap_qvsI_wrapper,input_list)
+            maps=[result[0] for result in results]
+            xlabels=[result[1] for result in results]
+            ylabels=[result[2] for result in results]
+            intensities=[result[3] for result in results]
+            two_th_vals=[result[4] for result in results]
+            Q_vals=[result[5] for result in results]
+            all_maps.append(maps)
+            all_xlabels.append(xlabels)
+            all_ylabels.append(ylabels)
+            all_ints.append(intensities)
+            all_two_ths.append(two_th_vals)
+            all_Qs.append(Q_vals)
+
+            # startchunkval=0
+            # # for indices in chunk(np.arange(startchunkval,startchunkval+80,1), num_threads):
+            #     async_results.append(pool.apply_async(
+            #         pyfaicalcint,
+            #         (self,indices,scan,shapecake,shapeqi,shapeqpqp,two_theta_start,pyfaiponi,radrange,radstepval,qmapbins)))
+                #print(f'done  {indices[0]  - indices[1]} with {num_threads}\n')
+            print('finished preparing chunked data')
+                        
+            pool.close()
+            pool.join()
+
+  
+        dset=hf.create_group("qpara_qperp")
+        dset.create_dataset("qpara_qperp_image",data=all_maps)
+        dset.create_dataset("map_para",data=all_xlabels)
+        dset.create_dataset("map_perp",data=all_ylabels)
+                
+        dset=hf.create_group("integrations")
+        dset.create_dataset("Intensity",data=all_ints)
+        dset.create_dataset("Q_angstrom^-1",data=all_Qs)
+        dset.create_dataset("2thetas",data=all_two_ths)        
+                
+                
+                
+                
+                
+                
+                
+    
     #@profile
     def pyfaidiffractometer(self,hf,scan,num_threads,output_file_path,pyfaiponi,radrange,radstepval,qmapbins=0):
         self.load_curve_values(scan)
@@ -851,10 +961,10 @@ class Experiment:
         imagegammas=self.calcimagegammarange()
 
         scanlength=scan.metadata.data_file.scan_length
-        chunksize=int(np.ceil(scanlength/(scalegamma*num_threads)))
+        #chunksize=int(np.ceil(scanlength/(scalegamma*num_threads)))
 
 
-        chunkgammarange=(two_theta_start[chunksize*scalegamma]-two_theta_start[0]+imagegammas[0])
+        #chunkgammarange=(two_theta_start[chunksize*scalegamma]-two_theta_start[0]+imagegammas[0])
 
         nqbins=int(np.ceil((radrange[1]-radrange[0])/radstepval))
         shapeqi=(2,3,nqbins)
@@ -882,7 +992,7 @@ class Experiment:
         ) as pool:
             
             print(f'started pool with num_threads={num_threads}')
-            for indices in chunk(np.arange(0,len(two_theta_start),scalegamma), num_threads):
+            for indices in chunk(np.arange(0,scanlength,scalegamma), num_threads):
             # startchunkval=0
             # for indices in chunk(np.arange(startchunkval,startchunkval+80,1), num_threads):
                 async_results.append(pool.apply_async(
@@ -981,10 +1091,10 @@ class Experiment:
         
         dset3=hf.create_group("qpara_qperp")
         dset3.create_dataset("qpara_qperp_image",data=qpqp_array)
-        dset3.create_dataset("map_azimuthal",data=mapaxisinfo[0])
-        dset3.create_dataset("map_azimuthal_unit",data=mapaxisinfo[2])
-        dset3.create_dataset("map_radial",data=-1*mapaxisinfo[1])
-        dset3.create_dataset("map_radial_unit",data=mapaxisinfo[3]) 
+        dset3.create_dataset("map_para",data=mapaxisinfo[0])
+        dset3.create_dataset("map_para_unit",data=mapaxisinfo[2])
+        dset3.create_dataset("map_perp",data=-1*mapaxisinfo[1])
+        dset3.create_dataset("map_perp_unit",data=mapaxisinfo[3]) 
         
         minutes=(end_time-start_time)/60
         print(f'total calculation took {minutes}  minutes')
@@ -1006,6 +1116,8 @@ class Experiment:
         except:
             self.gammadata=np.array( self.entry.instrument.diff1gamma.value)
         self.deltadata=np.array( self.entry.instrument.diff1delta.value)
+        if self.scans[0].metadata.data_file.detector_name =='pil2stats':
+            self.deltadata=0
         self.dcdrad=np.array( self.entry.instrument.dcdc2rad.value)
         self.dcdomega=np.array( self.entry.instrument.dcdomega.value)
         self.projectionx=1e-3* self.dcdrad*np.cos(np.radians(self.dcdomega))
@@ -1223,6 +1335,8 @@ class Experiment:
                                     bins,
                                     mask=mask,
                                     unit="2th_deg",polarization_factor=1)
+            
+
             Q,I = ai.integrate1d_ng(img_array,
                                 bins,
                                 mask=mask,
@@ -1241,7 +1355,6 @@ class Experiment:
             outlist=out_twothetas,out_qangs,out_intensities,out_configs
         else:
             outlist=twothetas,Qangs,intensities,configs
-        
         return outlist
     
     def reshape_to_signalshape(self,arr,signal_shape):

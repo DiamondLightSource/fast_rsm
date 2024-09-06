@@ -218,14 +218,45 @@ def init_pyfai_process_pool(
     QPQPMAP.fill(0)
 
     print(f"Finished initializing worker {current_process().name}.")
+    
 
+
+def pyfai_qmap_qvsI(experiment,imageindex,scan,two_theta_start,pyfaiponi,qmapbins)->None:
+    index=imageindex
+    aistart=pyFAI.load(pyfaiponi)     
+    unit_qip = "qip_A^-1"
+    unit_qoop = "qoop_A^-1"
+    
+    qlimhor=experiment.calcqlim( 'hor')
+    qlimver=experiment.calcqlim( 'vert')
+    qlimits=[qlimhor[0],qlimhor[1],qlimver[0],qlimver[1]]
+    my_ai = copy.deepcopy(aistart)
+    if np.size(experiment.gammadata)>1:  
+        my_ai.rot1 = np.radians(-two_theta_start[index])
+    if np.size(experiment.deltadata)>1:
+        my_ai.rot2 =-np.radians(experiment.deltadata[index])
+    my_ai.poni1=(experiment.imshape[0] - experiment.beam_centre[0]) * experiment.pixel_size
+    img_data=np.flipud(scan.load_image(index).data)
+    map2d = my_ai.integrate2d(img_data, qmapbins[0],qmapbins[1], unit=(unit_qip, unit_qoop),radial_range=(qlimits[0]*1.05,qlimits[1]*1.05),azimuth_range=(10*qlimits[2],10*qlimits[3]), method=("no", "csr", "cython"))
+    
+    tth,I = my_ai.integrate1d_ng(img_data,
+                            1000,
+                            unit="2th_deg",polarization_factor=1)
+    
+
+    Q,I = my_ai.integrate1d_ng(img_data,
+                        1000,
+                       unit="q_A^-1",polarization_factor=1)
+    
+    
+    return map2d[0],map2d[1],map2d[2],I,tth,Q
   
 def pyfaicalcint(experiment,imageindices,scan,shapecake,shapeqi,shapeqpqp,two_theta_start,pyfaiponi,radrange,radstepval,qmapbins)->None:
     choiceims=imageindices
     #ais=[]
    
     aistart=pyFAI.load(pyfaiponi)    
-    aistart.set_mask(scan.metadata.edfmask)
+    #aistart.set_mask(scan.metadata.edfmask)
     totaloutqi=np.zeros((3,shapeqi[2]))
     totaloutcounts=np.zeros((3,shapeqi[2]))
     
@@ -249,8 +280,10 @@ def pyfaicalcint(experiment,imageindices,scan,shapecake,shapeqi,shapeqpqp,two_th
         ais=[]
         for i in group:
             my_ai = copy.deepcopy(aistart)
-            my_ai.rot1 = np.radians(-two_theta_start[i])
-            my_ai.rot2 =-np.radians( scan.metadata.diffractometer.data_file.delta[i])
+            if np.size(experiment.gammadata)>1:  
+                my_ai.rot1 = np.radians(-two_theta_start[i])
+            if np.size(experiment.deltadata)>1:
+                my_ai.rot2 =-np.radians(experiment.deltadata[i])
             ais.append(my_ai)
             
         img_data=[np.flipud(scan.load_image(i).data) for i in group]
@@ -261,6 +294,7 @@ def pyfaicalcint(experiment,imageindices,scan,shapecake,shapeqi,shapeqpqp,two_th
                                    radial_range=(qlimits[0]*1.05,qlimits[1]*1.05),azimuth_range=(30*qlimits[2],30*qlimits[3]), method=("no", "csr", "cython"))
             totalqpqpmap+=map2d.sum_signal
             totalqpqpcounts+=map2d.count
+            #print(np.max(map2d.sum_signal))
         
         
         nbins=int(np.ceil((radrange[1]-radrange[0])/radstepval))
