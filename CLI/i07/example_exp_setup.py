@@ -101,7 +101,7 @@ edfmaskfile =  None
 # Or, an exact example, where we want to mask pixel (233, 83) and pixel 
 # (234, 83), where pixel coordinates are (x, y):
 # 
-specific_pixels = [(233, 234),(83, 83)]
+specific_pixels = None # [(233, 234),(83, 83)]
 # 
 # Leave specific pixels as None if you dont want to mask any specific pixels.
 # For this dataset we need to mask pixel (x=233, y=83)
@@ -116,7 +116,7 @@ mask_2 = (425, 485, 0, 194)
 # 
 # If you don't want to use any mask regions, just leave mask_regions equal to
 # None.
-mmask_regions = [mask_1, mask_2]
+mask_regions = None
 
 # Ignore pixels with an intensity below this value. If you don't want to ignore
 # any pixels, then set min_intensity = None. This is useful for dynamically
@@ -126,11 +126,10 @@ min_intensity = 0.
 #=======OPTIONS FOR SKIPPING IMAGES IF ISSUES ARE PRESENT
 #CHOOSE SCANS WHICH HAVE IMAGES TO SKIP, AND THEN SPECIFY WHICH IMAGES WITHIN THOSE SCANS NEED TO BE SKIPPED 
 #I.E. A LIST OF IMAGES TO SKIP FOR EACH SCAN VALUE IN SKIPSCANS
-skipscans=[1235,\
-           1237]
+skipscans=[]
 
-skipimages=[[4,12],\
-            [45,67,69]]
+skipimages=[[],\
+            []]
 
 
 #============OUTPUTS==========
