@@ -221,7 +221,7 @@ def init_pyfai_process_pool(
     
 
 
-def pyfai_qmap_qvsI(experiment,imageindex,scan,two_theta_start,pyfaiponi,qmapbins)->None:
+def pyfai_qmap_qvsI(experiment,imageindex,scan,two_theta_start,pyfaiponi,qmapbins,ivqbins)->None:
     index=imageindex
     aistart=pyFAI.load(pyfaiponi)     
     unit_qip = "qip_A^-1"
@@ -240,12 +240,12 @@ def pyfai_qmap_qvsI(experiment,imageindex,scan,two_theta_start,pyfaiponi,qmapbin
     map2d = my_ai.integrate2d(img_data, qmapbins[0],qmapbins[1], unit=(unit_qip, unit_qoop),radial_range=(qlimits[0]*1.05,qlimits[1]*1.05),azimuth_range=(10*qlimits[2],10*qlimits[3]), method=("no", "csr", "cython"))
     
     tth,I = my_ai.integrate1d_ng(img_data,
-                            1000,
+                            ivqbins,
                             unit="2th_deg",polarization_factor=1)
     
 
     Q,I = my_ai.integrate1d_ng(img_data,
-                        1000,
+                        ivqbins,
                        unit="q_A^-1",polarization_factor=1)
     
     

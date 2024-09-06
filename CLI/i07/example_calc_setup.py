@@ -233,7 +233,7 @@ for i, scan in enumerate(experiment.scans):
     start_time = time()
     datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
     name_end=scan_numbers[i]
-    GIWAXS_names=['curved_projection_2D','pyfai_1D','qperp_qpara_map' ,'large_moving_det']
+    GIWAXS_names=['curved_projection_2D','pyfai_1D','qperp_qpara_map' ,'large_moving_det','pyfai_2dqmap_IvsQ']
     GIWAXScheck=np.isin(GIWAXS_names,process_outputs)
     if GIWAXScheck.sum()>0:
         projected2d=None
@@ -247,10 +247,19 @@ for i, scan in enumerate(experiment.scans):
             experiment.pyfaidiffractometer(hf,scan, num_threads,  local_output_path,PYFAI_PONI,radialrange,radialstepval,qmapbins)
 
    
-            print(f"saved integration data to {local_output_path}/{projected_name}.hdf5")
+            print(f"saved 2d map and 1D integration data to {local_output_path}/{projected_name}.hdf5")           
            
             total_time = time() - start_time
-            print(f"\n Azimuthal integration 2d took {total_time}s")
+            print(f"\n large_moving_det calculation took {total_time}s")
+
+
+        if 'pyfai_2dqmap_IvsQ' in process_outputs:
+            experiment.load_curve_values(scan)
+            PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,beam_centre=experiment.beam_centre)
+            experiment.pyfai_static_diff(hf,scan, num_threads,  local_output_path,PYFAI_PONI,radialrange,radialstepval,qmapbins)
+            print(f"saved 2d map and 1D integration data to {local_output_path}/{projected_name}.hdf5")           
+            total_time = time() - start_time
+            print(f"\n pyfai_2dqmap_IvsQ calculation took {total_time}s")
             
         if 'curved_projection_2D' in process_outputs:
         

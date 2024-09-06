@@ -819,10 +819,10 @@ class Experiment:
         return qupp,qlow
     
     def pyfai_qmap_qvsI_wrapper(self,args):
-        current_experiment, index, scan, two_theta_start, pyfaiponi, qmapbins = args
-        return pyfai_qmap_qvsI(current_experiment,index, scan, two_theta_start, pyfaiponi, qmapbins)
+        current_experiment, index, scan, two_theta_start, pyfaiponi, qmapbins,ivqbins = args
+        return pyfai_qmap_qvsI(current_experiment,index, scan, two_theta_start, pyfaiponi, qmapbins,ivqbins)
 
-    def pyfai_static_diff(self,hf,scan,num_threads,output_file_path,pyfaiponi,radrange,radstepval,qmapbins=0):
+    def pyfai_static_diff(self,hf,scan,num_threads,output_file_path,pyfaiponi,ivqbins,qmapbins=0):
         self.load_curve_values(scan)
         
         dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance
@@ -844,23 +844,13 @@ class Experiment:
             binsver=abs(round(((qlimver[1]-qlimver[0])/qstep)*1.05))
             qmapbins=(binshor,binsver)
             
-
-        async_results = []
-            # Make a pool on which we'll carry out the processing.
-        locks = [Lock() for _ in range(num_threads)]
-        start_time = time()
+        
 
         scalegamma=1
-        imagegammas=self.calcimagegammarange()
+
 
         scanlength=scan.metadata.data_file.scan_length
-        #chunksize=int(np.ceil(scanlength/(scalegamma*num_threads)))
 
-
-        #chunkgammarange=(two_theta_start[chunksize*scalegamma]-two_theta_start[0]+imagegammas[0])
-
-        nqbins=int(np.ceil((radrange[1]-radrange[0])/radstepval))
-        shapeqi=(2,3,nqbins)
 
 
         # shapecake=(2, 360, 1800)
@@ -884,7 +874,7 @@ class Experiment:
             print(f'started pool with num_threads={num_threads}')
             #for indices in chunk(np.arange(0,scanlength,scalegamma), num_threads):
             indices=np.arange(0,scanlength,scalegamma)
-            input_list = [(self,index,scan,two_theta_start,pyfaiponi,qmapbins) for index in indices]
+            input_list = [(self,index,scan,two_theta_start,pyfaiponi,qmapbins,ivqbins) for index in indices]
             results=pool.map(self.pyfai_qmap_qvsI_wrapper,input_list)
             maps=[result[0] for result in results]
             xlabels=[result[1] for result in results]
@@ -1158,7 +1148,7 @@ class Experiment:
             im1gammas[:,col]=two_theta_start[0]+(np.degrees(np.arctan(tantheta)))
         #self.imgamma=im1gammas
         print(f'projecting {scanlength} images   completed images:  ')
-        imstep=1
+        imstep=int(np.floor(scanlength/50))
         for imnum in np.arange(0,scanlength,imstep):
             self.projectimage(scan, imnum,im1gammas)
             #if (imnum+1)%10==0:
@@ -1341,6 +1331,9 @@ class Experiment:
                                 bins,
                                 mask=mask,
                                unit="q_A^-1",polarization_factor=1)
+
+
+
             #outdata={'2theta':tth,'Q_angstrom^-1':Q,'Intensity':I}
             Qangs.append(Q)
             intensities.append(I)
@@ -1355,6 +1348,7 @@ class Experiment:
             outlist=out_twothetas,out_qangs,out_intensities,out_configs
         else:
             outlist=twothetas,Qangs,intensities,configs
+
         return outlist
     
     def reshape_to_signalshape(self,arr,signal_shape):

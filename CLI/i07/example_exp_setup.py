@@ -75,12 +75,19 @@ load_from_dat = False
 
 
 
-#********GIWAXS WITH MOVING DETECTOR AND LARGE NUMBER OF IMAGES
+#********GIWAXS WITH MOVING DETECTOR AND LARGE NUMBER OF IMAGES TO BE COMBINED INTO ONE INTEGRATION
 #if calculating pyfai integration on scan with moving detector and large number of images need to 
 # specify range of q or 2th so that number of bins can be calculated
 radialrange=(0,60)
 radialstepval=0.01
-qmapbins=(350,1050)
+
+#*********calculating qpara Vs qperp maps,
+#set number of bins in the form (q_parallel, q_perpendicular)
+qmapbins=(1200,1200)
+
+#*******calculating azimuthal integrations from single images to give I Vs Q plots
+#number of bins in Q
+ivqbins=1000
 
 #===========MASKING=============
 #add path to edfmaskfile created with pyFAI gui accessed via 'makemask' option in fast_rsm
@@ -143,8 +150,10 @@ skipimages=[[4,12],\
 #
 # 'large_moving_det' - utilise MultiGeometry option in pyFAI for scan with a moving detector and a 
 #                       large number of images (~1000s), outputs: I, Q, two theta, caked image 
-#
-process_outputs=[]#'large_moving_det' ,'qperp_qpara_map', 'pyfai_1D','curved_projection_2D','full_reciprocal_map'
+# 
+# 'pyfai_2dqmap_IvsQ' - use parallel multiprocessing to calculate both 2d Qpara Vs Qperp map, as well as 
+#                       1d  I Vs Q integration - both using pyFAI package
+process_outputs=[]#'pyfai_2dqmap_IvsQ' , 'large_moving_det' ,'qperp_qpara_map', 'pyfai_1D','curved_projection_2D','full_reciprocal_map'
 
 
 # The scan numbers of the scans that you want to use to produce this reciprocal
