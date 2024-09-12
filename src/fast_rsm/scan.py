@@ -230,14 +230,19 @@ def pyfai_qmap_qvsI(experiment,imageindex,scan,two_theta_start,pyfaiponi,qmapbin
     qlimhor=experiment.calcqlim( 'hor')
     qlimver=experiment.calcqlim( 'vert')
     qlimits=[qlimhor[0],qlimhor[1],qlimver[0],qlimver[1]]
+
     my_ai = copy.deepcopy(aistart)
     if np.size(experiment.gammadata)>1:  
         my_ai.rot1 = np.radians(-two_theta_start[index])
     if np.size(experiment.deltadata)>1:
         my_ai.rot2 =-np.radians(experiment.deltadata[index])
-    my_ai.poni1=(experiment.imshape[0] - experiment.beam_centre[0]) * experiment.pixel_size
-    img_data=np.flipud(scan.load_image(index).data)
-    map2d = my_ai.integrate2d(img_data, qmapbins[0],qmapbins[1], unit=(unit_qip, unit_qoop),radial_range=(qlimits[0]*1.05,qlimits[1]*1.05),azimuth_range=(10*qlimits[2],10*qlimits[3]), method=("no", "csr", "cython"))
+
+    #my_ai.poni1=(experiment.imshape[0] - experiment.beam_centre[0]) * experiment.pixel_size
+   # print(my_ai.get_config())
+    #img_data=np.flipud(scan.load_image(index).data)
+    img_data=scan.load_image(index).data
+   # print(qlimits)
+    map2d = my_ai.integrate2d(img_data, qmapbins[0],qmapbins[1], unit=(unit_qip, unit_qoop),radial_range=(qlimits[0]*1,qlimits[1]*1),azimuth_range=(10.5*qlimits[2],10.5*qlimits[3]), method=("no", "csr", "cython"))
     
     tth,I = my_ai.integrate1d_ng(img_data,
                             ivqbins,
@@ -285,13 +290,13 @@ def pyfaicalcint(experiment,imageindices,scan,shapecake,shapeqi,shapeqpqp,two_th
             if np.size(experiment.deltadata)>1:
                 my_ai.rot2 =-np.radians(experiment.deltadata[i])
             ais.append(my_ai)
-            
+        #print(f'loading image {i}')
         img_data=[np.flipud(scan.load_image(i).data) for i in group]
         
         for current_n,current_ai  in enumerate(ais):
             current_img=img_data[current_n]
             map2d = current_ai.integrate2d(current_img, qmapbins[0],qmapbins[1], unit=(unit_qip, unit_qoop),
-                                   radial_range=(qlimits[0]*1.05,qlimits[1]*1.05),azimuth_range=(30*qlimits[2],30*qlimits[3]), method=("no", "csr", "cython"))
+                                   radial_range=(qlimits[0]*1.05,qlimits[1]*1.05),azimuth_range=(10.5*qlimits[2],10.5*qlimits[3]), method=("no", "csr", "cython"))
             totalqpqpmap+=map2d.sum_signal
             totalqpqpcounts+=map2d.count
             #print(np.max(map2d.sum_signal))

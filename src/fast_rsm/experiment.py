@@ -798,25 +798,49 @@ class Experiment:
     #     #res2d = ai.integrate2d(imagedata, 1500,1500, unit=(unit_qip, unit_qoop),radial_range=(-3,3),azimuth_range=(-30,30), method=("no", "csr", "cython"))
     
     #     #ai.integrate2d(imagedata, 100,100,unit="q_nm^-1")#, unit=(unit_qip, unit_qoop))
-    #     return res2d        
+    #     return res2d
+
+    def SOHqcalc(self,angle,kmod):
+        return np.sin(np.radians(angle))*kmod*1e-10
     def calcqlim(self,axis):
         kmod=2*np.pi/ (self.incident_wavelength)
         
         if axis=='vert':
-            pixhigh=self.imshape[0]-self.beam_centre[0]
-            pixlow=self.beam_centre[0]
+            pixlow=self.imshape[0]-self.beam_centre[0]
+            pixhigh=self.beam_centre[0]
             highsection=np.max(self.deltadata)
             lowsection=np.min(self.deltadata)
         elif axis=='hor':
-            pixhigh=-(self.beam_centre[1])
-            pixlow=-(self.imshape[1]-self.beam_centre[1])
-            highsection=-np.max(self.gammadata)
-            lowsection=-np.min(self.gammadata)
+            pixhigh=(self.beam_centre[1])
+            pixlow=(self.imshape[1]-self.beam_centre[1])
+            highsection=np.max(self.gammadata)
+            lowsection=np.min(self.gammadata)
         maxangle=highsection+np.degrees(np.arctan((pixhigh*self.pixel_size)/self.detector_distance))
         minangle=lowsection-np.degrees(np.arctan((pixlow*self.pixel_size)/self.detector_distance))
-        qupp=2*np.sin(np.radians(maxangle/2))*kmod*1e-10
-        qlow=2*np.sin(np.radians(minangle/2))*kmod*1e-10
-        return qupp,qlow
+        #print(highsection,lowsection,'\n',pixhigh,pixlow,'\n',minangle,maxangle)
+        #qupp=2*np.sin(np.radians(maxangle/2))*kmod*1e-10
+        #qlow=2*np.sin(np.radians(minangle/2))*kmod*1e-10
+        if axis=='vert':
+            qupp=self.SOHqcalc(maxangle,kmod)
+            qlow=self.SOHqcalc(minangle,kmod)
+        elif axis=='hor':
+            qupp=self.SOHqcalc(maxangle/2,kmod)*2
+            qlow=self.SOHqcalc(minangle/2,kmod)*2
+            delpix=self.beam_centre[0]
+            maxdel=np.max(self.deltadata) +np.degrees(np.arctan((delpix*self.pixel_size)/self.detector_distance))
+            s1=kmod*np.cos(np.radians(maxdel))*np.sin(np.radians(maxangle))
+            s2=kmod*(1-np.cos(np.radians(maxdel))*np.cos(np.radians(maxangle)))
+            qupp_withdelta=np.sqrt(np.square(s1)+np.square(s2))*1e-10*np.sign(maxangle)
+            s3=kmod*np.cos(np.radians(maxdel))*np.sin(np.radians(minangle))
+            s4=kmod*(1-np.cos(np.radians(maxdel))*np.cos(np.radians(minangle)))
+            qlow_withdelta=np.sqrt(np.square(s3)+np.square(s4))*1e-10*np.sign(minangle)
+
+            if abs(qupp_withdelta)>abs(qupp):
+                qupp=qupp_withdelta
+            if abs(qlow_withdelta)>abs(qlow):
+                qlow=qlow_withdelta
+        
+        return -qupp,-qlow
     
     def pyfai_qmap_qvsI_wrapper(self,args):
         current_experiment, index, scan, two_theta_start, pyfaiponi, qmapbins,ivqbins = args
@@ -848,8 +872,10 @@ class Experiment:
 
         scalegamma=1
 
-
-        scanlength=scan.metadata.data_file.scan_length
+        try:
+            scanlength=len(scan.metadata.data_file.local_image_paths)
+        except:
+            scanlength=scan.metadata.data_file.scan_length
 
 
 
@@ -899,18 +925,29 @@ class Experiment:
                         
             pool.close()
             pool.join()
+        signal_shape=np.shape(scan.metadata.data_file.default_signal)
+        outlist=[all_maps[0],all_xlabels[0],all_ylabels[0],all_ints[0],all_Qs[0],all_two_ths[0]]
+        if len(signal_shape)>1:
+            outlist=[self.reshape_to_signalshape(arr, signal_shape) for arr in outlist]
+            
 
   
         dset=hf.create_group("qpara_qperp")
-        dset.create_dataset("qpara_qperp_image",data=all_maps)
-        dset.create_dataset("map_para",data=all_xlabels)
-        dset.create_dataset("map_perp",data=all_ylabels)
+        dset.create_dataset("qpara_qperp_image",data=outlist[0])
+        dset.create_dataset("map_para",data=outlist[1])
+        dset.create_dataset("map_perp",data=outlist[2])
                 
         dset=hf.create_group("integrations")
-        dset.create_dataset("Intensity",data=all_ints)
-        dset.create_dataset("Q_angstrom^-1",data=all_Qs)
-        dset.create_dataset("2thetas",data=all_two_ths)        
-                
+        dset.create_dataset("Intensity",data=outlist[3])
+        dset.create_dataset("Q_angstrom^-1",data=outlist[4])
+        dset.create_dataset("2thetas",data=outlist[5])    
+        if "scanfields" not in hf.keys():
+            self.save_scan_field_values(hf, scan)        
+            # if scan!=0:
+        #     scanned_names,scanned_values=self.get_scan_field_values(scan)
+        #     if scanned_names!=None:
+        #         for i, field in enumerate(scanned_names):
+        #             dset.create_dataset(f"dim{i}_{field}",data=scanned_values[i])
                 
                 
                 
@@ -948,13 +985,12 @@ class Experiment:
         start_time = time()
 
         scalegamma=1
-        imagegammas=self.calcimagegammarange()
 
-        scanlength=scan.metadata.data_file.scan_length
-        #chunksize=int(np.ceil(scanlength/(scalegamma*num_threads)))
+        try:
+            scanlength=len(scan.metadata.data_file.local_image_paths)
+        except:
+            scanlength=scan.metadata.data_file.scan_length
 
-
-        #chunkgammarange=(two_theta_start[chunksize*scalegamma]-two_theta_start[0]+imagegammas[0])
 
         nqbins=int(np.ceil((radrange[1]-radrange[0])/radstepval))
         shapeqi=(2,3,nqbins)
@@ -963,8 +999,6 @@ class Experiment:
         shapecake=(2, 360, 1800)
         shapeqpqp=(2,qmapbins[1],qmapbins[0])
         output_path=fr"{output_file_path}"
-        pyfai_qi_arrays=np.zeros((3,shapeqi[2]*num_threads))
-        count_qi_arrays=np.zeros((3,shapeqi[2]*num_threads))
         cake_arrays=0
         qpqp_arrays=0
         print('starting process pool')
@@ -983,8 +1017,6 @@ class Experiment:
             
             print(f'started pool with num_threads={num_threads}')
             for indices in chunk(np.arange(0,scanlength,scalegamma), num_threads):
-            # startchunkval=0
-            # for indices in chunk(np.arange(startchunkval,startchunkval+80,1), num_threads):
                 async_results.append(pool.apply_async(
                     pyfaicalcint,
                     (self,indices,scan,shapecake,shapeqi,shapeqpqp,two_theta_start,pyfaiponi,radrange,radstepval,qmapbins)))
@@ -1064,7 +1096,7 @@ class Experiment:
                     pass
     
         end_time=time()
-        datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+        #datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
 
         dset=hf.create_group("integrations")
         dset.create_dataset("Intensity",data=qi_array[0])
@@ -1081,10 +1113,10 @@ class Experiment:
         
         dset3=hf.create_group("qpara_qperp")
         dset3.create_dataset("qpara_qperp_image",data=qpqp_array)
-        dset3.create_dataset("map_para",data=mapaxisinfo[0])
-        dset3.create_dataset("map_para_unit",data=mapaxisinfo[2])
-        dset3.create_dataset("map_perp",data=-1*mapaxisinfo[1])
-        dset3.create_dataset("map_perp_unit",data=mapaxisinfo[3]) 
+        dset3.create_dataset("map_para",data=mapaxisinfo[1])
+        dset3.create_dataset("map_para_unit",data=mapaxisinfo[3])
+        dset3.create_dataset("map_perp",data=-1*mapaxisinfo[0])
+        dset3.create_dataset("map_perp_unit",data=mapaxisinfo[2]) 
         
         minutes=(end_time-start_time)/60
         print(f'total calculation took {minutes}  minutes')
@@ -1105,8 +1137,14 @@ class Experiment:
             self.gammadata=np.array( self.entry.instrument.diff1gamma.value_set)
         except:
             self.gammadata=np.array( self.entry.instrument.diff1gamma.value)
-        self.deltadata=np.array( self.entry.instrument.diff1delta.value)
-        if self.scans[0].metadata.data_file.detector_name =='pil2stats':
+        #self.deltadata=np.array( self.entry.instrument.diff1delta.value)
+        try:
+            self.deltadata=np.array( self.entry.instrument.diff1delta.value_set)
+        except:
+            self.deltadata=np.array( self.entry.instrument.diff1delta.value)
+            
+            
+        if scan.metadata.data_file.detector_name =='pil2stats':
             self.deltadata=0
         self.dcdrad=np.array( self.entry.instrument.dcdc2rad.value)
         self.dcdomega=np.array( self.entry.instrument.dcdomega.value)
@@ -1213,11 +1251,13 @@ class Experiment:
         dset.create_dataset("2thetas",data=twothetas)
         dset.create_dataset("Q_angstrom^-1",data=Qangs)
         dset.create_dataset("Intensity",data=intensities)
-        if scan!=0:
-            scanned_names,scanned_values=self.get_scan_field_values(scan)
-            for i, field in enumerate(scanned_names):
-                dset.create_dataset(f"{field}",data=scanned_values[i])
-        #hf.close()
+        if "scanfields" not in hf.keys():
+            self.save_scan_field_values(hf, scan) 
+        # if scan!=0:
+        #     scanned_names,scanned_values=self.get_scan_field_values(scan)
+        #     for i, field in enumerate(scanned_names):
+        #         dset.create_dataset(f"dim{i}_{field}",data=scanned_values[i])
+        # #hf.close()
     
     def save_qperp_qpara(self,hf,qperp_qpara_map,scan=0):
         #hf=h5py.File(f'{local_output_path}/{out_name}.hdf5',"w")
@@ -1225,12 +1265,14 @@ class Experiment:
         dset=hf.create_group("qperp_qpara")
         dset.create_dataset("images",data=qperp_qpara_map[0])
         dset.create_dataset("qpararanges",data=qperp_qpara_map[1])
-        dset.create_dataset("qperpranges",data=qperp_qpara_map[2])       
-        if scan!=0:
-            scanned_names,scanned_values=self.get_scan_field_values(scan)
-            if scanned_names!=None:
-                for i, field in enumerate(scanned_names):
-                    dset.create_dataset(f"{field}",data=scanned_values[i])
+        dset.create_dataset("qperpranges",data=qperp_qpara_map[2])
+        if "scanfields" not in hf.keys():
+            self.save_scan_field_values(hf, scan) 
+        # if scan!=0:
+        #     scanned_names,scanned_values=self.get_scan_field_values(scan)
+        #     if scanned_names!=None:
+        #         for i, field in enumerate(scanned_names):
+        #             dset.create_dataset(f"dim{i}_{field}",data=scanned_values[i])
                 
         #hf.close()
     def save_config_variables(self,hf,joblines,pythonlocation):
@@ -1556,15 +1598,23 @@ class Experiment:
         k_out_array = k_out_array.reshape(desired_shape)
         return k_out_array
     
-    def get_scan_field_values(self,scan):
+    def save_scan_field_values(self,hf,scan):
         try:
             rank=scan.metadata.data_file.diamond_scan.scan_rank.nxdata
             fields=scan.metadata.data_file.diamond_scan.scan_fields
             scanned=[x.decode('utf-8').split('.')[0] for x in fields[:rank].nxdata]
             scannedvalues=[np.unique(scan.metadata.data_file.nx_instrument[field].value )for field in scanned]
+            scannedvaluesout=[scannedvals[~np.isnan(scannedvals)] for scannedvals in scannedvalues]
         except:
-            scanned,scannedvalues=None,None
-        return scanned,scannedvalues
+            scanned,scannedvaluesout=None,None
+            
+        dset=hf.create_group("scanfields")
+        if scan!=0:
+            if scanned!=None:
+                for i, field in enumerate(scanned):
+                    dset.create_dataset(f"dim{i}_{field}",data=scannedvaluesout[i])
+    
+    
     @classmethod
     def from_i07_nxs(cls,
                      nexus_paths: List[Union[str, Path]],
