@@ -131,33 +131,24 @@ skipscans=[]
 skipimages=[[],\
             []]
 
-
 #============OUTPUTS==========
 #define what outputs you would like form the processing here, choose from:
 # 'full_reciprocal_map' = calculates a full reciprocal space map combining all
 #                           scans listed into a single volume
 #
-# 'curved_projection_2D' = projects a series of detector images into a single 2D,
-#                           treating the images as if there were all from a curved detector. 
-#                           NOTE: Currently does not work for scans with 1000s of images
-
-# 'pyfai_1D' =  Does an azimuthal integration on an image using PONI and MASK 
-#               settings described in corresponding files
-#
-# 'qperp_qpara_map'  - project GIWAXS image into q_para,q_perp plot. 
-#                          NOTE: Currently does not work for scans with 1000s of images
-#
-# 'large_moving_det' - utilise MultiGeometry option in pyFAI for scan with a moving detector and a 
-#                       large number of images (~1000s), outputs: I, Q, two theta, caked image 
-# 
 # 'pyfai_2dqmap_IvsQ' - use parallel multiprocessing to calculate both 2d Qpara Vs Qperp map, as well as 
 #                       1d  I Vs Q integration - both using pyFAI package
-process_outputs=[]#'pyfai_2dqmap_IvsQ' , 'large_moving_det' ,'qperp_qpara_map', 'pyfai_1D','curved_projection_2D','full_reciprocal_map'
+#
+# 'large_moving_det' - utilise MultiGeometry option in pyFAI for scan with a moving detector, outputs: I, Q, two theta, caked image 
+# 
+
+process_outputs=[]#'pyfai_2dqmap_IvsQ' , 'large_moving_det' ,'full_reciprocal_map'
 
 #choose if you want to export qpara Vs qperp maps to individual .tiff images as well as hdf5
 savetiffs=False
 
 #choose if you want to export the I Vs Q data to individual .dat files as well as hdf5
 savedats=False
+
 # The scan numbers of the scans that you want to use to produce this reciprocal
 # space map. 
