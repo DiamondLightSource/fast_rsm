@@ -154,7 +154,10 @@ skipimages=[[],\
 #                       1d  I Vs Q integration - both using pyFAI package
 process_outputs=[]#'pyfai_2dqmap_IvsQ' , 'large_moving_det' ,'qperp_qpara_map', 'pyfai_1D','curved_projection_2D','full_reciprocal_map'
 
+#choose if you want to export qpara Vs qperp maps to individual .tiff images as well as hdf5
 savetiffs=False
+
+#choose if you want to export the I Vs Q data to individual .dat files as well as hdf5
 savedats=False
 # The scan numbers of the scans that you want to use to produce this reciprocal
 # space map. 
