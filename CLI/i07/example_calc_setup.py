@@ -130,6 +130,19 @@ experiment.mask_pixels(specific_pixels)
 experiment.mask_edf(edfmaskfile)
 experiment.mask_regions(mask_regions_list)
 experiment.setup=setup
+if 'savetiffs' in globals():
+    experiment.savetiffs=savetiffs
+else:
+    experiment.savetiffs=False
+
+if 'savedats' in globals():
+    experiment.savedats=savedats
+else:
+    experiment.savedats=False
+
+if 'qmapbins' not in globals():
+    qmapbins=0
+
 
 """
 This section is for changing metadata that is stored in, or inferred from, the

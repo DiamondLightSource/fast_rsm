@@ -25,6 +25,7 @@ import pandas as pd
 import pyFAI,fabio
 #from datetime import datetime
 import h5py
+import tifffile
 #from memory_profiler import profile
 
 
@@ -758,47 +759,6 @@ class Experiment:
         
         return bin_centers, hist, hist_normalized, counts
     
-    # def pyfaiqperpqpara(self,qlimits,mapbins,ai,ind=100):
-    #     # scan=self.scans[0]
-    #     # self.load_curve_values(scan)
-    #     # dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance
-    #     # if self.setup=='DCD':
-    #     #     tthdirect=-1*np.degrees(np.arctan(self.projectionx/dcd_sample_dist))
-    #     # else:
-    #     #     tthdirect=0
-    
-    #     # two_theta_start=self.gammadata-tthdirect
-        
-    #     #self.beam_centre=(self.imshape[1]-beam_centre[0],self.imshape[0]-beam_centre[1])
-    #    # newvals=(self.beam_centre[1],self.beam_centre[0])
-    #     #self.beam_centre=newvals
-    #     # PYFAI_PONI=self.createponi(local_output_path,self.imshape,self.beam_centre)
-    #     # ai=pyFAI.load(PYFAI_PONI)    
-    #     #ai.set_mask(np.rot90(scan.metadata.edfmask,-1))
-    #     unit_qip = "qip_A^-1"
-    #     unit_qoop = "qoop_A^-1"
-    #     # if self.setup=='vertical':
-    #     #     imagedata=np.flipud(np.rot90(scan.load_image(ind).data,-1))
-    #     # else:
-    #     #     imagedata=np.flipud(scan.load_image(ind).data)
-        
-    #     # if np.size(two_theta_start)>1:
-    #     #     ai.rot1 = np.radians(-two_theta_start[ind])
-    #     # else:
-    #     #     ai.rot1=np.radians(-two_theta_start)
-    #     # #ai.rot1=np.radians(-3)
-    #     # ai.rot2 =np.radians(-self.deltadata)
-
-    #     #qipright=5
-    #    # calcqlim(experiment,self.imshape[0]-self.beam_centre[1],'hor')
-    #    # =calcqlim(experiment,self.imshape[1]-self.beam_centre[0],'vert')*10
-       
-        
-    #     res2d = ai.integrate2d(imagedata, mapbins[0],mapbins[1], unit=(unit_qip, unit_qoop),radial_range=(qlimits[0]*1.05,qlimits[1]*1.05),azimuth_range=(30*qlimits[2],30*qlimits[3]), method=("no", "csr", "cython"))
-    #     #res2d = ai.integrate2d(imagedata, 1500,1500, unit=(unit_qip, unit_qoop),radial_range=(-3,3),azimuth_range=(-30,30), method=("no", "csr", "cython"))
-    
-    #     #ai.integrate2d(imagedata, 100,100,unit="q_nm^-1")#, unit=(unit_qip, unit_qoop))
-    #     return res2d
 
     def SOHqcalc(self,angle,kmod):
         return np.sin(np.radians(angle))*kmod*1e-10
@@ -841,6 +801,68 @@ class Experiment:
                 qlow=qlow_withdelta
         
         return -qupp,-qlow
+    
+    def do_savetiffs(self,hf,data,axespara,axesperp):
+        datashape=np.shape(data)
+        extradims=len(datashape)-2
+        outdir=hf.filename.strip('.hdf5')
+        try:
+            os.mkdir(outdir)
+        except:
+            print('directory already exists')
+            
+        if extradims==1:
+            for i1 in np.arange(datashape[0]):
+                imdata=data[i1]
+                parainfo=axespara[i1]
+                perpinfo=axesperp[i1]
+                metadata={
+                    'Description':f'Image data identical to data saved in {hf.filename}',
+                    'Xlimits': f'min {parainfo.min()}, max {parainfo.max()}',
+                    'Ylimits': f'min {perpinfo.min()}, max {perpinfo.max()}',
+                    }
+                tifffile.imwrite(f'{outdir}/{i1}.tiff',imdata,metadata=metadata)
+        if extradims==2:
+            for i1 in np.arange(datashape[0]):
+                for i2 in np.arange(datashape[1]):
+                    imdata=data[i1][i2]
+                    parainfo=axespara[i1][i2]
+                    perpinfo=axesperp[i1][i2]
+                    metadata={
+                        'Description':f'Image data identical to data saved in {hf.filename}',
+                        'Xlimits': f'min {parainfo.min()}, max {parainfo.max()}',
+                        'Ylimits': f'min {perpinfo.min()}, max {perpinfo.max()}',
+                        }
+                    tifffile.imwrite(f'{outdir}/{i1}_{i2}.tiff',imdata,metadata=metadata)
+                    
+    def do_savedats(self,hf,Idata,qdata,tthdata):
+        datashape=np.shape(Idata)
+        extradims=len(datashape)-1
+        outdir=hf.filename.strip('.hdf5')
+        try:
+            os.mkdir(outdir)
+        except:
+            print('directory already exists')
+        metadata=f'Intensity data identical to data saved in {hf.filename}\n'
+        if extradims==1:
+            for i1 in np.arange(datashape[0]):
+                intvals=Idata[i1]
+                qvals=qdata[i1]
+                tthetavals=tthdata[i1]
+                outdf=pd.DataFrame({'Intensity':intvals,'Q_angstrom^-1':qvals,'two_theta':tthetavals})
+                with open(f'{outdir}/{i1}.dat',"w") as f:
+                    f.write(metadata)
+                    outdf.to_csv(f,sep='\t',index=False)
+        if extradims==2:
+            for i1 in np.arange(datashape[0]):
+                for i2 in np.arange(datashape[1]):                   
+                    intvals=Idata[i1][i2] 
+                    qvals=qdata[i1][i2]
+                    tthetavals=tthdata[i1][i2]
+                    outdf=pd.DataFrame({'Intensity':intvals,'Q_angstrom^-1':qvals,'two_theta_degree':tthetavals})
+                    with open(f'{outdir}/{i1}_{i2}.dat',"w") as f:
+                        f.write(metadata)
+                        outdf.to_csv(f,sep='\t',index=False)
     
     def pyfai_qmap_qvsI_wrapper(self,args):
         current_experiment, index, scan, two_theta_start, pyfaiponi, qmapbins,ivqbins = args
@@ -942,7 +964,11 @@ class Experiment:
         dset.create_dataset("Q_angstrom^-1",data=outlist[4])
         dset.create_dataset("2thetas",data=outlist[5])    
         if "scanfields" not in hf.keys():
-            self.save_scan_field_values(hf, scan)        
+            self.save_scan_field_values(hf, scan)    
+        if self.savetiffs==True:
+            self.do_savetiffs(hf, outlist[0],outlist[1], outlist[2])
+        if self.savedats==True:
+            self.do_savedats(hf,outlist[3],outlist[4],outlist[5])
             # if scan!=0:
         #     scanned_names,scanned_values=self.get_scan_field_values(scan)
         #     if scanned_names!=None:
