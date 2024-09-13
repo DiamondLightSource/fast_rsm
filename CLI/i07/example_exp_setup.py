@@ -76,7 +76,7 @@ load_from_dat = False
 
 
 #********GIWAXS WITH MOVING DETECTOR AND LARGE NUMBER OF IMAGES TO BE COMBINED INTO ONE INTEGRATION
-#if calculating pyfai integration on scan with moving detector and large number of images need to 
+#if calculating pyfai integration on scan with moving detector and large number of images, need to 
 # specify range of q or 2th so that number of bins can be calculated
 radialrange=(0,60)
 radialstepval=0.01
@@ -154,6 +154,7 @@ skipimages=[[],\
 #                       1d  I Vs Q integration - both using pyFAI package
 process_outputs=[]#'pyfai_2dqmap_IvsQ' , 'large_moving_det' ,'qperp_qpara_map', 'pyfai_1D','curved_projection_2D','full_reciprocal_map'
 
-
+savetiffs=False
+savedats=False
 # The scan numbers of the scans that you want to use to produce this reciprocal
 # space map. 
