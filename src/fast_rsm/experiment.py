@@ -796,11 +796,15 @@ class Experiment:
             qlow_withdelta=np.sqrt(np.square(s3)+np.square(s4))*1e-10*np.sign(minangle)
 
             if abs(qupp_withdelta)>abs(qupp):
-                qupp=qupp_withdelta
+                qupp=-1*qupp_withdelta
+            else:
+                qupp*=-1
             if abs(qlow_withdelta)>abs(qlow):
-                qlow=qlow_withdelta
+                qlow=-1*qlow_withdelta
+            else:
+                qlow*=-1
         
-        return -qupp,-qlow
+        return qupp,qlow
     
     def do_savetiffs(self,hf,data,axespara,axesperp):
         datashape=np.shape(data)
@@ -887,8 +891,8 @@ class Experiment:
                         outdf.to_csv(f,sep='\t',index=False)
     
     def pyfai_qmap_qvsI_wrapper(self,args):
-        current_experiment, index, scan, two_theta_start, pyfaiponi, qmapbins,ivqbins = args
-        return pyfai_qmap_qvsI(current_experiment,index, scan, two_theta_start, pyfaiponi, qmapbins,ivqbins)
+        current_experiment, index, scan, pyfaiponi, qmapbins,ivqbins = args
+        return pyfai_qmap_qvsI(current_experiment,index, scan, current_experiment.two_theta_start, pyfaiponi, qmapbins,ivqbins)
 
     def pyfai_static_diff(self,hf,scan,num_threads,output_file_path,pyfaiponi,ivqbins,qmapbins=0):
         self.load_curve_values(scan)
@@ -944,7 +948,7 @@ class Experiment:
             print(f'started pool with num_threads={num_threads}')
             #for indices in chunk(np.arange(0,scanlength,scalegamma), num_threads):
             indices=np.arange(0,scanlength,scalegamma)
-            input_list = [(self,index,scan,self.two_theta_start,pyfaiponi,qmapbins,ivqbins) for index in indices]
+            input_list = [(self,index,scan,pyfaiponi,qmapbins,ivqbins) for index in indices]
             results=pool.map(self.pyfai_qmap_qvsI_wrapper,input_list)
             maps=[result[0] for result in results]
             xlabels=[result[1] for result in results]
@@ -967,8 +971,8 @@ class Experiment:
                 #print(f'done  {indices[0]  - indices[1]} with {num_threads}\n')
             print('finished preparing chunked data')
                         
-            pool.close()
-            pool.join()
+            #pool.close()
+            #pool.join()
         signal_shape=np.shape(scan.metadata.data_file.default_signal)
         outlist=[all_maps[0],all_xlabels[0],all_ylabels[0],all_ints[0],all_Qs[0],all_two_ths[0]]
         if len(signal_shape)>1:
@@ -1241,7 +1245,7 @@ class Experiment:
             im1gammas[:,col]=self.two_theta_start[0]+(np.degrees(np.arctan(tantheta)))
         #self.imgamma=im1gammas
         print(f'projecting {scanlength} images   completed images:  ')
-        imstep=1
+        imstep=1#int(np.floor(scanlength/50))
         print(scanlength,imstep)
         for imnum in np.arange(0,scanlength,imstep):
             self.projectimage(scan, imnum,im1gammas)
