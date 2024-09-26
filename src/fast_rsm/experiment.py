@@ -12,7 +12,8 @@ from time import time
 from typing import List, Tuple, Union
 import mapper_c_utils
 import numpy as np
-from diffraction_utils import Frame, Region
+from .frame_of_reference import Frame
+from .region import Region
 from scipy.constants import physical_constants
 from datetime import datetime
 

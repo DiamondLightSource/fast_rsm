@@ -8,7 +8,8 @@ from typing import Tuple, List, Dict
 import numpy as np
 from scipy.constants import physical_constants
 
-from diffraction_utils import DiffractometerBase, I07Nexus, Region
+from .diffractometer_base import DiffractometerBase
+from .region import Region
 
 
 class RSMMetadata:

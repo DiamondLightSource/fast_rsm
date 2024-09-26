@@ -6,7 +6,12 @@ This module contains the class that is used to store images.
 from typing import Union
 
 import numpy as np
-from diffraction_utils import Frame, I07Nexus, Polarisation
+
+from .frame_of_reference import Frame
+from .polarisation import Polarisation
+from .region import Region
+from .vector import Vector3
+
 
 import mapper_c_utils
 from .rsm_metadata import RSMMetadata

@@ -14,8 +14,10 @@ from typing import Union, Tuple, List, Dict
 
 import numpy as np
 
-from diffraction_utils import I10Nexus, Vector3, Frame
-from diffraction_utils.diffractometers import I10RasorDiffractometer
+
+from .vector import Vector3
+from .frame_of_reference import Frame
+from .diffractometers import I10RasorDiffractometer
 
 from . import io
 from .binning import weighted_bin_3d
