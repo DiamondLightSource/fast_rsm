@@ -11,7 +11,7 @@ from scipy.spatial.transform import Rotation
 
 from ..diffractometer_base import DiffractometerBase
 from ..frame_of_reference import Frame
-from ..io import I10Nexus
+
 from ..vector import Vector3
 
 
