@@ -775,14 +775,18 @@ class Experiment:
             pixlow=(self.imshape[1]-self.beam_centre[1])
             highsection=np.max(self.two_theta_start)
             lowsection=np.min(self.two_theta_start)
+
         maxangle=highsection+np.degrees(np.arctan((pixhigh*self.pixel_size)/self.detector_distance))
         minangle=lowsection-np.degrees(np.arctan((pixlow*self.pixel_size)/self.detector_distance))
         #print(highsection,lowsection,'\n',pixhigh,pixlow,'\n',minangle,maxangle)
         #qupp=2*np.sin(np.radians(maxangle/2))*kmod*1e-10
         #qlow=2*np.sin(np.radians(minangle/2))*kmod*1e-10
-        if axis=='vert':
+        if (axis=='vert')&((self.beam_centre[0]/self.imshape[0])<0.5):
             qupp=self.SOHqcalc(maxangle,kmod)
             qlow=self.SOHqcalc(minangle,kmod)
+        elif (axis=='vert')&((self.beam_centre[0]/self.imshape[0])>0.5):
+            qlow=-self.SOHqcalc(maxangle,kmod)
+            qupp=-self.SOHqcalc(minangle,kmod)            
         elif axis=='hor':
             qupp=self.SOHqcalc(maxangle/2,kmod)*2
             qlow=self.SOHqcalc(minangle/2,kmod)*2
@@ -1185,9 +1189,13 @@ class Experiment:
  
             
     def load_curve_values(self,scan):
+        p2mnames=['pil2stats','p2r']
         self.pixel_size=scan.metadata.diffractometer.data_file.pixel_size
         self.entry=scan.metadata.data_file.nx_entry
-        self.detector_distance=scan.metadata.diffractometer.data_file.detector_distance
+        
+        self.detector_distance=scan.metadata.get_detector_distance(0)
+        # else:
+        #     self.detector_distance=scan.metadata.diffractometer.data_file.detector_distance
         self.incident_wavelength= 1e-10*scan.metadata.incident_wavelength
         try:
             self.gammadata=np.array( self.entry.instrument.diff1gamma.value_set)
@@ -1200,7 +1208,7 @@ class Experiment:
             self.deltadata=np.array( self.entry.instrument.diff1delta.value)
             
             
-        if scan.metadata.data_file.detector_name =='pil2stats':
+        if scan.metadata.data_file.detector_name in p2mnames:
             self.deltadata=0
         self.dcdrad=np.array( self.entry.instrument.dcdc2rad.value)
         self.dcdomega=np.array( self.entry.instrument.dcdomega.value)
