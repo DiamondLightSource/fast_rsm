@@ -19,7 +19,7 @@ from datetime import datetime
 from . import io
 from .binning import weighted_bin_1d, finite_diff_shape
 from .meta_analysis import get_step_from_filesize
-from .scan import Scan, init_process_pool, bin_maps_with_indices, chunk, init_pyfai_process_pool,pyfaicalcint,pyfai_qmap_qvsI
+from .scan import Scan, init_process_pool, bin_maps_with_indices, chunk, init_pyfai_process_pool,pyfaicalcint,pyfai_qmap_qvsI,pyfai_qmap,pyfai_ivsq
 from .writing import linear_bin_to_vtk
 import pandas as pd
 import pyFAI,fabio
@@ -778,9 +778,7 @@ class Experiment:
 
         maxangle=highsection+np.degrees(np.arctan((pixhigh*self.pixel_size)/self.detector_distance))
         minangle=lowsection-np.degrees(np.arctan((pixlow*self.pixel_size)/self.detector_distance))
-        #print(highsection,lowsection,'\n',pixhigh,pixlow,'\n',minangle,maxangle)
-        #qupp=2*np.sin(np.radians(maxangle/2))*kmod*1e-10
-        #qlow=2*np.sin(np.radians(minangle/2))*kmod*1e-10
+
         if (axis=='vert')&((self.beam_centre[0]/self.imshape[0])<0.5):
             qupp=self.SOHqcalc(maxangle,kmod)
             qlow=self.SOHqcalc(minangle,kmod)
@@ -897,6 +895,154 @@ class Experiment:
     def pyfai_qmap_qvsI_wrapper(self,args):
         current_experiment, index, scan, pyfaiponi, qmapbins,ivqbins = args
         return pyfai_qmap_qvsI(current_experiment,index, scan, current_experiment.two_theta_start, pyfaiponi, qmapbins,ivqbins)
+ 
+    def pyfai_qmap_wrapper(self,args):
+        current_experiment, index, scan, pyfaiponi, qmapbins,ivqbins = args
+        return pyfai_qmap(current_experiment,index, scan, current_experiment.two_theta_start, pyfaiponi, qmapbins,ivqbins)#
+    
+    def pyfai_ivsq_wrapper(self,args):
+        current_experiment, index, scan, pyfaiponi, qmapbins,ivqbins = args
+        return pyfai_ivsq(current_experiment,index, scan, current_experiment.two_theta_start, pyfaiponi, qmapbins,ivqbins)
+    
+    
+    def pyfai_static_qmap(self,hf,scan,num_threads,output_file_path,pyfaiponi,ivqbins,qmapbins=0):
+        self.load_curve_values(scan)
+        
+        dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance
+        if self.setup=='DCD':
+            tthdirect=-1*np.degrees(np.arctan(self.projectionx/dcd_sample_dist))
+        else:
+            tthdirect=0
+
+        self.two_theta_start=self.gammadata-tthdirect
+        qlimhor=self.calcqlim( 'hor')
+        qlimver=self.calcqlim( 'vert')
+        
+        #calculate map bins if not specified using resolution of 0.01 degrees 
+        
+        if qmapbins==0:
+            qstep=round(self.calcq(1.00,self.incident_wavelength)-\
+                self.calcq(1.01,self.incident_wavelength),4)
+            binshor=abs(round(((qlimhor[1]-qlimhor[0])/qstep)*1.05))
+            binsver=abs(round(((qlimver[1]-qlimver[0])/qstep)*1.05))
+            qmapbins=(binshor,binsver)
+            
+        
+
+        scalegamma=1
+
+        try:
+            scanlength=len(scan.metadata.data_file.local_image_paths)
+        except:
+            scanlength=scan.metadata.data_file.scan_length
+
+        
+        print('starting process pool')
+        all_maps=[]
+        all_xlabels=[]
+        all_ylabels=[]
+        
+        with Pool(processes=num_threads) as pool:
+            
+            print(f'started pool with num_threads={num_threads}')
+            indices=np.arange(0,scanlength,scalegamma)
+            input_list = [(self,index,scan,pyfaiponi,qmapbins,ivqbins) for index in indices]
+            results=pool.map(self.pyfai_qmap_wrapper,input_list)
+            maps=[result[0] for result in results]
+            xlabels=[result[1] for result in results]
+            ylabels=[result[2] for result in results]
+            all_maps.append(maps)
+            all_xlabels.append(xlabels)
+            all_ylabels.append(ylabels)
+
+            print('finished preparing chunked data')
+
+        signal_shape=np.shape(scan.metadata.data_file.default_signal)
+        outlist=[all_maps[0],all_xlabels[0],all_ylabels[0]]
+        if len(signal_shape)>1:
+            outlist=[self.reshape_to_signalshape(arr, signal_shape) for arr in outlist]
+            
+
+  
+        dset=hf.create_group("qpara_qperp")
+        dset.create_dataset("qpara_qperp_image",data=outlist[0])
+        dset.create_dataset("map_para",data=outlist[1])
+        dset.create_dataset("map_perp",data=outlist[2])
+                
+        if "scanfields" not in hf.keys():
+            self.save_scan_field_values(hf, scan)    
+        if self.savetiffs==True:
+            self.do_savetiffs(hf, outlist[0],outlist[1], outlist[2])
+    
+            
+
+
+    def pyfai_static_ivsq(self,hf,scan,num_threads,output_file_path,pyfaiponi,ivqbins,qmapbins=0):
+        self.load_curve_values(scan)
+        
+        dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance
+        if self.setup=='DCD':
+            tthdirect=-1*np.degrees(np.arctan(self.projectionx/dcd_sample_dist))
+        else:
+            tthdirect=0
+
+        self.two_theta_start=self.gammadata-tthdirect
+        qlimhor=self.calcqlim( 'hor')
+        qlimver=self.calcqlim( 'vert')
+        
+        #calculate map bins if not specified using resolution of 0.01 degrees 
+        
+        if qmapbins==0:
+            qstep=round(self.calcq(1.00,self.incident_wavelength)-\
+                self.calcq(1.01,self.incident_wavelength),4)
+            binshor=abs(round(((qlimhor[1]-qlimhor[0])/qstep)*1.05))
+            binsver=abs(round(((qlimver[1]-qlimver[0])/qstep)*1.05))
+            qmapbins=(binshor,binsver)
+            
+        
+
+        scalegamma=1
+
+        try:
+            scanlength=len(scan.metadata.data_file.local_image_paths)
+        except:
+            scanlength=scan.metadata.data_file.scan_length
+
+        
+        print('starting process pool')
+        all_ints=[]
+        all_two_ths=[]
+        all_Qs=[]
+        
+        with Pool(processes=num_threads) as pool:
+            
+            print(f'started pool with num_threads={num_threads}')
+            indices=np.arange(0,scanlength,scalegamma)
+            input_list = [(self,index,scan,pyfaiponi,qmapbins,ivqbins) for index in indices]
+            results=pool.map(self.pyfai_ivsq_wrapper,input_list)
+            intensities=[result[0] for result in results]
+            two_th_vals=[result[1] for result in results]
+            Q_vals=[result[2] for result in results]
+            all_ints.append(intensities)
+            all_two_ths.append(two_th_vals)
+            all_Qs.append(Q_vals)
+
+            print('finished preparing chunked data')
+
+        signal_shape=np.shape(scan.metadata.data_file.default_signal)
+        outlist=[all_ints[0],all_Qs[0],all_two_ths[0]]
+        if len(signal_shape)>1:
+            outlist=[self.reshape_to_signalshape(arr, signal_shape) for arr in outlist]
+                            
+        dset=hf.create_group("integrations")
+        dset.create_dataset("Intensity",data=outlist[0])
+        dset.create_dataset("Q_angstrom^-1",data=outlist[1])
+        dset.create_dataset("2thetas",data=outlist[2])    
+        if "scanfields" not in hf.keys():
+            self.save_scan_field_values(hf, scan)    
+        if self.savedats==True:
+            self.do_savedats(hf,outlist[0],outlist[1],outlist[2])
+                
 
     def pyfai_static_diff(self,hf,scan,num_threads,output_file_path,pyfaiponi,ivqbins,qmapbins=0):
         self.load_curve_values(scan)
@@ -929,15 +1075,6 @@ class Experiment:
         except:
             scanlength=scan.metadata.data_file.scan_length
 
-
-
-        # shapecake=(2, 360, 1800)
-        # shapeqpqp=(2,qmapbins[1],qmapbins[0])
-        # output_path=fr"{output_file_path}"
-        # pyfai_qi_arrays=np.zeros((3,shapeqi[2]*num_threads))
-        # count_qi_arrays=np.zeros((3,shapeqi[2]*num_threads))
-        # cake_arrays=0
-        # qpqp_arrays=0
         
         print('starting process pool')
         all_maps=[]
@@ -950,7 +1087,6 @@ class Experiment:
         with Pool(processes=num_threads) as pool:
             
             print(f'started pool with num_threads={num_threads}')
-            #for indices in chunk(np.arange(0,scanlength,scalegamma), num_threads):
             indices=np.arange(0,scanlength,scalegamma)
             input_list = [(self,index,scan,pyfaiponi,qmapbins,ivqbins) for index in indices]
             results=pool.map(self.pyfai_qmap_qvsI_wrapper,input_list)
@@ -967,16 +1103,8 @@ class Experiment:
             all_two_ths.append(two_th_vals)
             all_Qs.append(Q_vals)
 
-            # startchunkval=0
-            # # for indices in chunk(np.arange(startchunkval,startchunkval+80,1), num_threads):
-            #     async_results.append(pool.apply_async(
-            #         pyfaicalcint,
-            #         (self,indices,scan,shapecake,shapeqi,shapeqpqp,self.two_theta_start,pyfaiponi,radrange,radstepval,qmapbins)))
-                #print(f'done  {indices[0]  - indices[1]} with {num_threads}\n')
             print('finished preparing chunked data')
-                        
-            #pool.close()
-            #pool.join()
+
         signal_shape=np.shape(scan.metadata.data_file.default_signal)
         outlist=[all_maps[0],all_xlabels[0],all_ylabels[0],all_ints[0],all_Qs[0],all_two_ths[0]]
         if len(signal_shape)>1:
@@ -999,11 +1127,6 @@ class Experiment:
             self.do_savetiffs(hf, outlist[0],outlist[1], outlist[2])
         if self.savedats==True:
             self.do_savedats(hf,outlist[3],outlist[4],outlist[5])
-            # if scan!=0:
-        #     scanned_names,scanned_values=self.get_scan_field_values(scan)
-        #     if scanned_names!=None:
-        #         for i, field in enumerate(scanned_names):
-        #             dset.create_dataset(f"dim{i}_{field}",data=scanned_values[i])
                 
                 
                 

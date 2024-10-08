@@ -220,6 +220,64 @@ def init_pyfai_process_pool(
     print(f"Finished initializing worker {current_process().name}.")
     
 
+def pyfai_qmap(experiment,imageindex,scan,two_theta_start,pyfaiponi,qmapbins,ivqbins)->None:
+    index=imageindex
+    aistart=pyFAI.load(pyfaiponi)     
+    unit_qip = "qip_A^-1"
+    unit_qoop = "qoop_A^-1"
+    
+    qlimhor=experiment.calcqlim( 'hor')
+    qlimver=experiment.calcqlim( 'vert')
+    qlimits=[qlimhor[0],qlimhor[1],qlimver[0],qlimver[1]]
+
+    my_ai = copy.deepcopy(aistart)
+    if np.size(experiment.gammadata)>1:  
+        my_ai.rot1 = np.radians(-two_theta_start[index])
+    if np.size(experiment.deltadata)>1:
+        my_ai.rot2 =-np.radians(experiment.deltadata[index])
+
+    #my_ai.poni1=(experiment.imshape[0] - experiment.beam_centre[0]) * experiment.pixel_size
+   # print(my_ai.get_config())
+    #img_data=np.flipud(scan.load_image(index).data)
+    img_data=scan.load_image(index).data
+   # print(qlimits)
+    map2d = my_ai.integrate2d(img_data, qmapbins[0],qmapbins[1], unit=(unit_qip, unit_qoop),radial_range=(qlimits[0]*1.5,qlimits[1]*1.5),azimuth_range=(12*qlimits[2],12*qlimits[3]), method=("no", "csr", "cython"))
+    
+    
+    return map2d[0],map2d[1],map2d[2]
+
+
+def pyfai_ivsq(experiment,imageindex,scan,two_theta_start,pyfaiponi,qmapbins,ivqbins)->None:
+    index=imageindex
+    aistart=pyFAI.load(pyfaiponi)     
+    unit_qip = "qip_A^-1"
+    unit_qoop = "qoop_A^-1"
+    
+    qlimhor=experiment.calcqlim( 'hor')
+    qlimver=experiment.calcqlim( 'vert')
+    qlimits=[qlimhor[0],qlimhor[1],qlimver[0],qlimver[1]]
+
+    my_ai = copy.deepcopy(aistart)
+    if np.size(experiment.gammadata)>1:  
+        my_ai.rot1 = np.radians(-two_theta_start[index])
+    if np.size(experiment.deltadata)>1:
+        my_ai.rot2 =-np.radians(experiment.deltadata[index])
+
+
+    img_data=scan.load_image(index).data
+    
+    tth,I = my_ai.integrate1d_ng(img_data,
+                            ivqbins,
+                            unit="2th_deg",polarization_factor=1)
+    
+
+    Q,I = my_ai.integrate1d_ng(img_data,
+                        ivqbins,
+                       unit="q_A^-1",polarization_factor=1)
+    
+    
+    return I,tth,Q
+  
 
 def pyfai_qmap_qvsI(experiment,imageindex,scan,two_theta_start,pyfaiponi,qmapbins,ivqbins)->None:
     index=imageindex
@@ -242,7 +300,7 @@ def pyfai_qmap_qvsI(experiment,imageindex,scan,two_theta_start,pyfaiponi,qmapbin
     #img_data=np.flipud(scan.load_image(index).data)
     img_data=scan.load_image(index).data
    # print(qlimits)
-    map2d = my_ai.integrate2d(img_data, qmapbins[0],qmapbins[1], unit=(unit_qip, unit_qoop),radial_range=(qlimits[0]*1,qlimits[1]*1),azimuth_range=(10.5*qlimits[2],10.5*qlimits[3]), method=("no", "csr", "cython"))
+    map2d = my_ai.integrate2d(img_data, qmapbins[0],qmapbins[1], unit=(unit_qip, unit_qoop),radial_range=(qlimits[0]*1.5,qlimits[1]*1.5),azimuth_range=(12*qlimits[2],12*qlimits[3]), method=("no", "csr", "cython"))
     
     tth,I = my_ai.integrate1d_ng(img_data,
                             ivqbins,
