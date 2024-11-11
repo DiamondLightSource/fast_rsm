@@ -1,7 +1,5 @@
 """
 First we need to import some stuff. 
-If you're interested, each import has an associated comment that explains why
-the import is useful/necessary.
 """
 
 import os
@@ -42,11 +40,6 @@ dpsz_central_pixel = 0
 #========CALCULATION INFORMATION==========
 
 #**************FULL RECIPROCAL VOLUME -  CRYSTAL TRUNCATION RODS, HKL MAPS etc
-# Set this to True if you would like each image to be mapped independently.
-# If this is False, all images in all scans will be combined into one large
-# reciprocal space map.
-map_per_image = False
-
 # How large would you like your output file to be, in MB? 100MB normally gives
 # very good resolution without sacrificing performance. If you want something
 # higher resolution, feel free, but be aware that the performance of the map and
@@ -136,19 +129,24 @@ skipimages=[[],\
 # 'full_reciprocal_map' = calculates a full reciprocal space map combining all
 #                           scans listed into a single volume
 #
-# 'pyfai_2dqmap_IvsQ' - use parallel multiprocessing to calculate both 2d Qpara Vs Qperp map, as well as 
-#                       1d  I Vs Q integration - both using pyFAI package
+# 'pyfai_qmap' = calculates 2d q_parallel Vs q_perpendicular plots using pyFAI 
 #
-# 'large_moving_det' - utilise MultiGeometry option in pyFAI for scan with a moving detector, outputs: I, Q, two theta, caked image 
+# 'pyfai_ivsq' = calculates 1d Intensity Vs Q using pyFAI
 # 
 
-process_outputs=[]#'pyfai_2dqmap_IvsQ' , 'large_moving_det' ,'full_reciprocal_map'
+process_outputs=[]#'pyfai_ivsq'  , 'pyfai_qmap' ,'full_reciprocal_map'
 
-#choose if you want to export qpara Vs qperp maps to individual .tiff images as well as hdf5
+
+# Set this to True if you would like each image to be mapped independently.
+# If this is False, all images in all scans will be combined into one large
+# reciprocal space map.
+map_per_image = False
+
+#choose if you want to export 2d qpara Vs qperp maps to individual .tiff images as well as hdf5
 savetiffs=False
 
-#choose if you want to export the I Vs Q data to individual .dat files as well as hdf5
+#choose if you want to export 1d I Vs Q data to individual .dat files as well as hdf5
 savedats=False
 
 # The scan numbers of the scans that you want to use to produce this reciprocal
-# space map. 
+# space map.
