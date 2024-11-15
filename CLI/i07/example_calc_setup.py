@@ -348,8 +348,9 @@ for i, scan in enumerate(experiment.scans):
         process_start_time=time()
         experiment.load_curve_values(scan)
         PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,beam_centre=experiment.beam_centre)
-
         experiment.pyfai_moving_qmap(hf,scan, num_threads,  local_output_path,PYFAI_PONI,radialrange,radialstepval,qmapbins)
+        experiment.save_config_variables(hf,joblines,pythonlocation)
+        hf.close()
         print(f"saved 2d map and 1D integration data to {local_output_path}/{projected_name}.hdf5")           
        
         total_time = time() - process_start_time
@@ -379,7 +380,7 @@ for i, scan in enumerate(experiment.scans):
         process_start_time=time()
         experiment.load_curve_values(scan)
         PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,beam_centre=experiment.beam_centre)
-        experiment.pyfai_moving_ivsq(hf,scan, num_threads,local_output_path,PYFAI_PONI,ivqbins,qmapbins)
+        experiment.pyfai_moving_ivsq(hf,scan, num_threads,local_output_path,PYFAI_PONI,radialrange,radialstepval,qmapbins)
         experiment.save_config_variables(hf,joblines,pythonlocation)
         hf.close()
         print(f"saved 1d integration data to {local_output_path}/{projected_name}.hdf5")

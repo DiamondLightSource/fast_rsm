@@ -15,6 +15,8 @@ import numpy as np
 from diffraction_utils import Frame, Region
 from scipy.constants import physical_constants
 from datetime import datetime
+from scipy.spatial.transform import Rotation as R
+import transformations as tf
 
 from . import io
 from .binning import weighted_bin_1d, finite_diff_shape
@@ -769,8 +771,8 @@ class Experiment:
         if axis=='vert':
             pixlow=self.imshape[0]-self.beam_centre[0]
             pixhigh=self.beam_centre[0]
-            highsection=np.max(self.deltadata)
-            lowsection=np.min(self.deltadata)
+            highsection=np.max(self.deltadata-self.incident_angle)
+            lowsection=np.min(self.deltadata-self.incident_angle)
         elif axis=='hor':
             pixhigh=(self.beam_centre[1])
             pixlow=(self.imshape[1]-self.beam_centre[1])
@@ -779,13 +781,18 @@ class Experiment:
 
         maxangle=highsection+np.degrees(np.arctan((pixhigh*self.pixel_size)/self.detector_distance))
         minangle=lowsection-np.degrees(np.arctan((pixlow*self.pixel_size)/self.detector_distance))
-
-        if (axis=='vert')&((self.beam_centre[0]/self.imshape[0])<0.5):
+        
+        if (axis=='vert'):
             qupp=self.SOHqcalc(maxangle,kmod)
             qlow=self.SOHqcalc(minangle,kmod)
-        elif (axis=='vert')&((self.beam_centre[0]/self.imshape[0])>0.5):
-            qlow=-self.SOHqcalc(maxangle,kmod)
-            qupp=-self.SOHqcalc(minangle,kmod)            
+
+        
+        # if (axis=='vert')&((self.beam_centre[0]/self.imshape[0])<0.5):
+        #     qupp=self.SOHqcalc(maxangle,kmod)
+        #     qlow=self.SOHqcalc(minangle,kmod)
+        # elif (axis=='vert')&((self.beam_centre[0]/self.imshape[0])>0.5):
+        #     qlow=-self.SOHqcalc(maxangle,kmod)
+        #     qupp=-self.SOHqcalc(minangle,kmod)            
         elif axis=='hor':
             qupp=self.SOHqcalc(maxangle/2,kmod)*2
             qlow=self.SOHqcalc(minangle/2,kmod)*2
@@ -799,13 +806,13 @@ class Experiment:
             qlow_withdelta=np.sqrt(np.square(s3)+np.square(s4))*1e-10*np.sign(minangle)
 
             if abs(qupp_withdelta)>abs(qupp):
-                qupp=-1*qupp_withdelta
+                qupp=qupp_withdelta
             else:
-                qupp*=-1
+                qupp*=1
             if abs(qlow_withdelta)>abs(qlow):
-                qlow=-1*qlow_withdelta
+                qlow=qlow_withdelta
             else:
-                qlow*=-1
+                qlow*=1
         
         return qupp,qlow
     
@@ -817,7 +824,7 @@ class Experiment:
             os.mkdir(outdir)
         except:
             print('directory already exists')
-        
+        outname=outdir.split('\\')[-1]
         if extradims==0:
             imdata=data
             parainfo=axespara
@@ -827,7 +834,7 @@ class Experiment:
                 'Xlimits': f'min {parainfo.min()}, max {parainfo.max()}',
                 'Ylimits': f'min {perpinfo.min()}, max {perpinfo.max()}',
                 }
-            tifffile.imwrite(f'{outdir}/0.tiff',imdata,metadata=metadata)
+            tifffile.imwrite(f'{outdir}/{outname}.tiff',imdata,metadata=metadata)
         if extradims==1:
             for i1 in np.arange(datashape[0]):
                 imdata=data[i1]
@@ -838,7 +845,7 @@ class Experiment:
                     'Xlimits': f'min {parainfo.min()}, max {parainfo.max()}',
                     'Ylimits': f'min {perpinfo.min()}, max {perpinfo.max()}',
                     }
-                tifffile.imwrite(f'{outdir}/{i1}.tiff',imdata,metadata=metadata)
+                tifffile.imwrite(f'{outdir}/{outname}_{i1}.tiff',imdata,metadata=metadata)
         if extradims==2:
             for i1 in np.arange(datashape[0]):
                 for i2 in np.arange(datashape[1]):
@@ -850,7 +857,7 @@ class Experiment:
                         'Xlimits': f'min {parainfo.min()}, max {parainfo.max()}',
                         'Ylimits': f'min {perpinfo.min()}, max {perpinfo.max()}',
                         }
-                    tifffile.imwrite(f'{outdir}/{i1}_{i2}.tiff',imdata,metadata=metadata)
+                    tifffile.imwrite(f'{outdir}/{outname}_{i1}_{i2}.tiff',imdata,metadata=metadata)
                     
     def do_savedats(self,hf,Idata,qdata,tthdata):
         datashape=np.shape(Idata)
@@ -861,14 +868,14 @@ class Experiment:
         except:
             print('directory already exists')
         metadata=f'Intensity data identical to data saved in {hf.filename}\n'
-        
+        outname=outdir.split('\\')[-1]
         if extradims==0:
 
             intvals=Idata
             qvals=qdata
             tthetavals=tthdata
             outdf=pd.DataFrame({'Q_angstrom^-1':qvals,'Intensity':intvals,'two_theta':tthetavals})
-            with open(f'{outdir}/0.dat',"w") as f:
+            with open(f'{outdir}/{outname}.dat',"w") as f:
                 f.write(metadata)
                 outdf.to_csv(f,sep='\t',index=False)
         
@@ -879,7 +886,7 @@ class Experiment:
                 qvals=qdata[i1]
                 tthetavals=tthdata[i1]
                 outdf=pd.DataFrame({'Q_angstrom^-1':qvals,'Intensity':intvals,'two_theta':tthetavals})
-                with open(f'{outdir}/{i1}.dat',"w") as f:
+                with open(f'{outdir}/{outname}_{i1}.dat',"w") as f:
                     f.write(metadata)
                     outdf.to_csv(f,sep='\t',index=False)
         if extradims==2:
@@ -889,7 +896,7 @@ class Experiment:
                     qvals=qdata[i1][i2]
                     tthetavals=tthdata[i1][i2]
                     outdf=pd.DataFrame({'Q_angstrom^-1':qvals,'Intensity':intvals,'two_theta_degree':tthetavals})
-                    with open(f'{outdir}/{i1}_{i2}.dat',"w") as f:
+                    with open(f'{outdir}/{outname}_{i1}_{i2}.dat',"w") as f:
                         f.write(metadata)
                         outdf.to_csv(f,sep='\t',index=False)
     
@@ -975,8 +982,6 @@ class Experiment:
         if self.savetiffs==True:
             self.do_savetiffs(hf, outlist[0],outlist[1], outlist[2])
     
-            
-
 
     def pyfai_static_ivsq(self,hf,scan,num_threads,output_file_path,pyfaiponi,ivqbins,qmapbins=0):
         self.load_curve_values(scan)
@@ -1517,13 +1522,37 @@ class Experiment:
         return mapaxisinfo
 
 
-    
+    def gamdel2rots(self,gamma,delta):
+        """
+        
+
+        Parameters
+        ----------
+        gamma : float
+            angle rotation of gamma diffractometer circle in degrees.
+        delta : float
+            angle rotation of delta diffractometer circle in degrees.
+
+        Returns
+        -------
+        rots : list of rotations rot1,rot2,rot3 in radians to be using by pyFAI.
+
+        """
+        rotdelta=R.from_euler('y', -delta, degrees=True)
+        rotgamma=R.from_euler('z',gamma,degrees=True)
+        totalrot=rotgamma*rotdelta
+        fullrot=np.identity(4)
+        fullrot[0:3,0:3]=totalrot.as_matrix()
+        vals=tf.euler_from_matrix(fullrot,'rxyz')
+        rots=vals[2],-vals[1],vals[0]
+        return rots
+        
     
 
  
             
     def load_curve_values(self,scan):
-        p2mnames=['pil2stats','p2r']
+        p2mnames=['pil2stats','p2r','pil2roi']
         self.pixel_size=scan.metadata.diffractometer.data_file.pixel_size
         self.entry=scan.metadata.data_file.nx_entry
         
@@ -1541,7 +1570,12 @@ class Experiment:
         except:
             self.deltadata=np.array( self.entry.instrument.diff1delta.value)
             
-            
+        if (scan.metadata.data_file.is_eh1)&(self.setup!='DCD'):
+            self.incident_angle=scan.metadata.data_file.chi
+        elif (scan.metadata.data_file.is_eh2):
+            self.incident_angle=scan.metadata.data_file.alpha
+        else:
+            self.incident_angle=0
         if scan.metadata.data_file.detector_name in p2mnames:
             self.deltadata=0
         self.dcdrad=np.array( self.entry.instrument.dcdc2rad.value)
