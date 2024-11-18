@@ -7,3 +7,4 @@ plotly>=5.8.0
 fast-histogram>=0.10
 pyevtk>=1.5.0
 transformations
+spyder-kernels
