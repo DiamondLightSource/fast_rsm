@@ -769,8 +769,8 @@ class Experiment:
         kmod=2*np.pi/ (self.incident_wavelength)
         
         if axis=='vert':
-            pixlow=self.imshape[0]-self.beam_centre[0]
-            pixhigh=self.beam_centre[0]
+            pixhigh=self.imshape[0]-self.beam_centre[0]
+            pixlow=self.beam_centre[0]
             highsection=np.max(self.deltadata-self.incident_angle)
             lowsection=np.min(self.deltadata-self.incident_angle)
         elif axis=='hor':
@@ -806,13 +806,13 @@ class Experiment:
             qlow_withdelta=np.sqrt(np.square(s3)+np.square(s4))*1e-10*np.sign(minangle)
 
             if abs(qupp_withdelta)>abs(qupp):
-                qupp=qupp_withdelta
+                qupp=-1*qupp_withdelta
             else:
-                qupp*=1
+                qupp*=-1
             if abs(qlow_withdelta)>abs(qlow):
-                qlow=qlow_withdelta
+                qlow=-1*qlow_withdelta
             else:
-                qlow*=1
+                qlow*=-1
         
         return qupp,qlow
     

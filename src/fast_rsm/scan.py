@@ -240,8 +240,12 @@ def pyfai_stat_qmap(experiment,imageindex,scan,two_theta_start,pyfaiponi,qmapbin
         sample_orientation=1
         qlimits=[qlimhor[0],qlimhor[1],qlimver[0],qlimver[1]]
     
-    unit_qip=pyFAI.units.get_unit_fiber(unit_qip_name,sample_orientation=sample_orientation,incident_angle=experiment.incident_angle[index])
-    unit_qoop=pyFAI.units.get_unit_fiber(unit_qoop_name,sample_orientation=sample_orientation,incident_angle=experiment.incident_angle[index])
+    if np.size(experiment.incident_angle)>1:
+        inc_angle=experiment.incident_angle[index]
+    else:
+        inc_angle=experiment.incident_angle
+    unit_qip=pyFAI.units.get_unit_fiber(unit_qip_name,sample_orientation=sample_orientation,incident_angle=inc_angle)
+    unit_qoop=pyFAI.units.get_unit_fiber(unit_qoop_name,sample_orientation=sample_orientation,incident_angle=inc_angle) 
     
     my_ai = copy.deepcopy(aistart)
     gamval=0
@@ -282,8 +286,12 @@ def pyfai_stat_ivsq(experiment,imageindex,scan,two_theta_start,pyfaiponi,qmapbin
         sample_orientation=1
         qlimits=[qlimhor[0],qlimhor[1],qlimver[0],qlimver[1]]
     
-    unit_qip=pyFAI.units.get_unit_fiber(unit_qip_name,sample_orientation=sample_orientation,incident_angle=experiment.incident_angle[index])
-    unit_qoop=pyFAI.units.get_unit_fiber(unit_qoop_name,sample_orientation=sample_orientation,incident_angle=experiment.incident_angle[index])
+    if np.size(experiment.incident_angle)>1:
+        inc_angle=experiment.incident_angle[index]
+    else:
+        inc_angle=experiment.incident_angle
+    unit_qip=pyFAI.units.get_unit_fiber(unit_qip_name,sample_orientation=sample_orientation,incident_angle=inc_angle)
+    unit_qoop=pyFAI.units.get_unit_fiber(unit_qoop_name,sample_orientation=sample_orientation,incident_angle=inc_angle) 
 
     my_ai = copy.deepcopy(aistart)
     gamval=0
@@ -346,13 +354,17 @@ def pyfai_move_qmap(experiment,imageindices,scan,shapecake,shapeqi,shapeqpqp,two
     for group in groups:
         ais=[]
         for i in group:
-            unit_qip=pyFAI.units.get_unit_fiber(unit_qip_name,sample_orientation=sample_orientation,incident_angle=0)#experiment.incident_angle[i])
-            unit_qoop=pyFAI.units.get_unit_fiber(unit_qoop_name,sample_orientation=sample_orientation,incident_angle=0)#experiment.incident_angle[i]) 
+            if np.size(experiment.incident_angle)>1:
+                inc_angle=experiment.incident_angle[i]
+            else:
+                inc_angle=experiment.incident_angle
+            unit_qip=pyFAI.units.get_unit_fiber(unit_qip_name,sample_orientation=sample_orientation,incident_angle=inc_angle)
+            unit_qoop=pyFAI.units.get_unit_fiber(unit_qoop_name,sample_orientation=sample_orientation,incident_angle=inc_angle) 
             my_ai = copy.deepcopy(aistart)
             gamval=0
             delval=0 
             if np.size(experiment.gammadata)>1:   
-                gamval= two_theta_start[i]
+                gamval= -two_theta_start[i]
             if np.size(experiment.deltadata)>1:
                 delval =-experiment.deltadata[i]
             if np.size(experiment.deltadata)==1:
@@ -413,9 +425,13 @@ def pyfai_move_ivsq(experiment,imageindices,scan,shapecake,shapeqi,shapeqpqp,two
     groups=[choiceims[i:i+groupnum] for i in range(0,len(choiceims),groupnum)]
     for group in groups:
         ais=[]
-        for i in group:   
-            unit_qip=pyFAI.units.get_unit_fiber(unit_qip_name,sample_orientation=sample_orientation,incident_angle=experiment.incident_angle[i])
-            unit_qoop=pyFAI.units.get_unit_fiber(unit_qoop_name,sample_orientation=sample_orientation,incident_angle=experiment.incident_angle[i]) 
+        for i in group:
+            if np.size(experiment.incident_angle)>1:
+                inc_angle=experiment.incident_angle[i]
+            else:
+                inc_angle=experiment.incident_angle
+            unit_qip=pyFAI.units.get_unit_fiber(unit_qip_name,sample_orientation=sample_orientation,incident_angle=inc_angle)
+            unit_qoop=pyFAI.units.get_unit_fiber(unit_qoop_name,sample_orientation=sample_orientation,incident_angle=inc_angle) 
             my_ai = copy.deepcopy(aistart)
             gamval=0
             delval=0 
@@ -486,8 +502,12 @@ def pyfai_qmap_qvsI(experiment,imageindex,scan,two_theta_start,pyfaiponi,qmapbin
         sample_orientation=1
         qlimits=[qlimhor[0],qlimhor[1],qlimver[0],qlimver[1]]
     
-    unit_qip=pyFAI.units.get_unit_fiber(unit_qip_name,sample_orientation=sample_orientation,incident_angle=experiment.incident_angle[index])
-    unit_qoop=pyFAI.units.get_unit_fiber(unit_qoop_name,sample_orientation=sample_orientation,incident_angle=experiment.incident_angle[index]) 
+    if np.size(experiment.incident_angle)>1:
+        inc_angle=experiment.incident_angle[index]
+    else:
+        inc_angle=experiment.incident_angle
+    unit_qip=pyFAI.units.get_unit_fiber(unit_qip_name,sample_orientation=sample_orientation,incident_angle=inc_angle)
+    unit_qoop=pyFAI.units.get_unit_fiber(unit_qoop_name,sample_orientation=sample_orientation,incident_angle=inc_angle) 
 
     my_ai = copy.deepcopy(aistart)
     gamval=0
