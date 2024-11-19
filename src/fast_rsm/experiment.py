@@ -1575,7 +1575,7 @@ class Experiment:
         elif (scan.metadata.data_file.is_eh2):
             self.incident_angle=scan.metadata.data_file.alpha
         else:
-            self.incident_angle=0
+            self.incident_angle=[0]
         if scan.metadata.data_file.detector_name in p2mnames:
             self.deltadata=0
         self.dcdrad=np.array( self.entry.instrument.dcdc2rad.value)
