@@ -769,10 +769,10 @@ class Experiment:
         kmod=2*np.pi/ (self.incident_wavelength)
         
         if axis=='vert':
-            pixhigh=self.imshape[0]-self.beam_centre[0]
-            pixlow=self.beam_centre[0]
-            highsection=np.max(self.deltadata-self.incident_angle)
-            lowsection=np.min(self.deltadata-self.incident_angle)
+            pixlow=self.imshape[0]-self.beam_centre[0]
+            pixhigh=self.beam_centre[0]
+            highsection=np.max(self.deltadata)
+            lowsection=np.min(self.deltadata)
         elif axis=='hor':
             pixhigh=(self.beam_centre[1])
             pixlow=(self.imshape[1]-self.beam_centre[1])
@@ -785,14 +785,16 @@ class Experiment:
         if (axis=='vert'):
             qupp=self.SOHqcalc(maxangle,kmod)
             qlow=self.SOHqcalc(minangle,kmod)
-
-        
-        # if (axis=='vert')&((self.beam_centre[0]/self.imshape[0])<0.5):
-        #     qupp=self.SOHqcalc(maxangle,kmod)
-        #     qlow=self.SOHqcalc(minangle,kmod)
-        # elif (axis=='vert')&((self.beam_centre[0]/self.imshape[0])>0.5):
-        #     qlow=-self.SOHqcalc(maxangle,kmod)
-        #     qupp=-self.SOHqcalc(minangle,kmod)            
+            maxtthrad=np.radians(np.max(self.two_theta_start))
+            maxanglerad=np.radians(np.max(maxangle))
+            maxincrad=np.radians(np.max(self.incident_angle))
+            extraincq=kmod*1e-10*np.sin(maxincrad)
+            minusexitq_x=kmod*1e-10*np.cos(maxanglerad)*np.cos(maxtthrad)*np.sin(maxincrad)
+            minusexitq_z=kmod*1e-10*np.sin(maxanglerad)*(1-np.cos(maxincrad))
+            extravert=extraincq-minusexitq_x-minusexitq_z
+            qupp+=extravert
+            qlow-=extravert
+          
         elif axis=='hor':
             qupp=self.SOHqcalc(maxangle/2,kmod)*2
             qlow=self.SOHqcalc(minangle/2,kmod)*2
@@ -1280,7 +1282,7 @@ class Experiment:
 
 
         shapecake=(2, 2, 2)
-        shapeqpqp=(2,qmapbins[0],qmapbins[1])
+        shapeqpqp=(2,qmapbins[1],qmapbins[0])
         output_path=fr"{output_file_path}"
         qpqp_arrays=0
         print('starting process pool')
@@ -1570,7 +1572,16 @@ class Experiment:
         except:
             self.deltadata=np.array( self.entry.instrument.diff1delta.value)
             
-        if (scan.metadata.data_file.is_eh1)&(self.setup!='DCD'):
+        if self.setup=='DCD':
+            self.dcdrad=np.array( self.entry.instrument.dcdc2rad.value)
+            self.dcdomega=np.array( self.entry.instrument.dcdomega.value)
+            self.projectionx=1e-3* self.dcdrad*np.cos(np.radians(self.dcdomega))
+            self.projectiony=1e-3* self.dcdrad*np.sin(np.radians(self.dcdomega))
+            dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance
+            self.dcd_incdeg=np.degrees(np.arctan(self.projectiony/(np.sqrt(np.square(self.projectionx)+np.square(dcd_sample_dist)))))
+            self.incident_angle=self.dcd_incdeg
+            self.deltadata+=self.dcd_incdeg
+        elif (scan.metadata.data_file.is_eh1)&(self.setup!='DCD'):
             self.incident_angle=scan.metadata.data_file.chi
         elif (scan.metadata.data_file.is_eh2):
             self.incident_angle=scan.metadata.data_file.alpha
@@ -1578,9 +1589,7 @@ class Experiment:
             self.incident_angle=[0]
         if scan.metadata.data_file.detector_name in p2mnames:
             self.deltadata=0
-        self.dcdrad=np.array( self.entry.instrument.dcdc2rad.value)
-        self.dcdomega=np.array( self.entry.instrument.dcdomega.value)
-        self.projectionx=1e-3* self.dcdrad*np.cos(np.radians(self.dcdomega))
+
         self.imshape=scan.metadata.data_file.image_shape
         self.beam_centre=scan.metadata.beam_centre
         self.rotval=round(scan.metadata.data_file.det_rot)
