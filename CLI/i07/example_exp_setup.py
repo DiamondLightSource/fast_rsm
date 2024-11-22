@@ -1,7 +1,5 @@
 """
 First we need to import some stuff. 
-If you're interested, each import has an associated comment that explains why
-the import is useful/necessary.
 """
 
 import os
@@ -42,11 +40,6 @@ dpsz_central_pixel = 0
 #========CALCULATION INFORMATION==========
 
 #**************FULL RECIPROCAL VOLUME -  CRYSTAL TRUNCATION RODS, HKL MAPS etc
-# Set this to True if you would like each image to be mapped independently.
-# If this is False, all images in all scans will be combined into one large
-# reciprocal space map.
-map_per_image = False
-
 # How large would you like your output file to be, in MB? 100MB normally gives
 # very good resolution without sacrificing performance. If you want something
 # higher resolution, feel free, but be aware that the performance of the map and
@@ -76,7 +69,7 @@ load_from_dat = False
 
 
 #********GIWAXS WITH MOVING DETECTOR AND LARGE NUMBER OF IMAGES TO BE COMBINED INTO ONE INTEGRATION
-#if calculating pyfai integration on scan with moving detector and large number of images need to 
+#if calculating pyfai integration on scan with moving detector and large number of images, need to 
 # specify range of q or 2th so that number of bins can be calculated
 radialrange=(0,60)
 radialstepval=0.01
@@ -131,29 +124,29 @@ skipscans=[]
 skipimages=[[],\
             []]
 
-
 #============OUTPUTS==========
 #define what outputs you would like form the processing here, choose from:
 # 'full_reciprocal_map' = calculates a full reciprocal space map combining all
 #                           scans listed into a single volume
 #
-# 'curved_projection_2D' = projects a series of detector images into a single 2D,
-#                           treating the images as if there were all from a curved detector. 
-#                           NOTE: Currently does not work for scans with 1000s of images
-
-# 'pyfai_1D' =  Does an azimuthal integration on an image using PONI and MASK 
-#               settings described in corresponding files
+# 'pyfai_qmap' = calculates 2d q_parallel Vs q_perpendicular plots using pyFAI 
 #
-# 'qperp_qpara_map'  - project GIWAXS image into q_para,q_perp plot. 
-#                          NOTE: Currently does not work for scans with 1000s of images
-#
-# 'large_moving_det' - utilise MultiGeometry option in pyFAI for scan with a moving detector and a 
-#                       large number of images (~1000s), outputs: I, Q, two theta, caked image 
+# 'pyfai_ivsq' = calculates 1d Intensity Vs Q using pyFAI
 # 
-# 'pyfai_2dqmap_IvsQ' - use parallel multiprocessing to calculate both 2d Qpara Vs Qperp map, as well as 
-#                       1d  I Vs Q integration - both using pyFAI package
-process_outputs=[]#'pyfai_2dqmap_IvsQ' , 'large_moving_det' ,'qperp_qpara_map', 'pyfai_1D','curved_projection_2D','full_reciprocal_map'
 
+process_outputs=[]#'pyfai_ivsq'  , 'pyfai_qmap' ,'full_reciprocal_map'
+
+
+# Set this to True if you would like each image to be mapped independently.
+# If this is False, all images in all scans will be combined into one large
+# reciprocal space map.
+map_per_image = False
+
+#choose if you want to export 2d qpara Vs qperp maps to individual .tiff images as well as hdf5
+savetiffs=False
+
+#choose if you want to export 1d I Vs Q data to individual .dat files as well as hdf5
+savedats=False
 
 # The scan numbers of the scans that you want to use to produce this reciprocal
-# space map. 
+# space map.

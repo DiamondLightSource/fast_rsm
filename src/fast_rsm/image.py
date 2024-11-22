@@ -72,12 +72,13 @@ class Image:
         necessary at this point.
         """
         if isinstance(self.metadata.data_file, I07Nexus):
-            if self.metadata.data_file.is_rotated:
+            if (self.metadata.data_file.is_rotated):
                 # The detector has been rotated in the experiment!
                 # NOTE: this is slow. If you flip your detector and run fscans,
                 # f#!@ you.
                 self._raw_data = self._raw_data.transpose()
                 self._raw_data = np.flip(self._raw_data, axis=0)
+                
 
     def generate_mask(self, min_intensity: Union[float, int]) -> np.ndarray:
         """

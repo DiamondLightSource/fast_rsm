@@ -1,3 +1,4 @@
+
 """
 This section prepares the calculation. You probably shouldn't change any'qperp_qpara_map',thing here
 unless you know what you're doing.
@@ -130,6 +131,19 @@ experiment.mask_pixels(specific_pixels)
 experiment.mask_edf(edfmaskfile)
 experiment.mask_regions(mask_regions_list)
 experiment.setup=setup
+if 'savetiffs' in globals():
+    experiment.savetiffs=savetiffs
+else:
+    experiment.savetiffs=False
+
+if 'savedats' in globals():
+    experiment.savedats=savedats
+else:
+    experiment.savedats=False
+
+if 'qmapbins' not in globals():
+    qmapbins=0
+
 
 """
 This section is for changing metadata that is stored in, or inferred from, the
@@ -194,8 +208,8 @@ for i, scan in enumerate(experiment.scans):
     #     [0, 0, 1]
     # ])
 
-    #     # Would you like to skip any images in any scans? Do so here!
-    #     # This shows how to skip the 9th in the 3rd scan (note the zero counting).
+    #reads in skip information and skips specified images in specified files
+    
     if ('skipscans' in globals()):
         if (int(scan_numbers[i]) in skipscans):
             scan.skip_images+=skipimages[np.where(np.array(skipscans)==int(scan_numbers[i]))[0][0]]
@@ -309,33 +323,101 @@ for i, scan in enumerate(experiment.scans):
         experiment.save_config_variables(hf,joblines,pythonlocation)
         hf.close()
         print(f'finished processing scan {name_end}')
-    
-if __name__ == "__main__":
-    
-    if 'full_reciprocal_map' in process_outputs:
-        frame_name = Frame.hkl
-        coordinates = Frame.cartesian
-        map_frame = Frame(frame_name=frame_name, coordinates=coordinates)
-        start_time = time()
-        # Calculate and save a binned reciprocal space map, if requested.
-        experiment.binned_reciprocal_space_map(
-            num_threads, map_frame, output_file_size=output_file_size, oop=oop,
-            min_intensity_mask=min_intensity,
-            output_file_name=save_path, 
-            volume_start=volume_start, volume_stop=volume_stop,
-            volume_step=volume_step,
-            map_each_image=map_per_image)
-    
-        if save_binoculars_h5==True:
-            outvars=globals()
-            
-            save_binoculars_hdf5(str(save_path) + ".npy", str(save_path) + '.hdf5',joblines,pythonlocation,outvars)
-            print(f"\nSaved BINoculars file to {save_path}.hdf5.\n")
 
-        # Finally, print that it's finished We'll use this to work out when the
-        # processing is done.
-        total_time = time() - start_time
-        print(f"\nProcessing took {total_time}s")
-        print(f"This corresponds to {total_time*1000/total_images}ms per image.\n")
+for i, scan in enumerate(experiment.scans):
+    if ('pyfai_qmap' in process_outputs)&(map_per_image==True):
+        name_end=scan_numbers[i]
+        datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+        projected_name=f'Qmap_{name_end}_{datetime_str}'
+        hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
+        process_start_time=time()
+        experiment.load_curve_values(scan)
+        PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,beam_centre=experiment.beam_centre)
+        experiment.pyfai_static_qmap(hf,scan, num_threads,local_output_path,PYFAI_PONI,ivqbins,qmapbins)
+        experiment.save_config_variables(hf,joblines,pythonlocation)
+        hf.close()
+        print(f"saved 2d map  data to {local_output_path}/{projected_name}.hdf5")
+        total_time = time() - process_start_time
+        print(f"\n 2d Q map calculations took {total_time}s")
+        
+    elif ('pyfai_qmap' in process_outputs)&(map_per_image==False):
+        name_end=scan_numbers[i]
+        datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+        projected_name=f'Qmap_{name_end}_{datetime_str}'
+        hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
+        process_start_time=time()
+        experiment.load_curve_values(scan)
+        PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,beam_centre=experiment.beam_centre)
+        experiment.pyfai_moving_qmap(hf,scan, num_threads,  local_output_path,PYFAI_PONI,radialrange,radialstepval,qmapbins)
+        experiment.save_config_variables(hf,joblines,pythonlocation)
+        hf.close()
+        print(f"saved 2d map and 1D integration data to {local_output_path}/{projected_name}.hdf5")           
+       
+        total_time = time() - process_start_time
+        print(f"\n 2d Q map calculation took {total_time}s")
+    
+    
+    if ('pyfai_ivsq' in process_outputs)&(map_per_image==True):
+        name_end=scan_numbers[i]
+        datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+        projected_name=f'IvsQ_{name_end}_{datetime_str}'
+        hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
+        process_start_time=time()
+        experiment.load_curve_values(scan)
+        PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,beam_centre=experiment.beam_centre)
+        experiment.pyfai_static_ivsq(hf,scan, num_threads,local_output_path,PYFAI_PONI,ivqbins,qmapbins)
+        experiment.save_config_variables(hf,joblines,pythonlocation)
+        hf.close()
+        print(f"saved 1d integration data to {local_output_path}/{projected_name}.hdf5")
+        total_time = time() - process_start_time 
+        print(f"\n Azimuthal integrations took {total_time}s")
+        
+    if ('pyfai_ivsq' in process_outputs)&(map_per_image==False):
+        name_end=scan_numbers[i]
+        datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+        projected_name=f'IvsQ_{name_end}_{datetime_str}'
+        hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
+        process_start_time=time()
+        experiment.load_curve_values(scan)
+        PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,beam_centre=experiment.beam_centre)
+        experiment.pyfai_moving_ivsq(hf,scan, num_threads,local_output_path,PYFAI_PONI,radialrange,radialstepval,qmapbins)
+        experiment.save_config_variables(hf,joblines,pythonlocation)
+        hf.close()
+        print(f"saved 1d integration data to {local_output_path}/{projected_name}.hdf5")
+        total_time = time() - process_start_time 
+        print(f"\n Azimuthal integration took {total_time}s")
+        
+        
+
+    print(f'finished processing scan {name_end}')
+        
+    
+
+    
+if 'full_reciprocal_map' in process_outputs:
+    frame_name = Frame.hkl
+    coordinates = Frame.cartesian
+    map_frame = Frame(frame_name=frame_name, coordinates=coordinates)
+    start_time = time()
+    # Calculate and save a binned reciprocal space map, if requested.
+    experiment.binned_reciprocal_space_map(
+        num_threads, map_frame, output_file_size=output_file_size, oop=oop,
+        min_intensity_mask=min_intensity,
+        output_file_name=save_path, 
+        volume_start=volume_start, volume_stop=volume_stop,
+        volume_step=volume_step,
+        map_each_image=map_per_image)
+
+    if save_binoculars_h5==True:
+        outvars=globals()
+        
+        save_binoculars_hdf5(str(save_path) + ".npy", str(save_path) + '.hdf5',joblines,pythonlocation,outvars)
+        print(f"\nSaved BINoculars file to {save_path}.hdf5.\n")
+
+    # Finally, print that it's finished We'll use this to work out when the
+    # processing is done.
+    total_time = time() - start_time
+    print(f"\nProcessing took {total_time}s")
+    print(f"This corresponds to {total_time*1000/total_images}ms per image.\n")
     
 print("PROCESSING FINISHED.")

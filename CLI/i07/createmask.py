@@ -24,7 +24,10 @@ def get_im_path(directorypath,scan_number):
         imdata=hf[found_nexus.hdf5_internal_path][0]
         imout=Image.fromarray(imdata,mode='I')
         fname=found_nexus.local_hdf5_path.split('/')[-1].strip('.h5')
-        outpath=f'/dls/i07/data/2024/cm37245-1/maskimage_{fname}_0.tiff'
+        home_dir = os.path.expanduser('~')
+        outname=fr'maskimage_{fname}_0.tiff'
+        outpath = os.path.join(home_dir,outname)
+        #print(f'outpath before saving ={outpath}') 
         imout.save(outpath,"TIFF")
         
         return outpath
