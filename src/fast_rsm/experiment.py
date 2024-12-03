@@ -256,8 +256,6 @@ class Experiment:
         else:
             step = np.array(volume_step)
             _start, _stop = self.q_bounds(map_frame, oop)
-
-
         # Make sure start and stop match the step as required by binoculars.
             start, stop = _match_start_stop_to_step(
                 step=step,
@@ -365,7 +363,6 @@ class Experiment:
                 
         fcounts= count_arrays.astype(np.float32) #makes sure counts are floats ready for division
         normalised_map=np.divide(map_arrays,fcounts, out=np.copy(map_arrays),where=fcounts!=0.0)#need to specify out location to avoid working with non-initialised data
-        
         # Only save the vtk/npy files if we've been asked to.
         if save_vtk:
             print("\n**READ THIS**")
@@ -794,7 +791,7 @@ class Experiment:
             extravert=extraincq-minusexitq_x-minusexitq_z
             qupp+=extravert
             qlow-=extravert
-          
+
         elif axis=='hor':
             qupp=self.SOHqcalc(maxangle/2,kmod)*2
             qlow=self.SOHqcalc(minangle/2,kmod)*2
@@ -942,7 +939,7 @@ class Experiment:
         scalegamma=1
 
         try:
-            scanlength=len(scan.metadata.data_file.local_image_paths)
+            scanlength=np.shape(scan.metadata.data_file.nx_detector.data)[0]
         except:
             scanlength=scan.metadata.data_file.scan_length
 
@@ -1012,7 +1009,7 @@ class Experiment:
         scalegamma=1
 
         try:
-            scanlength=len(scan.metadata.data_file.local_image_paths)
+            scanlength=np.shape(scan.metadata.data_file.nx_detector.data)[0]
         except:
             scanlength=scan.metadata.data_file.scan_length
 
@@ -1161,7 +1158,7 @@ class Experiment:
         start_time = time()
         scalegamma=1
         try:
-            scanlength=len(scan.metadata.data_file.local_image_paths)
+            scanlength=np.shape(scan.metadata.data_file.nx_detector.data)[0]
         except:
             scanlength=scan.metadata.data_file.scan_length
         nqbins=int(np.ceil((radrange[1]-radrange[0])/radstepval))
@@ -1272,7 +1269,7 @@ class Experiment:
         scalegamma=1
 
         try:
-            scanlength=len(scan.metadata.data_file.local_image_paths)
+            scanlength=np.shape(scan.metadata.data_file.nx_detector.data)[0]
         except:
             scanlength=scan.metadata.data_file.scan_length
 
