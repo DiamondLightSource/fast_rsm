@@ -240,7 +240,7 @@ def pyfai_stat_qmap(experiment, imageindex, scan, two_theta_start, pyfaiponi, qm
     
     if experiment.setup=='vertical':
         sample_orientation=4
-        qlimits = [ qlimver[0], qlimver[1],qlimhor[0], qlimhor[1]]
+        qlimits = [ qlimver[0], qlimver[1], -qlimhor[0],-qlimhor[1]]
 
     if np.size(experiment.incident_angle) > 1:
         inc_angle = -np.radians(experiment.incident_angle[index])
@@ -294,7 +294,7 @@ def pyfai_stat_ivsq(experiment, imageindex, scan, two_theta_start, pyfaiponi, qm
     
     if experiment.setup=='vertical':
         sample_orientation=4
-        qlimits = [ qlimver[0], qlimver[1],qlimhor[0], qlimhor[1]]
+        qlimits = [ qlimver[0], qlimver[1], -qlimhor[0],-qlimhor[1]]
 
     if np.size(experiment.incident_angle) > 1:
         inc_angle = -np.radians(experiment.incident_angle[index])
@@ -344,15 +344,15 @@ def pyfai_move_qmap(experiment, imageindices, scan, shapecake, shapeqi, shapeqpq
 
     bc_x_ratio = experiment.beam_centre[0]/experiment.imshape[0]
     bc_y_ratio = experiment.beam_centre[1]/experiment.imshape[1]
-    qlimhor = experiment.calcqlim('hor')
-    qlimver = experiment.calcqlim('vert')
+    qlimhor=experiment.calcqlim( 'hor',vertsetup=(experiment.setup=='vertical'))
+    qlimver=experiment.calcqlim( 'vert',vertsetup=(experiment.setup=='vertical'))
 
     sample_orientation = 1
     qlimits = [qlimhor[0], qlimhor[1], qlimver[0], qlimver[1]]
     
     if experiment.setup=='vertical':
         sample_orientation=4
-        qlimits = [ qlimver[0], qlimver[1],qlimhor[0], qlimhor[1]]
+        qlimits = [ qlimver[0], qlimver[1], -qlimhor[0],-qlimhor[1]]
 
 
     runningtotal = 0
@@ -384,6 +384,7 @@ def pyfai_move_qmap(experiment, imageindices, scan, shapecake, shapeqi, shapeqpq
             if np.size(experiment.deltadata) == 1:
                 delval = experiment.deltadata
             rots = experiment.gamdel2rots(gamval, delval)
+            #debug line print('rots=',rots)
             my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
             # if np.size(experiment.deltadata)>1:
             #     my_ai.rot2 =-np.radians(experiment.deltadata[i])
@@ -428,6 +429,11 @@ def pyfai_move_ivsq(experiment, imageindices, scan, shapecake, shapeqi, shapeqpq
     else:
         sample_orientation = 1
         qlimits = [qlimhor[0], qlimhor[1], qlimver[0], qlimver[1]]
+    
+        
+    if experiment.setup=='vertical':
+        sample_orientation=4
+        qlimits = [ qlimver[0], qlimver[1], -qlimhor[0],-qlimhor[1]]
 
     runningtotal = 0
     groupnum = 15
@@ -459,11 +465,8 @@ def pyfai_move_ivsq(experiment, imageindices, scan, shapecake, shapeqi, shapeqpq
             rots = experiment.gamdel2rots(gamval, delval)
             my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
             ais.append(my_ai)
-        # print(f'loading image {i}')
-        if experiment.setup == 'vertical':
-            img_data = [np.rot90(scan.load_image(i).data, -1) for i in group]
-        else:
-            img_data = [scan.load_image(i).data for i in group]
+
+        img_data = [scan.load_image(i).data for i in group]
 
             # print(np.max(map2d.sum_signal))
 
