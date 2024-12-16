@@ -240,6 +240,8 @@ class Experiment:
         if map_frame.frame_name == Frame.qpar_qperp:
             map_frame.frame_name = Frame.lab
           # Compute the optimal finite differences volume.
+          
+
         if volume_step is None:
             # Overwrite whichever of these we were given explicitly.
             if (volume_start is not None)&(volume_stop is not None):
@@ -256,6 +258,7 @@ class Experiment:
         else:
             step = np.array(volume_step)
             _start, _stop = self.q_bounds(map_frame, oop)
+        
         # Make sure start and stop match the step as required by binoculars.
             start, stop = _match_start_stop_to_step(
                 step=step,
@@ -264,6 +267,7 @@ class Experiment:
 
         locks = [Lock() for _ in range(num_threads)]
         shape = finite_diff_shape(start, stop, step)
+
 
         time_1 = time()
         #map_mem_total=[]
@@ -363,6 +367,7 @@ class Experiment:
                 
         fcounts= count_arrays.astype(np.float32) #makes sure counts are floats ready for division
         normalised_map=np.divide(map_arrays,fcounts, out=np.copy(map_arrays),where=fcounts!=0.0)#need to specify out location to avoid working with non-initialised data
+
         # Only save the vtk/npy files if we've been asked to.
         if save_vtk:
             print("\n**READ THIS**")
@@ -762,8 +767,11 @@ class Experiment:
 
     def SOHqcalc(self,angle,kmod):
         return np.sin(np.radians(angle))*kmod*1e-10
-    def calcqlim(self,axis):
+    
+    def calcqlim(self,axis,vertsetup=False):
         kmod=2*np.pi/ (self.incident_wavelength)
+        
+        switchaxis = {'vert': 'hor', 'hor': 'vert'}            
         
         if axis=='vert':
             pixlow=self.imshape[0]-self.beam_centre[0]
@@ -778,7 +786,14 @@ class Experiment:
 
         maxangle=highsection+np.degrees(np.arctan((pixhigh*self.pixel_size)/self.detector_distance))
         minangle=lowsection-np.degrees(np.arctan((pixlow*self.pixel_size)/self.detector_distance))
-        
+        if (vertsetup==True):
+            axis=switchaxis[axis]
+            horpix=self.beam_centre[1]
+            vertangles=self.gammadata
+        else:
+            horpix= self.beam_centre[0]  
+            vertangles=self.deltadata
+            
         if (axis=='vert'):
             qupp=self.SOHqcalc(maxangle,kmod)
             qlow=self.SOHqcalc(minangle,kmod)
@@ -791,12 +806,12 @@ class Experiment:
             extravert=extraincq-minusexitq_x-minusexitq_z
             qupp+=extravert
             qlow-=extravert
-
+  
+        
         elif axis=='hor':
             qupp=self.SOHqcalc(maxangle/2,kmod)*2
             qlow=self.SOHqcalc(minangle/2,kmod)*2
-            delpix=self.beam_centre[0]
-            maxdel=np.max(self.deltadata) +np.degrees(np.arctan((delpix*self.pixel_size)/self.detector_distance))
+            maxdel=np.max(vertangles) +np.degrees(np.arctan((horpix*self.pixel_size)/self.detector_distance))
             s1=kmod*np.cos(np.radians(maxdel))*np.sin(np.radians(maxangle))
             s2=kmod*(1-np.cos(np.radians(maxdel))*np.cos(np.radians(maxangle)))
             qupp_withdelta=np.sqrt(np.square(s1)+np.square(s2))*1e-10*np.sign(maxangle)
@@ -867,7 +882,7 @@ class Experiment:
         except:
             print('directory already exists')
         metadata=f'Intensity data identical to data saved in {hf.filename}\n'
-        outname=outdir.split('\\')[-1]
+        outname=outdir.split('/')[-1]
         if extradims==0:
 
             intvals=Idata
@@ -939,7 +954,7 @@ class Experiment:
         scalegamma=1
 
         try:
-            scanlength=np.shape(scan.metadata.data_file.nx_detector.data)[0]
+            scanlength=np.shape(scan.metadata.data_file.nx_detector.data[:,1,:])[0]
         except:
             scanlength=scan.metadata.data_file.scan_length
 
@@ -975,6 +990,9 @@ class Experiment:
         dset.create_dataset("qpara_qperp_image",data=outlist[0])
         dset.create_dataset("map_para",data=outlist[1])
         dset.create_dataset("map_perp",data=outlist[2])
+        dset.create_dataset("map_perp_indices",data = [0,1,2])
+        dset.create_dataset("map_para_indices",data = [0,1,3])
+
                 
         if "scanfields" not in hf.keys():
             self.save_scan_field_values(hf, scan)    
@@ -1009,7 +1027,7 @@ class Experiment:
         scalegamma=1
 
         try:
-            scanlength=np.shape(scan.metadata.data_file.nx_detector.data)[0]
+            scanlength=np.shape(scan.metadata.data_file.nx_detector.data[:,1,:])[0]
         except:
             scanlength=scan.metadata.data_file.scan_length
 
@@ -1094,7 +1112,7 @@ class Experiment:
             print(f'started pool with num_threads={num_threads}')
             indices=np.arange(0,scanlength,scalegamma)
             input_list = [(self,index,scan,pyfaiponi,qmapbins,ivqbins) for index in indices]
-            results=pool.map(self.pyfai_qmap_qvsI_wrapper,input_list)
+            results=pool.map(self.pyfai_static_qmap_qvsI_wrapper,input_list)
             maps=[result[0] for result in results]
             xlabels=[result[1] for result in results]
             ylabels=[result[2] for result in results]
@@ -1158,7 +1176,7 @@ class Experiment:
         start_time = time()
         scalegamma=1
         try:
-            scanlength=np.shape(scan.metadata.data_file.nx_detector.data)[0]
+            scanlength=np.shape(scan.metadata.data_file.nx_detector.data[:,1,:])[0]
         except:
             scanlength=scan.metadata.data_file.scan_length
         nqbins=int(np.ceil((radrange[1]-radrange[0])/radstepval))
@@ -1269,7 +1287,7 @@ class Experiment:
         scalegamma=1
 
         try:
-            scanlength=np.shape(scan.metadata.data_file.nx_detector.data)[0]
+            scanlength=np.shape(scan.metadata.data_file.nx_detector.data[:,1,:])[0]
         except:
             scanlength=scan.metadata.data_file.scan_length
 
@@ -1348,8 +1366,10 @@ class Experiment:
         dset3.create_dataset("qpara_qperp_image",data=qpqp_array)
         dset3.create_dataset("map_para",data=mapaxisinfo[1])
         dset3.create_dataset("map_para_unit",data=mapaxisinfo[3])
-        dset3.create_dataset("map_perp",data=-1*mapaxisinfo[0])
+        dset3.create_dataset("map_perp",data=-1*mapaxisinfo[0])#list(reversed(mapaxisinfo[0])))
         dset3.create_dataset("map_perp_unit",data=mapaxisinfo[2]) 
+        dset3.create_dataset("map_perp_indices",data = [0,1,2])
+        dset3.create_dataset("map_para_indices",data = [0,1,3])
         
         if self.savetiffs==True:
             self.do_savetiffs(hf, qpqp_array,mapaxisinfo[1], mapaxisinfo[0])
@@ -1658,9 +1678,12 @@ class Experiment:
         if beam_centre==0:
             poni1=(image2dshape[0]-offset)*self.pixel_size
             poni2=image2dshape[1]*self.pixel_size
-        elif offset==0:
+        elif (offset==0):#&(self.setup!='vertical'):
             poni1=(beam_centre[0])*self.pixel_size
             poni2=beam_centre[1]*self.pixel_size
+        # elif (offset==0)&(self.setup=='vertical'):
+        #     poni1=beam_centre[1]*self.pixel_size
+        #     poni2=(image2dshape[0]-beam_centre[0])*self.pixel_size
             
         f.write(f'Poni1: {poni1}\n')
         f.write(f'Poni2: {poni2}\n')
