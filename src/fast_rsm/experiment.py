@@ -22,7 +22,7 @@ from . import io
 from .binning import weighted_bin_1d, finite_diff_shape
 from .meta_analysis import get_step_from_filesize
 from .scan import Scan, init_process_pool, bin_maps_with_indices, chunk, \
-    init_pyfai_process_pool,pyfaicalcint,pyfai_qmap_qvsI,pyfai_stat_qmap,pyfai_stat_ivsq,pyfai_move_qmap,pyfai_move_ivsq,pyfai_stat_exitangles
+    init_pyfai_process_pool,pyfaicalcint,pyfai_qmap_qvsI,pyfai_stat_qmap,pyfai_stat_ivsq,pyfai_move_qmap,pyfai_move_ivsq, pyfai_stat_exitangles,pyfai_move_exitangles
 from .writing import linear_bin_to_vtk
 import pandas as pd
 import pyFAI,fabio
@@ -964,7 +964,7 @@ class Experiment:
         self.two_theta_start=self.gammadata-tthdirect
         
         
-        #set exit angle map bins if not specified
+        #calculate map bins if not specified using resolution of 0.01 degrees 
         
         if qmapbins==0:
             qmapbins=[800,800]
@@ -1323,7 +1323,7 @@ class Experiment:
             print(f'started pool with num_threads={num_threads}')
             for indices in chunk(np.arange(0,scanlength,scalegamma), num_threads):
                 async_results.append(pool.apply_async(
-                    pyfai_move_qmap,
+                    pyfai_move_exitangles,
                     (self,indices,scan,shapecake,shapeqi,shapeexhexv,self.two_theta_start,pyfaiponi,radrange,radstepval,qmapbins)))
                 #print(f'done  {indices[0]  - indices[1]} with {num_threads}\n')
             print('finished preparing chunked data')        
@@ -1366,20 +1366,20 @@ class Experiment:
         end_time=time()
         #datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
         
-        dset3=hf.create_group("qpara_qperp")
-        dset3.create_dataset("qpara_qperp_image",data=exhexv_array)
-        dset3.create_dataset("map_para",data=mapaxisinfo[1])
-        dset3.create_dataset("map_para_unit",data=mapaxisinfo[3])
-        dset3.create_dataset("map_perp",data=-1*mapaxisinfo[0])#list(reversed(mapaxisinfo[0])))
-        dset3.create_dataset("map_perp_unit",data=mapaxisinfo[2]) 
-        dset3.create_dataset("map_perp_indices",data = [0,1,2])
-        dset3.create_dataset("map_para_indices",data = [0,1,3])
+        dset3=hf.create_group("horiz_vert_exit")
+        dset3.create_dataset("exit_angle_image",data=exhexv_array)
+        dset3.create_dataset("exit_para",data=mapaxisinfo[1])
+        dset3.create_dataset("exit_para_unit",data=mapaxisinfo[3])
+        dset3.create_dataset("exit_perp",data=-1*mapaxisinfo[0])#list(reversed(mapaxisinfo[0])))
+        dset3.create_dataset("exit_perp_unit",data=mapaxisinfo[2]) 
+        dset3.create_dataset("exit_perp_indices",data = [0,1,2])
+        dset3.create_dataset("exit_para_indices",data = [0,1,3])
         
         if self.savetiffs==True:
             self.do_savetiffs(hf, exhexv_array,mapaxisinfo[1], mapaxisinfo[0])
 
         minutes=(end_time-start_time)/60
-        print(f'total calculation took {minutes}  minutes')
+        print(f'total exit angle map calculation took {minutes}  minutes')
         return mapaxisinfo             
         
     def pyfai_moving_qmap(self,hf,scan,num_threads,output_file_path,pyfaiponi,radrange,radstepval,qmapbins=0):            

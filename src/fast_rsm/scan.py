@@ -399,15 +399,14 @@ def pyfai_move_exitangles(experiment, imageindices, scan, shapecake, shapeqi, sh
 
     bc_x_ratio = experiment.beam_centre[0]/experiment.imshape[0]
     bc_y_ratio = experiment.beam_centre[1]/experiment.imshape[1]
-    qlimhor=experiment.calcqlim( 'hor',vertsetup=(experiment.setup=='vertical'))
-    qlimver=experiment.calcqlim( 'vert',vertsetup=(experiment.setup=='vertical'))
-
+    anglimhor=experiment.calcanglim( 'hor',vertsetup=(experiment.setup=='vertical'))
+    anglimver=experiment.calcanglim( 'vert',vertsetup=(experiment.setup=='vertical'))
+    anglimits=[anglimhor[0],anglimhor[1],-anglimver[0],-anglimver[1]]
+    
     sample_orientation = 1
-    qlimits = [qlimhor[0], qlimhor[1], qlimver[0], qlimver[1]]
     
     if experiment.setup=='vertical':
         sample_orientation=4
-        qlimits = [ qlimver[0], qlimver[1], -qlimhor[0],-qlimhor[1]]
 
 
     runningtotal = 0
@@ -439,7 +438,6 @@ def pyfai_move_exitangles(experiment, imageindices, scan, shapecake, shapeqi, sh
             if np.size(experiment.deltadata) == 1:
                 delval = experiment.deltadata
             rots = experiment.gamdel2rots(gamval, delval)
-            print('rots=',rots)
             my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
             # if np.size(experiment.deltadata)>1:
             #     my_ai.rot2 =-np.radians(experiment.deltadata[i])
@@ -452,15 +450,16 @@ def pyfai_move_exitangles(experiment, imageindices, scan, shapecake, shapeqi, sh
         
         for current_n, current_ai in enumerate(ais):
             current_img = img_data[current_n]
-            map2d = current_ai.integrate2d(current_img, qmapbins[0], qmapbins[1], unit=(unit_qip, unit_qoop), method=("no", "csr", "cython"))
+            map2d = current_ai.integrate2d(current_img, qmapbins[0],qmapbins[1], unit=(unit_qip, unit_qoop),
+        radial_range=(np.radians(anglimits[1]*-1.05),np.radians(anglimits[0]*-1.05)),azimuth_range=(np.radians(anglimits[3]*1.05),np.radians(anglimits[2]*1.05)), method=("no", "csr", "cython"))
             totalexhexvmap += map2d.sum_signal
             totalexhexvcounts += map2d.count
             # print(np.max(map2d.sum_signal))
 
     mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
         map2d.azimuthal_unit), str(map2d.radial_unit)]
-    exhexvMAP[0] = totalexhexvmap
-    exhexvMAP[1] = totalexhexvcounts
+    QPQPMAP[0] = totalexhexvmap
+    QPQPMAP[1] = totalexhexvcounts
     return SHARED_QPQPMAP_NAME, mapaxisinfo
 
 def pyfai_move_qmap(experiment, imageindices, scan, shapecake, shapeqi, shapeqpqp, two_theta_start, pyfaiponi, radrange, radstepval, qmapbins) -> None:
@@ -482,11 +481,10 @@ def pyfai_move_qmap(experiment, imageindices, scan, shapecake, shapeqi, shapeqpq
     qlimver=experiment.calcqlim( 'vert',vertsetup=(experiment.setup=='vertical'))
 
     sample_orientation = 1
-    qlimits = [qlimhor[0], qlimhor[1], qlimver[0], qlimver[1]]
+    qlimits = [qlimhor[0], qlimhor[1],qlimver[0], qlimver[1]]
     
     if experiment.setup=='vertical':
         sample_orientation=4
-        qlimits = [ qlimver[0], qlimver[1], -qlimhor[0],-qlimhor[1]]
 
 
     runningtotal = 0
@@ -518,7 +516,6 @@ def pyfai_move_qmap(experiment, imageindices, scan, shapecake, shapeqi, shapeqpq
             if np.size(experiment.deltadata) == 1:
                 delval = experiment.deltadata
             rots = experiment.gamdel2rots(gamval, delval)
-            print('rots=',rots)
             my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
             # if np.size(experiment.deltadata)>1:
             #     my_ai.rot2 =-np.radians(experiment.deltadata[i])
