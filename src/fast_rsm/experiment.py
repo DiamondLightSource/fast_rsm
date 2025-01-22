@@ -1077,19 +1077,47 @@ class Experiment:
         if len(signal_shape)>1:
             outlist=[self.reshape_to_signalshape(arr, signal_shape) for arr in outlist]
         
+        binset=hf.create_group("binoculars")
+        binset.create_dataset("counts",data=outlist[0])
+        binset.create_dataset("contributions",data=np.ones(np.shape(outlist[0])))
+        axgroup=binset.create_group("axes",track_order=True)
+        print(np.shape(outlist[0]),outlist[1][0][0],outlist[1][0][-1])
+        print(np.shape(outlist[0]),outlist[2][0][0],outlist[2][0][-1])
+
+        
+        zlen=np.shape(outlist[0])[0]
+        if zlen>1:
+            axgroup.create_dataset("1_index",data=self.get_bin_axvals(np.arange(zlen),0),track_order=True)
+        else:
+            axgroup.create_dataset("1_index",data=[0.0,1.0,1.0,1.0,1.0,1.0],track_order=True)
+        
+        axgroup.create_dataset("2_q_perp",data=self.get_bin_axvals(outlist[1][0],1),track_order=True)    
+        axgroup.create_dataset("3_q_para",data=self.get_bin_axvals(outlist[2][0],2),track_order=True)
+        
+        
         dset=hf.create_group("qpara_qperp")
-        dset.create_dataset("qpara_qperp_image",data=outlist[0])
+        dset["qpara_qperp_image"]=h5py.SoftLink('/binoculars/counts')
         dset.create_dataset("map_para",data=outlist[1])
         dset.create_dataset("map_perp",data=outlist[2])
         dset.create_dataset("map_perp_indices",data = [0,1,2])
         dset.create_dataset("map_para_indices",data = [0,1,3])
+        
         
                         
         if "scanfields" not in hf.keys():
             self.save_scan_field_values(hf, scan)    
         if self.savetiffs==True:
             self.do_savetiffs(hf, outlist[0],outlist[1], outlist[2])
-            
+    
+    def get_bin_axvals(self,data,ind):
+        startval=data[0]
+        stopval=data[-1]
+        stepval=data[1]-data[0]
+        startind=int(np.floor(startval/stepval))
+        stopind=int(startind+len(data)-1)
+        return [ind,startval,stopval,stepval,float(startind),float(stopind)]
+        
+        
 
     def pyfai_static_ivsq(self,hf,scan,num_threads,output_file_path,pyfaiponi,ivqbins,qmapbins=0):
         self.load_curve_values(scan)
@@ -1670,14 +1698,24 @@ class Experiment:
         if self.savetiffs==True:
             self.do_savetiffs(hf, qperp_qpara_map[0],qperp_qpara_map[1], qperp_qpara_map[2])
 
-    def save_config_variables(self,hf,joblines,pythonlocation):
-        config_group=hf.create_group('config')
+    def save_config_variables(self,hf,joblines,pythonlocation,globalvals):
+        config_group=hf.create_group('i07configuration')
         configlist=['setup','experimental_hutch', 'using_dps','beam_centre','detector_distance','dpsx_central_pixel','dpsy_central_pixel','dpsz_central_pixel',\
                     'local_data_path','local_output_path','output_file_size','save_binoculars_h5','map_per_image','volume_start','volume_step','volume_stop',\
                     'load_from_dat', 'edfmaskfile','specific_pixels','mask_regions','process_outputs','scan_numbers']
-        for name, value in globals().items() :
-            if name in configlist:
-                config_group.create_dataset(f"{name}",data=value)
+        for name in configlist :
+            if name in globalvals:
+                outval=globalvals[f'{name}']
+                if outval==None:
+                    outval='None'
+                config_group.create_dataset(f"{name}",data=outval)
+        if 'ubinfo' in globalvals:
+            for i,coll in enumerate(globalvals['ubinfo']):
+                ubgroup=config_group.create_group(f'ubinfo_{i+1}')
+                ubgroup.create_dataset(f'lattice_{i+1}',data=coll['diffcalc_lattice'])
+                ubgroup.create_dataset(f'u_{i+1}',data=coll['diffcalc_u'])
+                ubgroup.create_dataset(f'ub_{i+1}',data=coll['diffcalc_ub'])
+                
         config_group.create_dataset('joblines',data=joblines)
         config_group.create_dataset('python_location',data=pythonlocation)
     
