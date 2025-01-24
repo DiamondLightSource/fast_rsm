@@ -927,7 +927,7 @@ class Experiment:
     
     def pyfai_stat_ivsq_wrapper(self,args):
         current_experiment, index, scan, pyfaiponi, qmapbins,ivqbins = args
-        return  (current_experiment,index, scan, current_experiment.two_theta_start, pyfaiponi, qmapbins,ivqbins)
+        return  pyfai_stat_ivsq(current_experiment,index, scan, current_experiment.two_theta_start, pyfaiponi, qmapbins,ivqbins)
     
     def pyfai_static_exitangles(self,hf,scan,num_threads,pyfaiponi,ivqbins,qmapbins=0):
         """
