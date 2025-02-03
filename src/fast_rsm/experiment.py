@@ -1081,8 +1081,8 @@ class Experiment:
         binset.create_dataset("counts",data=outlist[0])
         binset.create_dataset("contributions",data=np.ones(np.shape(outlist[0])))
         axgroup=binset.create_group("axes",track_order=True)
-        print(np.shape(outlist[0]),outlist[1][0][0],outlist[1][0][-1])
-        print(np.shape(outlist[0]),outlist[2][0][0],outlist[2][0][-1])
+        # print(np.shape(outlist[0]),outlist[1][0][0],outlist[1][0][-1])
+        # print(np.shape(outlist[0]),outlist[2][0][0],outlist[2][0][-1])
 
         
         zlen=np.shape(outlist[0])[0]
@@ -1109,7 +1109,13 @@ class Experiment:
         if self.savetiffs==True:
             self.do_savetiffs(hf, outlist[0],outlist[1], outlist[2])
     
-    def get_bin_axvals(self,data,ind):
+    def get_bin_axvals(self,data_in,ind):
+        #print(data_in,type(data_in[0]))
+        single_list=[np.int64,np.float64,int,float]
+        if type(data_in[0]) in single_list:
+            data=data_in
+        else:
+            data=data_in[0]
         startval=data[0]
         stopval=data[-1]
         stepval=data[1]-data[0]
@@ -1599,7 +1605,7 @@ class Experiment:
             self.dcdomega=np.array( self.entry.instrument.dcdomega.value)
             self.projectionx=1e-3* self.dcdrad*np.cos(np.radians(self.dcdomega))
             self.projectiony=1e-3* self.dcdrad*np.sin(np.radians(self.dcdomega))
-            dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance
+            dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance[0]
             self.dcd_incdeg=np.degrees(np.arctan(self.projectiony/(np.sqrt(np.square(self.projectionx)+np.square(dcd_sample_dist)))))
             self.incident_angle=self.dcd_incdeg
             self.deltadata+=self.dcd_incdeg
