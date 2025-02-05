@@ -328,7 +328,7 @@ def pyfai_stat_qmap(experiment, imageindex, scan, two_theta_start, pyfaiponi, qm
     img_data = np.array(scan.load_image(index).data)
    # print(qlimits)
     map2d = my_ai.integrate2d(img_data, qmapbins[0], qmapbins[1], unit=(unit_qip, unit_qoop),
-                              radial_range=(qlimits[0]*1.05, qlimits[1]*1.05), azimuth_range=(-12.5*qlimits[3], -12.5*qlimits[2]), method=("no", "csr", "cython"))
+                              radial_range=(qlimits[0]*1.05, qlimits[1]*1.05), azimuth_range=(-1.25*qlimits[3], -1.25*qlimits[2]), method=("no", "csr", "cython"))
 
     return map2d[0], map2d[1], map2d[2]
 
@@ -526,7 +526,7 @@ def pyfai_move_qmap(experiment, imageindices, scan, shapecake, shapeqi, shapeqpq
         for current_n, current_ai in enumerate(ais):
             current_img = img_data[current_n]
             map2d = current_ai.integrate2d(current_img, qmapbins[0], qmapbins[1], unit=(unit_qip, unit_qoop),
-                                           radial_range=(qlimits[0]*1.05, qlimits[1]*1.05), azimuth_range=(-12.5*qlimits[3], -12.5*qlimits[2]), method=("no", "csr", "cython"))
+                                           radial_range=(qlimits[0]*1.05, qlimits[1]*1.05), azimuth_range=(-1.25*qlimits[3], -1.25*qlimits[2]), method=("no", "csr", "cython"))
             totalqpqpmap += map2d.sum_signal
             totalqpqpcounts += map2d.count
             # print(np.max(map2d.sum_signal))
