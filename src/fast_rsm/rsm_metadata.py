@@ -2,7 +2,7 @@
 This module contains the metadata class, which provides a python interface
 for the .nxs file written for the scan.
 """
-
+#test comment
 from typing import Tuple, List, Dict
 
 import numpy as np
