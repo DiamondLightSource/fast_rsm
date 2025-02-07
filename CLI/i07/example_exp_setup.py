@@ -133,8 +133,9 @@ skipimages=[[],\
 #
 # 'pyfai_ivsq' = calculates 1d Intensity Vs Q using pyFAI
 # 
+#'pyfai_exitangles' - calculates a map of vertical exit angle Vs horizontal exit angle
 
-process_outputs=[]#'pyfai_ivsq'  , 'pyfai_qmap' ,'full_reciprocal_map'
+process_outputs=[]#'pyfai_ivsq'  , 'pyfai_qmap','pyfai_exitangles' ,'full_reciprocal_map'
 
 
 # Set this to True if you would like each image to be mapped independently.
