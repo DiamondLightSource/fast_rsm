@@ -510,9 +510,9 @@ def pyfai_move_qmap(experiment, imageindices, scan, shapecake, shapeqi, shapeqpq
             gamval = 0
             delval = 0
             if np.size(experiment.gammadata) > 1:
-                gamval = -experiment.two_theta_start[i]
+                gamval = -np.array(experiment.two_theta_start).ravel()[i]
             if np.size(experiment.deltadata) > 1:
-                delval = experiment.deltadata[i]
+                delval = np.array(experiment.deltadata).ravel()[i]
             if np.size(experiment.deltadata) == 1:
                 delval = experiment.deltadata
             rots = experiment.gamdel2rots(gamval, delval)
