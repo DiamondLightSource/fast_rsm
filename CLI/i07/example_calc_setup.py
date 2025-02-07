@@ -228,6 +228,8 @@ joblines=f.readlines()
 f.close()
 pythonlocation=sys.executable
 
+#grab ub information 
+ubinfo=[scan.metadata.data_file.nx_instrument.diffcalchdr for scan in experiment.scans]
 
 
 
@@ -334,7 +336,7 @@ for i, scan in enumerate(experiment.scans):
         experiment.load_curve_values(scan)
         PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,beam_centre=experiment.beam_centre)
         experiment.pyfai_static_qmap(hf,scan, num_threads,local_output_path,PYFAI_PONI,ivqbins,qmapbins)
-        experiment.save_config_variables(hf,joblines,pythonlocation)
+        experiment.save_config_variables(hf,joblines,pythonlocation,globals())
         hf.close()
         print(f"saved 2d map  data to {local_output_path}/{projected_name}.hdf5")
         total_time = time() - process_start_time
@@ -349,9 +351,9 @@ for i, scan in enumerate(experiment.scans):
         experiment.load_curve_values(scan)
         PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,beam_centre=experiment.beam_centre)
         experiment.pyfai_moving_qmap(hf,scan, num_threads,  local_output_path,PYFAI_PONI,radialrange,radialstepval,qmapbins)
-        experiment.save_config_variables(hf,joblines,pythonlocation)
+        experiment.save_config_variables(hf,joblines,pythonlocation,globals())
         hf.close()
-        print(f"saved 2d map and 1D integration data to {local_output_path}/{projected_name}.hdf5")           
+        print(f"saved 2d map data to {local_output_path}/{projected_name}.hdf5")           
        
         total_time = time() - process_start_time
         print(f"\n 2d Q map calculation took {total_time}s")
@@ -366,7 +368,7 @@ for i, scan in enumerate(experiment.scans):
         experiment.load_curve_values(scan)
         PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,beam_centre=experiment.beam_centre)
         experiment.pyfai_static_ivsq(hf,scan, num_threads,local_output_path,PYFAI_PONI,ivqbins,qmapbins)
-        experiment.save_config_variables(hf,joblines,pythonlocation)
+        experiment.save_config_variables(hf,joblines,pythonlocation,globals())
         hf.close()
         print(f"saved 1d integration data to {local_output_path}/{projected_name}.hdf5")
         total_time = time() - process_start_time 
@@ -381,11 +383,41 @@ for i, scan in enumerate(experiment.scans):
         experiment.load_curve_values(scan)
         PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,beam_centre=experiment.beam_centre)
         experiment.pyfai_moving_ivsq(hf,scan, num_threads,local_output_path,PYFAI_PONI,radialrange,radialstepval,qmapbins)
-        experiment.save_config_variables(hf,joblines,pythonlocation)
+        experiment.save_config_variables(hf,joblines,pythonlocation,globals())
         hf.close()
         print(f"saved 1d integration data to {local_output_path}/{projected_name}.hdf5")
         total_time = time() - process_start_time 
         print(f"\n Azimuthal integration took {total_time}s")
+    
+    if ('pyfai_exitangles' in process_outputs)&(map_per_image==True):
+        name_end=scan_numbers[i]
+        datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+        projected_name=f'exitmap_{name_end}_{datetime_str}'
+        hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
+        process_start_time=time()
+        experiment.load_curve_values(scan)
+        PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,beam_centre=experiment.beam_centre)
+        experiment.pyfai_static_exitangles(hf,scan, num_threads,PYFAI_PONI,ivqbins,qmapbins)
+        experiment.save_config_variables(hf,joblines,pythonlocation,globals())
+        hf.close()
+        print(f"saved 2d exit angle map  data to {local_output_path}/{projected_name}.hdf5")
+        total_time = time() - process_start_time
+        print(f"\n 2d exit angle map calculations took {total_time}s")
+        
+    if ('pyfai_exitangles' in process_outputs)&(map_per_image==False):
+        name_end=scan_numbers[i]
+        datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+        projected_name=f'exitmap_{name_end}_{datetime_str}'
+        hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
+        process_start_time=time()
+        experiment.load_curve_values(scan)
+        PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,beam_centre=experiment.beam_centre)
+        experiment.pyfai_moving_exitangles(hf,scan, num_threads, local_output_path, PYFAI_PONI,radialrange,radialstepval,qmapbins)
+        experiment.save_config_variables(hf,joblines,pythonlocation,globals())
+        hf.close()
+        print(f"saved 2d exit angle map  data to {local_output_path}/{projected_name}.hdf5")
+        total_time = time() - process_start_time
+        print(f"\n 2d exit angle map calculations took {total_time}s")
         
         
 

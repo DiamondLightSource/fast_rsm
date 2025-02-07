@@ -461,6 +461,12 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str,joblines,pyth
             
                 # Add the variable to config_group
                 config_group[var_name] = str(var_value)
+        if 'ubinfo' in outvars:
+            for i,coll in enumerate(outvars['ubinfo']):
+                config_group[f'ubinfo_{i+1}']=nx.NXgroup()
+                config_group[f'ubinfo_{i+1}'][f'lattice_{i+1}']  = coll['diffcalc_lattice']
+                config_group[f'ubinfo_{i+1}'][f'u_{i+1}']=coll['diffcalc_u']
+                config_group[f'ubinfo_{i+1}'][f'ub_{i+1}']=coll['diffcalc_ub']
     config_group['python_version']=pythonlocation
     config_group['joblines']=joblines
     # Make a corresponding (mandatory) "binoculars" group.

@@ -221,6 +221,63 @@ def init_pyfai_process_pool(
 
     print(f"Finished initializing worker {current_process().name}.")
 
+def pyfai_stat_exitangles(experiment, imageindex, scan, two_theta_start, pyfaiponi, qmapbins, ivqbins) -> None:
+    index = imageindex
+    aistart = pyFAI.load(pyfaiponi)
+    
+    unit_qip_name ="horz_exitangle_rad"
+    unit_qoop_name =  "exitangle_rad"
+    
+    bc_x_ratio=experiment.beam_centre[0]/experiment.imshape[0]
+    bc_y_ratio=experiment.beam_centre[1]/experiment.imshape[1]
+
+    anglimhor=experiment.calcanglim( 'hor',vertsetup=(experiment.setup=='vertical'))
+    anglimver=experiment.calcanglim( 'vert',vertsetup=(experiment.setup=='vertical'))
+    anglimits=[anglimhor[0],anglimhor[1],-anglimver[0],-anglimver[1]]
+    
+    sample_orientation = 1
+    
+    if experiment.setup=='vertical':
+        sample_orientation=4
+    
+    if np.size(experiment.incident_angle)>1:
+        inc_angle=-np.radians(experiment.incident_angle[index])
+    elif type(experiment.incident_angle)==np.float64:
+        inc_angle=-np.radians(experiment.incident_angle)
+    else:
+        inc_angle=-np.radians(experiment.incident_angle[0])
+    unit_qip=pyFAI.units.get_unit_fiber(unit_qip_name,sample_orientation=sample_orientation,incident_angle=inc_angle)
+    unit_qoop=pyFAI.units.get_unit_fiber(unit_qoop_name,sample_orientation=sample_orientation,incident_angle=inc_angle) 
+
+    my_ai = copy.deepcopy(aistart)
+    gamval=0
+    delval=0 
+    if np.size(experiment.gammadata)>1:   
+        gamval= -experiment.two_theta_start[index]
+    if np.size(experiment.deltadata)>1:
+        delval =experiment.deltadata[index]
+    elif np.size(experiment.deltadata)==1:
+        delval=experiment.deltadata
+    rots=experiment.gamdel2rots(gamval,delval)
+    my_ai.rot1,my_ai.rot2,my_ai.rot3=rots
+    
+    img_data = np.array(scan.load_image(index).data)
+    
+    current_ai=my_ai
+    current_img=img_data
+    
+    if experiment.setup=='vertical':
+        current_img_rot=np.rot90(current_img,-1)
+        poni1rot=current_ai.get_poni2()
+        poni2rot=experiment.pixel_size*(experiment.imshape[0]-experiment.beam_centre[0])
+        current_ai.set_poni1(poni1rot)
+        current_ai.set_poni2(poni2rot)
+        map2d = current_ai.integrate2d(current_img_rot, qmapbins[0],qmapbins[1], unit=(unit_qip, unit_qoop),
+    radial_range=(np.radians(anglimits[1]*1.05),np.radians(anglimits[0]*1.05)),azimuth_range=(np.radians(anglimits[3]*1.05),np.radians(anglimits[2]*1.05)), method=("no", "csr", "cython"))
+    else:
+        map2d = current_ai.integrate2d(current_img, qmapbins[0],qmapbins[1], unit=(unit_qip, unit_qoop),
+    radial_range=(np.radians(anglimits[1]*-1.05),np.radians(anglimits[0]*-1.05)),azimuth_range=(np.radians(anglimits[3]*1.05),np.radians(anglimits[2]*1.05)), method=("no", "csr", "cython"))
+    return map2d[0], map2d[1], map2d[2]
 
 def pyfai_stat_qmap(experiment, imageindex, scan, two_theta_start, pyfaiponi, qmapbins, ivqbins) -> None:
     index = imageindex
@@ -231,16 +288,14 @@ def pyfai_stat_qmap(experiment, imageindex, scan, two_theta_start, pyfaiponi, qm
 
     bc_x_ratio = experiment.beam_centre[0]/experiment.imshape[0]
     bc_y_ratio = experiment.beam_centre[1]/experiment.imshape[1]
-    qlimhor = experiment.calcqlim('hor')
-    qlimver = experiment.calcqlim('vert')
-
+    qlimhor=experiment.calcqlim( 'hor',vertsetup=(experiment.setup=='vertical'))
+    qlimver=experiment.calcqlim( 'vert',vertsetup=(experiment.setup=='vertical'))
 
     sample_orientation = 1
-    qlimits = [qlimhor[0], qlimhor[1], qlimver[0], qlimver[1]]
+    qlimits = [qlimhor[0], qlimhor[1],qlimver[0], qlimver[1]]
     
     if experiment.setup=='vertical':
         sample_orientation=4
-        qlimits = [ qlimver[0], qlimver[1], -qlimhor[0],-qlimhor[1]]
 
     if np.size(experiment.incident_angle) > 1:
         inc_angle = -np.radians(experiment.incident_angle[index])
@@ -273,7 +328,7 @@ def pyfai_stat_qmap(experiment, imageindex, scan, two_theta_start, pyfaiponi, qm
     img_data = np.array(scan.load_image(index).data)
    # print(qlimits)
     map2d = my_ai.integrate2d(img_data, qmapbins[0], qmapbins[1], unit=(unit_qip, unit_qoop),
-                              radial_range=(qlimits[0]*1.05, qlimits[1]*1.05), azimuth_range=(-12.5*qlimits[3], -12.5*qlimits[2]), method=("no", "csr", "cython"))
+                              radial_range=(qlimits[0]*1.05, qlimits[1]*1.05), azimuth_range=(-1.25*qlimits[3], -1.25*qlimits[2]), method=("no", "csr", "cython"))
 
     return map2d[0], map2d[1], map2d[2]
 
@@ -329,6 +384,84 @@ def pyfai_stat_ivsq(experiment, imageindex, scan, two_theta_start, pyfaiponi, qm
     return I, tth, Q
 
 
+def pyfai_move_exitangles(experiment, imageindices, scan, shapecake, shapeqi, shapeexhexv, two_theta_start, pyfaiponi, radrange, radstepval, qmapbins) -> None:
+    choiceims = imageindices
+    # ais=[]
+
+    aistart = pyFAI.load(pyfaiponi)
+    # aistart.set_mask(scan.metadata.edfmask)
+
+    shapemap = shapeexhexv[1:]
+    totalexhexvmap = np.zeros((shapemap[0], shapemap[1]))
+    totalexhexvcounts = np.zeros((shapemap[0], shapemap[1]))
+    unit_qip_name ="horz_exitangle_rad"
+    unit_qoop_name =  "exitangle_rad"
+
+    bc_x_ratio = experiment.beam_centre[0]/experiment.imshape[0]
+    bc_y_ratio = experiment.beam_centre[1]/experiment.imshape[1]
+    anglimhor=experiment.calcanglim( 'hor',vertsetup=(experiment.setup=='vertical'))
+    anglimver=experiment.calcanglim( 'vert',vertsetup=(experiment.setup=='vertical'))
+    anglimits=[anglimhor[0],anglimhor[1],-anglimver[0],-anglimver[1]]
+    
+    sample_orientation = 1
+    
+    if experiment.setup=='vertical':
+        sample_orientation=4
+
+
+    runningtotal = 0
+    groupnum = 15
+
+    groups = [choiceims[i:i+groupnum]
+              for i in range(0, len(choiceims), groupnum)] 
+    for group in groups:
+        ais = []
+        for i in group:
+            if np.size(experiment.incident_angle) > 1:
+                inc_angle = -np.radians(experiment.incident_angle[i])
+            elif type(experiment.incident_angle) == np.float64:
+                inc_angle = -np.radians(experiment.incident_angle)
+            else:
+                inc_angle = -np.radians(experiment.incident_angle[0])
+            # inc_angle=0 #debug setting incident angle to 0
+            unit_qip = pyFAI.units.get_unit_fiber(
+                unit_qip_name, sample_orientation=sample_orientation, incident_angle=inc_angle)
+            unit_qoop = pyFAI.units.get_unit_fiber(
+                unit_qoop_name, sample_orientation=sample_orientation, incident_angle=inc_angle)
+            my_ai = copy.deepcopy(aistart)
+            gamval = 0
+            delval = 0
+            if np.size(experiment.gammadata) > 1:
+                gamval = -experiment.two_theta_start[i]
+            if np.size(experiment.deltadata) > 1:
+                delval = experiment.deltadata[i]
+            if np.size(experiment.deltadata) == 1:
+                delval = experiment.deltadata
+            rots = experiment.gamdel2rots(gamval, delval)
+            my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
+            # if np.size(experiment.deltadata)>1:
+            #     my_ai.rot2 =-np.radians(experiment.deltadata[i])
+            ais.append(my_ai)
+        # print(f'loading image {i}')
+        if experiment.setup == 'vertical':
+            img_data = [np.rot90(scan.load_image(i).data, -1) for i in group]
+        else:
+            img_data = [scan.load_image(i).data for i in group]
+        
+        for current_n, current_ai in enumerate(ais):
+            current_img = img_data[current_n]
+            map2d = current_ai.integrate2d(current_img, qmapbins[0],qmapbins[1], unit=(unit_qip, unit_qoop),
+        radial_range=(np.radians(anglimits[1]*-1.05),np.radians(anglimits[0]*-1.05)),azimuth_range=(np.radians(anglimits[3]*1.05),np.radians(anglimits[2]*1.05)), method=("no", "csr", "cython"))
+            totalexhexvmap += map2d.sum_signal
+            totalexhexvcounts += map2d.count
+            # print(np.max(map2d.sum_signal))
+
+    mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
+        map2d.azimuthal_unit), str(map2d.radial_unit)]
+    QPQPMAP[0] = totalexhexvmap
+    QPQPMAP[1] = totalexhexvcounts
+    return SHARED_QPQPMAP_NAME, mapaxisinfo
+
 def pyfai_move_qmap(experiment, imageindices, scan, shapecake, shapeqi, shapeqpqp, two_theta_start, pyfaiponi, radrange, radstepval, qmapbins) -> None:
     choiceims = imageindices
     # ais=[]
@@ -348,11 +481,10 @@ def pyfai_move_qmap(experiment, imageindices, scan, shapecake, shapeqi, shapeqpq
     qlimver=experiment.calcqlim( 'vert',vertsetup=(experiment.setup=='vertical'))
 
     sample_orientation = 1
-    qlimits = [qlimhor[0], qlimhor[1], qlimver[0], qlimver[1]]
+    qlimits = [qlimhor[0], qlimhor[1],qlimver[0], qlimver[1]]
     
     if experiment.setup=='vertical':
         sample_orientation=4
-        qlimits = [ qlimver[0], qlimver[1], -qlimhor[0],-qlimhor[1]]
 
 
     runningtotal = 0
@@ -384,7 +516,6 @@ def pyfai_move_qmap(experiment, imageindices, scan, shapecake, shapeqi, shapeqpq
             if np.size(experiment.deltadata) == 1:
                 delval = experiment.deltadata
             rots = experiment.gamdel2rots(gamval, delval)
-            #debug line print('rots=',rots)
             my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
             # if np.size(experiment.deltadata)>1:
             #     my_ai.rot2 =-np.radians(experiment.deltadata[i])
@@ -395,7 +526,7 @@ def pyfai_move_qmap(experiment, imageindices, scan, shapecake, shapeqi, shapeqpq
         for current_n, current_ai in enumerate(ais):
             current_img = img_data[current_n]
             map2d = current_ai.integrate2d(current_img, qmapbins[0], qmapbins[1], unit=(unit_qip, unit_qoop),
-                                           radial_range=(qlimits[0]*1.05, qlimits[1]*1.05), azimuth_range=(-12.5*qlimits[3], -12.5*qlimits[2]), method=("no", "csr", "cython"))
+                                           radial_range=(qlimits[0]*1.05, qlimits[1]*1.05), azimuth_range=(-1.25*qlimits[3], -1.25*qlimits[2]), method=("no", "csr", "cython"))
             totalqpqpmap += map2d.sum_signal
             totalqpqpcounts += map2d.count
             # print(np.max(map2d.sum_signal))
