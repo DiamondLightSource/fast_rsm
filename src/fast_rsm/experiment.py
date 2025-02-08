@@ -1547,7 +1547,7 @@ class Experiment:
                     except:
                         pass
             print(f'new max count={qpqp_counts.max()}')
-            qpqp_array_total+=qpqp_array
+            qpqp_array_total+=qpqp_arrays
             qpqp_counts_total+=qpqp_counts
             print(f'total max count = {qpqp_counts_total.max()}')
         
