@@ -432,9 +432,9 @@ def pyfai_move_exitangles(experiment, imageindices, scan, shapecake, shapeqi, sh
             gamval = 0
             delval = 0
             if np.size(experiment.gammadata) > 1:
-                gamval = -experiment.two_theta_start[i]
+                gamval = -np.array(experiment.two_theta_start).ravel()[i]
             if np.size(experiment.deltadata) > 1:
-                delval = experiment.deltadata[i]
+                delval = np.array(experiment.deltadata).ravel()[i]
             if np.size(experiment.deltadata) == 1:
                 delval = experiment.deltadata
             rots = experiment.gamdel2rots(gamval, delval)
@@ -462,7 +462,7 @@ def pyfai_move_exitangles(experiment, imageindices, scan, shapecake, shapeqi, sh
     QPQPMAP[1] = totalexhexvcounts
     return SHARED_QPQPMAP_NAME, mapaxisinfo
 
-def pyfai_move_qmap(experiment, imageindices, scan, shapecake, shapeqi, shapeqpqp, two_theta_start, pyfaiponi, radrange, radstepval, qmapbins) -> None:
+def pyfai_move_qmap(experiment, imageindices, scan, shapecake, shapeqi, shapeqpqp, two_theta_start, pyfaiponi, radrange, radstepval, qmapbins,qlimits=None) -> None:
     choiceims = imageindices
     # ais=[]
 
@@ -477,11 +477,13 @@ def pyfai_move_qmap(experiment, imageindices, scan, shapecake, shapeqi, shapeqpq
 
     bc_x_ratio = experiment.beam_centre[0]/experiment.imshape[0]
     bc_y_ratio = experiment.beam_centre[1]/experiment.imshape[1]
-    qlimhor=experiment.calcqlim( 'hor',vertsetup=(experiment.setup=='vertical'))
-    qlimver=experiment.calcqlim( 'vert',vertsetup=(experiment.setup=='vertical'))
+    if qlimits == None:
+        qlimhor=experiment.calcqlim( 'hor',vertsetup=(experiment.setup=='vertical'))
+        qlimver=experiment.calcqlim( 'vert',vertsetup=(experiment.setup=='vertical'))
+        qlimits = [qlimhor[0], qlimhor[1],qlimver[0], qlimver[1]]
 
     sample_orientation = 1
-    qlimits = [qlimhor[0], qlimhor[1],qlimver[0], qlimver[1]]
+
     
     if experiment.setup=='vertical':
         sample_orientation=4
@@ -515,6 +517,7 @@ def pyfai_move_qmap(experiment, imageindices, scan, shapecake, shapeqi, shapeqpq
                 delval = np.array(experiment.deltadata).ravel()[i]
             if np.size(experiment.deltadata) == 1:
                 delval = np.array(experiment.deltadata).ravel()
+
             rots = experiment.gamdel2rots(gamval, delval)
             my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
             # if np.size(experiment.deltadata)>1:
@@ -526,10 +529,10 @@ def pyfai_move_qmap(experiment, imageindices, scan, shapecake, shapeqi, shapeqpq
         for current_n, current_ai in enumerate(ais):
             current_img = img_data[current_n]
             map2d = current_ai.integrate2d(current_img, qmapbins[0], qmapbins[1], unit=(unit_qip, unit_qoop),
-                                           radial_range=(qlimits[0]*1.05, qlimits[1]*1.05), azimuth_range=(-1.25*qlimits[3], -1.25*qlimits[2]), method=("no", "csr", "cython"))
+                                           radial_range=(qlimits[0]*1.05, qlimits[1]*1.05), azimuth_range=(-1.05*qlimits[3], -1.05*qlimits[2]), method=("no", "csr", "cython"))
             totalqpqpmap += map2d.sum_signal
             totalqpqpcounts += map2d.count
-            # print(np.max(map2d.sum_signal))
+            print(np.max(map2d.sum_signal))
 
     mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
         map2d.azimuthal_unit), str(map2d.radial_unit)]
