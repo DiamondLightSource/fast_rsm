@@ -520,10 +520,8 @@ def pyfai_move_qmap(experiment, imageindices, scan, shapecake, shapeqi, shapeqpq
 
             rots = experiment.gamdel2rots(gamval, delval)
             my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
-            # if np.size(experiment.deltadata)>1:
-            #     my_ai.rot2 =-np.radians(experiment.deltadata[i])
             ais.append(my_ai)
-        # print(f'loading image {i}')
+
         img_data = [scan.load_image(i).data for i in group]
 
         for current_n, current_ai in enumerate(ais):
@@ -532,7 +530,6 @@ def pyfai_move_qmap(experiment, imageindices, scan, shapecake, shapeqi, shapeqpq
                                            radial_range=(qlimits[0]*1.05, qlimits[1]*1.05), azimuth_range=(-1.05*qlimits[3], -1.05*qlimits[2]), method=("no", "csr", "cython"))
             totalqpqpmap += map2d.sum_signal
             totalqpqpcounts += map2d.count
-            print(np.max(map2d.sum_signal))
 
     mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
         map2d.azimuthal_unit), str(map2d.radial_unit)]
