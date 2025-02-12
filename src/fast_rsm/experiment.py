@@ -29,6 +29,7 @@ import pyFAI,fabio
 #from datetime import datetime
 import h5py
 import tifffile
+from fast_rsm.scan import Scan
 #from memory_profiler import profile
 
 
@@ -1423,7 +1424,12 @@ class Experiment:
         upperinds=[1,2]
         qpqp_array_total=0
         qpqp_counts_total=0
-        for scan in scanlist:
+        if type(scanlist)==Scan:
+            scanlistnew=[scanlist]
+        else:
+            scanlistnew=scanlist
+
+        for scan in scanlistnew:
             self.load_curve_values(scan)
             dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance
             if self.setup=='DCD':
@@ -1443,7 +1449,8 @@ class Experiment:
                     qlimitsout[i]=val
             print(f'new qlimits = {qlimitsout}')
 
-        for scan in scanlist:
+
+        for scan in scanlistnew:
             self.load_curve_values(scan)
             dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance
             if self.setup=='DCD':
@@ -2105,7 +2112,8 @@ class Experiment:
         print(f'projecting {scanlength} images   completed images:  ')
         imstep=1#int(np.floor(scanlength/50))
         print(scanlength,imstep)
-        for imnum in np.arange(0,scanlength,imstep):
+        #for imnum in np.arange(0,scanlength,imstep):
+        for imnum in np.arange(10,12,1):
             self.projectimage(scan, imnum,im1gammas)
             #if (imnum+1)%10==0:
                # print('\n')
