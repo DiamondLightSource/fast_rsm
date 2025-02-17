@@ -49,9 +49,22 @@ extensions = [
     'nbsphinx',
     'jupyter_sphinx',
     'sphinx_collapse',
-    'sphinxcontrib.images'
+    'autodoc2',
 ]
 
+autodoc2_packages = [
+    "../../src/fast_rsm/binning.py",
+    "../../src/fast_rsm/corrections.py",
+    "../../src/fast_rsm/diamond_utils.py",
+    "../../src/fast_rsm/experiment.py",
+    "../../src/fast_rsm/image.py",
+    "../../src/fast_rsm/io.py",
+    "../../src/fast_rsm/meta_analysis.py",
+    "../../src/fast_rsm/rsm_metadata.py",
+    "../../src/fast_rsm/scan.py",
+    "../../src/fast_rsm/writing.py",
+]
+    
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -92,6 +105,11 @@ html_theme = 'alabaster'
 # documentation.
 #
 # html_theme_options = {}
+html_theme_options = {
+    'page_width': '1200px',
+    'body_max_width': 'none',
+    'sidebar_width': '300px'
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

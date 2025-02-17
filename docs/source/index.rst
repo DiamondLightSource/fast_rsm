@@ -14,6 +14,7 @@ Software for mapping raw surface x-ray diffraction images into reciprocal space
    :maxdepth: 2
 
    diamonduse
+   apidocs/index
 
 
 
