@@ -9,9 +9,9 @@ import numpy as np
 from diffraction_utils import Frame, I07Nexus, Polarisation
 
 import mapper_c_utils
-from .rsm_metadata import RSMMetadata
+from fast_rsm.rsm_metadata import RSMMetadata
 
-from . import corrections
+import fast_rsm.corrections as corrections
 
 
 class Image:

@@ -8,11 +8,11 @@ from typing import Union, Tuple, TYPE_CHECKING
 from diffraction_utils import I07Nexus, Frame, Vector3
 from diffraction_utils.diffractometers import I07Diffractometer
 
-from . import scan
-from .rsm_metadata import RSMMetadata
+import fast_rsm.scan as scan
+from fast_rsm.rsm_metadata import RSMMetadata
 
 if TYPE_CHECKING:
-    from .scan import Scan
+    from fast_rsm.scan import Scan
 
 
 def from_i07(path_to_nx: Union[str, Path],
