@@ -31,6 +31,10 @@ Once the fast_rsm module has been loaded there are also some other useful functi
 
     **makemask**  - use this to quickly make a mask for you processing. It will open up the pyFAI mask creation tool and load in the first image of your scan. From here you can use the GUI tools to draw on the desired mask and then save to a specified directory. 
 
+    **pyFAI-calib2** - use this to launch the :py:mod:`pyFAI` calibration tool which you can use to analyse your calibration data to create a PONI file - see the :py:mod:`pyFAI` documentation page on the `calibration GUI`_ for more details
+
+
+
     **get_setups** -  use this to get setup information used to calculate a hdf5 file. if hdf5 has the configuration saved to config, and it contains the joblines from the analysis job sent to the cluster - then you can type 
 
     .. code-block:: bash
@@ -53,7 +57,7 @@ Debugging
 
 
 
-
+.. _calibration GUI: https://pyfai.readthedocs.io/en/stable/usage/cookbook/calib-gui/index.html#cookbook-calibration-gui
 
 
     
