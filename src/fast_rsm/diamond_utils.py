@@ -13,7 +13,7 @@ from scipy.constants import physical_constants
 
 import nexusformat.nexus as nx
 
-from .binning import weighted_bin_1d, finite_diff_grid
+from fast_rsm.binning import weighted_bin_1d, finite_diff_grid
 
 
 def load_exact_map(
