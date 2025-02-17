@@ -9,9 +9,9 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 
-from .scan import Scan
+from fast_rsm.scan import Scan
 if TYPE_CHECKING:
-    from .experiment import Experiment
+    from fast_rsm.experiment import Experiment
 
 
 def get_step_from_filesize(start: np.ndarray,

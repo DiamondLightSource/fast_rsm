@@ -17,11 +17,11 @@ import numpy as np
 from diffraction_utils import I10Nexus, Vector3, Frame
 from diffraction_utils.diffractometers import I10RasorDiffractometer
 
-from . import io
-from .binning import weighted_bin_3d
-from .image import Image
-from .rsm_metadata import RSMMetadata
-from .writing import linear_bin_to_vtk
+import fast_rsm.io as io
+from fast_rsm.binning import weighted_bin_3d
+from fast_rsm.image import Image
+from fast_rsm.rsm_metadata import RSMMetadata
+from fast_rsm.writing import linear_bin_to_vtk
 
 from pyFAI.multi_geometry import MultiGeometry
 import pyFAI

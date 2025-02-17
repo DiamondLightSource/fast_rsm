@@ -18,12 +18,12 @@ from datetime import datetime
 from scipy.spatial.transform import Rotation as R
 import transformations as tf
 
-from . import io
-from .binning import weighted_bin_1d, finite_diff_shape
-from .meta_analysis import get_step_from_filesize
-from .scan import Scan, init_process_pool, bin_maps_with_indices, chunk, \
+import fast_rsm.io as io
+from fast_rsm.binning import weighted_bin_1d, finite_diff_shape
+from fast_rsm.meta_analysis import get_step_from_filesize
+from fast_rsm.scan import Scan, init_process_pool, bin_maps_with_indices, chunk, \
     init_pyfai_process_pool,pyfaicalcint,pyfai_qmap_qvsI,pyfai_stat_qmap,pyfai_stat_ivsq,pyfai_move_qmap,pyfai_move_ivsq, pyfai_stat_exitangles,pyfai_move_exitangles
-from .writing import linear_bin_to_vtk
+from fast_rsm.writing import linear_bin_to_vtk
 import pandas as pd
 import pyFAI,fabio
 #from datetime import datetime
