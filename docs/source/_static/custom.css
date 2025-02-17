@@ -13,18 +13,3 @@
 .fa-bars{
     color: #000000;
 }
-
-.highlight {
-    max-width: 100%;
-    width: 100%;
-}
-
-.collapse .highlight {
-    max-width: 100%;
-    width: 100%;
-}
-
-.collapse pre {
-    white-space: pre-wrap;
-    word-wrap: break-word;
-}
