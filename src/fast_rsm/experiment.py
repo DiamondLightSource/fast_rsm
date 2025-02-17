@@ -29,6 +29,7 @@ import pyFAI,fabio
 #from datetime import datetime
 import h5py
 import tifffile
+from fast_rsm.scan import Scan
 #from memory_profiler import profile
 
 
@@ -1416,117 +1417,155 @@ class Experiment:
         print(f'total exit angle map calculation took {minutes}  minutes')
         return mapaxisinfo             
         
-    def pyfai_moving_qmap(self,hf,scan,num_threads,output_file_path,pyfaiponi,radrange,radstepval,qmapbins=0):            
-        self.load_curve_values(scan)
+    def pyfai_moving_qmap(self,hf,scanlist,num_threads,output_file_path,pyfaiponi,radrange,radstepval,qmapbins=0):            
         
-        dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance
-        if self.setup=='DCD':
-            tthdirect=-1*np.degrees(np.arctan(self.projectionx/dcd_sample_dist))
+        qlimitsout=[0,0,0,0]
+        lowerinds=[0,3]
+        upperinds=[1,2]
+        qpqp_array_total=0
+        qpqp_counts_total=0
+        if type(scanlist)==Scan:
+            scanlistnew=[scanlist]
         else:
-            tthdirect=0
-            
-        self.two_theta_start=self.gammadata-tthdirect
-        qlimhor=self.calcqlim( 'hor')
-        qlimver=self.calcqlim( 'vert')
+            scanlistnew=scanlist
+
+        for scan in scanlistnew:
+            self.load_curve_values(scan)
+            dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance
+            if self.setup=='DCD':
+                tthdirect=-1*np.degrees(np.arctan(self.projectionx/dcd_sample_dist))
+            else:
+                tthdirect=0
+            print(f'gamma shape = {np.shape(self.gammadata)}')
+            print(f'tth shape = {np.shape(tthdirect)}')
+            self.two_theta_start=self.gammadata-tthdirect
+            qlimhor=self.calcqlim( 'hor',vertsetup=(self.setup=='vertical'))
+            qlimver=self.calcqlim( 'vert',vertsetup=(self.setup=='vertical'))
+            qlimits = [qlimhor[0], qlimhor[1],qlimver[0], qlimver[1]]
+            for i,val in enumerate(qlimits):
+                if (i in lowerinds)&(val<qlimitsout[i]):
+                    qlimitsout[i]=val
+                if (i in upperinds)&(val>qlimitsout[i]):
+                    qlimitsout[i]=val
+            print(f'new qlimits = {qlimitsout}')
+
+
+        for scan in scanlistnew:
+            self.load_curve_values(scan)
+            dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance
+            if self.setup=='DCD':
+                tthdirect=-1*np.degrees(np.arctan(self.projectionx/dcd_sample_dist))
+            else:
+                tthdirect=0
                 
-        #calculate map bins if not specified using resolution of 0.01 degrees 
+            self.two_theta_start=self.gammadata-tthdirect
+            # qlimhor=self.calcqlim( 'hor')
+            # qlimver=self.calcqlim( 'vert')
+                    
+            #calculate map bins if not specified using resolution of 0.01 degrees 
+                
+            if qmapbins==0:
+                qstep=round(self.calcq(1.00,self.incident_wavelength)-\
+                    self.calcq(1.01,self.incident_wavelength),4)
+                binshor=abs(round(((qlimhor[1]-qlimhor[0])/qstep)*1.05))
+                binsver=abs(round(((qlimver[1]-qlimver[0])/qstep)*1.05))
+                qmapbins=(binshor,binsver)
+                            
+                
+            async_results = []
+                # Make a pool on which we'll carry out the processing.
+            locks = [Lock() for _ in range(num_threads)]
+            start_time = time()
             
-        if qmapbins==0:
-            qstep=round(self.calcq(1.00,self.incident_wavelength)-\
-                self.calcq(1.01,self.incident_wavelength),4)
-            binshor=abs(round(((qlimhor[1]-qlimhor[0])/qstep)*1.05))
-            binsver=abs(round(((qlimver[1]-qlimver[0])/qstep)*1.05))
-            qmapbins=(binshor,binsver)
+            scalegamma=1
+            
+            datacheck=('data' in list(scan.metadata.data_file.nx_detector))
+            localpathcheck=('local_image_paths' in scan.metadata.data_file.__dict__.keys())
+            if datacheck:
+                scanlength=np.shape(scan.metadata.data_file.nx_detector.data[:,1,:])[0]
+            elif localpathcheck:
+                scanlength=len(scan.metadata.data_file.local_image_paths)
+            else:
+                scanlength=scan.metadata.data_file.scan_length
+                
+            nqbins=int(np.ceil((radrange[1]-radrange[0])/radstepval))
+            shapeqi=(2,3,nqbins)
+
+
+            shapecake=(2, 2, 2)
+            shapeqpqp=(2,qmapbins[1],qmapbins[0])
+            output_path=fr"{output_file_path}"
+            qpqp_arrays=0
+            print('starting process pool')
+            with Pool(
+                processes=num_threads,  # The size of our pool.
+                initializer=init_pyfai_process_pool,  # Our pool's initializer.
+                initargs=(locks,  # The initializer makes this lock global.
+                    num_threads,  # Initializer makes num_threads global.
+                    self.scans[0].metadata,
+                    shapeqi,
+                    #(shapeqi[0],int(shapeqi[1]/50)),
+                    shapecake,
+                    shapeqpqp,
+                    output_path)) as pool:
+                
+                print(f'started pool with num_threads={num_threads}')
+                for indices in chunk(np.arange(0,scanlength,scalegamma), num_threads):
+                    async_results.append(pool.apply_async(
+                        pyfai_move_qmap,
+                        (self,indices,scan,shapecake,shapeqi,shapeqpqp,self.two_theta_start,pyfaiponi,radrange,radstepval,qmapbins,qlimitsout)))
+                    #print(f'done  {indices[0]  - indices[1]} with {num_threads}\n')
+                print('finished preparing chunked data')
+
+                qpqpmap_names=[]
+                mapaxisinfo=[1,2]
+                for result in async_results:
+                    shared_qpqpmap_nameval,mapaxisinfo=result.get()#
+
+                    if shared_qpqpmap_nameval not in qpqpmap_names:
+                        qpqpmap_names.append(shared_qpqpmap_nameval)
+                        # Make sure that no error was thrown while mapping.
+                    if not result.successful():
+                        raise ValueError(
+                        "Could not carry out map for an unknown reason. "
+                        "The threads may have segfaulted.")
+                
+                
+                qpqp_mem=[SharedMemory(x) for x in qpqpmap_names]
+                new_qpqp_arrays=np.array([np.ndarray(shape=shapeqpqp, dtype=np.float32, buffer=y.buf)[0]
+                    for y in qpqp_mem])
+                new_qpqp_counts=np.array([np.ndarray(shape=shapeqpqp, dtype=np.float32, buffer=y.buf)[1]
+                    for y in qpqp_mem])
+                
+                
+                qpqp_arrays=np.sum(new_qpqp_arrays,axis=0)
+                qpqp_counts=np.sum(new_qpqp_counts,axis=0)
+                #print(f'shape of qpqp_arrays = {np.shape(qpqp_arrays)}')
+                qpqp_array=np.divide(qpqp_arrays,qpqp_counts, out=np.copy(qpqp_arrays), where=qpqp_counts !=0.0)
+                #print(f'shape of qpqp_array  = {np.shape(qpqp_array)}')
                         
-            
-        async_results = []
-            # Make a pool on which we'll carry out the processing.
-        locks = [Lock() for _ in range(num_threads)]
-        start_time = time()
+                pool.close()
+                pool.join()
+
+                for shared_mem in qpqp_mem:
+                    shared_mem.close()
+                    try:
+                        shared_mem.unlink()
+                    except:
+                        pass
+            print(f'new max count={qpqp_counts.max()}')
+            qpqp_array_total+=qpqp_arrays
+            qpqp_counts_total+=qpqp_counts
+            print(f'total max count = {qpqp_counts_total.max()}')
         
-        scalegamma=1
-        
-        datacheck=('data' in list(scan.metadata.data_file.nx_detector))
-        localpathcheck=('local_image_paths' in scan.metadata.data_file.__dict__.keys())
-        if datacheck:
-            scanlength=np.shape(scan.metadata.data_file.nx_detector.data[:,1,:])[0]
-        elif localpathcheck:
-            scanlength=len(scan.metadata.data_file.local_image_paths)
-        else:
-            scanlength=scan.metadata.data_file.scan_length
-            
-        nqbins=int(np.ceil((radrange[1]-radrange[0])/radstepval))
-        shapeqi=(2,3,nqbins)
-
-
-        shapecake=(2, 2, 2)
-        shapeqpqp=(2,qmapbins[1],qmapbins[0])
-        output_path=fr"{output_file_path}"
-        qpqp_arrays=0
-        print('starting process pool')
-        with Pool(
-            processes=num_threads,  # The size of our pool.
-            initializer=init_pyfai_process_pool,  # Our pool's initializer.
-            initargs=(locks,  # The initializer makes this lock global.
-                  num_threads,  # Initializer makes num_threads global.
-                  self.scans[0].metadata,
-                  shapeqi,
-                  #(shapeqi[0],int(shapeqi[1]/50)),
-                  shapecake,
-                  shapeqpqp,
-                  output_path)
-        ) as pool:
-            
-            print(f'started pool with num_threads={num_threads}')
-            for indices in chunk(np.arange(0,scanlength,scalegamma), num_threads):
-                async_results.append(pool.apply_async(
-                    pyfai_move_qmap,
-                    (self,indices,scan,shapecake,shapeqi,shapeqpqp,self.two_theta_start,pyfaiponi,radrange,radstepval,qmapbins)))
-                #print(f'done  {indices[0]  - indices[1]} with {num_threads}\n')
-            print('finished preparing chunked data')
-
-            qpqpmap_names=[]
-            mapaxisinfo=[1,2]
-            for result in async_results:
-                shared_qpqpmap_nameval,mapaxisinfo=result.get()#
-
-                if shared_qpqpmap_nameval not in qpqpmap_names:
-                    qpqpmap_names.append(shared_qpqpmap_nameval)
-                    # Make sure that no error was thrown while mapping.
-                if not result.successful():
-                    raise ValueError(
-                    "Could not carry out map for an unknown reason. "
-                    "The threads may have segfaulted.")
-            
-            
-            qpqp_mem=[SharedMemory(x) for x in qpqpmap_names]
-            new_qpqp_arrays=np.array([np.ndarray(shape=shapeqpqp, dtype=np.float32, buffer=y.buf)[0]
-                for y in qpqp_mem])
-            new_qpqp_counts=np.array([np.ndarray(shape=shapeqpqp, dtype=np.float32, buffer=y.buf)[1]
-                for y in qpqp_mem])
-            
-            
-            qpqp_arrays=np.sum(new_qpqp_arrays,axis=0)
-            qpqp_counts=np.sum(new_qpqp_counts,axis=0)
-            #print(f'shape of qpqp_arrays = {np.shape(qpqp_arrays)}')
-            qpqp_array=np.divide(qpqp_arrays,qpqp_counts, out=np.copy(qpqp_arrays), where=qpqp_counts !=0.0)
-            #print(f'shape of qpqp_array  = {np.shape(qpqp_array)}')
-                       
-            pool.close()
-            pool.join()
-
-            for shared_mem in qpqp_mem:
-                shared_mem.close()
-                try:
-                    shared_mem.unlink()
-                except:
-                    pass
-    
+        qpqp_map_norm=np.divide(qpqp_array_total,qpqp_counts_total, out=np.copy(qpqp_array_total), where=qpqp_counts_total !=0.0)
         end_time=time()
         #datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
         
         dset3=hf.create_group("qpara_qperp")
-        dset3.create_dataset("qpara_qperp_image",data=qpqp_array)
+        dset3.create_dataset("qpara_qperp_sum",data=qpqp_array_total)
+        dset3.create_dataset("qpara_qperp_counts",data=qpqp_counts_total)
+        dset3.create_dataset("qpara_qperp_image",data=qpqp_map_norm)
         dset3.create_dataset("map_para",data=mapaxisinfo[1])
         dset3.create_dataset("map_para_unit",data=mapaxisinfo[3])
         dset3.create_dataset("map_perp",data=-1*mapaxisinfo[0])#list(reversed(mapaxisinfo[0])))
@@ -1591,14 +1630,14 @@ class Experiment:
         #     self.detector_distance=scan.metadata.diffractometer.data_file.detector_distance
         self.incident_wavelength= 1e-10*scan.metadata.incident_wavelength
         try:
-            self.gammadata=np.array( self.entry.instrument.diff1gamma.value_set)
+            self.gammadata=np.array( self.entry.instrument.diff1gamma.value_set).ravel()
         except:
-            self.gammadata=np.array( self.entry.instrument.diff1gamma.value)
+            self.gammadata=np.array( self.entry.instrument.diff1gamma.value).ravel()
         #self.deltadata=np.array( self.entry.instrument.diff1delta.value)
         try:
-            self.deltadata=np.array( self.entry.instrument.diff1delta.value_set)
+            self.deltadata=np.array( self.entry.instrument.diff1delta.value_set).ravel()
         except:
-            self.deltadata=np.array( self.entry.instrument.diff1delta.value)
+            self.deltadata=np.array( self.entry.instrument.diff1delta.value).ravel()
             
         if self.setup=='DCD':
             self.dcdrad=np.array( self.entry.instrument.dcdc2rad.value)
@@ -2073,7 +2112,8 @@ class Experiment:
         print(f'projecting {scanlength} images   completed images:  ')
         imstep=1#int(np.floor(scanlength/50))
         print(scanlength,imstep)
-        for imnum in np.arange(0,scanlength,imstep):
+        #for imnum in np.arange(0,scanlength,imstep):
+        for imnum in np.arange(10,12,1):
             self.projectimage(scan, imnum,im1gammas)
             #if (imnum+1)%10==0:
                # print('\n')
