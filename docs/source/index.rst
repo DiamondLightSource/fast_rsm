@@ -11,7 +11,7 @@ Software for mapping raw surface x-ray diffraction images into reciprocal space
 
 .. toctree::
    :hidden:
-   :maxdepth: 2
+   :maxdepth: 3
 
    diamonduse
    apidocs/index
