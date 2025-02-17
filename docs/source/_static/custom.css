@@ -1,0 +1,30 @@
+.wy-side-nav-search, .wy-nav-top {
+    background: #ffffff;
+}
+
+.wy-side-nav-search>div.version{
+    color: #000000;
+}
+
+.wy-side-nav-search>a.icon.icon-home{
+    color: #000000;
+}
+
+.fa-bars{
+    color: #000000;
+}
+
+.highlight {
+    max-width: 100%;
+    width: 100%;
+}
+
+.collapse .highlight {
+    max-width: 100%;
+    width: 100%;
+}
+
+.collapse pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
