@@ -46,6 +46,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
     'sphinx.ext.imgmath',
+    'sphinxcontrib.images',
     'nbsphinx',
     'jupyter_sphinx',
     'sphinx_collapse',
