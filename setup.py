@@ -12,14 +12,14 @@ from setuptools import setup, find_packages
 
 setup(
     name='fast_rsm',
-    version='0.0.1',
+    version='1.0.1',
     license='MIT License',
     packages=find_packages('src'),
     description=(
-        "A python package for using local statistics to cluster " +
-        "significant signal in scientific images."),
-    author='Richard Brearton',
-    author_email='richardbrearton@gmail.com',
+        "A python package for analysing surface x-ray diffraction images " +
+        "and map into reciprocal space volumes."),
+    author='Philip Mousley',
+    author_email='philip.mousley@diamond.ac.uk',
     package_dir={'': 'src'},
     include_package_data=True,
     classifiers=[
