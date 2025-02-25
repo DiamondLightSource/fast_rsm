@@ -3,3 +3,4 @@ ipykernel
 jupyter_sphinx
 sphinx-collapse
 sphinx-autodoc2
+sphinxcontrib-images
