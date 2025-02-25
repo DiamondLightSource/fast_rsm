@@ -47,14 +47,14 @@ if processing has gone correctly there will be an entry on the webpage with a gr
 
 clicking the auto processing line for the entry gives options for 'Logs & Files'. Selecting this opens a window show the extra attachments you can view. 
 
-.. thumbnail:: figures/ISPYB1.png
-    :width: 200px
-    :group: group1
 
+.. image:: figures/ISPYB1.png
+   :scale: 50%
+   :target: _images/ISPYB1.png  
 
 from this you can select the 'View' option on the top line, which will open a scrollable window where you can see the code that was run for the processing, as well as any error messages that were output
 
-.. thumbnail:: figures/ISPYB2.png
-    :width: 200px
-    :group: group1
+.. image:: figures/ISPYB2.png
+   :scale: 50%
+   :target: _images/ISPYB2.png  
 
