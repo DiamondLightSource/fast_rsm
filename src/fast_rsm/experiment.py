@@ -816,13 +816,19 @@ class Experiment:
             qlow=self.SOHqcalc(minangle,kmod)
             maxtthrad=np.radians(np.max(self.two_theta_start))
             maxanglerad=np.radians(np.max(maxangle))
+            minanglerad=np.radians(np.max(maxangle))
             maxincrad=np.radians(np.max(self.incident_angle))
             extraincq=kmod*1e-10*np.sin(maxincrad)
+
             minusexitq_x=kmod*1e-10*np.cos(maxanglerad)*np.cos(maxtthrad)*np.sin(maxincrad)
             minusexitq_z=kmod*1e-10*np.sin(maxanglerad)*(1-np.cos(maxincrad))
             extravert=extraincq-minusexitq_x-minusexitq_z
             qupp+=extravert
-            qlow-=extravert  
+
+            minusexitq_x=kmod*1e-10*np.cos(minanglerad)*np.cos(maxtthrad)*np.sin(maxincrad)
+            minusexitq_z=kmod*1e-10*np.sin(minanglerad)*(1-np.cos(maxincrad))
+            extravert=extraincq-minusexitq_x-minusexitq_z
+            qlow+=extravert  
             outscale=verscale
         
         elif axis=='hor':
