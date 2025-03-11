@@ -232,7 +232,6 @@ pythonlocation=sys.executable
 ubinfo=[scan.metadata.data_file.nx_instrument.diffcalchdr for scan in experiment.scans]
 
 
-
 # """
 # This section contains all of the logic for running the calculation. 
 # If calculating a full map you shouldn't run this on your local computer,
@@ -244,89 +243,13 @@ from time import time
 import nexusformat.nexus as nx
 import h5py
         
-
-for i, scan in enumerate(experiment.scans):
-    start_time = time()
-    datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
-    name_end=scan_numbers[i]
-    GIWAXS_names=['curved_projection_2D','pyfai_1D','qperp_qpara_map' ,'large_moving_det','pyfai_2dqmap_IvsQ']
-    GIWAXScheck=np.isin(GIWAXS_names,process_outputs)
-    if GIWAXScheck.sum()>0:
-        projected2d=None
-        projected_name=f'GIWAXS_{name_end}_{datetime_str}'
-        hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
-        PYFAI_MASK=edfmaskfile
-        if 'large_moving_det' in process_outputs:
-            process_start_time=time()
-            experiment.load_curve_values(scan)
-            PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,beam_centre=experiment.beam_centre)
-
-            experiment.pyfaidiffractometer(hf,scan, num_threads,  local_output_path,PYFAI_PONI,radialrange,radialstepval,qmapbins)
-
-   
-            print(f"saved 2d map and 1D integration data to {local_output_path}/{projected_name}.hdf5")           
-           
-            total_time = time() - process_start_time
-            print(f"\n large_moving_det calculation took {total_time}s")
-
-
-        if 'pyfai_2dqmap_IvsQ' in process_outputs:
-            process_start_time=time()
-            experiment.load_curve_values(scan)
-            PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,beam_centre=experiment.beam_centre)
-            experiment.pyfai_static_diff(hf,scan, num_threads,  local_output_path,PYFAI_PONI,ivqbins,qmapbins)
-            print(f"saved 2d map and 1D integration data to {local_output_path}/{projected_name}.hdf5")
-            total_time = time() - process_start_time
-            print(f"\n Azimuthal integration 2d took {total_time}s")
-            
-        if 'curved_projection_2D' in process_outputs:
-            process_start_time=time()
-            projected2d=experiment.curved_to_2d(scan)
-            PYFAI_PONI=experiment.createponi(local_output_path,experiment.projshape,offset=experiment.vertoffset)
-            twothetas,Qangs,intensities,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
-                                local_output_path,scan,projected2d=projected2d)
-            experiment.save_projection(hf,projected2d,twothetas,Qangs,intensities,config)
     
-            print(f"saved projection to {local_output_path}/{projected_name}.hdf5")
-            
-            total_time = time() - process_start_time
-            print(f"\nProjecting 2d took {total_time}s")
+#set name_end
+name_end=scan_numbers[i]
 
+#check for deprecated GIWAXS functions and print message if needed
+deplist=[print(experiment.deprecation_msg(output)) for output in process_outputs]
 
-           
-        if 'pyfai_1D' in process_outputs:
-           
-       
-            experiment.load_curve_values(scan)
-            name_end=scan_numbers[i]
-            #image2dshape=experiment.scans[i].metadata.data_file.image_shape
-            PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,beam_centre=experiment.beam_centre)
-            twothetas,Qangs,intensities,config= experiment.pyfai1D(local_data_path,PYFAI_MASK,PYFAI_PONI,\
-                              local_output_path,scan)
-            print(np.max(intensities))
-            experiment.save_integration(hf,twothetas,Qangs,intensities,config,scan)
-   
-           
-            print(f'saved 1D profile to {local_output_path}/{projected_name}.hdf5')
-   
-
-           
-        if 'qperp_qpara_map' in process_outputs:
-            frame_name = Frame.lab
-            coordinates = Frame.cartesian
-            map_frame = Frame(frame_name=frame_name, coordinates=coordinates)
-            name_end=scan_numbers[i]
-            qperp_qpara_map=experiment.calc_qpara_qper(scan,oop, map_frame,proj2d=projected2d)
-            experiment.save_qperp_qpara(hf, qperp_qpara_map,scan)
-            print(f'saved qperp_qpara_map to {local_output_path}/{projected_name}.hdf5')
-   
-   
-            #print('Finished qperp_qpara mapping')
-        experiment.save_config_variables(hf,joblines,pythonlocation)
-        hf.close()
-        print(f'finished processing scan {name_end}')
-
-#for i, scan in enumerate(experiment.scans):
 if ('pyfai_qmap' in process_outputs)&(map_per_image==True):
     for i, scan in enumerate(experiment.scans):
         name_end=scan_numbers[i]
@@ -344,7 +267,6 @@ if ('pyfai_qmap' in process_outputs)&(map_per_image==True):
         print(f"\n 2d Q map calculations took {total_time}s")
     
 if ('pyfai_qmap' in process_outputs)&(map_per_image==False):
-    #for i, scan in enumerate(experiment.scans):
     scanlist=experiment.scans
     name_end=scan_numbers[0]
     datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
@@ -364,7 +286,6 @@ if ('pyfai_qmap' in process_outputs)&(map_per_image==False):
 
 if ('pyfai_ivsq' in process_outputs)&(map_per_image==True):
     for i, scan in enumerate(experiment.scans):
-        #scanlist=experiment.scans
         name_end=scan_numbers[0]
         datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
         projected_name=f'IvsQ_{name_end}_{datetime_str}'
@@ -380,7 +301,6 @@ if ('pyfai_ivsq' in process_outputs)&(map_per_image==True):
         print(f"\n Azimuthal integrations took {total_time}s")
     
 if ('pyfai_ivsq' in process_outputs)&(map_per_image==False):
-    #for i, scan in enumerate(experiment.scans):
     scanlist=experiment.scans
     name_end=scan_numbers[0]
     datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")

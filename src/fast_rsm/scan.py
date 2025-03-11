@@ -27,7 +27,9 @@ from pyFAI.multi_geometry import MultiGeometry
 import pyFAI
 from pyFAI import units
 import copy
+# import logging
 
+# logger = logging.getLogger(__name__)
 
 def check_shared_memory(shared_mem_name: str) -> None:
     """
@@ -586,20 +588,6 @@ def pyfai_move_ivsq(experiment, imageindices, scan, shapecake, shapeqi, shapeqpq
 
     return SHARED_PYFAI_QI_NAME
 
-
-# ===older functions for pyfai calculations
-
-def pyfai_qmap_qvsI(experiment, imageindex, scan, two_theta_start, pyfaiponi, qmapbins, ivqbins) -> None:
-    """
-    Deprecated function
-    """
-
-
-def pyfaicalcint(experiment, imageindices, scan, shapecake, shapeqi, shapeqpqp, two_theta_start, pyfaiponi, radrange, radstepval, qmapbins) -> None:
-    """
-    Deprecated function
-    """
-# ================
 
 
 def _on_exit(shared_mem: SharedMemory) -> None:

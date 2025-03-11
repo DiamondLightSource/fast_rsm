@@ -30,7 +30,12 @@ import pyFAI,fabio
 import h5py
 import tifffile
 from fast_rsm.scan import Scan
+from deprecated import deprecated
 
+
+# import logging
+
+# logger = logging.getLogger(__name__)
 
 #from memory_profiler import profile
 
@@ -1232,7 +1237,7 @@ class Experiment:
         
         total_qi_array=[0]
         total_count_array=[0]
-        radrange=None
+        radout=0
 
         for scan in scanlistnew:
             self.load_curve_values(scan)
@@ -1241,21 +1246,16 @@ class Experiment:
                 tthdirect=-1*np.degrees(np.arctan(self.projectionx/dcd_sample_dist))
             else:
                 tthdirect=0
+            self.two_theta_start=self.gammadata-tthdirect
 
-            if 'delta' in scan.metadata.diffractometer.data_file.default_axis_name:
-                self.two_theta_start=self.deltadata
-            else:
-                self.two_theta_start=self.gammadata-tthdirect
-            if self.setup!='vertical':
-                scanradrange=np.array(self.calcanglim('hor'))
-            else:
-                scanradrange=np.array(self.calcanglim('vert'))
-            if radrange==None:
-                radrange=(scanradrange[0],scanradrange[1])
-            else:
-                combrange=combine_ranges(radrange,scanradrange)
-                radrange=(combrange[0],combrange[1])
-        radrange=-1*np.array(radrange)
+            scanradhorrange=np.array(self.calcanglim('hor',vertsetup=self.setup=='vertical'))
+            scanradverrange=np.array(self.calcanglim('vert',vertsetup=self.setup=='vertical'))
+            fullranges=np.concatenate([scanradhorrange,scanradverrange])
+            radmax=np.max(np.abs(fullranges))
+            radout=np.max([radout,radmax])
+        
+
+        radrange=(0,radout)
 
         for scan in scanlistnew:
             self.load_curve_values(scan)
@@ -1888,7 +1888,15 @@ class Experiment:
                 for i, field in enumerate(scanned):
                     dset.create_dataset(f"dim{i}_{field}",data=scannedvaluesout[i])
                     
-    
+
+    def deprecation_msg(self,option):
+        """
+        check list of deprecated functions, and print out warning message if needed
+        """
+        GIWAXSdeplist=['curved_projection_2D','pyfai_1D','qperp_qpara_map' ,'large_moving_det','pyfai_2dqmap_IvsQ']
+        if option in GIWAXSdeplist:
+            return f"option {option} has been deprecated. GIWAXS mapping calculations now use pyFAI. Please use process outputs 'pyfai_ivsq'  , 'pyfai_qmap' and 'pyfai_exitangles'"
+
 
     
     
@@ -1942,6 +1950,8 @@ class Experiment:
         print(f"Took {time() - t1}s to load all nexus files.")
         return cls(scans)
     
+    
+
 
         
 
@@ -1983,83 +1993,4 @@ def _match_start_stop_to_step(
         if checkboth>0:
             print(warning_str)
         return start, stop
-    
-
-                
-    #============================================
-    #================================================
-    #DEPRECATED functions no longer in use due to move over to pyFAI
-    def projectimage(self, scan,imnum,im1gammas):
-
-        """
-        DEPRECATED old function used to calculate  projected image before move over to using pyFAI
-        """
-       
-    def pyfai_static_qmap_qvsI_wrapper(self,args):
-        """
-        DEPRECATED - wrapper used for calculation of both q perp Vs qpara map and I Vs Q plo
-
-        """
-
-    #@profile
-    def pyfaidiffractometer(self,hf,scan,num_threads,output_file_path,pyfaiponi,radrange,radstepval,qmapbins=0):
-        """
-        DEPRECATED - old projection method before using pyFAI functions
-
-        """
-    def curved_to_2d(self,scan):
-        """
-        DEPRECATED - old method used before using pyFAI functions
-
-        """
-    
-    def pyfai1D(self,imagespath,maskpath,ponipath,outpath,scan,projected2d=None,gammastep=0.005):
-        """
-        DEPRECATED
-
-        """
-    
-    def calc_mapnorm_ranges(self,pdata,qvals,mapnorms,rangeqparas,rangeqperps,mapints):
-        """
-        DEPRECATED
-
-        """
-        
-    def calc_qpara_qper(self,scan,oop,frame: Frame,proj2d):
-        """
-        DEPRECATED -
-        """
-    
-    
-    def projected2dQvecs(self,projectedimage,vertoffset,oop,kin,horoffset=0):
-        """
-        DEPRECATED - old function for manually projecting image used before move to pyFAI
-        Parameters
-       
-            
-        """
-    
-    def pyfai_static_diff(self,hf,scan,num_threads,output_file_path,pyfaiponi,ivqbins,qmapbins=0):      
-
-        """
-        DEPRECATED  - calculation of both q perp Vs qpara map and I Vs Q plot
-        """
-
-    def calcimagegammarange(self):
-        """
-        DEPRECATED 
-       
-        """
-
-    def calcupplow(self, gamma):
-        """
-        DEPRECATED - old function used to calculate upper and lower gamma values, before move over to pyFAI
-        """
-    
-
-    def calc_projected_size(self, two_theta_start):
-        """
-        DEPRECATED old function used to calculate size of projected image before move over to using pyFAI
-        """
-
-    
+  
