@@ -18,6 +18,7 @@ Software for mapping raw surface x-ray diffraction images into reciprocal space.
 
    diamonduse
    apidocs/index
+   calculationtheory
 
 .. _pyFAI: https://pyfai.readthedocs.io/
 .. _usage at Diamond: ./diamonduse.html
