@@ -22,7 +22,7 @@ import fast_rsm.io as io
 from fast_rsm.binning import weighted_bin_1d, finite_diff_shape
 from fast_rsm.meta_analysis import get_step_from_filesize
 from fast_rsm.scan import Scan, init_process_pool, bin_maps_with_indices, chunk, \
-    init_pyfai_process_pool,pyfaicalcint,pyfai_qmap_qvsI,pyfai_stat_qmap,pyfai_stat_ivsq,pyfai_move_qmap,pyfai_move_ivsq, pyfai_stat_exitangles,pyfai_move_exitangles
+    init_pyfai_process_pool,pyfai_stat_qmap,pyfai_stat_ivsq,pyfai_move_qmap,pyfai_move_ivsq, pyfai_stat_exitangles,pyfai_move_exitangles
 from fast_rsm.writing import linear_bin_to_vtk
 import pandas as pd
 import pyFAI,fabio
@@ -30,7 +30,11 @@ import pyFAI,fabio
 import h5py
 import tifffile
 from fast_rsm.scan import Scan
-from deprecated import deprecated
+
+from pyFAI.multi_geometry import MultiGeometry
+import pyFAI
+from pyFAI import units
+import copy
 
 
 # import logging
@@ -78,15 +82,16 @@ def _sum_numpy_files(filenames: List[Union[Path, str]]):
 
 
 def _q_to_theta(q_values, energy) -> np.array:
-    """
-    Calculates the diffractometer theta from scattering vector Q.
 
+    """    
+    Calculates the diffractometer theta from scattering vector Q.
     Args:
         theta:
             Array of theta values to be converted.
         energy:
-            Energy of the incident probe particle, in eV.
+            Energy of the incident probe particle, in eV.  
     """
+
     # First calculate the wavevector of the incident light.
     planck = physical_constants["Planck constant in eV s"][0]
     speed_of_light = physical_constants["speed of light in vacuum"][0] * 1e10
@@ -99,6 +104,650 @@ def _q_to_theta(q_values, energy) -> np.array:
     # Convert from radians to degrees.
     return theta_values*180/np.pi
 
+class NoNexusGIWAXS_Experiment:
+    """
+    extra class to deal with GIWAXS images collected incorrectly without an associated nexus file
+    """
+    def __init__(self, imagenumbers: List[int],
+                imdir: str|Path,                      
+                beam_centre: Tuple[int],
+                detector_distance: float,
+                setup: str,
+                using_dps: bool = False,
+                experimental_hutch=0) -> None:
+        
+        self.beam_centre=beam_centre
+        self.detector_distance=detector_distance
+        self.setup=setup
+        self.using_dps=using_dps
+        self.experimental_hutch=experimental_hutch
+        self.pilatus_names=['pil','p2m']
+        self.imagenumbers=imagenumbers
+        self.imdir=imdir
+        self.images=[file for file in os.listdir(self.imdir) if any(str(imnum) in file for imnum in self.imagenumbers)&(file.endswith('.tif'))]
+        self.textfiles=[file for file in os.listdir(self.imdir) if any(str(imnum) in file for imnum in self.imagenumbers)&(file.endswith('.txt'))]
+        self._load_metadata()
+    
+
+    def createponi(self,outpath,image,offset=0):
+        """
+        creates a poni file from experiment settings to use in pyFAI functions
+
+        Parameters
+        ----------
+        outpath : string
+            directory to save poni file to.
+        image2dshape : array
+            shape of image data.
+        beam_centre : array, optional
+            x,y values for beam centre. The default is 0.
+        offset : float, optional
+            offset in x for PONI1 value. The default is 0.
+
+        Returns
+        -------
+        ponioutpath : string
+            path to saved poni file.
+
+        """
+        datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+        ponioutpath=fr'{outpath}/fast_rsm_{datetime_str}.poni'
+        f=open(ponioutpath,'w')
+        f.write('# PONI file created by fast_rsm\n#\n')
+        f.write('poni_version: 2\n')
+        f.write('Detector: Detector\n')
+        f.write('Detector_config: {"pixel1":')
+        image2dshape=np.shape(image)
+        f.write(f'{self.pixel_size}, "pixel2": {self.pixel_size}, "max_shape": [{image2dshape[0]}, {image2dshape[1]}]') 
+        f.write('}\n')
+        f.write(f'Distance: {self.detector_distance}\n')
+        if self.beam_centre==0:
+            poni1=(image2dshape[0]-offset)*self.pixel_size
+            poni2=image2dshape[1]*self.pixel_size
+        elif (offset==0)&(self.setup!='vertical'):
+            poni1=(self.beam_centre[0])*self.pixel_size
+            poni2=self.beam_centre[1]*self.pixel_size
+        elif (offset==0)&(self.setup=='vertical'):
+            poni1=self.beam_centre[1]*self.pixel_size
+            poni2=(image2dshape[0]-self.beam_centre[0])*self.pixel_size
+            
+        f.write(f'Poni1: {poni1}\n')
+        f.write(f'Poni2: {poni2}\n')
+        f.write('Rot1: 0.0\n')
+        f.write('Rot2: 0.0\n')
+        f.write('Rot3: 0.0\n')
+        f.write(f'Wavelength: {self.incident_wavelength}')
+        f.close()
+        return ponioutpath
+    
+    def _get_images_metadata(self,textfile) -> dict:
+        textpath=self.imdir+"//"+textfile
+        with open(textpath,"r") as f:
+            lines=f.readlines()
+
+        datadict={}
+        for line  in lines[1:]:
+            key,value=line.split("=")
+            datadict[key]=value.replace('\n',"")
+        return datadict
+        
+    def _load_metadata(self)-> dict:
+        self.metadata={}
+        for i,num in enumerate(self.imagenumbers):
+            self.metadata[f'{num}']=self._get_images_metadata(self.textfiles[i])
+    
+    def _get_pixel_size(self,image):
+
+        if any(name in image for name in self.pilatus_names):
+            return 172e-6
+        else:
+            return 55e-6
+           
+    def load_values(self,imagenum):
+        """
+        set attributes of experiment for easier access to key variables
+
+        Parameters
+        ----------
+        image : image object
+            image to load experiment attributes from.
+
+        Returns
+        -------
+        None.
+
+        """
+        image_metadata=self.metadata[f'{self.imagenumbers[imagenum]}']
+        p2mnames=['pil2stats','p2r','pil2roi']
+        self.pixel_size=self._get_pixel_size(self.images[imagenum])
+        #self.entry=image.metadata.data_file.nx_entry
+        
+        self.incident_wavelength= 1e-10*float(image_metadata['dcm1lambda'])
+
+        if self.experimental_hutch==1:
+            self.delta=float(image_metadata['diff1delta'])
+            self.gamma=float(image_metadata['diff1gamma'])
+        else:
+            self.delta=float(image_metadata['diff2delta'])
+            self.gamma=float(image_metadata['diff2gamma'])
+        
+        self.two_theta_start=self.gamma
+        if self.setup=='DCD':
+            print("DCD not implement on no nexus image analysis")
+            # self.dcdrad=float(image_metadata['dcdc2rad'])
+            # self.dcdomega=float(image_metadata['dcdomega'])
+            # self.projectionx=1e-3* self.dcdrad*np.cos(np.radians(self.dcdomega))
+            # self.projectiony=1e-3* self.dcdrad*np.sin(np.radians(self.dcdomega))
+
+
+            # dcd_sample_dist=1e-3*image.metadata.diffractometer._dcd_sample_distance[0]
+            # self.dcd_incdeg=np.degrees(np.arctan(self.projectiony/(np.sqrt(np.square(self.projectionx)+np.square(dcd_sample_dist)))))
+            # self.incident_angle=self.dcd_incdeg
+            # self.deltadata+=self.dcd_incdeg
+        elif (self.experimental_hutch==1)&(self.setup!='DCD'):
+            self.incident_angle=float(image_metadata['diff1chi'])
+        elif (self.experimental_hutch==2):
+            self.incident_angle=float(image_metadata['diff2alpha'])
+        else:
+            self.incident_angle=[0]
+        if 'p2m' in self.images[imagenum]:
+            self.delta=0
+
+        self.rotval=float(image_metadata['diff1prot'])
+
+         
+    
+    def calcqlim(self,axis,vertsetup=False):
+        """
+        Calculates limits in q for either vertical or horizontal axis
+
+        Parameters
+        ----------
+        axis : string
+            choose axis to calculate q limits for .
+        vertsetup : TYPE, optional
+            is the experimental setup horizontal. The default is False.
+
+        Returns
+        -------
+        qupp : float
+            upper limit on q range.
+        qlow : float
+            lower limit on q range.
+
+        """
+        kmod=2*np.pi/ (self.incident_wavelength)
+        
+        switchaxis = {'vert': 'hor', 'hor': 'vert'}    
+        if (vertsetup==True):
+            axis=switchaxis[axis]
+            horpix=self.beam_centre[1]
+            vertangles=-self.gamma
+            verscale=1
+        else:
+            horpix= self.beam_centre[0]  
+            vertangles=self.delta
+            verscale=-1
+                    
+        
+        if axis=='vert':
+            pixlow=self.imshape[0]-self.beam_centre[0]
+            pixhigh=self.beam_centre[0]
+            highsection=np.max(self.delta)
+            lowsection=np.min(self.delta)
+        elif axis=='hor':
+            pixhigh=(self.beam_centre[1])
+            pixlow=(self.imshape[1]-self.beam_centre[1])
+            highsection=np.max(self.two_theta_start)
+            lowsection=np.min(self.two_theta_start)
+
+        maxangle=highsection+np.degrees(np.arctan((pixhigh*self.pixel_size)/self.detector_distance))
+        minangle=lowsection-np.degrees(np.arctan((pixlow*self.pixel_size)/self.detector_distance))
+
+        if (axis=='vert'):
+            qupp=self.SOHqcalc(maxangle,kmod)
+            qlow=self.SOHqcalc(minangle,kmod)
+            maxtthrad=np.radians(np.max(self.two_theta_start))
+            maxanglerad=np.radians(np.max(maxangle))
+            minanglerad=np.radians(np.max(maxangle))
+            maxincrad=np.radians(np.max(self.incident_angle))
+            extraincq=kmod*1e-10*np.sin(maxincrad)
+
+            minusexitq_x=kmod*1e-10*np.cos(maxanglerad)*np.cos(maxtthrad)*np.sin(maxincrad)
+            minusexitq_z=kmod*1e-10*np.sin(maxanglerad)*(1-np.cos(maxincrad))
+            extravert=extraincq-minusexitq_x-minusexitq_z
+            qupp+=extravert
+
+            minusexitq_x=kmod*1e-10*np.cos(minanglerad)*np.cos(maxtthrad)*np.sin(maxincrad)
+            minusexitq_z=kmod*1e-10*np.sin(minanglerad)*(1-np.cos(maxincrad))
+            extravert=extraincq-minusexitq_x-minusexitq_z
+            qlow+=extravert  
+            outscale=verscale
+        
+        elif axis=='hor':
+            qupp=self.SOHqcalc(maxangle/2,kmod)*2
+            qlow=self.SOHqcalc(minangle/2,kmod)*2
+            maxdel=np.max(vertangles) +np.degrees(np.arctan((horpix*self.pixel_size)/self.detector_distance))
+            s1=kmod*np.cos(np.radians(maxdel))*np.sin(np.radians(maxangle))
+            s2=kmod*(1-np.cos(np.radians(maxdel))*np.cos(np.radians(maxangle)))
+            qupp_withdelta=np.sqrt(np.square(s1)+np.square(s2))*1e-10*np.sign(maxangle)
+            s3=kmod*np.cos(np.radians(maxdel))*np.sin(np.radians(minangle))
+            s4=kmod*(1-np.cos(np.radians(maxdel))*np.cos(np.radians(minangle)))
+            qlow_withdelta=np.sqrt(np.square(s3)+np.square(s4))*1e-10*np.sign(minangle)
+
+            if abs(qupp_withdelta)>abs(qupp):
+                qupp=-1*qupp_withdelta
+            else:
+                qupp*=-1
+            if abs(qlow_withdelta)>abs(qlow):
+                qlow=-1*qlow_withdelta
+            else:
+                qlow*=-1
+            outscale=1
+        
+        return qupp*outscale,qlow*outscale
+
+
+    def calcanglim(self,axis,vertsetup=False):
+        """
+        Calculates limits in exit angle for either vertical or horizontal axis
+
+        Parameters
+        ----------
+        axis : string
+            choose axis to calculate q limits for .
+        vertsetup : TYPE, optional
+            is the experimental setup horizontal. The default is False.
+
+        Returns
+        -------
+        maxangle : float
+            upper limit on exit angle in degrees.
+        minangle : float
+            lower limit on exit angle in degrees.
+
+        """
+        
+        switchaxis = {'vert': 'hor', 'hor': 'vert'}            
+        verscale=-1
+        if (vertsetup==True):
+            axis=switchaxis[axis]
+            verscale=1
+        if axis=='vert':
+            pixlow=self.imshape[0]-self.beam_centre[0]
+            pixhigh=self.beam_centre[0]
+            highsection=np.max(self.delta)
+            lowsection=np.min(self.delta)
+            outscale=verscale
+        elif axis=='hor':
+            pixhigh=(self.beam_centre[1])
+            pixlow=(self.imshape[1]-self.beam_centre[1])
+            highsection=np.max(self.two_theta_start)
+            lowsection=np.min(self.two_theta_start)
+            outscale=-1
+
+        maxangle=highsection+np.degrees(np.arctan((pixhigh*self.pixel_size)/self.detector_distance))
+        minangle=lowsection-np.degrees(np.arctan((pixlow*self.pixel_size)/self.detector_distance))
+    
+        return maxangle*outscale,minangle*outscale  
+
+    def SOHqcalc(self,angle,kmod):
+        """
+        Parameters
+        ----------
+        angle : float
+            angle of trig triangle being analysed.
+        kmod : float
+            wavevector value.
+
+        Returns
+        -------
+        float
+            q value.
+
+        """
+        return np.sin(np.radians(angle))*kmod*1e-10
+    
+    
+    def gamdel2rots(self,gamma,delta):
+        """
+        
+
+        Parameters
+        ----------
+        gamma : float
+            angle rotation of gamma diffractometer circle in degrees.
+        delta : float
+            angle rotation of delta diffractometer circle in degrees.
+
+        Returns
+        -------
+        rots : list of rotations rot1,rot2,rot3 in radians to be using by pyFAI.
+
+        """
+        rotdelta=R.from_euler('y', -delta, degrees=True)
+        rotgamma=R.from_euler('z',gamma,degrees=True)
+        totalrot=rotgamma*rotdelta
+        fullrot=np.identity(4)
+        fullrot[0:3,0:3]=totalrot.as_matrix()
+        vals=tf.euler_from_matrix(fullrot,'rxyz')
+        rots=vals[2],-vals[1],vals[0]
+        return rots
+    
+
+    def pyfai_stat_qmap(self,hf, imagenum, qmapbins,outpath) -> None:
+
+        image=self.images[imagenum]
+        img_data=tifffile.imread(self.imdir+'//'+image)
+        self.imshape=np.shape(img_data)
+        self.load_values(imagenum)
+        
+        
+        pyfaiponi=self.createponi(outpath,img_data)
+
+        aistart = pyFAI.load(pyfaiponi)
+
+        sample_orientation = 1
+
+        qlimhor=self.calcqlim( 'hor',vertsetup=(self.setup=='vertical'))
+        qlimver=self.calcqlim( 'vert',vertsetup=(self.setup=='vertical'))
+
+        qlimits = [qlimhor[0], qlimhor[1],qlimver[0], qlimver[1]]
+
+        if self.setup=='vertical':
+
+            self.beam_centre=[self.beam_centre[1],self.beam_centre[0]]
+            self.beam_centre[1]=np.shape(img_data)[0]-self.beam_centre[1]
+
+        #calculate map bins if not specified using resolution of 0.01 degrees 
+        
+        if qmapbins==0:
+            qstep=round(self.calcq(1.00,self.incident_wavelength)-\
+                self.calcq(1.01,self.incident_wavelength),4)
+            binshor=abs(round(((qlimhor[1]-qlimhor[0])/qstep)*1.05))
+            binsver=abs(round(((qlimver[1]-qlimver[0])/qstep)*1.05))
+            qmapbins=(binshor,binsver)
+
+
+        inc_angle = -np.radians(self.incident_angle)
+
+        
+        unit_qip_name = "qip_A^-1"
+        unit_qoop_name = "qoop_A^-1"
+        unit_qip = units.get_unit_fiber(
+            unit_qip_name, sample_orientation=sample_orientation, incident_angle=inc_angle)
+        unit_qoop = units.get_unit_fiber(
+            unit_qoop_name, sample_orientation=sample_orientation, incident_angle=inc_angle)
+        self.two_theta_start=self.gamma
+        my_ai = copy.deepcopy(aistart)
+        gamval = self.gamma
+        delval = self.delta
+
+        rots = self.gamdel2rots(gamval, delval)
+        my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
+        # my_ai.poni1=(self.imshape[0] - self.beam_centre[0]) * self.pixel_size
+        
+    # print(my_ai.get_config())
+        if self.setup == 'vertical':
+            img_data = np.rot90(img_data, -1)
+        
+
+        map2d = my_ai.integrate2d(img_data, qmapbins[0], qmapbins[1], unit=(unit_qip, unit_qoop),
+                                radial_range=(qlimits[0]*1.05, qlimits[1]*1.05), azimuth_range=(1.05*qlimits[3], 1.05*qlimits[2]), method=("no", "csr", "cython"))
+
+
+        binset=hf.create_group("binoculars")
+        binset.create_dataset("counts",data=map2d[0])
+        binset.create_dataset("contributions",data=np.ones(np.shape(map2d[0])))
+        axgroup=binset.create_group("axes",track_order=True)
+
+        
+        zlen=np.shape(map2d[0])[0]
+        if zlen>1:
+            axgroup.create_dataset("1_index",data=self.get_bin_axvals(np.arange(zlen),0),track_order=True)
+        else:
+            axgroup.create_dataset("1_index",data=[0.0,1.0,1.0,1.0,1.0,1.0],track_order=True)
+        
+        axgroup.create_dataset("2_q_perp",data=self.get_bin_axvals(map2d[1],1),track_order=True)    
+        axgroup.create_dataset("3_q_para",data=self.get_bin_axvals(map2d[2],2),track_order=True)
+        
+        
+        dset=hf.create_group("qpara_qperp")
+        dset["qpara_qperp_image"]=h5py.SoftLink('/binoculars/counts')
+        dset.create_dataset("map_para",data=map2d[1])
+        dset.create_dataset("map_perp",data=map2d[2])
+        dset.create_dataset("map_perp_indices",data = [0,1,2])
+        dset.create_dataset("map_para_indices",data = [0,1,3])
+
+        if self.savetiffs==True:
+            self.do_savetiffs(hf, map2d[0],map2d[1], map2d[2])
+            
+    def get_bin_axvals(self,data_in,ind):
+        #print(data_in,type(data_in[0]))
+        single_list=[np.int64,np.float64,int,float]
+        if type(data_in[0]) in single_list:
+            data=data_in
+        else:
+            data=data_in[0]
+        startval=data[0]
+        stopval=data[-1]
+        stepval=data[1]-data[0]
+        startind=int(np.floor(startval/stepval))
+        stopind=int(startind+len(data)-1)
+        return [ind,startval,stopval,stepval,float(startind),float(stopind)]
+
+
+    def pyfai_stat_exitangles(self, hf,imagenum, qmapbins,outpath) -> None:
+        
+        image=self.images[imagenum]
+        img_data=tifffile.imread(self.imdir+'//'+image)
+        self.imshape=np.shape(img_data)
+        self.load_values(imagenum)
+        
+        
+        pyfaiponi=self.createponi(outpath,img_data)
+
+        aistart = pyFAI.load(pyfaiponi)
+
+        sample_orientation = 1
+        anglimhor=self.calcanglim( 'hor',vertsetup=(self.setup=='vertical'))
+        anglimver=self.calcanglim( 'vert',vertsetup=(self.setup=='vertical'))
+        anglimits=[anglimhor[0],anglimhor[1],anglimver[0],anglimver[1]]
+        #calculate map bins if not specified using resolution of 0.01 degrees 
+        if self.setup=='vertical':
+            self.beam_centre=[self.beam_centre[1],self.beam_centre[0]]
+            self.beam_centre[1]=self.imshape[0]-self.beam_centre[1]
+        if qmapbins==0:
+            qmapbins=[800,800]
+        inc_angle=-np.radians(self.incident_angle)
+
+                
+        unit_qip_name ="exit_angle_horz_deg"
+        unit_qoop_name = "exit_angle_vert_deg"# "exitangle_rad"
+        unit_qip=units.get_unit_fiber(unit_qip_name,sample_orientation=sample_orientation,incident_angle=inc_angle)
+        unit_qoop=units.get_unit_fiber(unit_qoop_name,sample_orientation=sample_orientation,incident_angle=inc_angle) 
+
+        my_ai = copy.deepcopy(aistart)
+        gamval = self.gamma
+        delval = self.delta
+
+        rots = self.gamdel2rots(gamval, delval)
+        my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
+        
+        if self.setup == 'vertical':
+            img_data = np.rot90(img_data, -1)
+        
+        current_ai=my_ai
+        current_img=img_data
+        
+        map2d = current_ai.integrate2d(current_img, qmapbins[0],qmapbins[1], unit=(unit_qip, unit_qoop),
+        radial_range=(anglimits[1]*1.05,anglimits[0]*1.05),azimuth_range=(anglimits[3]*1.05,anglimits[2]*1.05), method=("no", "csr", "cython"))
+        
+
+        dset=hf.create_group("horiz_vert_exit")
+        dset.create_dataset("exit_angle_image",data=map2d[0])
+        dset.create_dataset("exit_para",data=map2d[1])
+        dset.create_dataset("exit_perp",data=map2d[2])
+        dset.create_dataset("exit_perp_indices",data = [0,1,2])
+        dset.create_dataset("exit_para_indices",data = [0,1,3])
+        
+        if self.savetiffs==True:
+            self.do_savetiffs(hf, map2d[0],map2d[1], map2d[2])
+
+#=====to do =========
+
+
+
+
+    def pyfai_stat_ivsq(self, hf,imagenum, ivqbins,outpath) -> None:
+        image=self.images[imagenum]
+        img_data=tifffile.imread(self.imdir+'//'+image)
+        self.imshape=np.shape(img_data)
+        self.load_values(imagenum)
+        
+        
+        pyfaiponi=self.createponi(outpath,img_data)
+
+        aistart = pyFAI.load(pyfaiponi)
+        unit_q=units.get_unit_fiber(name="qtot_A^-1",sample_orientation=1, incident_angle=self.incident_angle)
+
+
+        my_ai = copy.deepcopy(aistart)
+        gamval = self.gamma
+        delval = self.delta
+
+        rots = self.gamdel2rots(gamval, delval)
+        my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
+
+        if self.setup=='vertical':
+
+            self.beam_centre=[self.beam_centre[1],self.beam_centre[0]]
+            self.beam_centre[1]=np.shape(img_data)[0]-self.beam_centre[1]
+
+
+        tth, I = my_ai.integrate1d_ng(img_data,
+                                    ivqbins,
+                                    unit="2th_deg", polarization_factor=1)
+
+        Q, I = my_ai.integrate1d_ng(img_data,
+                                    ivqbins,
+                                    unit="q_A^-1", polarization_factor=1)
+        
+        outlist=[I,Q,tth]
+
+        dset=hf.create_group("integrations")
+        dset.create_dataset("Intensity",data=outlist[0])
+        dset.create_dataset("Q_angstrom^-1",data=outlist[1])
+        dset.create_dataset("2thetas",data=outlist[2])    
+        if self.savedats==True:
+            self.do_savedats(hf,outlist[0],outlist[1],outlist[2])
+
+    def save_config_variables(self,hf,joblines,pythonlocation,globalvals):
+        config_group=hf.create_group('i07configuration')
+        configlist=['setup','experimental_hutch', 'using_dps','beam_centre','detector_distance','dpsx_central_pixel','dpsy_central_pixel','dpsz_central_pixel',\
+                    'local_data_path','local_output_path','output_file_size','save_binoculars_h5','map_per_image','volume_start','volume_step','volume_stop',\
+                    'load_from_dat', 'edfmaskfile','specific_pixels','mask_regions','process_outputs','scan_numbers']
+        for name in configlist :
+            if name in globalvals:
+                outval=globalvals[f'{name}']
+                if outval==None:
+                    outval='None'
+                config_group.create_dataset(f"{name}",data=outval)
+        if 'ubinfo' in globalvals:
+            for i,coll in enumerate(globalvals['ubinfo']):
+                ubgroup=config_group.create_group(f'ubinfo_{i+1}')
+                ubgroup.create_dataset(f'lattice_{i+1}',data=coll['diffcalc_lattice'])
+                ubgroup.create_dataset(f'u_{i+1}',data=coll['diffcalc_u'])
+                ubgroup.create_dataset(f'ub_{i+1}',data=coll['diffcalc_ub'])
+                
+        config_group.create_dataset('joblines',data=joblines)
+        config_group.create_dataset('python_location',data=pythonlocation)
+    
+
+    def do_savetiffs(self,hf,data,axespara,axesperp):
+        datashape=np.shape(data)
+        extradims=len(datashape)-2
+        outdir=hf.filename.strip('.hdf5')
+        try:
+            os.mkdir(outdir)
+        except:
+            print('directory already exists')
+        outname=outdir.split('\\')[-1]
+        if extradims==0:
+            imdata=data
+            parainfo=axespara
+            perpinfo=axesperp
+            metadata={
+                'Description':f'Image data identical to data saved in {hf.filename}',
+                'Xlimits': f'min {parainfo.min()}, max {parainfo.max()}',
+                'Ylimits': f'min {perpinfo.min()}, max {perpinfo.max()}',
+                }
+            tifffile.imwrite(f'{outdir}/{outname}.tiff',imdata,metadata=metadata)
+        if extradims==1:
+            for i1 in np.arange(datashape[0]):
+                imdata=data[i1]
+                parainfo=axespara[i1]
+                perpinfo=axesperp[i1]
+                metadata={
+                    'Description':f'Image data identical to data saved in {hf.filename}',
+                    'Xlimits': f'min {parainfo.min()}, max {parainfo.max()}',
+                    'Ylimits': f'min {perpinfo.min()}, max {perpinfo.max()}',
+                    }
+                tifffile.imwrite(f'{outdir}/{outname}_{i1}.tiff',imdata,metadata=metadata)
+        if extradims==2:
+            for i1 in np.arange(datashape[0]):
+                for i2 in np.arange(datashape[1]):
+                    imdata=data[i1][i2]
+                    parainfo=axespara[i1][i2]
+                    perpinfo=axesperp[i1][i2]
+                    metadata={
+                        'Description':f'Image data identical to data saved in {hf.filename}',
+                        'Xlimits': f'min {parainfo.min()}, max {parainfo.max()}',
+                        'Ylimits': f'min {perpinfo.min()}, max {perpinfo.max()}',
+                        }
+                    tifffile.imwrite(f'{outdir}/{outname}_{i1}_{i2}.tiff',imdata,metadata=metadata)
+                    
+    def do_savedats(self,hf,Idata,qdata,tthdata):
+        datashape=np.shape(Idata)
+        extradims=len(datashape)-1
+        outdir=hf.filename.strip('.hdf5')
+        try:
+            os.mkdir(outdir)
+        except:
+            print('directory already exists')
+        metadata=f'Intensity data identical to data saved in {hf.filename}\n'
+        outname=outdir.split('/')[-1]
+        if extradims==0:
+
+            intvals=Idata
+            qvals=qdata
+            tthetavals=tthdata
+            outdf=pd.DataFrame({'Q_angstrom^-1':qvals,'Intensity':intvals,'two_theta':tthetavals})
+            with open(f'{outdir}/{outname}.dat',"w") as f:
+                f.write(metadata)
+                outdf.to_csv(f,sep='\t',index=False)
+        
+        
+        if extradims==1:
+            for i1 in np.arange(datashape[0]):
+                intvals=Idata[i1]
+                qvals=qdata[i1]
+                tthetavals=tthdata[i1]
+                outdf=pd.DataFrame({'Q_angstrom^-1':qvals,'Intensity':intvals,'two_theta':tthetavals})
+                with open(f'{outdir}/{outname}_{i1}.dat',"w") as f:
+                    f.write(metadata)
+                    outdf.to_csv(f,sep='\t',index=False)
+        if extradims==2:
+            for i1 in np.arange(datashape[0]):
+                for i2 in np.arange(datashape[1]):                   
+                    intvals=Idata[i1][i2] 
+                    qvals=qdata[i1][i2]
+                    tthetavals=tthdata[i1][i2]
+                    outdf=pd.DataFrame({'Q_angstrom^-1':qvals,'Intensity':intvals,'two_theta_degree':tthetavals})
+                    with open(f'{outdir}/{outname}_{i1}_{i2}.dat',"w") as f:
+                        f.write(metadata)
+                        outdf.to_csv(f,sep='\t',index=False)
+    
 
 class Experiment:
     """
@@ -634,6 +1283,8 @@ class Experiment:
         starts, stops = np.array(starts), np.array(stops)
         return np.min(starts, axis=0), np.max(stops, axis=0)
     
+
+
     def calcq(self,twotheta,wavelength):
         """
         converts two theta value to q value for a given wavelength
