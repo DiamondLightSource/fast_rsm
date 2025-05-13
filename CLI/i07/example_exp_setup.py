@@ -149,5 +149,7 @@ savetiffs=False
 #choose if you want to export 1d I Vs Q data to individual .dat files as well as hdf5
 savedats=False
 
+#set this to True if you collected data incorrectly and ended up with images having no nexus file associated with them
+no_nexus_experiment=True
 # The scan numbers of the scans that you want to use to produce this reciprocal
 # space map.
