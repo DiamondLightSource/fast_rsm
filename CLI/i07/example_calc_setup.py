@@ -41,8 +41,7 @@ processing_dir = Path(local_output_path)
 
 # Here we calculate a sensible file name that hasn't been taken.
 i = 0
-
-if len(scan_numbers)>=1:
+if scan_numbers!=None:
     save_file_name = f"mapped_scan_{scan_numbers[0]}_{i}"
 else:
     save_file_name = f"mapped_scan_{image_numbers[0]}_{i}"
@@ -64,8 +63,7 @@ while (os.path.exists(str(save_path) + ".npy") or
             "went wrong. I'm going with the latter, but exiting out anyway.")
 
 from datetime import datetime
-# Work out the paths to each of the nexus files. Store as pathlib.Path objects.
-nxs_paths = [data_dir / f"i07-{x}.nxs" for x in scan_numbers]
+
 
 
 # # The frame/coordinate system you want the map to be carried out in.
@@ -125,8 +123,12 @@ if mask_regions_list is not None:
         region.x_start, region.y_start = region.y_start, region.x_start
         region.x_end, region.y_end = region.y_end, region.x_end
 
+
+
 # Finally, instantiate the Experiment object.
 if (no_nexus_experiment==False):
+    # Work out the paths to each of the nexus files. Store as pathlib.Path objects.
+    nxs_paths = [data_dir / f"i07-{x}.nxs" for x in scan_numbers]
     experiment = Experiment.from_i07_nxs(nxs_paths,beam_centre, detector_distance, setup, 
         using_dps=using_dps,experimental_hutch=experimental_hutch)
     experiment.mask_pixels(specific_pixels)
@@ -283,7 +285,7 @@ if no_nexus_experiment==False:
         print(f"saved 2d map data to {local_output_path}/{projected_name}.hdf5")           
         
         total_time = time() - process_start_time
-        print(f"\n 2d Q map calculation took {total_time}s")
+        print(f"2d Q map calculation took {total_time}s\n")
 
 
     if ('pyfai_ivsq' in process_outputs)&(map_per_image==True)&(no_nexus_experiment==False):
@@ -390,6 +392,7 @@ else:
         
         name_end=image_numbers[i]
         datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+        process_start_time=time()
         projected_name=f'Qmap_{name_end}_{datetime_str}'
         hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
         i=0
@@ -398,10 +401,14 @@ else:
         experiment.pyfai_stat_qmap(hf,i, qmapbins,local_output_path)
         experiment.save_config_variables(hf,joblines,pythonlocation,globals()) 
         hf.close()
+        print(f"saved 2d Q map  data to {local_output_path}/{projected_name}.hdf5")
+        total_time = time() - process_start_time
+        print(f"2d Q map calculation took {total_time}s\n")
 
     if ('pyfai_exitangles' in process_outputs)&(map_per_image==True):
         name_end=image_numbers[i]
         datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+        process_start_time=time()
         projected_name=f'exitmap_{name_end}_{datetime_str}'
         hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
         i=0
@@ -410,10 +417,14 @@ else:
         experiment.pyfai_stat_exitangles(hf,i, qmapbins,local_output_path)
         experiment.save_config_variables(hf,joblines,pythonlocation,globals()) 
         hf.close()
+        print(f"saved 2d exit angle map  data to {local_output_path}/{projected_name}.hdf5")
+        total_time = time() - process_start_time
+        print(f"2d exit angle map calculations took {total_time}s\n ")
     
     if ('pyfai_ivsq' in process_outputs)&(map_per_image==True):
         name_end=image_numbers[i]
         datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+        process_start_time=time()
         projected_name=f'IvsQ_{name_end}_{datetime_str}'
         hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
         i=0
@@ -422,5 +433,8 @@ else:
         experiment.pyfai_stat_ivsq(hf,i,ivqbins,local_output_path)
         experiment.save_config_variables(hf,joblines,pythonlocation,globals()) 
         hf.close()
+        print(f"saved 1d integration data to {local_output_path}/{projected_name}.hdf5")
+        total_time = time() - process_start_time 
+        print(f"Azimuthal integration took {total_time}s\n")
            
 print("PROCESSING FINISHED.")

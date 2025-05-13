@@ -151,5 +151,6 @@ savedats=False
 
 #set this to True if you collected data incorrectly and ended up with images having no nexus file associated with them
 no_nexus_experiment=True
-# The scan numbers of the scans that you want to use to produce this reciprocal
+
+# The numbers of the scans or single images that you want to use to produce this reciprocal
 # space map.
