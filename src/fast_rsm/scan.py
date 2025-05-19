@@ -765,6 +765,259 @@ def bin_maps_with_indices(indices: List[int],
     return SHARED_RSM_NAME, SHARED_COUNT_NAME
 
 
+
+#==========testing functions========
+
+
+
+def bin_maps_with_indices_SMM(indices: List[int],
+                          start: np.ndarray,
+                          stop: np.ndarray,
+                          step: np.ndarray,
+                          min_intensity: float,
+                          processing_steps: list,
+                          skip_images: List[int],
+                          oop: str,
+                          map_each_image: bool = False,
+                          previous_images: int = 0
+                          ) -> None:
+    """
+    Bins all of the maps with indices in indices. The purpose of this
+    intermediate function call is to decrease the amount of context switching/
+    serialization that the interpreter has to do.
+    """
+
+    # We need to catch all exceptions and explicitly print them in worker
+    # threads.
+    # pylint: disable=broad-except.
+    try:
+        # Do the binning, adding each binned dataset to binned_q.
+        for idx in indices:
+            # Skip this if we've been asked to.
+            if idx in skip_images:
+                continue
+
+            # print(f"Processing image {idx}. ", end='')
+            _bin_one_map_SMM(start, stop, step, min_intensity, idx,
+                         processing_steps, oop, map_each_image, previous_images)
+    except Exception as exception:
+        print("Exception thrown in bin_one_map:")
+        print(traceback.format_exc())
+        raise exception
+
+    # In place of returning very large arrays when they might not be wanted, we
+    # just return the names of the shared memory blocks where the RSM/count data
+    # is stored. The caller can then choose to access the shared memory blocks
+    # directly without needlessly serializing enormous arrays.
+    #return SHARED_RSM_NAME, SHARED_COUNT_NAME
+
+
+
+def _bin_one_map_SMM(start: np.ndarray,
+                 stop: np.ndarray,
+                 step: np.ndarray,
+                 min_intensity: float,
+                 idx: int,
+                 processing_steps: list,
+                 oop: str,
+                 map_each_image: bool = False,
+                 previous_images: int = 0
+                 ) -> np.ndarray:
+    """
+    Calculates and bins the reciprocal space map with index idx. Saves the
+    result to the shared memory buffer.
+    """
+
+    if map_each_image:
+        rsm_before = np.copy(RSM_ARRAY)
+        count_before = np.copy(COUNT_ARRAY)
+
+    image = Image(METADATA, idx)
+    image._processing_steps = processing_steps
+
+    # Do the mapping for this image; bin the mapping.
+    q_vectors = image.q_vectors(FRAME, oop=oop)
+    weighted_bin_3d(q_vectors,
+                    image.data,
+                    RSM_ARRAY,
+                    COUNT_ARRAY,
+                    start,
+                    stop,
+                    step,
+                    min_intensity)
+
+    if map_each_image:
+        # If the user also wants us to map each image, rerun the map for just
+        # this image.
+        rsm = RSM_ARRAY - rsm_before
+        count = COUNT_ARRAY - count_before
+
+        # Normalise it.
+        normalised_map = rsm/(count.astype(np.float32))
+
+        # Get the unique id for this image & pad with zeros for paraview.
+        image_id = str(previous_images + idx).zfill(6)
+
+        # Now we just need to save this map; work out its unique name.
+        volume_path = str(OUTPUT_FILE_NAME) + '_' + str(image_id)
+
+        # Save the vtk, as well as a .npy and a bounds file.
+        linear_bin_to_vtk(normalised_map, volume_path, start, stop, step)
+        np.save(volume_path, normalised_map)
+        np.savetxt(str(volume_path) + "_bounds.txt",
+                   np.array((start, stop, step)).transpose(),
+                   header="start stop step")
+
+        q_vec_path = volume_path + "_q"
+        intensities_path = volume_path + "_uncorrected_intensities"
+        corrected_intensity_path = volume_path + "_corrected_intensities"
+
+        # Re-calculate q-vectors. Don't apply corrections (if users want
+        # per-image data, they likely want control over corrections. This is
+        # especially true if people want to use this data to project to 1D,
+        # where the application of custom corrections is particularly easy).
+        fresh_image = Image(METADATA, idx)
+        q_vectors = fresh_image.q_vectors(
+            FRAME,
+            oop=oop,
+            lorentz_correction=False,
+            pol_correction=False)
+
+        # Also, just to provide complete information on a per-image basis, save
+        # every single *exact* q-vector for this scan.
+        # These should both be saved.
+        np.save(q_vec_path, q_vectors.ravel())
+        np.save(intensities_path, fresh_image.data.ravel())
+
+        # Also save the corrected intensities.
+        np.save(corrected_intensity_path, image.data.ravel())
+
+
+def rsm_init_worker(l,shm_rsm_name: str,shm_counts_name: str,shmshape: np.ndarray, metadata: RSMMetadata, newmetadata: dict ,motors: Dict[str, np.ndarray],num_threads: int,frame: Frame, output_file_name: str = None):
+    
+    global lock
+    global RSM_ARRAY
+    global COUNT_ARRAY
+    global SHM_RSM
+    global SHM_COUNT
+    global METADATA
+
+    global NUM_THREADS
+    global FRAME
+    global OUTPUT_FILE_NAME
+
+    OUTPUT_FILE_NAME=output_file_name
+    NUM_THREADS = num_threads
+    FRAME = frame
+
+    
+    METADATA = metadata
+    METADATA.update_i07_nx(motors, newmetadata)
+
+    lock=l
+    SHM_RSM = SharedMemory(name=shm_rsm_name)
+    RSM_ARRAY = np.ndarray(shmshape, dtype=np.float32, buffer=SHM_RSM.buf)
+    SHM_COUNT = SharedMemory(name=shm_counts_name)
+    COUNT_ARRAY = np.ndarray(shmshape, dtype=np.uint32, buffer=SHM_COUNT.buf)
+
+
+def pyfai_init_worker(l,shm_arrays_name,shm_counts_name,shmshape):
+    global lock
+    global SHM_ARR
+    global ARR_ARRAY
+    global SHM_COUNT
+    global COUNT_ARRAY
+
+    SHM_ARR=SharedMemory(name=shm_arrays_name)
+    SHM_COUNT=SharedMemory(name=shm_counts_name)
+    ARR_ARRAY=np.ndarray(shape=shmshape, dtype=np.float32, buffer=SHM_ARR.buf)
+    COUNT_ARRAY=np.ndarray(shape=shmshape, dtype=np.float32, buffer=SHM_COUNT.buf)
+    lock = l
+    
+
+def pyfai_move_qmap_worker(shm_arrays_name,shm_counts_name,experiment, choiceims, scan,shapeqpqp, pyfaiponi, qmapbins,qlimits=None) -> None:
+    # shm_array = SharedMemory(name=shm_arrays_name)
+    # array_arr = np.ndarray(shapeqpqp, dtype=np.float32, buffer=shm_array.buf)
+    # shm_count = SharedMemory(name=shm_counts_name)
+    # count_arr = np.ndarray(shapeqpqp, dtype=np.int32, buffer=shm_count.buf)
+    global ARR_ARRAY,COUNT_ARRAY
+    aistart = pyFAI.load(pyfaiponi)
+
+    shapemap = shapeqpqp
+    totalqpqpmap = np.zeros((shapemap[0], shapemap[1]))
+    totalqpqpcounts = np.zeros((shapemap[0], shapemap[1]))
+    unit_qip_name = "qip_A^-1"
+    unit_qoop_name = "qoop_A^-1"
+
+    if qlimits == None:
+        qlimhor=experiment.calcqlim( 'hor',vertsetup=(experiment.setup=='vertical'))
+        qlimver=experiment.calcqlim( 'vert',vertsetup=(experiment.setup=='vertical'))
+        qlimits = [qlimhor[0], qlimhor[1],qlimver[0], qlimver[1]]
+
+    sample_orientation = 1
+
+    groupnum = 15
+
+    groups = [choiceims[i:i+groupnum]
+            for i in range(0, len(choiceims), groupnum)]
+    for group in groups:
+        ais = []
+        for i in group:
+            if np.size(experiment.incident_angle) > 1:
+                inc_angle = -np.radians(experiment.incident_angle[i])
+            elif type(experiment.incident_angle) == np.float64:
+                inc_angle = -np.radians(experiment.incident_angle)
+            else:
+                inc_angle = -np.radians(experiment.incident_angle[0])
+            # inc_angle=0 #debug setting incident angle to 0
+            unit_qip = units.get_unit_fiber(
+                unit_qip_name, sample_orientation=sample_orientation, incident_angle=inc_angle)
+            unit_qoop = units.get_unit_fiber(
+                unit_qoop_name, sample_orientation=sample_orientation, incident_angle=inc_angle)
+            my_ai = copy.deepcopy(aistart)
+            gamval = 0
+            delval = 0
+            if np.size(experiment.gammadata) > 1:
+                gamval = -np.array(experiment.two_theta_start).ravel()[i]
+            if np.size(experiment.gammadata) == 1:
+                gamval = -np.array(experiment.two_theta_start).ravel()
+            if np.size(experiment.deltadata) > 1:
+                delval = np.array(experiment.deltadata).ravel()[i]
+            if np.size(experiment.deltadata) == 1:
+                delval = np.array(experiment.deltadata).ravel()
+
+            rots = experiment.gamdel2rots(gamval, delval)
+            my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
+            ais.append(my_ai)
+
+        if experiment.setup == 'vertical':
+            img_data = [np.rot90(scan.load_image(i).data, -1) for i in group]
+        else:
+            img_data = [scan.load_image(i).data for i in group]
+
+        for current_n, current_ai in enumerate(ais):
+            current_img = img_data[current_n]
+            map2d = current_ai.integrate2d(current_img, qmapbins[0], qmapbins[1], unit=(unit_qip, unit_qoop),
+                                        radial_range=(qlimits[0]*1.05, qlimits[1]*1.05), azimuth_range=(1.05*qlimits[3], 1.05*qlimits[2]), method=("no", "csr", "cython"))
+            totalqpqpmap += map2d.sum_signal
+            totalqpqpcounts += map2d.count
+
+    mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
+        map2d.azimuthal_unit), str(map2d.radial_unit)]
+    with lock:
+        ARR_ARRAY+=totalqpqpmap
+        COUNT_ARRAY+=totalqpqpcounts.astype(dtype=np.int32)
+    # QPQPMAP[0] = totalqpqpmap
+    # QPQPMAP[1] = totalqpqpcounts
+    #return #SHARED_QPQPMAP_NAME, mapaxisinfo
+
+    
+
+
+
+
+#============================
+
 class Scan:
     """
     This class stores all of the data and metadata relating to a reciprocal
