@@ -32,7 +32,6 @@ import pyFAI,fabio
 import h5py
 import tifffile
 from fast_rsm.scan import Scan
-from deprecated import deprecated
 
 
 # import logging
