@@ -143,10 +143,11 @@ process_outputs=[]#'pyfai_ivsq'  , 'pyfai_qmap','pyfai_exitangles' ,'full_recipr
 # reciprocal space map.
 map_per_image = False
 
-#choose if you want to export 2d qpara Vs qperp maps to individual .tiff images as well as hdf5
+# There will always be a .hdf5 file created. You can set the option for exporting additonal files with the savetiffs and savedats options below
+# if you want to export '2d qpara Vs qperp maps' to extra .tiff images set savetiffs to True
 savetiffs=False
 
-#choose if you want to export 1d I Vs Q data to individual .dat files as well as hdf5
+# if you want to export '1d I Vs Q data' to extra .dat files set savedats to True
 savedats=False
 
 #set this to True if you collected data incorrectly and ended up with images having no nexus file associated with them
