@@ -9,3 +9,4 @@ pyevtk>=1.5.0
 transformations
 spyder-kernels
 sphinxcontrib-images
+pyzmq<=23.2.1
