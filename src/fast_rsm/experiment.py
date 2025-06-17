@@ -1004,7 +1004,8 @@ class Experiment:
             
             print(f'started pool with num_threads={num_threads}')
             indices=np.arange(0,scanlength,scalegamma)
-            input_list = [(self,index,scan,self.two_theta_start,pyfaiponi,anglimits,qmapbins,ivqbins) for index in indices]
+            selectedindices=[n for n in indices if n not in scan.skip_images]
+            input_list = [(self,index,scan,self.two_theta_start,pyfaiponi,anglimits,qmapbins,ivqbins) for index in selectedindices]
             results=pool.starmap(pyfai_stat_exitangles,input_list)
             maps=[result[0] for result in results]
             xlabels=[result[1] for result in results]
@@ -1085,7 +1086,8 @@ class Experiment:
             
             print(f'started pool with num_threads={num_threads}')
             indices=np.arange(0,scanlength,scalegamma)
-            input_list = [(self,index,scan,self.two_theta_start,pyfaiponi,qlimits,qmapbins,ivqbins) for index in indices]
+            selectedindices=[n for n in indices if n not in scan.skip_images]
+            input_list = [(self,index,scan,self.two_theta_start,pyfaiponi,qlimits,qmapbins,ivqbins) for index in selectedindices]
             results=pool.starmap(pyfai_stat_qmap,input_list)
             maps=[result[0] for result in results]
             xlabels=[result[1] for result in results]
@@ -1194,7 +1196,8 @@ class Experiment:
             
             print(f'started pool with num_threads={num_threads}')
             indices=np.arange(0,scanlength,scalegamma)
-            input_list = [(self,index,scan,self.two_theta_start,pyfaiponi,qmapbins,ivqbins) for index in indices]
+            selectedindices=[n for n in indices if n not in scan.skip_images]
+            input_list = [(self,index,scan,self.two_theta_start,pyfaiponi,qmapbins,ivqbins) for index in selectedindices]
             results=pool.starmap(pyfai_stat_ivsq,input_list)
             intensities=[result[0] for result in results]
             two_th_vals=[result[1] for result in results]
@@ -2111,9 +2114,10 @@ class Experiment:
                     scanlength=len(scan.metadata.data_file.local_image_paths)
                 else:
                     scanlength=scan.metadata.data_file.scan_length
-                    
+                fullrange=np.arange(0,scanlength,scalegamma)
+                selectedindices=[n for n in fullrange if n not in scan.skip_images]
 
-                input_args=[(self,indices,scan,shapeqpqp,pyfaiponi,qmapbins,qlimitsout) for indices in chunk(np.arange(0,scanlength,scalegamma), num_threads)]
+                input_args=[(self,indices,scan,shapeqpqp,pyfaiponi,qmapbins,qlimitsout) for indices in chunk(selectedindices, num_threads)]
                 #print(np.shape(input_args))
                 print(f'starting process pool for scan {scanind+1}/{len(scanlistnew)}')
 
@@ -2228,8 +2232,9 @@ class Experiment:
                     scanlength=len(scan.metadata.data_file.local_image_paths)
                 else:
                     scanlength=scan.metadata.data_file.scan_length
-
-                input_args=[(self,indices,scan,shapeqi,pyfaiponi,radrange) for indices in chunk(np.arange(0,scanlength,scalegamma), num_threads)]
+                fullrange=np.arange(0,scanlength,scalegamma)
+                selectedindices=[n for n in fullrange if n not in scan.skip_images]
+                input_args=[(self,indices,scan,shapeqi,pyfaiponi,radrange) for indices in chunk(selectedindices, num_threads)]
                 #print(np.shape(input_args))
                 print(f'starting process pool for scan {scanind+1}/{len(scanlistnew)}')
 
@@ -2321,8 +2326,11 @@ class Experiment:
                     scanlength=len(scan.metadata.data_file.local_image_paths)
                 else:
                     scanlength=scan.metadata.data_file.scan_length
+                
+                fullrange=np.arange(0,scanlength,scalegamma)
+                selectedindices=[n for n in fullrange if n not in scan.skip_images]
 
-                input_args=[(self,indices,scan,shapeexhexv,pyfaiponi,anglimits,qmapbins) for indices in chunk(np.arange(0,scanlength,scalegamma), num_threads)]
+                input_args=[(self,indices,scan,shapeexhexv,pyfaiponi,anglimits,qmapbins) for indices in chunk(selectedindices, num_threads)]
                 #print(np.shape(input_args))
                 print(f'starting process pool for scan {scanind+1}/{len(scanlistnew)}')
 
