@@ -98,7 +98,7 @@ pygments_style = None
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+html_theme ='sphinx_rtd_theme'# 'alabaster'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -106,9 +106,8 @@ html_theme = 'alabaster'
 #
 # html_theme_options = {}
 html_theme_options = {
-    'page_width': '1200px',
     'body_max_width': 'none',
-    'sidebar_width': '300px'
+
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,

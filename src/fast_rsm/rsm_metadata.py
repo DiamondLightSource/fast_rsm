@@ -2,7 +2,6 @@
 This module contains the metadata class, which provides a python interface
 for the .nxs file written for the scan.
 """
-#test comment
 from typing import Tuple, List, Dict
 
 import numpy as np
@@ -276,6 +275,7 @@ class RSMMetadata:
         TODO: This implementation is approximate and should be replaced by an
             exact treatment.
         """
+        
         # We're going to need to inc the data shape to hack this.
         data_shape = self.data_file.image_shape
         self._init_relative_polar((data_shape[0]+1, data_shape[1]))
