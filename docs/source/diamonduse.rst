@@ -4,7 +4,7 @@ Using fast_rsm at Diamond Light Source
 Below are detailed instructions on how to use fast_rsm at i07. If you requied any extra assistance, ask a beamline member of staff or email philip.mousley@diamond.ac.uk
 
 
-Firstly follow the steps given to setup SSH connection to wilson. These can be found by importing the fast_rsm module and then running the command ssh-instructions
+Firstly follow the steps given to setup SSH connection to wilson. These can be found by opening a new terminal , importing the fast_rsm module and then running the command ssh-instructions
 
 .. code:: bash
 

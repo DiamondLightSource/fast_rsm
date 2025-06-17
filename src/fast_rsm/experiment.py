@@ -584,12 +584,12 @@ class Experiment:
 
     def intensity_vs_q(self,
                        num_threads: int,
-                       output_file_name: str = "I vs Q",
+                       output_file_name: str = "I_vs_Q",
                        num_bins: int = 1000,
                        bin_size: float = None,
                        oop: str = 'y'):
         """
-        Maps this experiment to a simple insenity vs |Q| plot.
+        Maps this experiment to a simple insenity vs `|Q|` plot.
 
         Under the hood, this runs a binned reciprocal space map with an
         auto-generated resolution such that the reciprocal space volume is
