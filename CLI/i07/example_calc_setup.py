@@ -135,8 +135,8 @@ if (no_nexus_experiment==False):
     experiment.mask_edf(edfmaskfile)
     experiment.mask_regions(mask_regions_list)
 else:
-    experiment=NoNexusGIWAXS_Experiment(image_numbers,local_data_path,beam_centre, detector_distance, setup, 
-    using_dps=using_dps,experimental_hutch=experimental_hutch)
+    experiment=NoNexusGIWAXS_Experiment(image_numbers,local_data_path,beam_centre, detector_distance, setup,
+                                        using_dps=using_dps,experimental_hutch=experimental_hutch,maskfile=edfmaskfile)
 
 
 experiment.setup=setup
