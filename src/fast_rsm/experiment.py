@@ -114,8 +114,10 @@ class NoNexusGIWAXS_Experiment:
                 detector_distance: float,
                 setup: str,
                 using_dps: bool = False,
-                experimental_hutch=0) -> None:
+                experimental_hutch=0,
+                maskfile=None) -> None:
         
+        self.maskfile=maskfile
         self.beam_centre=beam_centre
         self.detector_distance=detector_distance
         self.setup=setup
@@ -127,7 +129,7 @@ class NoNexusGIWAXS_Experiment:
         self.images=[file for file in os.listdir(self.imdir) if any(str(imnum) in file for imnum in self.imagenumbers)&(file.endswith('.tif'))]
         self.textfiles=[file for file in os.listdir(self.imdir) if any(str(imnum) in file for imnum in self.imagenumbers)&(file.endswith('.txt'))]
         self._load_metadata()
-    
+        self.maskdata=fabio.open(self.maskfile).data
 
     def createponi(self,outpath,image,offset=0):
         """
@@ -490,10 +492,12 @@ class NoNexusGIWAXS_Experiment:
     # print(my_ai.get_config())
         if self.setup == 'vertical':
             img_data = np.rot90(img_data, -1)
+            self.maskdata=np.rot90(self.maskdata,-1)
         
 
         map2d = my_ai.integrate2d(img_data, qmapbins[0], qmapbins[1], unit=(unit_qip, unit_qoop),
-                                radial_range=(qlimits[0]*1.05, qlimits[1]*1.05), azimuth_range=(1.05*qlimits[3], 1.05*qlimits[2]), method=("no", "csr", "cython"))
+                                radial_range=(qlimits[0]*1.05, qlimits[1]*1.05), azimuth_range=(1.05*qlimits[3], 1.05*qlimits[2]), method=("no", "csr", "cython"),
+                                mask=self.maskdata)
 
 
         binset=hf.create_group("binoculars")
@@ -576,12 +580,14 @@ class NoNexusGIWAXS_Experiment:
         
         if self.setup == 'vertical':
             img_data = np.rot90(img_data, -1)
+            self.maskdata=np.rot90(self.maskdata,-1)
         
         current_ai=my_ai
         current_img=img_data
         
         map2d = current_ai.integrate2d(current_img, qmapbins[0],qmapbins[1], unit=(unit_qip, unit_qoop),
-        radial_range=(anglimits[1]*1.05,anglimits[0]*1.05),azimuth_range=(anglimits[3]*1.05,anglimits[2]*1.05), method=("no", "csr", "cython"))
+                                       radial_range=(anglimits[1]*1.05,anglimits[0]*1.05),azimuth_range=(anglimits[3]*1.05,anglimits[2]*1.05), 
+                                       method=("no", "csr", "cython"),mask=self.maskdata)
         
 
         dset=hf.create_group("horiz_vert_exit")
@@ -618,7 +624,7 @@ class NoNexusGIWAXS_Experiment:
 
         rots = self.gamdel2rots(gamval, delval)
         my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
-
+        
         if self.setup=='vertical':
 
             self.beam_centre=[self.beam_centre[1],self.beam_centre[0]]
@@ -627,11 +633,11 @@ class NoNexusGIWAXS_Experiment:
 
         tth, I = my_ai.integrate1d_ng(img_data,
                                     ivqbins,
-                                    unit="2th_deg", polarization_factor=1)
+                                    unit="2th_deg", polarization_factor=1,mask=self.maskdata)
 
         Q, I = my_ai.integrate1d_ng(img_data,
                                     ivqbins,
-                                    unit="q_A^-1", polarization_factor=1)
+                                    unit="q_A^-1", polarization_factor=1,mask=self.maskdata)
         
         outlist=[I,Q,tth]
 
