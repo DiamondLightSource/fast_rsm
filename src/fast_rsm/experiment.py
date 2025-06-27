@@ -1754,7 +1754,7 @@ class Experiment:
             dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance[0]
             self.dcd_incdeg=np.degrees(np.arctan(self.projectiony/(np.sqrt(np.square(self.projectionx)+np.square(dcd_sample_dist)))))
             self.incident_angle=self.dcd_incdeg
-            self.deltadata+=self.dcd_incdeg
+            #self.deltadata+=self.dcd_incdeg
         elif (scan.metadata.data_file.is_eh1)&(self.setup!='DCD'):
             self.incident_angle=scan.metadata.data_file.chi
         elif (scan.metadata.data_file.is_eh2):

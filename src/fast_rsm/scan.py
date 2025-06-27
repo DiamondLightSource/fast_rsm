@@ -967,7 +967,7 @@ def pyfai_move_qmap_worker(experiment, choiceims, scan,shapeqpqp, pyfaiponi, qma
                 inc_angle = -np.radians(experiment.incident_angle)
             else:
                 inc_angle = -np.radians(experiment.incident_angle[0])
-            # inc_angle=0 #debug setting incident angle to 0
+            inc_angle=0 #debug setting incident angle to 0
             unit_qip = units.get_unit_fiber(
                 unit_qip_name, sample_orientation=sample_orientation, incident_angle=inc_angle)
             unit_qoop = units.get_unit_fiber(
@@ -984,7 +984,7 @@ def pyfai_move_qmap_worker(experiment, choiceims, scan,shapeqpqp, pyfaiponi, qma
             if np.size(experiment.deltadata) == 1:
                 delval = np.array(experiment.deltadata).ravel()
 
-            rots = experiment.gamdel2rots(gamval, delval)
+            rots = experiment.gamdel2rots(gamval, -delval)
             my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
             if slitvdistratio!=None:
                 my_ai.pixel1*=slitvdistratio
