@@ -216,6 +216,11 @@ for i, scan in enumerate(experiment.scans):
 
     # """
 
+if experiment.scans[0].metadata.data_file.is_rotated:
+    slitratios=[slithorratio,slitvertratio]
+else:
+    slitratios=[slitvertratio,slithorratio]
+
 if 'qmapbins' not in globals():
     qmapbins=0
 import os,sys
@@ -276,7 +281,7 @@ if ('pyfai_qmap' in process_outputs)&(map_per_image==False):
     process_start_time=time()
     experiment.load_curve_values(scanlist[0])
     PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,beam_centre=experiment.beam_centre)
-    experiment.pyfai_moving_qmap_SMM(hf,scanlist, num_threads,  local_output_path,PYFAI_PONI,radialrange,radialstepval,qmapbins)
+    experiment.pyfai_moving_qmap_SMM(hf,scanlist, num_threads,  local_output_path,PYFAI_PONI,radialrange,radialstepval,qmapbins,slitdistratios=slitratios)
     experiment.save_config_variables(hf,joblines,pythonlocation,globals())
     hf.close()
     print(f"saved 2d map data to {local_output_path}/{projected_name}.hdf5")           

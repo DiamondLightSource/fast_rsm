@@ -933,7 +933,7 @@ def pyfai_init_worker(l,shm_intensities_name,shm_counts_name,shmshape):
     lock = l
     
 
-def pyfai_move_qmap_worker(experiment, choiceims, scan,shapeqpqp, pyfaiponi, qmapbins,qlimits=None) -> None:
+def pyfai_move_qmap_worker(experiment, choiceims, scan,shapeqpqp, pyfaiponi, qmapbins,qlimits=None,slithdistratio=None,slitvdistratio=None) -> None:
     # shm_array = SharedMemory(name=shm_intensities_name)
     # array_arr = np.ndarray(shapeqpqp, dtype=np.float32, buffer=shm_array.buf)
     # shm_count = SharedMemory(name=shm_counts_name)
@@ -948,8 +948,8 @@ def pyfai_move_qmap_worker(experiment, choiceims, scan,shapeqpqp, pyfaiponi, qma
     unit_qoop_name = "qoop_A^-1"
 
     if qlimits == None:
-        qlimhor=experiment.calcqlim( 'hor',vertsetup=(experiment.setup=='vertical'))
-        qlimver=experiment.calcqlim( 'vert',vertsetup=(experiment.setup=='vertical'))
+        qlimhor=experiment.calcqlim( 'hor',vertsetup=(experiment.setup=='vertical'),slithorratio=slithdistratio)
+        qlimver=experiment.calcqlim( 'vert',vertsetup=(experiment.setup=='vertical'),slitvertratio=slitvdistratio)
         qlimits = [qlimhor[0], qlimhor[1],qlimver[0], qlimver[1]]
 
     sample_orientation = 1
@@ -986,6 +986,11 @@ def pyfai_move_qmap_worker(experiment, choiceims, scan,shapeqpqp, pyfaiponi, qma
 
             rots = experiment.gamdel2rots(gamval, delval)
             my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
+            if slitvdistratio!=None:
+                my_ai.pixel1*=slitvdistratio
+            
+            if slithdistratio!=None:
+                my_ai.pixel2*=slithdistratio
             ais.append(my_ai)
 
         if experiment.setup == 'vertical':

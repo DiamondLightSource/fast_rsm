@@ -765,7 +765,7 @@ class Experiment:
         
         
     
-    def calcqlim(self,axis,vertsetup=False):
+    def calcqlim(self,axis,vertsetup=False,slitvertratio=None,slithorratio=None):
         """
         Calculates limits in q for either vertical or horizontal axis
 
@@ -809,8 +809,14 @@ class Experiment:
             highsection=np.max(self.two_theta_start)
             lowsection=np.min(self.two_theta_start)
 
-        maxangle=highsection+np.degrees(np.arctan((pixhigh*self.pixel_size)/self.detector_distance))
-        minangle=lowsection-np.degrees(np.arctan((pixlow*self.pixel_size)/self.detector_distance))
+        if (slitvertratio!=None)&(axis=='vert'):
+            pixscale=self.pixel_size*slitvertratio
+        elif (slithorratio!=None)&(axis=='hor'):
+            pixscale=self.pixel_size*slithorratio
+        else:
+            pixscale=self.pixel_size
+        maxangle=highsection+np.degrees(np.arctan((pixhigh*pixscale)/self.detector_distance))
+        minangle=lowsection-np.degrees(np.arctan((pixlow*pixscale)/self.detector_distance))
 
         if (axis=='vert'):
             qupp=self.SOHqcalc(maxangle,kmod)
@@ -2049,7 +2055,7 @@ class Experiment:
         # Return the normalised RSM.
         return normalised_map, start, stop, step
 
-    def pyfai_moving_qmap_SMM(self,hf,scanlist,num_threads,output_file_path,pyfaiponi,radrange,radstepval,qmapbins=0):            
+    def pyfai_moving_qmap_SMM(self,hf,scanlist,num_threads,output_file_path,pyfaiponi,radrange,radstepval,qmapbins=0,slitdistratios=None):            
         
         qlimitsout=[0,0,0,0]
         lowerinds=[0,2]
@@ -2071,8 +2077,8 @@ class Experiment:
                 tthdirect=0
 
             self.two_theta_start=self.gammadata-tthdirect
-            qlimhor=self.calcqlim( 'hor',vertsetup=(self.setup=='vertical'))
-            qlimver=self.calcqlim( 'vert',vertsetup=(self.setup=='vertical'))
+            qlimhor=self.calcqlim( 'hor',vertsetup=(self.setup=='vertical'),slithorratio=slitdistratios[1])
+            qlimver=self.calcqlim( 'vert',vertsetup=(self.setup=='vertical'),slitvertratio=slitdistratios[0])
 
             qlimits = [qlimhor[0], qlimhor[1],qlimver[0], qlimver[1]]
             if n==0:
@@ -2126,8 +2132,10 @@ class Experiment:
                     scanlength=scan.metadata.data_file.scan_length
                 fullrange=np.arange(0,scanlength,scalegamma)
                 selectedindices=[n for n in fullrange if n not in scan.skip_images]
-
-                input_args=[(self,indices,scan,shapeqpqp,pyfaiponi,qmapbins,qlimitsout) for indices in chunk(selectedindices, num_threads)]
+                if slitdistratios!=None:
+                    input_args=[(self,indices,scan,shapeqpqp,pyfaiponi,qmapbins,qlimitsout,slitdistratios[0],slitdistratios[1]) for indices in chunk(selectedindices, num_threads)]
+                else:
+                    input_args=[(self,indices,scan,shapeqpqp,pyfaiponi,qmapbins,qlimitsout) for indices in chunk(selectedindices, num_threads)]
                 #print(np.shape(input_args))
                 print(f'starting process pool for scan {scanind+1}/{len(scanlistnew)}')
 

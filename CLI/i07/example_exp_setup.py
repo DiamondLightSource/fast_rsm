@@ -28,6 +28,10 @@ beam_centre = (119,1564)
 # distance between the receiving slit and the detector). Units of meters.
 detector_distance = 0.18
 
+#if not using sample slits leave both as None, if using slits set to slit-detector/sample-detector  e.g. 0.55/0.89
+slitvertratio=0.55/0.89#None
+slithorratio=None
+
 # Are you using the DPS system?
 using_dps = False
 # The DPS central pixel locations are not typically recorded in the nexus file.
