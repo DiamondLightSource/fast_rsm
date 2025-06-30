@@ -984,13 +984,16 @@ def pyfai_move_qmap_worker(experiment, choiceims, scan,shapeqpqp, pyfaiponi, qma
             if np.size(experiment.deltadata) == 1:
                 delval = np.array(experiment.deltadata).ravel()
 
-            rots = experiment.gamdel2rots(gamval, -delval)
+            rots = experiment.gamdel2rots(gamval, delval)
             my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
             if slitvdistratio!=None:
                 my_ai.pixel1*=slitvdistratio
+                my_ai.poni1*=slitvdistratio
             
             if slithdistratio!=None:
                 my_ai.pixel2*=slithdistratio
+                my_ai.poni2*=slithdistratio
+
             ais.append(my_ai)
 
         if experiment.setup == 'vertical':
