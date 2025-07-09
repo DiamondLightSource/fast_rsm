@@ -186,6 +186,21 @@ class Experiment:
         # Make sure that we have a list of regions, not an individual region.
         if isinstance(regions, Region):
             regions = [regions]
+        
+        if self.scans[0].metadata.data_file.is_rotated==True:
+            imshape=self.scans[0].metadata.data_file.image_shape
+            for region in regions:
+                newxend=imshape[0]-region.y_start
+                newxstart=max(0,imshape[0]-region.y_end)
+                newystart=region.x_start
+                newyend=region.x_end
+                region.x_start=newxstart
+                region.x_end=newxend
+                region.y_start=newystart
+                region.y_end=newyend
+
+
+
         for scan in self.scans:
             scan.metadata.mask_regions = regions
             
