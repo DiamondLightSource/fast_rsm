@@ -720,7 +720,7 @@ class Experiment:
         """
         return np.sin(np.radians(angle))*kmod*1e-10
     
-    def calcanglim(self,axis,vertsetup=False):
+    def calcanglim(self,axis,vertsetup=False,slitvertratio=None,slithorratio=None):
         """
         Calculates limits in exit angle for either vertical or horizontal axis
 
@@ -757,9 +757,16 @@ class Experiment:
             highsection=np.max(self.two_theta_start)
             lowsection=np.min(self.two_theta_start)
             outscale=-1
+        
+        if (slitvertratio!=None)&(axis=='vert'):
+            pixscale=self.pixel_size*slitvertratio
+        elif (slithorratio!=None)&(axis=='hor'):
+            pixscale=self.pixel_size*slithorratio
+        else:
+            pixscale=self.pixel_size
 
-        maxangle=highsection+np.degrees(np.arctan((pixhigh*self.pixel_size)/self.detector_distance))
-        minangle=lowsection-np.degrees(np.arctan((pixlow*self.pixel_size)/self.detector_distance))
+        maxangle=highsection+np.degrees(np.arctan((pixhigh*pixscale)/self.detector_distance))
+        minangle=lowsection-np.degrees(np.arctan((pixlow*pixscale)/self.detector_distance))
     
         return maxangle*outscale,minangle*outscale
         
@@ -792,6 +799,10 @@ class Experiment:
             horpix=self.beam_centre[1]
             vertangles=-self.gammadata
             verscale=1
+        elif self.scans[0].metadata.data_file.is_rotated:
+            horpix= self.beam_centre[1]  
+            vertangles=self.deltadata
+            verscale=-1
         else:
             horpix= self.beam_centre[0]  
             vertangles=self.deltadata
@@ -946,7 +957,7 @@ class Experiment:
                         outdf.to_csv(f,sep='\t',index=False)
     
     
-    def pyfai_static_exitangles(self,hf,scan,num_threads,pyfaiponi,ivqbins,qmapbins=0):
+    def pyfai_static_exitangles(self,hf,scan,num_threads,pyfaiponi,ivqbins,qmapbins=0,slitdistratios=None):
         """
         calculate the map of vertical exit angle Vs horizontal exit angle using pyFAI 
 
@@ -979,9 +990,14 @@ class Experiment:
             tthdirect=0
             
         self.two_theta_start=self.gammadata-tthdirect
-        
-        anglimhor=self.calcanglim( 'hor',vertsetup=(self.setup=='vertical'))
-        anglimver=self.calcanglim( 'vert',vertsetup=(self.setup=='vertical'))
+        if slitdistratios!=None:
+            scananglimhor=np.array(self.calcanglim('hor',vertsetup=self.setup=='vertical',slithorratio=slitdistratios[1]))
+            scananglimver=np.array(self.calcanglim('vert',vertsetup=self.setup=='vertical',slitvertratio=slitdistratios[0]))
+        else:
+            scananglimhor=np.array(self.calcanglim('hor',vertsetup=self.setup=='vertical'))
+            scananglimver=np.array(self.calcanglim('vert',vertsetup=self.setup=='vertical'))
+        anglimhor=scananglimhor
+        anglimver=scananglimver
         anglimits=[anglimhor[0],anglimhor[1],anglimver[0],anglimver[1]]
         #calculate map bins if not specified using resolution of 0.01 degrees 
         if self.setup=='vertical':
@@ -1011,7 +1027,11 @@ class Experiment:
             print(f'started pool with num_threads={num_threads}')
             indices=np.arange(0,scanlength,scalegamma)
             selectedindices=[n for n in indices if n not in scan.skip_images]
-            input_list = [(self,index,scan,self.two_theta_start,pyfaiponi,anglimits,qmapbins,ivqbins) for index in selectedindices]
+            if slitdistratios!=None:
+                input_list = [(self,indices,scan,self.two_theta_start,pyfaiponi,anglimits,qmapbins,ivqbins,slitdistratios[1],slitdistratios[0]) for indices in selectedindices]
+            else:
+                input_list = [(self,indices,scan,self.two_theta_start,pyfaiponi,anglimits,qmapbins,ivqbins) for indices in selectedindices]
+            
             results=pool.starmap(pyfai_stat_exitangles,input_list)
             maps=[result[0] for result in results]
             xlabels=[result[1] for result in results]
@@ -1041,7 +1061,7 @@ class Experiment:
             self.do_savetiffs(hf, outlist[0],outlist[1], outlist[2])
         
     
-    def pyfai_static_qmap(self,hf,scan,num_threads,output_file_path,pyfaiponi,ivqbins,qmapbins=0):
+    def pyfai_static_qmap(self,hf,scan,num_threads,output_file_path,pyfaiponi,ivqbins,qmapbins=0,slitdistratios=None):
         self.load_curve_values(scan)
         
         dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance
@@ -1052,8 +1072,12 @@ class Experiment:
         
         self.two_theta_start=self.gammadata-tthdirect
 
-        qlimhor=self.calcqlim( 'hor',vertsetup=(self.setup=='vertical'))
-        qlimver=self.calcqlim( 'vert',vertsetup=(self.setup=='vertical'))
+        if slitdistratios!=None:
+            qlimhor=self.calcqlim( 'hor',vertsetup=(self.setup=='vertical'),slithorratio=slitdistratios[1])
+            qlimver=self.calcqlim( 'vert',vertsetup=(self.setup=='vertical'),slitvertratio=slitdistratios[0])
+        else:
+            qlimhor=self.calcqlim( 'hor',vertsetup=(self.setup=='vertical'))
+            qlimver=self.calcqlim( 'vert',vertsetup=(self.setup=='vertical'))  
     
         qlimits = [qlimhor[0], qlimhor[1],qlimver[0], qlimver[1]]
 
@@ -1093,7 +1117,10 @@ class Experiment:
             print(f'started pool with num_threads={num_threads}')
             indices=np.arange(0,scanlength,scalegamma)
             selectedindices=[n for n in indices if n not in scan.skip_images]
-            input_list = [(self,index,scan,self.two_theta_start,pyfaiponi,qlimits,qmapbins,ivqbins) for index in selectedindices]
+            if slitdistratios!=None:
+                input_list = [(self,index,scan,self.two_theta_start,pyfaiponi,qlimits,qmapbins,ivqbins,slitdistratios[0],slitdistratios[1]) for index in selectedindices]
+            else:
+                input_list = [(self,index,scan,self.two_theta_start,pyfaiponi,qlimits,qmapbins,ivqbins) for index in selectedindices]               
             results=pool.starmap(pyfai_stat_qmap,input_list)
             maps=[result[0] for result in results]
             xlabels=[result[1] for result in results]
@@ -1155,7 +1182,7 @@ class Experiment:
         
         
 
-    def pyfai_static_ivsq(self,hf,scan,num_threads,output_file_path,pyfaiponi,ivqbins,qmapbins=0):
+    def pyfai_static_ivsq(self,hf,scan,num_threads,output_file_path,pyfaiponi,ivqbins,qmapbins=0,slitdistratios=None):
         self.load_curve_values(scan)
         
         dcd_sample_dist=1e-3*scan.metadata.diffractometer._dcd_sample_distance
@@ -1203,7 +1230,11 @@ class Experiment:
             print(f'started pool with num_threads={num_threads}')
             indices=np.arange(0,scanlength,scalegamma)
             selectedindices=[n for n in indices if n not in scan.skip_images]
-            input_list = [(self,index,scan,self.two_theta_start,pyfaiponi,qmapbins,ivqbins) for index in selectedindices]
+            if slitdistratios!=None:
+                input_list = [(self,indices,scan,self.two_theta_start,pyfaiponi,qmapbins,ivqbins,slitdistratios[1],slitdistratios[0]) for indices in selectedindices]
+            else:
+                input_list = [(self,indices,scan,self.two_theta_start,pyfaiponi,qmapbins,ivqbins) for indices in selectedindices]
+
             results=pool.starmap(pyfai_stat_ivsq,input_list)
             intensities=[result[0] for result in results]
             two_th_vals=[result[1] for result in results]
@@ -2077,8 +2108,12 @@ class Experiment:
                 tthdirect=0
 
             self.two_theta_start=self.gammadata-tthdirect
-            qlimhor=self.calcqlim( 'hor',vertsetup=(self.setup=='vertical'),slithorratio=slitdistratios[1])
-            qlimver=self.calcqlim( 'vert',vertsetup=(self.setup=='vertical'),slitvertratio=slitdistratios[0])
+            if slitdistratios!=None:
+                qlimhor=self.calcqlim( 'hor',vertsetup=(self.setup=='vertical'),slithorratio=slitdistratios[1])
+                qlimver=self.calcqlim( 'vert',vertsetup=(self.setup=='vertical'),slitvertratio=slitdistratios[0])
+            else:
+                qlimhor=self.calcqlim( 'hor',vertsetup=(self.setup=='vertical'))
+                qlimver=self.calcqlim( 'vert',vertsetup=(self.setup=='vertical'))                
 
             qlimits = [qlimhor[0], qlimhor[1],qlimver[0], qlimver[1]]
             if n==0:
@@ -2176,7 +2211,7 @@ class Experiment:
         print(f'total calculation took {minutes}  minutes')
         # return mapaxisinfo 
 
-    def pyfai_moving_ivsq_SMM(self,hf,scanlist,num_threads,output_file_path,pyfaiponi,radrange,radstepval,qmapbins=0):
+    def pyfai_moving_ivsq_SMM(self,hf,scanlist,num_threads,output_file_path,pyfaiponi,radrange,radstepval,qmapbins=0,slitdistratios=None):
         
         if type(scanlist)==Scan:
             scanlistnew=[scanlist]
@@ -2197,8 +2232,13 @@ class Experiment:
                 tthdirect=0
             self.two_theta_start=self.gammadata-tthdirect
 
-            scanradhorrange=np.array(self.calcanglim('hor',vertsetup=self.setup=='vertical'))
-            scanradverrange=np.array(self.calcanglim('vert',vertsetup=self.setup=='vertical'))
+            if slitdistratios!=None:
+                scanradhorrange=np.array(self.calcanglim('hor',vertsetup=self.setup=='vertical',slithorratio=slitdistratios[1]))
+                scanradverrange=np.array(self.calcanglim('vert',vertsetup=self.setup=='vertical',slitvertratio=slitdistratios[0]))
+            else:
+                scanradhorrange=np.array(self.calcanglim('hor',vertsetup=self.setup=='vertical'))
+                scanradverrange=np.array(self.calcanglim('vert',vertsetup=self.setup=='vertical'))
+
             fullranges=np.concatenate([scanradhorrange,scanradverrange])
             radmax=np.max(np.abs(fullranges))
             radout=np.max([radout,radmax])
@@ -2258,7 +2298,10 @@ class Experiment:
                     scanlength=scan.metadata.data_file.scan_length
                 fullrange=np.arange(0,scanlength,scalegamma)
                 selectedindices=[n for n in fullrange if n not in scan.skip_images]
-                input_args=[(self,indices,scan,shapeqi,pyfaiponi,radrange) for indices in chunk(selectedindices, num_threads)]
+                if slitdistratios!=None:
+                    input_args=[(self,indices,scan,shapeqi,pyfaiponi,radrange,slitdistratios[1],slitdistratios[0]) for indices in chunk(selectedindices, num_threads)]
+                else:
+                    input_args=[(self,indices,scan,shapeqi,pyfaiponi,radrange) for indices in chunk(selectedindices, num_threads)]
                 #print(np.shape(input_args))
                 print(f'starting process pool for scan {scanind+1}/{len(scanlistnew)}')
 
@@ -2286,7 +2329,7 @@ class Experiment:
         minutes=(end_time-start_time)/60
         print(f'total calculation took {minutes}  minutes')           
 
-    def pyfai_moving_exitangles_SMM(self,hf,scanlist,num_threads,output_file_path,pyfaiponi,radrange,radstepval,qmapbins=0):
+    def pyfai_moving_exitangles_SMM(self,hf,scanlist,num_threads,output_file_path,pyfaiponi,radrange,radstepval,qmapbins=0,slitdistratios=None):
         if type(scanlist)==Scan:
             scanlistnew=[scanlist]
         else:
@@ -2305,8 +2348,12 @@ class Experiment:
                 tthdirect=0
                 
             self.two_theta_start=self.gammadata-tthdirect
-            scananglimhor=self.calcanglim( 'hor',vertsetup=(self.setup=='vertical'))
-            scananglimver=self.calcanglim( 'vert',vertsetup=(self.setup=='vertical'))
+            if slitdistratios!=None:
+                scananglimhor=np.array(self.calcanglim('hor',vertsetup=self.setup=='vertical',slithorratio=slitdistratios[1]))
+                scananglimver=np.array(self.calcanglim('vert',vertsetup=self.setup=='vertical',slitvertratio=slitdistratios[0]))
+            else:
+                scananglimhor=np.array(self.calcanglim('hor',vertsetup=self.setup=='vertical'))
+                scananglimver=np.array(self.calcanglim('vert',vertsetup=self.setup=='vertical'))
             
             if anglimhor==None:
                 anglimhor=scananglimhor
@@ -2358,8 +2405,10 @@ class Experiment:
                 
                 fullrange=np.arange(0,scanlength,scalegamma)
                 selectedindices=[n for n in fullrange if n not in scan.skip_images]
-
-                input_args=[(self,indices,scan,shapeexhexv,pyfaiponi,anglimits,qmapbins) for indices in chunk(selectedindices, num_threads)]
+                if slitdistratios!=None:
+                    input_args=[(self,indices,scan,shapeexhexv,pyfaiponi,anglimits,qmapbins,slitdistratios[1],slitdistratios[0]) for indices in chunk(selectedindices, num_threads)]
+                else:
+                    input_args=[(self,indices,scan,shapeexhexv,pyfaiponi,anglimits,qmapbins) for indices in chunk(selectedindices, num_threads)]
                 #print(np.shape(input_args))
                 print(f'starting process pool for scan {scanind+1}/{len(scanlistnew)}')
 

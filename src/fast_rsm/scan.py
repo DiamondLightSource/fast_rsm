@@ -224,7 +224,7 @@ def init_pyfai_process_pool(
 
     print(f"Finished initializing worker {current_process().name}.")
 
-def pyfai_stat_exitangles(experiment, imageindex, scan, two_theta_start, pyfaiponi,anglimits, qmapbins, ivqbins) -> None:
+def pyfai_stat_exitangles(experiment, imageindex, scan, two_theta_start, pyfaiponi,anglimits, qmapbins, ivqbins,slithdistratio=None,slitvdistratio=None) -> None:
     index = imageindex
     aistart = pyFAI.load(pyfaiponi)
 
@@ -256,6 +256,13 @@ def pyfai_stat_exitangles(experiment, imageindex, scan, two_theta_start, pyfaipo
         delval = np.array(experiment.deltadata).ravel()
     rots=experiment.gamdel2rots(gamval,delval)
     my_ai.rot1,my_ai.rot2,my_ai.rot3=rots
+    if slitvdistratio!=None:
+        my_ai.pixel1*=slitvdistratio
+        my_ai.poni1*=slitvdistratio
+            
+    if slithdistratio!=None:
+        my_ai.pixel2*=slithdistratio
+        my_ai.poni2*=slithdistratio
     
     if experiment.setup == 'vertical':
         img_data = np.rot90(scan.load_image(index).data, -1)
@@ -269,7 +276,7 @@ def pyfai_stat_exitangles(experiment, imageindex, scan, two_theta_start, pyfaipo
     radial_range=(anglimits[1]*1.05,anglimits[0]*1.05),azimuth_range=(anglimits[3]*1.05,anglimits[2]*1.05), method=("no", "csr", "cython"))
     return map2d[0], map2d[1], map2d[2]
 
-def pyfai_stat_qmap(experiment, imageindex, scan, two_theta_start, pyfaiponi, qlimits, qmapbins, ivqbins) -> None:
+def pyfai_stat_qmap(experiment, imageindex, scan, two_theta_start, pyfaiponi, qlimits, qmapbins, ivqbins,slithdistratio=None,slitvdistratio=None) -> None:
     index = imageindex
     aistart = pyFAI.load(pyfaiponi)
 
@@ -304,6 +311,13 @@ def pyfai_stat_qmap(experiment, imageindex, scan, two_theta_start, pyfaiponi, ql
 
     rots = experiment.gamdel2rots(gamval, delval)
     my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
+    if slitvdistratio!=None:
+        my_ai.pixel1*=slitvdistratio
+        my_ai.poni1*=slitvdistratio
+            
+    if slithdistratio!=None:
+        my_ai.pixel2*=slithdistratio
+        my_ai.poni2*=slithdistratio
     # my_ai.poni1=(experiment.imshape[0] - experiment.beam_centre[0]) * experiment.pixel_size
    # print(my_ai.get_config())
     if experiment.setup == 'vertical':
@@ -318,7 +332,7 @@ def pyfai_stat_qmap(experiment, imageindex, scan, two_theta_start, pyfaiponi, ql
     return map2d[0], map2d[1], map2d[2]
 
 
-def pyfai_stat_ivsq(experiment, imageindex, scan, two_theta_start, pyfaiponi, qmapbins, ivqbins) -> None:
+def pyfai_stat_ivsq(experiment, imageindex, scan, two_theta_start, pyfaiponi, qmapbins, ivqbins,slithdistratio=None,slitvdistratio=None) -> None:
     index = imageindex
     aistart = pyFAI.load(pyfaiponi)
 
@@ -346,6 +360,13 @@ def pyfai_stat_ivsq(experiment, imageindex, scan, two_theta_start, pyfaiponi, qm
 
     rots = experiment.gamdel2rots(gamval, delval)
     my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
+    if slitvdistratio!=None:
+        my_ai.pixel1*=slitvdistratio
+        my_ai.poni1*=slitvdistratio
+            
+    if slithdistratio!=None:
+        my_ai.pixel2*=slithdistratio
+        my_ai.poni2*=slithdistratio
 
     if experiment.setup == 'vertical':
         img_data = np.rot90(scan.load_image(index).data, -1)
@@ -1003,8 +1024,9 @@ def pyfai_move_qmap_worker(experiment, choiceims, scan,shapeqpqp, pyfaiponi, qma
 
         for current_n, current_ai in enumerate(ais):
             current_img = img_data[current_n]
-            map2d = current_ai.integrate2d(current_img, qmapbins[0], qmapbins[1], unit=(unit_qip, unit_qoop),
-                                        radial_range=(qlimits[0]*1.05, qlimits[1]*1.05), azimuth_range=(1.05*qlimits[3], 1.05*qlimits[2]), method=("no", "csr", "cython"))
+            map2d = current_ai.integrate2d(current_img, qmapbins[0], qmapbins[1], unit=(unit_qip, unit_qoop),\
+                                           radial_range=(qlimits[0]*(1.0+(0.05*-(np.sign(qlimits[0])))), qlimits[1]*(1.0+(0.05*(np.sign(qlimits[1]))))),\
+                                              azimuth_range=(qlimits[3]*(1.0+(0.05*-(np.sign(qlimits[3])))), qlimits[2]*(1.0+(0.05*(np.sign(qlimits[2]))))), method=("no", "csr", "cython"))
             totalqpqpmap += map2d.sum_signal
             totalqpqpcounts += map2d.count
 
@@ -1018,7 +1040,7 @@ def pyfai_move_qmap_worker(experiment, choiceims, scan,shapeqpqp, pyfaiponi, qma
     return mapaxisinfo
 
     
-def pyfai_move_ivsq_worker(experiment, imageindices, scan, shapeqi, pyfaiponi, radrange) -> None:
+def pyfai_move_ivsq_worker(experiment, imageindices, scan, shapeqi, pyfaiponi, radrange,slithdistratio=None,slitvdistratio=None) -> None:
     global INTENSITY_ARRAY,COUNT_ARRAY
 
 
@@ -1063,6 +1085,14 @@ def pyfai_move_ivsq_worker(experiment, imageindices, scan, shapeqi, pyfaiponi, r
 
             rots = experiment.gamdel2rots(gamval, delval)
             my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
+            if slitvdistratio!=None:
+                my_ai.pixel1*=slitvdistratio
+                my_ai.poni1*=slitvdistratio
+            
+            if slithdistratio!=None:
+                my_ai.pixel2*=slithdistratio
+                my_ai.poni2*=slithdistratio
+
             ais.append(my_ai)
 
         if experiment.setup == 'vertical':
@@ -1106,7 +1136,7 @@ def pyfai_move_ivsq_worker(experiment, imageindices, scan, shapeqi, pyfaiponi, r
         COUNT_ARRAY[1:]=totaloutcounts[1:]
 
 
-def pyfai_move_exitangles_worker(experiment, imageindices, scan, shapeexhexv, pyfaiponi, anglimits, qmapbins) -> None:
+def pyfai_move_exitangles_worker(experiment, imageindices, scan, shapeexhexv, pyfaiponi, anglimits, qmapbins,slithdistratio=None,slitvdistratio=None) -> None:
 
 
     global INTENSITY_ARRAY,COUNT_ARRAY
@@ -1122,11 +1152,11 @@ def pyfai_move_exitangles_worker(experiment, imageindices, scan, shapeexhexv, py
     bc_y_ratio = experiment.beam_centre[1]/experiment.imshape[1]
 
     
-    if (bc_x_ratio < 0.8) & (bc_x_ratio > 0.2) & (bc_y_ratio > 0.95):
-        sample_orientation = 2
+    # if (bc_x_ratio < 0.8) & (bc_x_ratio > 0.2) & (bc_y_ratio > 0.95):
+    #     sample_orientation = 2
 
-    else:
-        sample_orientation = 1
+    # else:
+    sample_orientation = 1
 
     
     if experiment.setup=='vertical':
@@ -1165,6 +1195,14 @@ def pyfai_move_exitangles_worker(experiment, imageindices, scan, shapeexhexv, py
 
             rots = experiment.gamdel2rots(gamval, delval)
             my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
+
+            if slitvdistratio!=None:
+                my_ai.pixel1*=slitvdistratio
+                my_ai.poni1*=slitvdistratio
+            
+            if slithdistratio!=None:
+                my_ai.pixel2*=slithdistratio
+                my_ai.poni2*=slithdistratio
             ais.append(my_ai)
 
         if experiment.setup == 'vertical':
@@ -1175,7 +1213,8 @@ def pyfai_move_exitangles_worker(experiment, imageindices, scan, shapeexhexv, py
         for current_n, current_ai in enumerate(ais):
             current_img = img_data[current_n]
             map2d = current_ai.integrate2d(current_img, qmapbins[0],qmapbins[1], unit=(unit_qip, unit_qoop),\
-                                           radial_range=((anglimits[1]*1.05,anglimits[0]*1.05)),azimuth_range=(anglimits[3]*1.05,anglimits[2]*1.05), method=("no", "csr", "cython"))
+                                           radial_range=((anglimits[1]*(1.0+(0.05*-(np.sign(anglimits[1])))),anglimits[0]*(1.0+(0.05*(np.sign(anglimits[0])))))),\
+                                            azimuth_range=(anglimits[3]*(1.0+(0.05*-(np.sign(anglimits[3])))),anglimits[2]*(1.0+(0.05*(np.sign(anglimits[2]))))), method=("no", "csr", "cython"))
             totalexhexvmap += map2d.sum_signal
             totalexhexvcounts += map2d.count
 
