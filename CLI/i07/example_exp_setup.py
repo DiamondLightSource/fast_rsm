@@ -16,9 +16,9 @@ setup = 'horizontal'
 #which experimental hutch was used 0 = unsure, 1= experimental hutch 1, 2=experimental hutch 2
 experimental_hutch=1
 # Set this to the directory path where your files are saved, note you will need to include any subdirectories in this path
-local_data_path =    # '/dls/i07/data/2024/##experiment-number##/##subfolder##
+local_data_path =  'path'  # '/dls/i07/data/2024/##experiment-number##/##subfolder#
 # Set this to the path where you want the output from the data processing to be saved
-local_output_path =  #'/dls/i07/data/2024/##experiment-number##/processing'
+local_output_path = 'path' # '/dls/i07/data/2024/##experiment-number##/processing'
 
 
 # The beam centre, as can be read out from GDA, in pixel_x, pixel_y.
@@ -31,6 +31,9 @@ detector_distance = 0.18
 #if not using sample slits leave both as None, if using slits set to slit-detector/sample-detector  e.g. 0.55/0.89
 slitvertratio=0.55/0.89#None
 slithorratio=None
+
+#critical edge of sample in degrees
+alphacritical=0.08
 
 # Are you using the DPS system?
 using_dps = False

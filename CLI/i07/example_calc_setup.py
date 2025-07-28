@@ -131,6 +131,12 @@ experiment.mask_pixels(specific_pixels)
 experiment.mask_edf(edfmaskfile)
 experiment.mask_regions(mask_regions_list)
 experiment.setup=setup
+
+if 'alphacritical' in globals():    
+    experiment.alphacritical=alphacritical
+else:
+    experiment.alphacritical=0.0
+
 if 'savetiffs' in globals():
     experiment.savetiffs=savetiffs
 else:
@@ -143,6 +149,13 @@ else:
 
 if 'qmapbins' not in globals():
     qmapbins=0
+
+if 'slitvertratio' not in globals():
+    slitvertratio=None
+
+if 'slithorratio' not in globals():
+    slithorratio=None
+
 
 
 """
@@ -357,7 +370,7 @@ if ('pyfai_exitangles' in process_outputs)&(map_per_image==False):
     total_time = time() - process_start_time
     print(f"\n 2d exit angle map calculations took {total_time}s")         
 
-print(f'finished processing scan {name_end}')
+
         
 
 
