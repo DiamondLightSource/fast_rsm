@@ -1420,7 +1420,12 @@ class Experiment:
             
             datacheck=('data' in list(scan.metadata.data_file.nx_detector))
             localpathcheck=('local_image_paths' in scan.metadata.data_file.__dict__.keys())
-            if datacheck:
+            intcheck=(isinstance(scan.metadata.data_file.scan_length,int))
+            if datacheck&intcheck:
+                scanlength=np.shape(scan.metadata.data_file.nx_detector.data[:,1,:])[0]
+                if scan.metadata.data_file.scan_length<scanlength:
+                    scanlength=scan.metadata.data_file.scan_length
+            elif datacheck:
                 scanlength=np.shape(scan.metadata.data_file.nx_detector.data[:,1,:])[0]
             elif localpathcheck:
                 scanlength=len(scan.metadata.data_file.local_image_paths)
