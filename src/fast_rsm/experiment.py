@@ -2113,7 +2113,12 @@ class Experiment:
                 
                 datacheck=('data' in list(scan.metadata.data_file.nx_detector))
                 localpathcheck=('local_image_paths' in scan.metadata.data_file.__dict__.keys())
-                if datacheck:
+                intcheck=(isinstance(scan.metadata.data_file.scan_length,int))
+                if datacheck&intcheck:
+                    scanlength=np.shape(scan.metadata.data_file.nx_detector.data[:,1,:])[0]
+                    if scan.metadata.data_file.scan_length<scanlength:
+                        scanlength=scan.metadata.data_file.scan_length
+                elif datacheck:
                     scanlength=np.shape(scan.metadata.data_file.nx_detector.data[:,1,:])[0]
                 elif localpathcheck:
                     scanlength=len(scan.metadata.data_file.local_image_paths)
@@ -2231,11 +2236,17 @@ class Experiment:
                 scalegamma=1
                 datacheck=('data' in list(scan.metadata.data_file.nx_detector))
                 localpathcheck=('local_image_paths' in scan.metadata.data_file.__dict__.keys())
-                if datacheck:
+                intcheck=(isinstance(scan.metadata.data_file.scan_length,int))
+                if datacheck&intcheck:
+                    scanlength=np.shape(scan.metadata.data_file.nx_detector.data[:,1,:])[0]
+                    if scan.metadata.data_file.scan_length<scanlength:
+                        scanlength=scan.metadata.data_file.scan_length
+                elif datacheck:
                     scanlength=np.shape(scan.metadata.data_file.nx_detector.data[:,1,:])[0]
                 elif localpathcheck:
                     scanlength=len(scan.metadata.data_file.local_image_paths)
                 else:
+                    scanlength=scan.metadata.data_file.scan_length
                     scanlength=scan.metadata.data_file.scan_length
                 fullrange=np.arange(0,scanlength,scalegamma)
                 selectedindices=[n for n in fullrange if n not in scan.skip_images]
@@ -2325,7 +2336,12 @@ class Experiment:
                 scalegamma=1
                 datacheck=('data' in list(scan.metadata.data_file.nx_detector))
                 localpathcheck=('local_image_paths' in scan.metadata.data_file.__dict__.keys())
-                if datacheck:
+                intcheck=(isinstance(scan.metadata.data_file.scan_length,int))
+                if datacheck&intcheck:
+                    scanlength=np.shape(scan.metadata.data_file.nx_detector.data[:,1,:])[0]
+                    if scan.metadata.data_file.scan_length<scanlength:
+                        scanlength=scan.metadata.data_file.scan_length
+                elif datacheck:
                     scanlength=np.shape(scan.metadata.data_file.nx_detector.data[:,1,:])[0]
                 elif localpathcheck:
                     scanlength=len(scan.metadata.data_file.local_image_paths)
@@ -2348,12 +2364,12 @@ class Experiment:
         mapaxisinfo=mapaxisinfolist[0]    
         exhexv_array_total=arrays_arr
         exhexv_counts_total=counts_arr
-        exhexv_array=np.divide(exhexv_array_total,exhexv_counts_total, out=np.copy(exhexv_array_total), where=exhexv_counts_total !=0.0)        
+        exhexv_norm=np.divide(exhexv_array_total,exhexv_counts_total, out=np.copy(exhexv_array_total), where=exhexv_counts_total !=0.0)        
         end_time=time()
         #datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
         
         dset3=hf.create_group("horiz_vert_exit")
-        dset3.create_dataset("exit_angle_image",data=exhexv_array)
+        dset3.create_dataset("exit_angle_image",data=exhexv_norm)
         dset3.create_dataset("exit_para",data=mapaxisinfo[1])
         dset3.create_dataset("exit_para_unit",data=mapaxisinfo[3])
         dset3.create_dataset("exit_perp",data=-1*mapaxisinfo[0])#list(reversed(mapaxisinfo[0])))
