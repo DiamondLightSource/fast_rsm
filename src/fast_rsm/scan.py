@@ -270,7 +270,7 @@ def pyfai_stat_ivsq(experiment, imageindex, scan, two_theta_start, pyfaiponi, qm
     tth, I = my_ai.integrate1d_ng(img_data,
                                   ivqbins,
                                   unit="2th_deg", polarization_factor=1)
-    Q= [experiment.calcq(Ival, experiment.incident_wavelength) for Ival in I]
+    Q= [experiment.calcq(tthval, experiment.incident_wavelength) for tthval in tth]
     # Q, I = my_ai.integrate1d_ng(img_data,
     #                             ivqbins,
     #                             unit="q_A^-1", polarization_factor=1)

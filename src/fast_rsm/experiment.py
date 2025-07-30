@@ -22,7 +22,8 @@ from multiprocessing.managers import SharedMemoryManager
 import fast_rsm.io as io
 from fast_rsm.binning import weighted_bin_1d, finite_diff_shape
 from fast_rsm.meta_analysis import get_step_from_filesize
-from fast_rsm.scan import Scan, init_process_pool, bin_maps_with_indices, chunk, init_pyfai_process_pool,pyfai_stat_qmap,pyfai_stat_ivsq, pyfai_stat_exitangles,\
+from fast_rsm.scan import Scan, init_process_pool, bin_maps_with_indices, chunk,\
+    init_pyfai_process_pool,pyfai_stat_qmap,pyfai_stat_ivsq, pyfai_stat_exitangles,\
     pyfai_init_worker,pyfai_move_qmap_worker,rsm_init_worker,bin_maps_with_indices_SMM,pyfai_move_ivsq_worker,pyfai_move_exitangles_worker
 from fast_rsm.writing import linear_bin_to_vtk
 import pandas as pd
@@ -831,33 +832,45 @@ class Experiment:
 
         """
         kmod=2*np.pi/ (self.incident_wavelength)
-        
-        switchaxis = {'vert': 'hor', 'hor': 'vert'}    
+        switchaxis = {'vert': 'hor', 'hor': 'vert'}
+        axis_start=axis[:]
         if (vertsetup==True):
-            axis=switchaxis[axis]
-            horpix=self.beam_centre[1]
-            vertangles=-self.gammadata
+            #axis=switchaxis[axis]
+            horpix=self.imshape[0]-self.beam_centre[0]
+            horindex=0
+            vertindex=1
+            vertangles=-self.two_theta_start
+            horangles=self.deltadata
             verscale=1
-        elif self.scans[0].metadata.data_file.is_rotated:
-            horpix= self.beam_centre[1]  
-            vertangles=self.deltadata
-            verscale=-1
+
+        # elif (vertsetup==True)&(self.scans[0].metadata.data_file.is_rotated):
+        #     axis=switchaxis[axis]
+        #     horpix= self.imshape[0]-self.beam_centre[0]  
+        #     vertangles=-self.gammadata
+        #     verscale=1
+
+        # elif self.scans[0].metadata.data_file.is_rotated:
+        #     horpix=self.beam_centre[1]   
+        #     vertangles=self.deltadata
+        #     verscale=-1
         else:
-            horpix= self.beam_centre[0]  
+            horindex=1
+            vertindex=0
             vertangles=self.deltadata
+            horangles= self.two_theta_start
             verscale=-1
                     
         
         if axis=='vert':
-            pixlow=self.imshape[0]-self.beam_centre[0]
-            pixhigh=self.beam_centre[0]
-            highsection=np.max(self.deltadata)
-            lowsection=np.min(self.deltadata)
+            pixlow=self.imshape[vertindex]-self.beam_centre[vertindex]
+            pixhigh=self.beam_centre[vertindex]
+            highsection=np.max(vertangles)
+            lowsection=np.min(vertangles)
         elif axis=='hor':
-            pixhigh=(self.beam_centre[1])
-            pixlow=(self.imshape[1]-self.beam_centre[1])
-            highsection=np.max(self.two_theta_start)
-            lowsection=np.min(self.two_theta_start)
+            pixhigh=(self.beam_centre[horindex])
+            pixlow=(self.imshape[horindex]-self.beam_centre[horindex])
+            highsection=np.max(horangles)
+            lowsection=np.min(horangles)
 
         if (slitvertratio!=None)&(axis=='vert'):
             pixscale=self.pixel_size*slitvertratio
@@ -867,13 +880,14 @@ class Experiment:
             pixscale=self.pixel_size
         maxangle=highsection+np.degrees(np.arctan((pixhigh*pixscale)/self.detector_distance))
         minangle=lowsection-np.degrees(np.arctan((pixlow*pixscale)/self.detector_distance))
+        maxanglerad=np.radians(np.max(maxangle))
+        minanglerad=np.radians(np.max(minangle))
 
         if (axis=='vert'):
-            qupp=self.SOHqcalc(maxangle,kmod)
-            qlow=self.SOHqcalc(minangle,kmod)
-            maxtthrad=np.radians(np.max(self.two_theta_start))
-            maxanglerad=np.radians(np.max(maxangle))
-            minanglerad=np.radians(np.max(maxangle))
+            qupp=self.SOHqcalc(maxangle/2,kmod)*2
+            qlow=self.SOHqcalc(minangle/2,kmod)*2
+            maxtthrad=np.radians(np.max(horangles))
+
             maxincrad=np.radians(np.max(self.incident_angle))
             extraincq=kmod*1e-10*np.sin(maxincrad)
 
@@ -887,27 +901,32 @@ class Experiment:
             extravert=extraincq-minusexitq_x-minusexitq_z
             qlow+=extravert  
             outscale=verscale
+            if axis_start=='vert':
+                outscale=-1
         
         elif axis=='hor':
             qupp=self.SOHqcalc(maxangle/2,kmod)*2
             qlow=self.SOHqcalc(minangle/2,kmod)*2
-            maxdel=np.max(vertangles) +np.degrees(np.arctan((horpix*self.pixel_size)/self.detector_distance))
-            s1=kmod*np.cos(np.radians(maxdel))*np.sin(np.radians(maxangle))
-            s2=kmod*(1-np.cos(np.radians(maxdel))*np.cos(np.radians(maxangle)))
-            qupp_withdelta=np.sqrt(np.square(s1)+np.square(s2))*1e-10*np.sign(maxangle)
-            s3=kmod*np.cos(np.radians(maxdel))*np.sin(np.radians(minangle))
-            s4=kmod*(1-np.cos(np.radians(maxdel))*np.cos(np.radians(minangle)))
-            qlow_withdelta=np.sqrt(np.square(s3)+np.square(s4))*1e-10*np.sign(minangle)
+            maxvert=np.max(vertangles) +np.degrees(np.arctan((self.beam_centre[vertindex]*self.pixel_size)/self.detector_distance))
+            maxvertrad=np.radians(maxvert)
+            s1=kmod*np.cos(maxvertrad)*np.sin(maxanglerad)
+            s2=kmod*(1-np.cos(maxvertrad)*np.cos(maxanglerad))
+            qupp_withvert=np.sqrt(np.square(s1)+np.square(s2))*1e-10*np.sign(maxangle)
+            s3=kmod*np.cos(maxvertrad)*np.sin(minanglerad)
+            s4=kmod*(1-np.cos(maxvertrad)*np.cos(minanglerad))
+            qlow_withvert=np.sqrt(np.square(s3)+np.square(s4))*1e-10*np.sign(minangle)
 
-            if abs(qupp_withdelta)>abs(qupp):
-                qupp=-1*qupp_withdelta
+            if abs(qupp_withvert)>abs(qupp):
+                qupp=-1*qupp_withvert
             else:
                 qupp*=-1
-            if abs(qlow_withdelta)>abs(qlow):
-                qlow=-1*qlow_withdelta
+            if abs(qlow_withvert)>abs(qlow):
+                qlow=-1*qlow_withvert
             else:
                 qlow*=-1
             outscale=1
+            if axis_start=='hor':
+                outscale=verscale
         outvals=np.sort([qupp*outscale,qlow*outscale])
         return outvals[0],outvals[1]
     
@@ -1422,12 +1441,19 @@ class Experiment:
 
             datacheck=('data' in list(scan.metadata.data_file.nx_detector))
             localpathcheck=('local_image_paths' in scan.metadata.data_file.__dict__.keys())
-            if datacheck:
+            intcheck=(isinstance(scan.metadata.data_file.scan_length,int))
+            if datacheck&intcheck:
+                scanlength=np.shape(scan.metadata.data_file.nx_detector.data[:,1,:])[0]
+                if scan.metadata.data_file.scan_length<scanlength:
+                    scanlength=scan.metadata.data_file.scan_length
+            elif datacheck:
                 scanlength=np.shape(scan.metadata.data_file.nx_detector.data[:,1,:])[0]
             elif localpathcheck:
                 scanlength=len(scan.metadata.data_file.local_image_paths)
             else:
                 scanlength=scan.metadata.data_file.scan_length
+            
+
 
             return outlimits,scanlength,scanlistnew
 
