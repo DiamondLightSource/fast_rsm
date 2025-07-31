@@ -194,9 +194,9 @@ class Experiment:
 
         if edfmask!=None:
             maskimg=fabio.open(edfmask)
-            mask=np.flip(maskimg.data,axis=0)
+            mask=maskimg.data
             if self.scans[0].metadata.data_file.is_rotated==True:
-                mask=np.flip(mask.transpose(),axis=0)
+                mask=np.rot90(maskimg.data, -1)
         else:
             mask=None
 
