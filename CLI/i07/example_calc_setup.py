@@ -287,7 +287,7 @@ if ('pyfai_qmap' in process_outputs)&(map_per_image==False):
 
 if ('pyfai_ivsq' in process_outputs)&(map_per_image==True):
     for i, scan in enumerate(experiment.scans):
-        name_end=scan_numbers[0]
+        name_end=scan_numbers[i]
         datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
         projected_name=f'IvsQ_{name_end}_{datetime_str}'
         hf=h5py.File(f'{local_output_path}/{projected_name}.hdf5',"w")
