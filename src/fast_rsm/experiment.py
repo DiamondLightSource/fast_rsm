@@ -901,8 +901,6 @@ class Experiment:
             extravert=extraincq-minusexitq_x-minusexitq_z
             qlow+=extravert  
             outscale=verscale
-            if axis_start=='vert':
-                outscale=-1
         
         elif axis=='hor':
             qupp=self.SOHqcalc(maxangle/2,kmod)*2
@@ -925,8 +923,8 @@ class Experiment:
             else:
                 qlow*=-1
             outscale=1
-            if axis_start=='hor':
-                outscale=verscale
+            # if axis_start=='hor':
+            #     outscale=verscale
         outvals=np.sort([qupp*outscale,qlow*outscale])
         return outvals[0],outvals[1]
     
