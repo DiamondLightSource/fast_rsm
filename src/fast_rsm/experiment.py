@@ -196,7 +196,7 @@ class Experiment:
             maskimg=fabio.open(edfmask)
             mask=maskimg.data
             if self.scans[0].metadata.data_file.is_rotated==True:
-                mask=np.rot90(maskimg.data, -1)
+                mask=np.rot90(maskimg.data, 1)
         else:
             mask=None
 
