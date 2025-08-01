@@ -10,3 +10,4 @@ notebooks
 *.npy
 *.dat
 scripts
+build
