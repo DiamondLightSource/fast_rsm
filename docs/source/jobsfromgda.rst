@@ -8,6 +8,8 @@ In GDA open and run the following script:
     /dls_sw/i07/scripts/gda-zocalo/test_zocalo_functions.py
 
 this will allow you to access the functions *mapstart*, *currentScan*, *mapend*
+GDA provides the functions *mapstart*, *currentScan*, *mapend*, which are explained below.
+Note that these require the epics IOC to be running during data collection to work, there is a function checkzocalo() which will check this is running and attempt to restart it if not.  It is probably a good idea to put this at the start of any script where this processing is reqired.
 
 To create a map to be sent for processing automatically, the format is as follows 
 
@@ -35,7 +37,7 @@ To create a map to be sent for processing automatically, the format is as follow
 
 You can then collect and process a second map by repeating the code from scanlist,ps=mapstart() onwards.
 
-Additionally  you can change the exp_file after the first map has finished if a different type of processing is required for the second map
+Additionally you can change the exp_file after the first map has finished if a different type of processing is required for the second map
 
 An example macro script is located here /dls_sw/i07/scripts/gda-zocalo/example_gzc_script.py
 

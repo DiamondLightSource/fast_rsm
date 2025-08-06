@@ -43,7 +43,7 @@ Once the fast_rsm module has been loaded there are also some other useful functi
 
 
 
-    **get_setups** -  use this to get setup information used to calculate a hdf5 file. if hdf5 has the configuration saved to config, and it contains the joblines from the analysis job sent to the cluster - then you can type 
+    **get_setups** -  use this to get setup information used to calculate a hdf5 file. If the hdf5 file has the configuration saved to config, and it contains the joblines from the analysis job sent to the cluster - then you can type 
 
     .. code-block:: bash
 
