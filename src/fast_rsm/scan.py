@@ -634,7 +634,7 @@ def get_pyfai_components(experiment,i,sample_orientation,unit_ip_name,unit_oop_n
     if experiment.setup=='DCD':
         inc_angle_out= 0 #debug setting incident angle to 0
     else:
-        inc_angle_out=inc_angle
+        inc_angle_out= inc_angle
     
     unit_ip = units.get_unit_fiber(
         unit_ip_name, sample_orientation=sample_orientation, incident_angle=inc_angle_out)
@@ -654,14 +654,17 @@ def get_pyfai_components(experiment,i,sample_orientation,unit_ip_name,unit_oop_n
 
     if (-np.degrees(inc_angle)>experiment.alphacritical)&(experiment.setup=='DCD'):
         #if above critical angle, account for direct beam adding to delta
-        rots = experiment.gamdel2rots(gamval, delval+np.degrees(inc_angle_out))
+        rots = experiment.gamdel2rots(gamval, delval+np.degrees(-inc_angle))
+    # elif (experiment.setup=='DCD'):
+    #     rots = experiment.gamdel2rots(gamval, delval)
     else:
         rots = experiment.gamdel2rots(gamval, delval)
+
 
     my_ai = copy.deepcopy(aistart)
     my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
 
-    if scan.metadata.data_file.is_rotated==True:
+    if experiment.setup=='vertical':
         my_ai.rot1=-rots[1]
         my_ai.rot2=rots[0]
 
@@ -711,7 +714,8 @@ def pyfai_move_qmap_worker(experiment, choiceims, scan,shapeqpqp, pyfaiponi, qma
         ais = []
         img_data_list=[]
         for i in group:
-            unit_qip,unit_qoop,img_data,my_ai,ai_limits=get_pyfai_components(experiment,i,sample_orientation,unit_qip_name,unit_qoop_name,aistart,slitvdistratio,slithdistratio,scan,qlimits)
+            unit_qip,unit_qoop,img_data,my_ai,ai_limits=get_pyfai_components(experiment,i,sample_orientation,\
+                                                                             unit_qip_name,unit_qoop_name,aistart,slitvdistratio,slithdistratio,scan,qlimits)
 
             img_data_list.append(img_data)
             ais.append(my_ai)
@@ -741,7 +745,7 @@ def pyfai_move_ivsq_worker(experiment, imageindices, scan, shapeqi, pyfaiponi, r
     totaloutqi = np.zeros(shapeqi)
     totaloutcounts = np.zeros(shapeqi)
 
-    unit_qip_name = "2th_deg"#"qip_A^-1"
+    unit_qip_name ="2th_deg"# "qtot_A^-1"# "qip_A^-1"
     unit_qoop_name = "qoop_A^-1"
 
     sample_orientation = 1
@@ -764,6 +768,7 @@ def pyfai_move_ivsq_worker(experiment, imageindices, scan, shapeqi, pyfaiponi, r
         mg = MultiGeometry( ais,  unit=unit_tth_ip, wavelength=experiment.incident_wavelength, radial_range=(radrange[0],radrange[1]))
         result1d = mg.integrate1d(img_data_list, ivqbins)
         q_from_theta = [experiment.calcq(val, experiment.incident_wavelength) for val in result1d.radial]
+        #theta_from_q= [experiment.calctheta(val, experiment.incident_wavelength) for val in result1d.radial]
 
         totaloutqi[0]+=result1d.sum_signal
         totaloutqi[1]=q_from_theta

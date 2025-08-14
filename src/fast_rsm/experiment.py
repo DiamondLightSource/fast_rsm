@@ -667,7 +667,7 @@ class Experiment:
         twotheta : float
             value of angle in degrees converted to  q.
         """
-        return np.degrees(np.arcsin(q*(wavelength/4*np.pi)*1e10))/2
+        return np.degrees(np.arcsin(q*(wavelength/(4*np.pi))*1e10))*2
 
     def calcq(self,twotheta,wavelength):
         """
@@ -754,6 +754,49 @@ class Experiment:
         """
         return np.sin(np.radians(angle))*kmod*1e-10
     
+    def get_limitcalc_vars(self,vertsetup,axis,slitvertratio,slithorratio):
+        if (vertsetup==True):#&(self.scans[0].metadata.data_file.is_rotated):
+            horindex=0
+            vertindex=1
+            vertangles=self.two_theta_start
+            horangles=self.deltadata
+            verscale=1
+            horscale=1
+        else:
+            horindex=1
+            vertindex=0
+            vertangles=self.deltadata
+            horangles= self.two_theta_start
+            verscale=-1
+            horscale=-1
+        if axis=='vert':
+            pixlow=self.imshape[vertindex]-self.beam_centre[vertindex]
+            pixhigh=self.beam_centre[vertindex]
+            highsection=np.max(vertangles)
+            lowsection=np.min(vertangles)
+            outscale=verscale
+        elif axis=='hor':
+            pixhigh=(self.beam_centre[horindex])
+            pixlow=(self.imshape[horindex]-self.beam_centre[horindex])
+            if (self.setup=='vertical')&(self.scans[0].metadata.data_file.is_rotated):
+                pixhigh,pixlow=pixlow,pixhigh
+            highsection=np.max(horangles)
+            lowsection=np.min(horangles)
+            outscale=horscale
+
+        if (slitvertratio!=None)&(axis=='vert'):
+            pixscale=self.pixel_size*slitvertratio
+        elif (slithorratio!=None)&(axis=='hor'):
+            pixscale=self.pixel_size*slithorratio
+        else:
+            pixscale=self.pixel_size
+        if vertsetup==True:
+            [highsign,lowsign]=[1 if val==0 else np.sign(val) for val in [highsection,lowsection]]
+        else:
+            [highsign,lowsign]=[1,-1]
+        return horindex,vertindex,vertangles,horangles,verscale,horscale,pixhigh,\
+            pixlow,outscale,pixscale,highsign,lowsign,highsection,lowsection
+
     def calcanglim(self,axis,vertsetup=False,slitvertratio=None,slithorratio=None):
         """
         Calculates limits in exit angle for either vertical or horizontal axis
@@ -773,41 +816,22 @@ class Experiment:
             lower limit on exit angle in degrees.
 
         """
-        
-        switchaxis = {'vert': 'hor', 'hor': 'vert'}            
-        verscale=-1
-        if (vertsetup==True)&(self.scans[0].metadata.data_file.is_rotated==False):
-            axis=switchaxis[axis]
-            verscale=1
-        elif self.scans[0].metadata.data_file.is_rotated:
-            verscale=-1
-        else:
-            verscale=-1
 
+        horindex,vertindex,vertangles,horangles,verscale,horscale,pixhigh,\
+            pixlow,outscale,pixscale,highsign,lowsign,highsection,lowsection=self.get_limitcalc_vars(vertsetup,axis,slitvertratio,slithorratio)
 
-
+        add_section=(highsign*np.degrees(np.arctan((pixhigh*pixscale)/self.detector_distance)))
+        minus_section=(lowsign*np.degrees(np.arctan((pixlow*pixscale)/self.detector_distance)))
+        maxvertrad=np.radians(np.max(vertangles))
+        if axis=='hor':
+            add_section=np.degrees(np.arctan(np.tan(np.radians(add_section))/abs(np.cos(maxvertrad))))
+            minus_section=np.degrees(np.arctan(np.tan(np.radians(minus_section))/abs(np.cos(maxvertrad)))) 
+        maxangle=highsection+(highsign*add_section)
+        minangle=lowsection- (lowsign*minus_section)
         if axis=='vert':
-            pixlow=self.imshape[0]-self.beam_centre[0]
-            pixhigh=self.beam_centre[0]
-            highsection=np.max(self.deltadata)
-            lowsection=np.min(self.deltadata)
-            outscale=verscale
-        elif axis=='hor':
-            pixhigh=(self.beam_centre[1])
-            pixlow=(self.imshape[1]-self.beam_centre[1])
-            highsection=np.max(self.two_theta_start)
-            lowsection=np.min(self.two_theta_start)
-            outscale=-1
-        
-        if (slitvertratio!=None)&(axis=='vert'):
-            pixscale=self.pixel_size*slitvertratio
-        elif (slithorratio!=None)&(axis=='hor'):
-            pixscale=self.pixel_size*slithorratio
-        else:
-            pixscale=self.pixel_size
+            outscale*=-1
 
-        maxangle=highsection+np.degrees(np.arctan((pixhigh*pixscale)/self.detector_distance))
-        minangle=lowsection-np.degrees(np.arctan((pixlow*pixscale)/self.detector_distance))
+
         outvals=np.sort([minangle*outscale,maxangle*outscale])
         return outvals[0],outvals[1]
         #return maxangle*outscale,minangle*outscale
@@ -832,60 +856,18 @@ class Experiment:
 
         """
         kmod=2*np.pi/ (self.incident_wavelength)
-        switchaxis = {'vert': 'hor', 'hor': 'vert'}
-        axis_start=axis[:]
-        if (vertsetup==True):
-            #axis=switchaxis[axis]
-            horpix=self.imshape[0]-self.beam_centre[0]
-            horindex=0
-            vertindex=1
-            vertangles=-self.two_theta_start
-            horangles=self.deltadata
-            verscale=1
-
-        # elif (vertsetup==True)&(self.scans[0].metadata.data_file.is_rotated):
-        #     axis=switchaxis[axis]
-        #     horpix= self.imshape[0]-self.beam_centre[0]  
-        #     vertangles=-self.gammadata
-        #     verscale=1
-
-        # elif self.scans[0].metadata.data_file.is_rotated:
-        #     horpix=self.beam_centre[1]   
-        #     vertangles=self.deltadata
-        #     verscale=-1
-        else:
-            horindex=1
-            vertindex=0
-            vertangles=self.deltadata
-            horangles= self.two_theta_start
-            verscale=-1
-                    
         
-        if axis=='vert':
-            pixlow=self.imshape[vertindex]-self.beam_centre[vertindex]
-            pixhigh=self.beam_centre[vertindex]
-            highsection=np.max(vertangles)
-            lowsection=np.min(vertangles)
-        elif axis=='hor':
-            pixhigh=(self.beam_centre[horindex])
-            pixlow=(self.imshape[horindex]-self.beam_centre[horindex])
-            highsection=np.max(horangles)
-            lowsection=np.min(horangles)
-
-        if (slitvertratio!=None)&(axis=='vert'):
-            pixscale=self.pixel_size*slitvertratio
-        elif (slithorratio!=None)&(axis=='hor'):
-            pixscale=self.pixel_size*slithorratio
-        else:
-            pixscale=self.pixel_size
-        maxangle=highsection+np.degrees(np.arctan((pixhigh*pixscale)/self.detector_distance))
-        minangle=lowsection-np.degrees(np.arctan((pixlow*pixscale)/self.detector_distance))
+        horindex,vertindex,vertangles,horangles,verscale,horscale,pixhigh,\
+            pixlow,outscale,pixscale,highsign,lowsign,highsection,lowsection=self.get_limitcalc_vars(vertsetup,axis,slitvertratio,slithorratio)
+        
+        maxangle=highsection+(highsign*np.degrees(np.arctan((pixhigh*pixscale)/self.detector_distance)))
+        minangle=lowsection-(lowsign*np.degrees(np.arctan((pixlow*pixscale)/self.detector_distance)))
         maxanglerad=np.radians(np.max(maxangle))
         minanglerad=np.radians(np.max(minangle))
 
         if (axis=='vert'):
-            qupp=self.SOHqcalc(maxangle/2,kmod)*2
-            qlow=self.SOHqcalc(minangle/2,kmod)*2
+            qupp=self.SOHqcalc(maxangle,kmod)#*2
+            qlow=self.SOHqcalc(minangle,kmod)#*2
             maxtthrad=np.radians(np.max(horangles))
 
             maxincrad=np.radians(np.max(self.incident_angle))
@@ -900,12 +882,12 @@ class Experiment:
             minusexitq_z=kmod*1e-10*np.sin(minanglerad)*(1-np.cos(maxincrad))
             extravert=extraincq-minusexitq_x-minusexitq_z
             qlow+=extravert  
-            outscale=verscale
-        
+
         elif axis=='hor':
-            qupp=self.SOHqcalc(maxangle/2,kmod)*2
-            qlow=self.SOHqcalc(minangle/2,kmod)*2
-            maxvert=np.max(vertangles) +np.degrees(np.arctan((self.beam_centre[vertindex]*self.pixel_size)/self.detector_distance))
+            qupp=self.SOHqcalc(maxangle,kmod)#*2
+            qlow=self.SOHqcalc(minangle,kmod)#*2
+            vertsign=[1 if np.sign(np.max(vertangles))>=0 else -1]
+            maxvert=np.max(vertangles) +vertsign[0]*np.degrees(np.arctan((self.beam_centre[vertindex]*self.pixel_size)/self.detector_distance))
             maxvertrad=np.radians(maxvert)
             s1=kmod*np.cos(maxvertrad)*np.sin(maxanglerad)
             s2=kmod*(1-np.cos(maxvertrad)*np.cos(maxanglerad))
@@ -915,14 +897,13 @@ class Experiment:
             qlow_withvert=np.sqrt(np.square(s3)+np.square(s4))*1e-10*np.sign(minangle)
 
             if abs(qupp_withvert)>abs(qupp):
-                qupp=-1*qupp_withvert
-            else:
-                qupp*=-1
+                qupp=qupp_withvert
+            # else:
+            #     qupp*=-1
             if abs(qlow_withvert)>abs(qlow):
-                qlow=-1*qlow_withvert
-            else:
-                qlow*=-1
-            outscale=1
+                qlow=qlow_withvert
+            # else:
+            #     qlow*=-1
             # if axis_start=='hor':
             #     outscale=verscale
         outvals=np.sort([qupp*outscale,qlow*outscale])
@@ -1642,7 +1623,7 @@ class Experiment:
         None.
 
         """
-
+        start_time = time()
         anglimits, scanlength,scanlistnew= self.pyfai_setup_limits(scan,self.calcanglim,slitdistratios)
         #calculate map bins if not specified using resolution of 0.01 degrees 
             
@@ -1652,6 +1633,7 @@ class Experiment:
         all_maps=[]
         all_xlabels=[]
         all_ylabels=[]
+        all_mapaxisinfo=[]
         
         with Pool(processes=num_threads) as pool:
             
@@ -1662,30 +1644,26 @@ class Experiment:
             maps=[result[0] for result in results]
             xlabels=[result[1] for result in results]
             ylabels=[result[2] for result in results]
+            mapaxisinfo=[result[3] for result in results]
             all_maps.append(maps)
             all_xlabels.append(xlabels)
             all_ylabels.append(ylabels)
+            all_mapaxisinfo.append(mapaxisinfo)
             
         print(f'finished process pool')
-            
+
+        
         signal_shape=np.shape(scan.metadata.data_file.default_signal)
-        outlist=[all_maps[0],all_xlabels[0],all_ylabels[0]]
         if len(signal_shape)>1:
-            outlist=[self.reshape_to_signalshape(arr, signal_shape) for arr in outlist]
-        
-        dset=hf.create_group("horiz_vert_exit")
-        dset.create_dataset("exit_angle_image",data=outlist[0])
-        dset.create_dataset("exit_para",data=outlist[1])
-        dset.create_dataset("exit_perp",data=outlist[2])
-        dset.create_dataset("exit_perp_indices",data = [0,1,2])
-        dset.create_dataset("exit_para_indices",data = [0,1,3])
-        
-                        
+            savemaps=self.reshape_to_signalshape(all_maps[0],signal_shape)
+        else:
+            savemaps=all_maps[0]
         if "scanfields" not in hf.keys():
             self.save_scan_field_values(hf, scan)    
-        if self.savetiffs==True:
-            self.do_savetiffs(hf, outlist[0],outlist[1], outlist[2])
-        
+        self.save_hf_map(hf,"exit_angles",savemaps,np.ones(np.shape(savemaps)),all_mapaxisinfo[0][0],start_time)
+
+                     
+
     def pyfai_static_qmap(self,hf,scan,num_threads,output_file_path,pyfaiponi,ivqbins,qmapbins=0,slitdistratios=None):
    
         qlimits,scanlength,scanlistnew = self.pyfai_setup_limits(scan,self.calcqlim,slitdistratios)
