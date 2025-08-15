@@ -665,8 +665,8 @@ def get_pyfai_components(experiment,i,sample_orientation,unit_ip_name,unit_oop_n
     my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
 
     if experiment.setup=='vertical':
-        my_ai.rot1=-rots[1]
-        my_ai.rot2=rots[0]
+        my_ai.rot1=rots[1]
+        my_ai.rot2=-rots[0]
 
     if slitvdistratio!=None:
         my_ai.pixel1*=slitvdistratio
@@ -797,8 +797,8 @@ def pyfai_move_exitangles_worker(experiment, imageindices, scan, shapeexhexv, py
     sample_orientation = 1
 
     
-    if experiment.setup=='vertical':
-        sample_orientation=4
+    # if experiment.setup=='vertical':
+    #     sample_orientation=4
 
     groupnum = 15
     choiceims = imageindices

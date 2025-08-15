@@ -755,20 +755,44 @@ class Experiment:
         return np.sin(np.radians(angle))*kmod*1e-10
     
     def get_limitcalc_vars(self,vertsetup,axis,slitvertratio,slithorratio):
-        if (vertsetup==True):#&(self.scans[0].metadata.data_file.is_rotated):
-            horindex=0
-            vertindex=1
-            vertangles=self.two_theta_start
-            horangles=self.deltadata
-            verscale=1
+        
+        horvert_indices={'vert0':[1,0],'hor0':[0,1]}
+        horvert_angles={'thvert':[self.two_theta_start,self.deltadata],'delvert':[self.deltadata,self.two_theta_start]}     
+        if (vertsetup==True)&(self.scans[0].metadata.data_file.is_rotated):
+            #GOOD
+            [horindex,vertindex]=horvert_indices['hor0']
+            [vertangles,horangles]=horvert_angles['thvert']
+            verscale=-1
             horscale=1
-        else:
-            horindex=1
-            vertindex=0
-            vertangles=self.deltadata
-            horangles= self.two_theta_start
+
+        elif self.setup=='DCD':
+            [horindex,vertindex]=horvert_indices['vert0']
+            [vertangles,horangles]=horvert_angles['delvert']
             verscale=-1
             horscale=-1
+        
+        elif (vertsetup==True):
+            #GOOD
+            [horindex,vertindex]=horvert_indices['hor0']
+            [vertangles,horangles]=horvert_angles['thvert']
+            verscale=-1
+            horscale=-1
+
+        elif (self.scans[0].metadata.data_file.is_rotated):
+            [horindex,vertindex]=horvert_indices['vert0']
+            [vertangles,horangles]=horvert_angles['delvert']
+            verscale=-1
+            horscale=1
+
+        else:
+            #GOOD
+            [horindex,vertindex]=horvert_indices['vert0']
+            [vertangles,horangles]=horvert_angles['delvert']
+            verscale=-1
+            horscale=-1
+
+
+
         if axis=='vert':
             pixlow=self.imshape[vertindex]-self.beam_centre[vertindex]
             pixhigh=self.beam_centre[vertindex]
@@ -790,10 +814,11 @@ class Experiment:
             pixscale=self.pixel_size*slithorratio
         else:
             pixscale=self.pixel_size
-        if vertsetup==True:
-            [highsign,lowsign]=[1 if val==0 else np.sign(val) for val in [highsection,lowsection]]
-        else:
-            [highsign,lowsign]=[1,-1]
+        [highsign,lowsign]=[1 if np.round(val,5)==0 else np.sign(val) for val in [highsection,lowsection]]
+
+        
+        # if (axis=='vert')&(vertsetup==True):
+        #     outscale*=-1
         return horindex,vertindex,vertangles,horangles,verscale,horscale,pixhigh,\
             pixlow,outscale,pixscale,highsign,lowsign,highsection,lowsection
 
@@ -820,18 +845,27 @@ class Experiment:
         horindex,vertindex,vertangles,horangles,verscale,horscale,pixhigh,\
             pixlow,outscale,pixscale,highsign,lowsign,highsection,lowsection=self.get_limitcalc_vars(vertsetup,axis,slitvertratio,slithorratio)
 
-        add_section=(highsign*np.degrees(np.arctan((pixhigh*pixscale)/self.detector_distance)))
-        minus_section=(lowsign*np.degrees(np.arctan((pixlow*pixscale)/self.detector_distance)))
+        add_section=(np.degrees(np.arctan((pixhigh*pixscale)/self.detector_distance)))
+        minus_section=(np.degrees(np.arctan((pixlow*pixscale)/self.detector_distance)))
         maxvertrad=np.radians(np.max(vertangles))
         if axis=='hor':
             add_section=np.degrees(np.arctan(np.tan(np.radians(add_section))/abs(np.cos(maxvertrad))))
             minus_section=np.degrees(np.arctan(np.tan(np.radians(minus_section))/abs(np.cos(maxvertrad)))) 
-        maxangle=highsection+(highsign*add_section)
-        minangle=lowsection- (lowsign*minus_section)
-        if axis=='vert':
-            outscale*=-1
+        maxangle=highsection+(add_section)
+        minangle=lowsection- (minus_section)
 
 
+        #add incorrection factors to match direction with pyfai calculations
+        if (vertsetup==True)&(self.scans[0].metadata.data_file.is_rotated):
+            correctionscales={'vert':-1,'hor':1}
+        elif (vertsetup==True):
+            correctionscales={'vert':1,'hor':-1}
+        elif (self.scans[0].metadata.data_file.is_rotated):
+            correctionscales={'vert':1,'hor':1}
+        else:
+            correctionscales={'vert':1,'hor':1}
+
+        outscale*=correctionscales[axis]
         outvals=np.sort([minangle*outscale,maxangle*outscale])
         return outvals[0],outvals[1]
         #return maxangle*outscale,minangle*outscale
@@ -860,8 +894,8 @@ class Experiment:
         horindex,vertindex,vertangles,horangles,verscale,horscale,pixhigh,\
             pixlow,outscale,pixscale,highsign,lowsign,highsection,lowsection=self.get_limitcalc_vars(vertsetup,axis,slitvertratio,slithorratio)
         
-        maxangle=highsection+(highsign*np.degrees(np.arctan((pixhigh*pixscale)/self.detector_distance)))
-        minangle=lowsection-(lowsign*np.degrees(np.arctan((pixlow*pixscale)/self.detector_distance)))
+        maxangle=highsection+(np.degrees(np.arctan((pixhigh*pixscale)/self.detector_distance)))
+        minangle=lowsection-(np.degrees(np.arctan((pixlow*pixscale)/self.detector_distance)))
         maxanglerad=np.radians(np.max(maxangle))
         minanglerad=np.radians(np.max(minangle))
 
@@ -895,17 +929,14 @@ class Experiment:
             s3=kmod*np.cos(maxvertrad)*np.sin(minanglerad)
             s4=kmod*(1-np.cos(maxvertrad)*np.cos(minanglerad))
             qlow_withvert=np.sqrt(np.square(s3)+np.square(s4))*1e-10*np.sign(minangle)
-
+            if (vertsetup==True):
+                outscale*=-1
             if abs(qupp_withvert)>abs(qupp):
                 qupp=qupp_withvert
-            # else:
-            #     qupp*=-1
+
             if abs(qlow_withvert)>abs(qlow):
                 qlow=qlow_withvert
-            # else:
-            #     qlow*=-1
-            # if axis_start=='hor':
-            #     outscale=verscale
+
         outvals=np.sort([qupp*outscale,qlow*outscale])
         return outvals[0],outvals[1]
     
