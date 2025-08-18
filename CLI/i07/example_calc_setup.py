@@ -131,6 +131,12 @@ experiment.mask_pixels(specific_pixels)
 experiment.mask_edf(edfmaskfile)
 experiment.mask_regions(mask_regions_list)
 experiment.setup=setup
+
+if 'alphacritical' in globals():    
+    experiment.alphacritical=alphacritical
+else:
+    experiment.alphacritical=0.0
+
 if 'savetiffs' in globals():
     experiment.savetiffs=savetiffs
 else:
@@ -143,6 +149,13 @@ else:
 
 if 'qmapbins' not in globals():
     qmapbins=0
+
+if 'slitvertratio' not in globals():
+    slitvertratio=None
+
+if 'slithorratio' not in globals():
+    slithorratio=None
+
 
 
 """
@@ -216,6 +229,11 @@ for i, scan in enumerate(experiment.scans):
 
     # """
 
+if experiment.scans[0].metadata.data_file.is_rotated:
+    slitratios=[slithorratio,slitvertratio]
+else:
+    slitratios=[slitvertratio,slithorratio]
+
 if 'qmapbins' not in globals():
     qmapbins=0
 import os,sys
@@ -276,7 +294,7 @@ if ('pyfai_qmap' in process_outputs)&(map_per_image==False):
     process_start_time=time()
     experiment.load_curve_values(scanlist[0])
     PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,beam_centre=experiment.beam_centre)
-    experiment.pyfai_moving_qmap_SMM(hf,scanlist, num_threads,  local_output_path,PYFAI_PONI,radialrange,radialstepval,qmapbins)
+    experiment.pyfai_moving_qmap_SMM(hf,scanlist, num_threads,  local_output_path,PYFAI_PONI,radialrange,radialstepval,qmapbins,slitdistratios=slitratios)
     experiment.save_config_variables(hf,joblines,pythonlocation,globals())
     hf.close()
     print(f"saved 2d map data to {local_output_path}/{projected_name}.hdf5")           
@@ -312,7 +330,7 @@ if ('pyfai_ivsq' in process_outputs)&(map_per_image==False):
     process_start_time=time()
     experiment.load_curve_values(scanlist[0])
     PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,beam_centre=experiment.beam_centre)
-    experiment.pyfai_moving_ivsq_SMM(hf,scanlist, num_threads,local_output_path,PYFAI_PONI,radialrange,radialstepval,qmapbins)
+    experiment.pyfai_moving_ivsq_SMM(hf,scanlist, num_threads,local_output_path,PYFAI_PONI,radialrange,radialstepval,qmapbins,slitdistratios=slitratios)
     experiment.save_config_variables(hf,joblines,pythonlocation,globals())
     hf.close()
     print(f"saved 1d integration data to {local_output_path}/{projected_name}.hdf5")
@@ -345,14 +363,14 @@ if ('pyfai_exitangles' in process_outputs)&(map_per_image==False):
     process_start_time=time()
     experiment.load_curve_values(scanlist[0])
     PYFAI_PONI=experiment.createponi(local_output_path,experiment.imshape,beam_centre=experiment.beam_centre)
-    experiment.pyfai_moving_exitangles_SMM(hf,scanlist, num_threads, local_output_path, PYFAI_PONI,radialrange,radialstepval,qmapbins)
+    experiment.pyfai_moving_exitangles_SMM(hf,scanlist, num_threads, local_output_path, PYFAI_PONI,radialrange,radialstepval,qmapbins,slitdistratios=slitratios)
     experiment.save_config_variables(hf,joblines,pythonlocation,globals())
     hf.close()
     print(f"saved 2d exit angle map  data to {local_output_path}/{projected_name}.hdf5")
     total_time = time() - process_start_time
     print(f"\n 2d exit angle map calculations took {total_time}s")         
 
-print(f'finished processing scan {name_end}')
+
         
 
 
