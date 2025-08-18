@@ -765,12 +765,6 @@ class Experiment:
             verscale=-1
             horscale=1
 
-        elif self.setup=='DCD':
-            [horindex,vertindex]=horvert_indices['vert0']
-            [vertangles,horangles]=horvert_angles['delvert']
-            verscale=-1
-            horscale=-1
-        
         elif (vertsetup==True):
             #GOOD
             [horindex,vertindex]=horvert_indices['hor0']
@@ -778,7 +772,20 @@ class Experiment:
             verscale=-1
             horscale=-1
 
-        elif (self.scans[0].metadata.data_file.is_rotated):
+        elif (self.setup=='DCD')&(self.scans[0].metadata.data_file.is_rotated):
+            [horindex,vertindex]=horvert_indices['vert0']
+            [vertangles,horangles]=horvert_angles['delvert']
+            verscale=-1
+            horscale=-1
+        
+        elif (self.setup=='DCD'):
+            [horindex,vertindex]=horvert_indices['vert0']
+            [vertangles,horangles]=horvert_angles['delvert']
+            verscale=-1
+            horscale=-1
+        
+
+        elif (vertsetup==False)&(self.scans[0].metadata.data_file.is_rotated):
             [horindex,vertindex]=horvert_indices['vert0']
             [vertangles,horangles]=horvert_angles['delvert']
             verscale=-1
@@ -860,7 +867,11 @@ class Experiment:
             correctionscales={'vert':1,'hor':-1}
         elif (vertsetup==True):
             correctionscales={'vert':1,'hor':-1}
-        elif (self.scans[0].metadata.data_file.is_rotated):
+        elif (self.setup=='DCD')&(self.scans[0].metadata.data_file.is_rotated):
+            correctionscales={'vert':1,'hor':1}
+        elif (self.setup=='DCD'):
+            correctionscales={'vert':1,'hor':1}
+        elif (vertsetup==False)&(self.scans[0].metadata.data_file.is_rotated):
             correctionscales={'vert':1,'hor':1}
         else:
             correctionscales={'vert':1,'hor':1}
