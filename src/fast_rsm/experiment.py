@@ -857,7 +857,7 @@ class Experiment:
 
         #add incorrection factors to match direction with pyfai calculations
         if (vertsetup==True)&(self.scans[0].metadata.data_file.is_rotated):
-            correctionscales={'vert':-1,'hor':1}
+            correctionscales={'vert':1,'hor':-1}
         elif (vertsetup==True):
             correctionscales={'vert':1,'hor':-1}
         elif (self.scans[0].metadata.data_file.is_rotated):
