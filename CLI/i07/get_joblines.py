@@ -11,7 +11,7 @@ import argparse
 import h5py
 
 def splitandopen(f,out):
-    dataset=f['config/joblines']
+    dataset=f['i07configuration/joblines']
     exp_file_path=f'{out}/exp_setup_fromhdf5.py'
     calc_file_path=f'{out}/calc_setup_fromhdf5.py'
     with open(exp_file_path, 'w') as text_file_exp,\
