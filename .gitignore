@@ -11,3 +11,4 @@ notebooks
 *.dat
 scripts
 build
+docs/source/apidocs

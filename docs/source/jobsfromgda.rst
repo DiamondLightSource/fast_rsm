@@ -1,15 +1,8 @@
 Running processing jobs directly after scan from script in gda
 ===============================================================
 
-In GDA open and run the following script:
-
-.. code-block:: bash
-
-    /dls_sw/i07/scripts/gda-zocalo/test_zocalo_functions.py
-
-this will allow you to access the functions *mapstart*, *currentScan*, *mapend*
 GDA provides the functions *mapstart*, *currentScan*, *mapend*, which are explained below.
-Note that these require the epics IOC to be running during data collection to work, there is a function checkzocalo() which will check this is running and attempt to restart it if not.  It is probably a good idea to put this at the start of any script where this processing is reqired.
+Note that these require the epics IOC to be running during data collection to work, there is a function checkzocalo() which will check this is running and attempt to restart it if not.  It is a good idea to put this at the start of any script where this processing is reqired.
 
 To create a map to be sent for processing automatically, the format is as follows 
 
