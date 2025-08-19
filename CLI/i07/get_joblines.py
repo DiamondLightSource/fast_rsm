@@ -55,7 +55,7 @@ if __name__ == "__main__":
     spacer='='*25
 
     f = h5py.File(hf_path,'r')
-    if 'config/joblines' in f.keys():
+    if 'i07configuration/joblines' in f.keys():
         splitandopen(f,outdir)
         f.close()
     else:

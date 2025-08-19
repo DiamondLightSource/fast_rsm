@@ -22,5 +22,6 @@ Software for mapping raw surface x-ray diffraction images into reciprocal space.
 
 .. _pyFAI: https://pyfai.readthedocs.io/
 .. _usage at Diamond: ./diamonduse.html
-.. _calculation details: ./calculations.html
+
+.. .. _calculation details: ./calculations.html
 
