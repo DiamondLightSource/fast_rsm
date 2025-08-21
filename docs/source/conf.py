@@ -21,7 +21,7 @@
 
 project = 'fast_rsm'
 copyright = '2020-2025, Diamond Light Source Ltd'
-author = 'Diamond Light Source'
+author = 'Philip Mousley'
 
 version = '1.3.0'
 # The full version, including alpha/beta/rc tags
