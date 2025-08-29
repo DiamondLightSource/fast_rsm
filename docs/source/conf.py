@@ -45,7 +45,8 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
-    'sphinx.ext.imgmath',
+    'sphinx.ext.mathjax',
+    #'sphinx.ext.imgmath',
     'nbsphinx',
     'jupyter_sphinx',
     'sphinx_collapse',
@@ -74,6 +75,7 @@ templates_path = ['_templates']
 # source_suffix = ['.rst', '.md']
 source_suffix = '.rst'
 
+imgmath_latex = r'c:\users\rpy65944\documents\guienv\lib\site-packages\latex' 
 # The master toctree document.
 master_doc = 'index'
 
@@ -155,10 +157,10 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
-latex_documents = [
-    (master_doc, 'fastrsm.tex', 'fastrsm Documentation',
-     'Philip Mousley', 'manual'),
-]
+# latex_documents = [
+#     (master_doc, 'fastrsm.tex', 'fastrsm Documentation',
+#      'Philip Mousley', 'manual'),
+# ]
 
 
 # -- Options for manual page output ------------------------------------------
