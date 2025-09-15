@@ -121,13 +121,13 @@ class Experiment:
         self.scans = scans
         self._data_file_names = []
         self._normalisation_file_names = []
-        defaults_exp = {'spherical_bragg_vec': np.array([0, 0, 0]),\
-                        'alphacritical': False,\
-                        'savedats': False,\
+        defaults_exp = {'spherical_bragg_vec': np.array([0, 0, 0]),
+                        'alphacritical': False,
+                        'savedats': False,
                         'savetiffs': False}
 
         for key, val in defaults_exp.items():
-                setattr(self, key, val)
+            setattr(self, key, val)
 
     def _clean_temp_files(self) -> None:
         """
