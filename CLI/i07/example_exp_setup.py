@@ -58,8 +58,13 @@ output_file_size = 50
 # will be saved, for manual analysis and paraview, respectively.
 save_binoculars_h5 = True
 
-# Note: THESE CAN BE HAPPILY AUTO CALCULATED.
-# These take the form:
+#choose map co-ordinates for special mappings e.g. polar co-ordinates, if commented out defaults to co-ordinates='cartesian'
+#coordinates='sphericalpolar'
+
+#choose central point to calculate spherical polars around - if commented out defaults to [0,0,0]
+#spherical_bragg_vec=[1.35,1.42,0.96] #519910 , 519528
+
+
 # volume_start = [h_start, k_start, l_start]
 # volume_stop = [h_stop, k_stop, l_stop]
 # volume_step = [h_step, k_step, l_step]
@@ -156,6 +161,7 @@ savetiffs=False
 
 # if you want to export '1d I Vs Q data' to extra .dat files set savedats to True
 savedats=False
+
 
 # The scan numbers of the scans that you want to use to produce this reciprocal
 # space map.
