@@ -275,7 +275,7 @@ class RSMMetadata:
         TODO: This implementation is approximate and should be replaced by an
             exact treatment.
         """
-        
+
         # We're going to need to inc the data shape to hack this.
         data_shape = self.data_file.image_shape
         self._init_relative_polar((data_shape[0]+1, data_shape[1]))
@@ -320,7 +320,7 @@ class RSMMetadata:
 
         # Save this value to an array with the same shape as the images.
         self._vertical_pixel_offsets = np.zeros(image_shape, np.float32)
-        
+
         for i, pixel_offset in enumerate(pixel_offsets):
             self._vertical_pixel_offsets[i, :] = pixel_offset
 
@@ -342,7 +342,7 @@ class RSMMetadata:
         # Save this value to an array with the same shape as the images.
         self._horizontal_pixel_offsets = np.zeros(image_shape, np.float32)
         for i, pixel_offset in enumerate(pixel_offsets):
-            #accounting for rotation is done when loading in image, so no need for treating data differently here
+            # accounting for rotation is done when loading in image, so no need for treating data differently here
             # if self.data_file.is_rotated:
             #     self._horizontal_pixel_offsets[i, :] = pixel_offset
             # else:

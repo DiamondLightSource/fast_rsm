@@ -32,6 +32,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def check_shared_memory(shared_mem_name: str) -> None:
     """
     Make sure that a shared memory array is not open. Clear the shared memory
@@ -225,59 +226,68 @@ def init_pyfai_process_pool(
 
     print(f"Finished initializing worker {current_process().name}.")
 
-def pyfai_stat_exitangles(experiment, imageindex, scan, two_theta_start, pyfaiponi,anglimits, qmapbins, ivqbins,slithdistratio=None,slitvdistratio=None) -> None:
+
+def pyfai_stat_exitangles(experiment, imageindex, scan, two_theta_start, pyfaiponi, anglimits, qmapbins, ivqbins, slithdistratio=None, slitvdistratio=None) -> None:
     index = imageindex
-    aistart = pyFAI.load(pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
+    aistart = pyFAI.load(
+        pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
 
     sample_orientation = 1
-    unit_qip_name ="exit_angle_horz_deg"
-    unit_qoop_name = "exit_angle_vert_deg"    
+    unit_qip_name = "exit_angle_horz_deg"
+    unit_qoop_name = "exit_angle_vert_deg"
 
-    unit_qip,unit_qoop,img_data,my_ai,ai_limits=get_pyfai_components(experiment,index,sample_orientation,unit_qip_name,unit_qoop_name,aistart,slitvdistratio,slithdistratio,scan,anglimits)
-    
-    map2d = my_ai.integrate2d(img_data, qmapbins[0],qmapbins[1], unit=(unit_qip, unit_qoop),\
-                                    radial_range=(ai_limits[0],ai_limits[1]),azimuth_range=(ai_limits[2],ai_limits[3]), method=("no", "csr", "cython"))
-    mapaxisinfo = [map2d.azimuthal, map2d.radial, str(map2d.azimuthal_unit), str(map2d.radial_unit)]
+    unit_qip, unit_qoop, img_data, my_ai, ai_limits = get_pyfai_components(
+        experiment, index, sample_orientation, unit_qip_name, unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, anglimits)
 
-    return map2d[0], map2d[1], map2d[2],mapaxisinfo
+    map2d = my_ai.integrate2d(img_data, qmapbins[0], qmapbins[1], unit=(unit_qip, unit_qoop),
+                              radial_range=(ai_limits[0], ai_limits[1]), azimuth_range=(ai_limits[2], ai_limits[3]), method=("no", "csr", "cython"))
+    mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
+        map2d.azimuthal_unit), str(map2d.radial_unit)]
 
-def pyfai_stat_qmap(experiment, imageindex, scan, two_theta_start, pyfaiponi, qlimits, qmapbins, ivqbins,slithdistratio=None,slitvdistratio=None) -> None:
+    return map2d[0], map2d[1], map2d[2], mapaxisinfo
+
+
+def pyfai_stat_qmap(experiment, imageindex, scan, two_theta_start, pyfaiponi, qlimits, qmapbins, ivqbins, slithdistratio=None, slitvdistratio=None) -> None:
     index = imageindex
-    aistart = pyFAI.load(pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
+    aistart = pyFAI.load(
+        pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
 
     sample_orientation = 1
 
     unit_qip_name = "qip_A^-1"
     unit_qoop_name = "qoop_A^-1"
 
-    unit_qip,unit_qoop,img_data,my_ai,ai_limits=get_pyfai_components(experiment,index,sample_orientation,unit_qip_name,unit_qoop_name,aistart,slitvdistratio,slithdistratio,scan,qlimits)
+    unit_qip, unit_qoop, img_data, my_ai, ai_limits = get_pyfai_components(
+        experiment, index, sample_orientation, unit_qip_name, unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, qlimits)
 
-    map2d = my_ai.integrate2d(img_data, qmapbins[0], qmapbins[1], unit=(unit_qip, unit_qoop),\
-                                    radial_range=(ai_limits[0],ai_limits[1]),azimuth_range=(ai_limits[2],ai_limits[3]), method=("no", "csr", "cython"))
-    mapaxisinfo = [map2d.azimuthal, map2d.radial, str(map2d.azimuthal_unit), str(map2d.radial_unit)]
-    return map2d[0], map2d[1], map2d[2],mapaxisinfo
+    map2d = my_ai.integrate2d(img_data, qmapbins[0], qmapbins[1], unit=(unit_qip, unit_qoop),
+                              radial_range=(ai_limits[0], ai_limits[1]), azimuth_range=(ai_limits[2], ai_limits[3]), method=("no", "csr", "cython"))
+    mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
+        map2d.azimuthal_unit), str(map2d.radial_unit)]
+    return map2d[0], map2d[1], map2d[2], mapaxisinfo
 
 
-def pyfai_stat_ivsq(experiment, imageindex, scan, two_theta_start, pyfaiponi, qmapbins, ivqbins,slithdistratio=None,slitvdistratio=None) -> None:
+def pyfai_stat_ivsq(experiment, imageindex, scan, two_theta_start, pyfaiponi, qmapbins, ivqbins, slithdistratio=None, slitvdistratio=None) -> None:
     index = imageindex
-    aistart = pyFAI.load(pyfaiponi)#, type_="pyFAI.integrator.fiber.FiberIntegrator")
+    # , type_="pyFAI.integrator.fiber.FiberIntegrator")
+    aistart = pyFAI.load(pyfaiponi)
     sample_orientation = 1
 
     unit_qip_name = "qtot_A^-1"
     unit_qoop_name = "qoop_A^-1"
-    unit_q_tot,unit_qoop,img_data,my_ai,ai_limits=get_pyfai_components(experiment,index,sample_orientation,unit_qip_name,unit_qoop_name,aistart,slitvdistratio,slithdistratio,scan,[0,1,0,1])
-
+    unit_q_tot, unit_qoop, img_data, my_ai, ai_limits = get_pyfai_components(
+        experiment, index, sample_orientation, unit_qip_name, unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, [0, 1, 0, 1])
 
     tth, I = my_ai.integrate1d_ng(img_data,
                                   ivqbins,
                                   unit="2th_deg", polarization_factor=1)
-    Q= [experiment.calcq(tthval, experiment.incident_wavelength) for tthval in tth]
+    Q = [experiment.calcq(tthval, experiment.incident_wavelength)
+         for tthval in tth]
     # Q, I = my_ai.integrate1d_ng(img_data,
     #                             ivqbins,
     #                             unit="q_A^-1", polarization_factor=1)
 #
     return I, tth, Q
-
 
 
 def _on_exit(shared_mem: SharedMemory) -> None:
@@ -354,9 +364,7 @@ def _bin_one_map(start: np.ndarray,
     image._processing_steps = processing_steps
 
     # Do the mapping for this image; bin the mapping.
-    q_vectors = image.q_vectors(FRAME, spherical_bragg_vec,oop=oop)
-
-
+    q_vectors = image.q_vectors(FRAME, spherical_bragg_vec, oop=oop)
 
     weighted_bin_3d(q_vectors,
                     image.data,
@@ -461,29 +469,26 @@ def bin_maps_with_indices(indices: List[int],
     return SHARED_RSM_NAME, SHARED_COUNT_NAME
 
 
-
-#==========testing functions========
-
+# ==========testing functions========
 
 
 def bin_maps_with_indices_SMM(indices: List[int],
-                          start: np.ndarray,
-                          stop: np.ndarray,
-                          step: np.ndarray,
-                          min_intensity: float,
-                          processing_steps: list,
-                          skip_images: List[int],
-                          oop: str,
-                          spherical_bragg_vec: np.array,
-                          map_each_image: bool = False,
-                          previous_images: int = 0,
-                          ) -> None:
+                              start: np.ndarray,
+                              stop: np.ndarray,
+                              step: np.ndarray,
+                              min_intensity: float,
+                              processing_steps: list,
+                              skip_images: List[int],
+                              oop: str,
+                              spherical_bragg_vec: np.array,
+                              map_each_image: bool = False,
+                              previous_images: int = 0,
+                              ) -> None:
     """
     Bins all of the maps with indices in indices. The purpose of this
     intermediate function call is to decrease the amount of context switching/
     serialization that the interpreter has to do.
     """
-
 
     # We need to catch all exceptions and explicitly print them in worker
     # threads.
@@ -497,7 +502,7 @@ def bin_maps_with_indices_SMM(indices: List[int],
 
             # print(f"Processing image {idx}. ", end='')
             _bin_one_map_SMM(start, stop, step, min_intensity, idx,
-                         processing_steps, oop,spherical_bragg_vec, map_each_image, previous_images)
+                             processing_steps, oop, spherical_bragg_vec, map_each_image, previous_images)
     except Exception as exception:
         print("Exception thrown in bin_one_map:")
         print(traceback.format_exc())
@@ -507,27 +512,25 @@ def bin_maps_with_indices_SMM(indices: List[int],
     # just return the names of the shared memory blocks where the RSM/count data
     # is stored. The caller can then choose to access the shared memory blocks
     # directly without needlessly serializing enormous arrays.
-    #return SHARED_RSM_NAME, SHARED_COUNT_NAME
-
+    # return SHARED_RSM_NAME, SHARED_COUNT_NAME
 
 
 def _bin_one_map_SMM(start: np.ndarray,
-                 stop: np.ndarray,
-                 step: np.ndarray,
-                 min_intensity: float,
-                 idx: int,
-                 processing_steps: list,
-                 oop: str,
-                 spherical_bragg_vec: np.array,
-                 map_each_image: bool = False,
-                 previous_images: int = 0,
-                 
-                 ) -> np.ndarray:
+                     stop: np.ndarray,
+                     step: np.ndarray,
+                     min_intensity: float,
+                     idx: int,
+                     processing_steps: list,
+                     oop: str,
+                     spherical_bragg_vec: np.array,
+                     map_each_image: bool = False,
+                     previous_images: int = 0,
+
+                     ) -> np.ndarray:
     """
     Calculates and bins the reciprocal space map with index idx. Saves the
     result to the shared memory buffer.
     """
-
 
     if map_each_image:
         rsm_before = np.copy(RSM_ARRAY)
@@ -537,7 +540,7 @@ def _bin_one_map_SMM(start: np.ndarray,
     image._processing_steps = processing_steps
 
     # Do the mapping for this image; bin the mapping.
-    q_vectors = image.q_vectors(FRAME,spherical_bragg_vec, oop=oop)
+    q_vectors = image.q_vectors(FRAME, spherical_bragg_vec, oop=oop)
     weighted_bin_3d(q_vectors,
                     image.data,
                     RSM_ARRAY,
@@ -594,8 +597,8 @@ def _bin_one_map_SMM(start: np.ndarray,
         np.save(corrected_intensity_path, image.data.ravel())
 
 
-def rsm_init_worker(l,shm_rsm_name: str,shm_counts_name: str,shmshape: np.ndarray, metadata: RSMMetadata, newmetadata: dict ,motors: Dict[str, np.ndarray],num_threads: int,frame: Frame, output_file_name: str = None):
-    
+def rsm_init_worker(l, shm_rsm_name: str, shm_counts_name: str, shmshape: np.ndarray, metadata: RSMMetadata, newmetadata: dict, motors: Dict[str, np.ndarray], num_threads: int, frame: Frame, output_file_name: str = None):
+
     global lock
     global RSM_ARRAY
     global COUNT_ARRAY
@@ -607,35 +610,37 @@ def rsm_init_worker(l,shm_rsm_name: str,shm_counts_name: str,shmshape: np.ndarra
     global FRAME
     global OUTPUT_FILE_NAME
 
-    OUTPUT_FILE_NAME=output_file_name
+    OUTPUT_FILE_NAME = output_file_name
     NUM_THREADS = num_threads
     FRAME = frame
 
-    
     METADATA = metadata
     METADATA.update_i07_nx(motors, newmetadata)
 
-    lock=l
+    lock = l
     SHM_RSM = SharedMemory(name=shm_rsm_name)
     RSM_ARRAY = np.ndarray(shmshape, dtype=np.float32, buffer=SHM_RSM.buf)
     SHM_COUNT = SharedMemory(name=shm_counts_name)
     COUNT_ARRAY = np.ndarray(shmshape, dtype=np.uint32, buffer=SHM_COUNT.buf)
 
 
-def pyfai_init_worker(l,shm_intensities_name,shm_counts_name,shmshape):
+def pyfai_init_worker(l, shm_intensities_name, shm_counts_name, shmshape):
     global lock
     global SHM_INTENSITY
     global INTENSITY_ARRAY
     global SHM_COUNT
     global COUNT_ARRAY
 
-    SHM_INTENSITY=SharedMemory(name=shm_intensities_name)
-    SHM_COUNT=SharedMemory(name=shm_counts_name)
-    INTENSITY_ARRAY=np.ndarray(shape=shmshape, dtype=np.float32, buffer=SHM_INTENSITY.buf)
-    COUNT_ARRAY=np.ndarray(shape=shmshape, dtype=np.float32, buffer=SHM_COUNT.buf)
+    SHM_INTENSITY = SharedMemory(name=shm_intensities_name)
+    SHM_COUNT = SharedMemory(name=shm_counts_name)
+    INTENSITY_ARRAY = np.ndarray(
+        shape=shmshape, dtype=np.float32, buffer=SHM_INTENSITY.buf)
+    COUNT_ARRAY = np.ndarray(
+        shape=shmshape, dtype=np.float32, buffer=SHM_COUNT.buf)
     lock = l
-    
-def get_pyfai_components(experiment,i,sample_orientation,unit_ip_name,unit_oop_name,aistart,slitvdistratio,slithdistratio,scan,limits_in):
+
+
+def get_pyfai_components(experiment, i, sample_orientation, unit_ip_name, unit_oop_name, aistart, slitvdistratio, slithdistratio, scan, limits_in):
     if np.size(experiment.incident_angle) > 1:
         inc_angle = -np.radians(experiment.incident_angle[i])
     elif type(experiment.incident_angle) == np.float64:
@@ -643,11 +648,11 @@ def get_pyfai_components(experiment,i,sample_orientation,unit_ip_name,unit_oop_n
     else:
         inc_angle = -np.radians(experiment.incident_angle[0])
 
-    if experiment.setup=='DCD':
-        inc_angle_out= 0 #debug setting incident angle to 0
+    if experiment.setup == 'DCD':
+        inc_angle_out = 0  # debug setting incident angle to 0
     else:
-        inc_angle_out= inc_angle
-    
+        inc_angle_out = inc_angle
+
     unit_ip = units.get_unit_fiber(
         unit_ip_name, sample_orientation=sample_orientation, incident_angle=inc_angle_out)
     unit_oop = units.get_unit_fiber(
@@ -664,46 +669,49 @@ def get_pyfai_components(experiment,i,sample_orientation,unit_ip_name,unit_oop_n
     if np.size(experiment.deltadata) == 1:
         delval = np.array(experiment.deltadata).ravel()
 
-    if (-np.degrees(inc_angle)>experiment.alphacritical)&(experiment.setup=='DCD'):
-        #if above critical angle, account for direct beam adding to delta
+    if (-np.degrees(inc_angle) > experiment.alphacritical) & (experiment.setup == 'DCD'):
+        # if above critical angle, account for direct beam adding to delta
         rots = experiment.gamdel2rots(gamval, delval+np.degrees(-inc_angle))
     # elif (experiment.setup=='DCD'):
     #     rots = experiment.gamdel2rots(gamval, delval)
     else:
         rots = experiment.gamdel2rots(gamval, delval)
 
-
     my_ai = copy.deepcopy(aistart)
     my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
 
-    if experiment.setup=='vertical':
-        my_ai.rot1=rots[1]
-        my_ai.rot2=-rots[0]
+    if experiment.setup == 'vertical':
+        my_ai.rot1 = rots[1]
+        my_ai.rot2 = -rots[0]
 
-    if slitvdistratio!=None:
-        my_ai.pixel1*=slitvdistratio
-        my_ai.poni1*=slitvdistratio
-            
-    if slithdistratio!=None:
-        my_ai.pixel2*=slithdistratio
-        my_ai.poni2*=slithdistratio
+    if slitvdistratio != None:
+        my_ai.pixel1 *= slitvdistratio
+        my_ai.poni1 *= slitvdistratio
+
+    if slithdistratio != None:
+        my_ai.pixel2 *= slithdistratio
+        my_ai.poni2 *= slithdistratio
 
     if experiment.setup == 'vertical':
         img_data = np.rot90(scan.load_image(i).data, -1)
     else:
         img_data = np.array(scan.load_image(i).data)
 
-    radial_limits=(limits_in[0]*(1.0+(0.05*-(np.sign(limits_in[0])))), limits_in[1]*(1.0+(0.05*(np.sign(limits_in[1])))))
-    azimuthal_limits=(limits_in[2]*(1.0+(0.05*-(np.sign(limits_in[2])))), limits_in[3]*(1.0+(0.05*(np.sign(limits_in[3])))))
-    limits_out=[radial_limits[0],radial_limits[1],azimuthal_limits[0],azimuthal_limits[1]]
-    
+    radial_limits = (limits_in[0]*(1.0+(0.05*-(np.sign(limits_in[0])))),
+                     limits_in[1]*(1.0+(0.05*(np.sign(limits_in[1])))))
+    azimuthal_limits = (limits_in[2]*(1.0+(0.05*-(np.sign(limits_in[2])))),
+                        limits_in[3]*(1.0+(0.05*(np.sign(limits_in[3])))))
+    limits_out = [radial_limits[0], radial_limits[1],
+                  azimuthal_limits[0], azimuthal_limits[1]]
 
-    return unit_ip,unit_oop,img_data,my_ai,limits_out
+    return unit_ip, unit_oop, img_data, my_ai, limits_out
 
-def pyfai_move_qmap_worker(experiment, choiceims, scan,shapeqpqp, pyfaiponi, qmapbins,qlimits=None,slithdistratio=None,slitvdistratio=None) -> None:
 
-    global INTENSITY_ARRAY,COUNT_ARRAY
-    aistart = pyFAI.load(pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
+def pyfai_move_qmap_worker(experiment, choiceims, scan, shapeqpqp, pyfaiponi, qmapbins, qlimits=None, slithdistratio=None, slitvdistratio=None) -> None:
+
+    global INTENSITY_ARRAY, COUNT_ARRAY
+    aistart = pyFAI.load(
+        pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
 
     shapemap = shapeqpqp
     totalqpqpmap = np.zeros((shapemap[0], shapemap[1]))
@@ -712,52 +720,54 @@ def pyfai_move_qmap_worker(experiment, choiceims, scan,shapeqpqp, pyfaiponi, qma
     unit_qoop_name = "qoop_A^-1"
 
     if qlimits == None:
-        qlimhor=experiment.calcqlim( 'hor',vertsetup=(experiment.setup=='vertical'),slithorratio=slithdistratio)
-        qlimver=experiment.calcqlim( 'vert',vertsetup=(experiment.setup=='vertical'),slitvertratio=slitvdistratio)
-        qlimits = [qlimhor[0], qlimhor[1],qlimver[0], qlimver[1]]
+        qlimhor = experiment.calcqlim('hor', vertsetup=(
+            experiment.setup == 'vertical'), slithorratio=slithdistratio)
+        qlimver = experiment.calcqlim('vert', vertsetup=(
+            experiment.setup == 'vertical'), slitvertratio=slitvdistratio)
+        qlimits = [qlimhor[0], qlimhor[1], qlimver[0], qlimver[1]]
 
     sample_orientation = 1
 
     groupnum = 15
 
     groups = [choiceims[i:i+groupnum]
-            for i in range(0, len(choiceims), groupnum)]
+              for i in range(0, len(choiceims), groupnum)]
     for group in groups:
         ais = []
-        img_data_list=[]
+        img_data_list = []
         for i in group:
-            unit_qip,unit_qoop,img_data,my_ai,ai_limits=get_pyfai_components(experiment,i,sample_orientation,\
-                                                                             unit_qip_name,unit_qoop_name,aistart,slitvdistratio,slithdistratio,scan,qlimits)
+            unit_qip, unit_qoop, img_data, my_ai, ai_limits = get_pyfai_components(experiment, i, sample_orientation,
+                                                                                   unit_qip_name, unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, qlimits)
 
             img_data_list.append(img_data)
             ais.append(my_ai)
 
         for current_n, current_ai in enumerate(ais):
             current_img = img_data_list[current_n]
-            map2d = current_ai.integrate2d(current_img, qmapbins[0], qmapbins[1], unit=(unit_qip, unit_qoop),\
-                                           radial_range=(ai_limits[0],ai_limits[1]),azimuth_range=(ai_limits[2],ai_limits[3]), method=("no", "csr", "cython"))
-            
+            map2d = current_ai.integrate2d(current_img, qmapbins[0], qmapbins[1], unit=(unit_qip, unit_qoop),
+                                           radial_range=(ai_limits[0], ai_limits[1]), azimuth_range=(ai_limits[2], ai_limits[3]), method=("no", "csr", "cython"))
+
             totalqpqpmap += map2d.sum_signal
             totalqpqpcounts += map2d.count
 
     mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
         map2d.azimuthal_unit), str(map2d.radial_unit)]
     with lock:
-        INTENSITY_ARRAY+=totalqpqpmap
-        COUNT_ARRAY+=totalqpqpcounts.astype(dtype=np.int32)
+        INTENSITY_ARRAY += totalqpqpmap
+        COUNT_ARRAY += totalqpqpcounts.astype(dtype=np.int32)
     return mapaxisinfo
 
-    
-def pyfai_move_ivsq_worker(experiment, imageindices, scan, shapeqi, pyfaiponi, radrange,slithdistratio=None,slitvdistratio=None) -> None:
-    global INTENSITY_ARRAY,COUNT_ARRAY
 
+def pyfai_move_ivsq_worker(experiment, imageindices, scan, shapeqi, pyfaiponi, radrange, slithdistratio=None, slitvdistratio=None) -> None:
+    global INTENSITY_ARRAY, COUNT_ARRAY
 
-    aistart = pyFAI.load(pyfaiponi)#, type_="pyFAI.integrator.fiber.FiberIntegrator")  
+    # , type_="pyFAI.integrator.fiber.FiberIntegrator")
+    aistart = pyFAI.load(pyfaiponi)
     # 15-07-2025  fiber integrator not currently working with multigeomtery
     totaloutqi = np.zeros(shapeqi)
     totaloutcounts = np.zeros(shapeqi)
 
-    unit_qip_name ="2th_deg"# "qtot_A^-1"# "qip_A^-1"
+    unit_qip_name = "2th_deg"  # "qtot_A^-1"# "qip_A^-1"
     unit_qoop_name = "qoop_A^-1"
 
     sample_orientation = 1
@@ -768,47 +778,49 @@ def pyfai_move_ivsq_worker(experiment, imageindices, scan, shapeqi, pyfaiponi, r
               for i in range(0, len(choiceims), groupnum)]
     for group in groups:
         ais = []
-        img_data_list=[]
+        img_data_list = []
         for i in group:
-            unit_tth_ip,unit_qoop,img_data,my_ai,ai_limits=get_pyfai_components(experiment,i,sample_orientation,unit_qip_name,unit_qoop_name,aistart,slitvdistratio,slithdistratio,scan,[0,1,0,1])
+            unit_tth_ip, unit_qoop, img_data, my_ai, ai_limits = get_pyfai_components(
+                experiment, i, sample_orientation, unit_qip_name, unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, [0, 1, 0, 1])
 
             img_data_list.append(img_data)
             ais.append(my_ai)
 
-        
-        ivqbins=shapeqi[1]
-        mg = MultiGeometry( ais,  unit=unit_tth_ip, wavelength=experiment.incident_wavelength, radial_range=(radrange[0],radrange[1]))
+        ivqbins = shapeqi[1]
+        mg = MultiGeometry(ais,  unit=unit_tth_ip, wavelength=experiment.incident_wavelength, radial_range=(
+            radrange[0], radrange[1]))
         result1d = mg.integrate1d(img_data_list, ivqbins)
-        q_from_theta = [experiment.calcq(val, experiment.incident_wavelength) for val in result1d.radial]
-        #theta_from_q= [experiment.calctheta(val, experiment.incident_wavelength) for val in result1d.radial]
+        q_from_theta = [experiment.calcq(
+            val, experiment.incident_wavelength) for val in result1d.radial]
+        # theta_from_q= [experiment.calctheta(val, experiment.incident_wavelength) for val in result1d.radial]
 
-        totaloutqi[0]+=result1d.sum_signal
-        totaloutqi[1]=q_from_theta
-        totaloutqi[2]=result1d.radial 
+        totaloutqi[0] += result1d.sum_signal
+        totaloutqi[1] = q_from_theta
+        totaloutqi[2] = result1d.radial
 
-        totaloutcounts[0]+=result1d.count#[int(val) for val in I>0]
-        totaloutcounts[1]=q_from_theta
-        totaloutcounts[2]=result1d.radial#theta_from_q#
+        totaloutcounts[0] += result1d.count  # [int(val) for val in I>0]
+        totaloutcounts[1] = q_from_theta
+        totaloutcounts[2] = result1d.radial  # theta_from_q#
     with lock:
-        INTENSITY_ARRAY[0]+=totaloutqi[0]
-        INTENSITY_ARRAY[1:]=totaloutqi[1:]
-        COUNT_ARRAY[0]+=totaloutcounts[0]
-        COUNT_ARRAY[1:]=totaloutcounts[1:]
+        INTENSITY_ARRAY[0] += totaloutqi[0]
+        INTENSITY_ARRAY[1:] = totaloutqi[1:]
+        COUNT_ARRAY[0] += totaloutcounts[0]
+        COUNT_ARRAY[1:] = totaloutcounts[1:]
 
 
-def pyfai_move_exitangles_worker(experiment, imageindices, scan, shapeexhexv, pyfaiponi, anglimits, qmapbins,slithdistratio=None,slitvdistratio=None) -> None:
+def pyfai_move_exitangles_worker(experiment, imageindices, scan, shapeexhexv, pyfaiponi, anglimits, qmapbins, slithdistratio=None, slitvdistratio=None) -> None:
 
-    global INTENSITY_ARRAY,COUNT_ARRAY
-    aistart = pyFAI.load(pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
+    global INTENSITY_ARRAY, COUNT_ARRAY
+    aistart = pyFAI.load(
+        pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
 
     shapemap = shapeexhexv
     totalexhexvmap = np.zeros((shapemap[0], shapemap[1]))
     totalexhexvcounts = np.zeros((shapemap[0], shapemap[1]))
-    unit_qip_name ="exit_angle_horz_deg"
+    unit_qip_name = "exit_angle_horz_deg"
     unit_qoop_name = "exit_angle_vert_deg"
     sample_orientation = 1
 
-    
     # if experiment.setup=='vertical':
     #     sample_orientation=4
 
@@ -816,35 +828,33 @@ def pyfai_move_exitangles_worker(experiment, imageindices, scan, shapeexhexv, py
     choiceims = imageindices
 
     groups = [choiceims[i:i+groupnum]
-            for i in range(0, len(choiceims), groupnum)]
+              for i in range(0, len(choiceims), groupnum)]
     for group in groups:
         ais = []
-        img_data_list=[]
+        img_data_list = []
         for i in group:
-            unit_qip,unit_qoop,img_data,my_ai,ai_limits=get_pyfai_components(experiment,i,sample_orientation,unit_qip_name,unit_qoop_name,aistart,slitvdistratio,slithdistratio,scan,anglimits)
+            unit_qip, unit_qoop, img_data, my_ai, ai_limits = get_pyfai_components(
+                experiment, i, sample_orientation, unit_qip_name, unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, anglimits)
 
             img_data_list.append(img_data)
             ais.append(my_ai)
 
         for current_n, current_ai in enumerate(ais):
             current_img = img_data_list[current_n]
-            map2d = current_ai.integrate2d(current_img, qmapbins[0],qmapbins[1], unit=(unit_qip, unit_qoop),\
-                                           radial_range=(ai_limits[0],ai_limits[1]),azimuth_range=(ai_limits[2],ai_limits[3]), method=("no", "csr", "cython"))
+            map2d = current_ai.integrate2d(current_img, qmapbins[0], qmapbins[1], unit=(unit_qip, unit_qoop),
+                                           radial_range=(ai_limits[0], ai_limits[1]), azimuth_range=(ai_limits[2], ai_limits[3]), method=("no", "csr", "cython"))
             totalexhexvmap += map2d.sum_signal
             totalexhexvcounts += map2d.count
 
     mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
         map2d.azimuthal_unit), str(map2d.radial_unit)]
     with lock:
-        INTENSITY_ARRAY+=totalexhexvmap
-        COUNT_ARRAY+=totalexhexvcounts
+        INTENSITY_ARRAY += totalexhexvmap
+        COUNT_ARRAY += totalexhexvcounts
     return mapaxisinfo
 
 
-
-
-
-#============================
+# ============================
 
 class Scan:
     """
@@ -914,7 +924,8 @@ class Scan:
 
         # Get some sort of starting value.
         img = self.load_image(0, load_data=False)
-        q_vec = img.q_vectors(frame, spherical_bragg_vec, indices=poni, oop=oop)
+        q_vec = img.q_vectors(frame, spherical_bragg_vec,
+                              indices=poni, oop=oop)
 
         start, stop = q_vec, q_vec
 
@@ -924,7 +935,8 @@ class Scan:
             img = self.load_image(i, load_data=False)
 
             # Work out all the extreme q values for this image.
-            q_vecs = img.q_vectors(frame, spherical_bragg_vec, indices=extremal_q_points, oop=oop)
+            q_vecs = img.q_vectors(
+                frame, spherical_bragg_vec, indices=extremal_q_points, oop=oop)
 
             # Get the min/max of each component.
             min_q = np.array([np.amin(q_vecs[:, i]) for i in range(3)])
@@ -936,20 +948,19 @@ class Scan:
             stop = [max_q[x] if max_q[x] > stop[x] else stop[x]
                     for x in range(3)]
         start, stop = np.array(start), np.array(stop)
-        #adjust start,stop,step if frame is in spherical polar co-ordinates
-        if frame.coordinates==Frame.sphericalpolar:
-            #calculate vector radius
-            maxradius=np.max(np.array([np.linalg.norm(q_vecs[i,:]) for i in range(len(extremal_q_points))]))
-            start=[0,0,-np.pi]
-            stop=[maxradius,np.pi,np.pi]
-            return start,stop
+        # adjust start,stop,step if frame is in spherical polar co-ordinates
+        if frame.coordinates == Frame.sphericalpolar:
+            # calculate vector radius
+            maxradius = np.max(np.array(
+                [np.linalg.norm(q_vecs[i, :]) for i in range(len(extremal_q_points))]))
+            start = [0, 0, -np.pi]
+            stop = [maxradius, np.pi, np.pi]
+            return start, stop
         side_lengths = stop - start
         padding = side_lengths/20
         start -= padding
         stop += padding
         return start, stop
-
-
 
     def from_i10(cls,
                  path_to_nx: Union[str, Path],

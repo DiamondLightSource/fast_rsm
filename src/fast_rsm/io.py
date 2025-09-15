@@ -50,7 +50,7 @@ def from_i07(path_to_nx: Union[str, Path],
     """
     # Load the nexus file.
     i07_nexus = I07Nexus(path_to_nx, path_to_data,
-                         detector_distance, setup, using_dps=using_dps,experimental_hutch=experimental_hutch)
+                         detector_distance, setup, using_dps=using_dps, experimental_hutch=experimental_hutch)
 
     # Not used at the moment, but not deleted in case full UB matrix
     # calculations become important in the future (in which case we'll also

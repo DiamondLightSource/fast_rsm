@@ -402,7 +402,7 @@ def intensity_vs_l(output_file_name: str,
     np.savetxt(output_file_name, to_save, header="l intensity")
 
 
-def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str,joblines,pythonlocation,outvars=None):
+def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str, joblines, pythonlocation, outvars=None):
     """
     Saves the .npy file as a binoculars-readable hdf5 file.
     """
@@ -428,7 +428,7 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str,joblines,pyth
     binoculars_stop_int = [
         int(binoculars_start_int[i] + volume.shape[i] - 1)
         for i in range(3)
-        ]
+    ]
     binoculars_stop = [binoculars_stop_int[i]*binoculars_step[i]
                        for i in range(3)]
 
@@ -444,12 +444,12 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str,joblines,pyth
     # Turn those into an axes group.
     axes_group = nx.NXgroup(h=h_arr, k=k_arr, l=l_arr)
 
-    config_group=nx.NXgroup()
-    configlist=['setup','experimental_hutch', 'using_dps','beam_centre','detector_distance','dpsx_central_pixel','dpsy_central_pixel','dpsz_central_pixel',\
-                'local_data_path','local_output_path','output_file_size','save_binoculars_h5','map_per_image','volume_start','volume_step','volume_stop',\
-                'load_from_dat', 'edfmaskfile','specific_pixels','mask_regions','process_outputs','scan_numbers']
+    config_group = nx.NXgroup()
+    configlist = ['setup', 'experimental_hutch', 'using_dps', 'beam_centre', 'detector_distance', 'dpsx_central_pixel', 'dpsy_central_pixel', 'dpsz_central_pixel',
+                  'local_data_path', 'local_output_path', 'output_file_size', 'save_binoculars_h5', 'map_per_image', 'volume_start', 'volume_step', 'volume_stop',
+                  'load_from_dat', 'edfmaskfile', 'specific_pixels', 'mask_regions', 'process_outputs', 'scan_numbers']
     # Get a list of all available variables
-    if outvars!=None:
+    if outvars != None:
         variables = list(outvars.keys())
 
         # Iterate through the variables
@@ -458,22 +458,21 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str,joblines,pyth
             if var_name in configlist:
                 # Get the variable value
                 var_value = outvars[var_name]
-            
+
                 # Add the variable to config_group
                 config_group[var_name] = str(var_value)
         if 'ubinfo' in outvars:
-            for i,coll in enumerate(outvars['ubinfo']):
-                config_group[f'ubinfo_{i+1}']=nx.NXgroup()
-                config_group[f'ubinfo_{i+1}'][f'lattice_{i+1}']  = coll['diffcalc_lattice']
-                config_group[f'ubinfo_{i+1}'][f'u_{i+1}']=coll['diffcalc_u']
-                config_group[f'ubinfo_{i+1}'][f'ub_{i+1}']=coll['diffcalc_ub']
-    config_group['python_version']=pythonlocation
-    config_group['joblines']=joblines
+            for i, coll in enumerate(outvars['ubinfo']):
+                config_group[f'ubinfo_{i+1}'] = nx.NXgroup()
+                config_group[f'ubinfo_{i+1}'][f'lattice_{i+1}'] = coll['diffcalc_lattice']
+                config_group[f'ubinfo_{i+1}'][f'u_{i+1}'] = coll['diffcalc_u']
+                config_group[f'ubinfo_{i+1}'][f'ub_{i+1}'] = coll['diffcalc_ub']
+    config_group['python_version'] = pythonlocation
+    config_group['joblines'] = joblines
     # Make a corresponding (mandatory) "binoculars" group.
     binoculars_group = nx.NXgroup(
-        axes=axes_group, contributions=contributions, counts=(volume),i07configuration=config_group)
+        axes=axes_group, contributions=contributions, counts=(volume), i07configuration=config_group)
     binoculars_group.attrs['type'] = 'Space'
-
 
     # Make a root which contains the binoculars group.
     bin_hdf = nx.NXroot(binoculars=binoculars_group)
