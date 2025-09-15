@@ -13,12 +13,9 @@ if ((dpsx_central_pixel > 10) or (dpsy_central_pixel > 10) or
 
 # Which synchrotron axis should become the out-of-plane (001) direction.
 # Defaults to 'y'; can be 'x', 'y' or 'z'.
-if setup == 'vertical':
-    oop = 'x'
-elif setup == 'horizontal':
-    oop = 'y'
-elif setup == 'DCD':
-    oop = 'y'
+setup_oops={'vertical':'x','horizontal':'y','DCD':'y'}
+if setup in setup_oops:
+    oop = setup_oops[setup]
 else:
     raise ValueError(
         "Setup not recognised. Must be 'vertical', 'horizontal' or 'DCD.")
@@ -45,12 +42,8 @@ i = 0
 save_file_name = f"mapped_scan_{scan_numbers[0]}_{i}"
 save_path = processing_dir / save_file_name
 # Make sure that this name hasn't been used in the past.
-while (os.path.exists(str(save_path) + ".npy") or
-       os.path.exists(str(save_path) + ".vtk") or
-       os.path.exists(str(save_path) + "_l.txt") or
-       os.path.exists(str(save_path) + "_tth.txt") or
-       os.path.exists(str(save_path) + "_Q.txt") or
-       os.path.exists(save_path)):
+extensions = [".npy", ".vtk", "_l.txt", "_tth.txt", "_Q.txt", ""]
+while any(os.path.exists(str(save_path) + ext) for ext in extensions):
     i += 1
     save_file_name = f"mapped_scan_{scan_numbers[0]}_{i}"
     save_path = processing_dir / save_file_name
@@ -63,6 +56,8 @@ while (os.path.exists(str(save_path) + ".npy") or
 from datetime import datetime
 # Work out the paths to each of the nexus files. Store as pathlib.Path objects.
 nxs_paths = [data_dir / f"i07-{x}.nxs" for x in scan_numbers]
+
+
 
 
 # # The frame/coordinate system you want the map to be carried out in.
@@ -107,11 +102,6 @@ if specific_pixels is not None:
     specific_pixels = specific_pixels[1], specific_pixels[0]
 
 # Now deal with any regions that may have been defined.
-# First make sure we have a list of regions.
-# if isinstance(mask_regions, Region):
-#     mask_regions_list = [mask_regions]
-# else:
-#     mask_regions_list=[Region(*maskval) for maskval in mask_regions]
 mask_regions_list=[]
 if mask_regions !=None:
     mask_regions_list=[maskval if isinstance(maskval,Region) else Region(*maskval) for maskval in mask_regions]
@@ -132,32 +122,47 @@ experiment.mask_edf(edfmaskfile)
 experiment.mask_regions(mask_regions_list)
 experiment.setup=setup
 
-if 'alphacritical' in globals():    
-    experiment.alphacritical=alphacritical
-else:
-    experiment.alphacritical=0.0
 
-if 'savetiffs' in globals():
-    experiment.savetiffs=savetiffs
-else:
-    experiment.savetiffs=False
+'''
+section to make sure backwards compatibility with setup files created for previous versions of fast_rsm
+#makes sure all new variables are given False or a preset default value
+'''
 
-if 'savedats' in globals():
-    experiment.savedats=savedats
-else:
-    experiment.savedats=False
+exp_variables_false = ['alphacritical','savedats',  'savetiffs']
+falsevarvalues = {var: globals()[var] if var in globals() else False for var in exp_variables_false}
+for var, val in falsevarvalues.items():
+    setattr(experiment, var, val)
 
-if 'qmapbins' not in globals():
-    qmapbins=0
+defaults_global={'qmapbins':0,'slitvertratio':None, 'slithorratio':None,'DEBUG_LOGGING':0,'frame_name':'hkl','coordinates':'cartesian'}
 
-if 'slitvertratio' not in globals():
-    slitvertratio=None
-
-if 'slithorratio' not in globals():
-    slithorratio=None
+for key,val in defaults_global.items():
+    if key not in globals():
+        globals()[key]=val
 
 
 
+print(f'debuglogging={DEBUG_LOGGING}')
+if DEBUG_LOGGING==1:
+    import logging
+    import logging.handlers
+
+    log_path=os.path.join('/dls/science/groups/das/ExampleData/i07/fast_rsm_example_data', 'debug.log')
+
+    logging.basicConfig(handlers=[logging.handlers.RotatingFileHandler(log_path,maxBytes=500000,backupCount=1)],\
+                        level=logging.DEBUG,\
+                            format='%(asctime)s - %(levelname)s - %(message)s'
+                            )
+    logger = logging.getLogger(__name__)
+    print(f'logging at {log_path}')
+
+defaults_exp={'spherical_bragg_vec':np.array([0,0,0])}
+default_exp_vals= {var: np.array(globals()[var]) if var in globals() else defaults_exp[var] for var in defaults_exp}
+logger.debug(f'default exp vals ={default_exp_vals}')
+for key,val in default_exp_vals.items():
+    if not hasattr(experiment, key):
+        setattr(experiment, key, val)
+
+logger.debug(f'val set to experiment.spherical_bragg_vec = {experiment.spherical_bragg_vec}')
 """
 This section is for changing metadata that is stored in, or inferred from, the
 nexus file. This is generally for more nonstandard stuff.
@@ -234,8 +239,7 @@ if experiment.scans[0].metadata.data_file.is_rotated:
 else:
     slitratios=[slitvertratio,slithorratio]
 
-if 'qmapbins' not in globals():
-    qmapbins=0
+
 import os,sys
 
 # Get the full path of the current file
@@ -376,8 +380,6 @@ if ('pyfai_exitangles' in process_outputs)&(map_per_image==False):
 
 
 if 'full_reciprocal_map' in process_outputs:
-    frame_name = Frame.hkl
-    coordinates = Frame.cartesian
     map_frame = Frame(frame_name=frame_name, coordinates=coordinates)
     start_time = time()
     # Calculate and save a binned reciprocal space map, if requested.
