@@ -27,9 +27,10 @@ from pyFAI.multi_geometry import MultiGeometry
 import pyFAI
 from pyFAI import units
 import copy
-# import logging
 
-# logger = logging.getLogger(__name__)
+import logging
+
+logger = logging.getLogger(__name__)
 
 def check_shared_memory(shared_mem_name: str) -> None:
     """
@@ -337,6 +338,7 @@ def _bin_one_map(start: np.ndarray,
                  idx: int,
                  processing_steps: list,
                  oop: str,
+                 spherical_bragg_vec: np.array,
                  map_each_image: bool = False,
                  previous_images: int = 0
                  ) -> np.ndarray:
@@ -350,9 +352,13 @@ def _bin_one_map(start: np.ndarray,
 
     image = Image(METADATA, idx)
     image._processing_steps = processing_steps
+    logger.debug("binning_one_map")
 
     # Do the mapping for this image; bin the mapping.
-    q_vectors = image.q_vectors(FRAME, oop=oop)
+    q_vectors = image.q_vectors(FRAME, spherical_bragg_vec,oop=oop)
+
+
+
     weighted_bin_3d(q_vectors,
                     image.data,
                     RSM,
@@ -395,6 +401,7 @@ def _bin_one_map(start: np.ndarray,
         fresh_image = Image(METADATA, idx)
         q_vectors = fresh_image.q_vectors(
             FRAME,
+            spherical_bragg_vec,
             oop=oop,
             lorentz_correction=False,
             pol_correction=False)
@@ -419,6 +426,7 @@ def bin_maps_with_indices(indices: List[int],
                           processing_steps: list,
                           skip_images: List[int],
                           oop: str,
+                          spherical_bragg_vec: np.array,
                           map_each_image: bool = False,
                           previous_images: int = 0
                           ) -> None:
@@ -441,7 +449,7 @@ def bin_maps_with_indices(indices: List[int],
 
             # print(f"Processing image {idx}. ", end='')
             _bin_one_map(start, stop, step, min_intensity, idx,
-                         processing_steps, oop, map_each_image, previous_images)
+                         processing_steps, oop, spherical_bragg_vec, map_each_image, previous_images)
     except Exception as exception:
         print("Exception thrown in bin_one_map:")
         print(traceback.format_exc())
@@ -467,14 +475,16 @@ def bin_maps_with_indices_SMM(indices: List[int],
                           processing_steps: list,
                           skip_images: List[int],
                           oop: str,
+                          spherical_bragg_vec: np.array,
                           map_each_image: bool = False,
-                          previous_images: int = 0
+                          previous_images: int = 0,
                           ) -> None:
     """
     Bins all of the maps with indices in indices. The purpose of this
     intermediate function call is to decrease the amount of context switching/
     serialization that the interpreter has to do.
     """
+    logger.debug(f"spherical_bragg_vec value in bin_maps_with_indices = {spherical_bragg_vec}")
 
     # We need to catch all exceptions and explicitly print them in worker
     # threads.
@@ -488,7 +498,7 @@ def bin_maps_with_indices_SMM(indices: List[int],
 
             # print(f"Processing image {idx}. ", end='')
             _bin_one_map_SMM(start, stop, step, min_intensity, idx,
-                         processing_steps, oop, map_each_image, previous_images)
+                         processing_steps, oop,spherical_bragg_vec, map_each_image, previous_images)
     except Exception as exception:
         print("Exception thrown in bin_one_map:")
         print(traceback.format_exc())
@@ -509,13 +519,16 @@ def _bin_one_map_SMM(start: np.ndarray,
                  idx: int,
                  processing_steps: list,
                  oop: str,
+                 spherical_bragg_vec: np.array,
                  map_each_image: bool = False,
-                 previous_images: int = 0
+                 previous_images: int = 0,
+                 
                  ) -> np.ndarray:
     """
     Calculates and bins the reciprocal space map with index idx. Saves the
     result to the shared memory buffer.
     """
+    logger.debug(f"spherical_bragg_vec in bin_one_map_SMM: {spherical_bragg_vec}")
 
     if map_each_image:
         rsm_before = np.copy(RSM_ARRAY)
@@ -525,7 +538,7 @@ def _bin_one_map_SMM(start: np.ndarray,
     image._processing_steps = processing_steps
 
     # Do the mapping for this image; bin the mapping.
-    q_vectors = image.q_vectors(FRAME, oop=oop)
+    q_vectors = image.q_vectors(FRAME,spherical_bragg_vec, oop=oop)
     weighted_bin_3d(q_vectors,
                     image.data,
                     RSM_ARRAY,
@@ -880,7 +893,7 @@ class Scan:
         """
         return Image(self.metadata, idx, load_data)
 
-    def q_bounds(self, frame: Frame, oop: str = 'y') -> Tuple[np.ndarray]:
+    def q_bounds(self, frame: Frame, spherical_bragg_vec: np.array, oop: str = 'y') -> Tuple[np.ndarray]:
         """
         Works out the region of reciprocal space sampled by this scan.
 
@@ -902,7 +915,7 @@ class Scan:
 
         # Get some sort of starting value.
         img = self.load_image(0, load_data=False)
-        q_vec = img.q_vectors(frame, poni, oop)
+        q_vec = img.q_vectors(frame, spherical_bragg_vec, indices=poni, oop=oop)
 
         start, stop = q_vec, q_vec
 
@@ -912,7 +925,7 @@ class Scan:
             img = self.load_image(i, load_data=False)
 
             # Work out all the extreme q values for this image.
-            q_vecs = img.q_vectors(frame, extremal_q_points, oop)
+            q_vecs = img.q_vectors(frame, spherical_bragg_vec, indices=extremal_q_points, oop=oop)
 
             # Get the min/max of each component.
             min_q = np.array([np.amin(q_vecs[:, i]) for i in range(3)])
@@ -923,18 +936,23 @@ class Scan:
                      for x in range(3)]
             stop = [max_q[x] if max_q[x] > stop[x] else stop[x]
                     for x in range(3)]
-
-        # Give a bit of wiggle room. For now, I'm using 5% padding, but this was
-        # chosen arbitrarily.
         start, stop = np.array(start), np.array(stop)
+        logger.debug(f"start and stop for bounds: {start} {stop}")
+        #adjust start,stop,step if frame is in spherical polar co-ordinates
+        if frame.coordinates==Frame.sphericalpolar:
+            #calculate vector radius
+            maxradius=np.max(np.array([np.linalg.norm(q_vecs[i,:]) for i in range(len(extremal_q_points))]))
+            start=[0,0,-np.pi]
+            stop=[maxradius,np.pi,np.pi]
+            return start,stop
         side_lengths = stop - start
         padding = side_lengths/20
         start -= padding
         stop += padding
-
         return start, stop
 
-    @classmethod
+
+
     def from_i10(cls,
                  path_to_nx: Union[str, Path],
                  beam_centre: Tuple[int],

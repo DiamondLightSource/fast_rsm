@@ -12,7 +12,9 @@ import mapper_c_utils
 from fast_rsm.rsm_metadata import RSMMetadata
 
 import fast_rsm.corrections as corrections
+import logging
 
+logger = logging.getLogger(__name__)
 
 class Image:
     """
@@ -168,10 +170,12 @@ class Image:
 
     def q_vectors(self,
                   frame: Frame,
-                  indices: tuple = None,
+                  spherical_bragg_vec: np.array,
                   oop='y',
+                  indices: tuple = None,
                   lorentz_correction: bool = False,
-                  pol_correction: bool = True) -> np.ndarray:
+                  pol_correction: bool = True,
+                   ) -> np.ndarray:
         """
         Calculates the wavevector through which light had to scatter to reach
         every pixel on the detector in a given frame of reference.
@@ -183,6 +187,9 @@ class Image:
             frame:
                 The frame of reference in which we want to calculate the
                 q_vectors.
+            spherical_bragg_vec:
+                XYZ vector for shifting centre of volume when interested in plotting
+                spherical polar plots. defaults to [0,0,0] when unspecified. 
             indices:
                 The indices that we want to carry out the map for. Defaults to
                 None, in which case the entire image is mapped. E.g. passing
@@ -195,6 +202,12 @@ class Image:
             you specify an index, then your output will have shape (1, 1, 3).
             Probably.
         """
+        logger.debug(f"frame in q_vector function:  {frame}")
+        logger.debug(f"oop in q_vector function:  {oop}")
+        logger.debug(f"spherical_bragg_vec in q_vector function:  {spherical_bragg_vec}")
+        logger.debug(f"indices in q_vector function:  {indices}")
+        logger.debug(f"lorentz_correction in q_vector function:  {lorentz_correction}")
+
         if indices is None:
             i = slice(None)
             j = slice(None)
@@ -387,17 +400,23 @@ class Image:
             # Reshape the k_out_array to have the same shape as the image.
             k_out_array = k_out_array.reshape(desired_shape)
 
-        # If the user asked for cylindrical polars then change to those coords.
-        if frame.coordinates == Frame.polar:
+        # If the user asked for polars then change to those coords.
+        logger.debug(f"frame coordinates ={frame.coordinates}")
+        if frame.coordinates == Frame.sphericalpolar:
+            logger.debug(f'spherical bragg from q_vector = {spherical_bragg_vec}')
+            k_out_array[i, j, 0] -= spherical_bragg_vec[0]
+            k_out_array[i, j, 1] -= spherical_bragg_vec[1]
+            k_out_array[i, j, 2] -= spherical_bragg_vec[2]
             # pylint: disable=c-extension-no-member
             if indices is not None:
                 to_polar = np.ascontiguousarray(k_out_array[i, j, :])
-                mapper_c_utils.cylindrical_polar(to_polar)
+                #mapper_c_utils.cylindrical_polar(to_polar)
+                mapper_c_utils.spherical_polar(to_polar)
                 k_out_array[i, j, :] = to_polar
             else:
                 k_out_array = k_out_array.reshape(
                     (desired_shape[0]*desired_shape[1], 3))
-                mapper_c_utils.cylindrical_polar(k_out_array)
+                mapper_c_utils.spherical_polar(k_out_array)
                 k_out_array = k_out_array.reshape(desired_shape)
 
         # Only return the indices that we worked on.
@@ -405,6 +424,7 @@ class Image:
 
     def q_vector_array(self,
                        frame: Frame,
+                       spherical_bragg_vec: np.array,
                        oop='y',
                        lorentz_correction: bool = False,
                        pol_correction: bool = True) -> np.ndarray:
@@ -413,6 +433,7 @@ class Image:
         """
         q_vectors = self.q_vectors(
             frame,
+            spherical_bragg_vec,
             oop=oop,
             lorentz_correction=lorentz_correction,
             pol_correction=pol_correction).reshape()

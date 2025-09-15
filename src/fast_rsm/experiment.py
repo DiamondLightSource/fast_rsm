@@ -34,9 +34,9 @@ import tifffile
 from fast_rsm.scan import Scan
 
 
-# import logging
+import logging
 
-# logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 #from memory_profiler import profile
 
@@ -273,22 +273,20 @@ class Experiment:
                 _start = np.array(volume_start)
                 _stop = np.array(volume_stop)
             else:
-                _start, _stop = self.q_bounds(map_frame, oop)
+                _start, _stop = self.q_bounds(map_frame, self.spherical_bragg_vec, oop)
             step = get_step_from_filesize(_start, _stop, output_file_size)
-            start, stop = _match_start_stop_to_step(
-                step=step,
-                user_bounds=(volume_start, volume_stop),
-                auto_bounds=(_start, _stop))
 
         else:
             step = np.array(volume_step)
             _start, _stop = self.q_bounds(map_frame, oop)
         
+        if map_frame.coordinates==Frame.sphericalpolar:
+             step=(0.02,np.pi/180,np.pi/180)
         # Make sure start and stop match the step as required by binoculars.
-            start, stop = _match_start_stop_to_step(
-                step=step,
-                user_bounds=(volume_start, volume_stop),
-                auto_bounds=(_start, _stop))
+        start, stop = _match_start_stop_to_step(
+            step=step,
+            user_bounds=(volume_start, volume_stop),
+            auto_bounds=(_start, _stop))
 
         locks = [Lock() for _ in range(num_threads)]
         shape = finite_diff_shape(start, stop, step)
@@ -642,7 +640,7 @@ class Experiment:
         # Get a start and stop value for each scan.
         starts, stops = [], []
         for scan in self.scans:
-            start, stop = scan.q_bounds(frame, oop)
+            start, stop = scan.q_bounds(frame, spherical_bragg_vec=self.spherical_bragg_vec, oop=oop)
             starts.append(start)
             stops.append(stop)
 
@@ -1322,30 +1320,34 @@ class Experiment:
         if map_frame.frame_name == Frame.qpar_qperp:
             map_frame.frame_name = Frame.lab
           # Compute the optimal finite differences volume.
-          
-
+        logger.debug(f"spherical_bragg_vec in binned_reciprocal_space_map_SMM: {self.spherical_bragg_vec}")
+        logger.debug(f"values in SMM function:\n{volume_start} \n{volume_stop} \n{volume_step}")
         if volume_step is None:
             # Overwrite whichever of these we were given explicitly.
             if (volume_start is not None)&(volume_stop is not None):
                 _start = np.array(volume_start)
                 _stop = np.array(volume_stop)
             else:
+               
+                logger.debug('found step none, start none, stop none')
                 _start, _stop = self.q_bounds(map_frame, oop)
+                logger.debug(f' start and stop \n{_start},\n{_stop}')
             step = get_step_from_filesize(_start, _stop, output_file_size)
-            start, stop = _match_start_stop_to_step(
-                step=step,
-                user_bounds=(volume_start, volume_stop),
-                auto_bounds=(_start, _stop))
 
         else:
             step = np.array(volume_step)
             _start, _stop = self.q_bounds(map_frame, oop)
-        
+
+        if map_frame.coordinates== Frame.sphericalpolar:
+            step=np.array([0.02,np.pi/180,np.pi/180])
+
+        logger.debug(f"before matching correction \n{_start} \n{_stop} \n{step} ")
         # Make sure start and stop match the step as required by binoculars.
-            start, stop = _match_start_stop_to_step(
-                step=step,
-                user_bounds=(volume_start, volume_stop),
-                auto_bounds=(_start, _stop))
+        start, stop = _match_start_stop_to_step(
+            step=step,
+            user_bounds=(volume_start, volume_stop),
+            auto_bounds=(_start, _stop))
+        logger.debug(f"after matching correction \n{start} \n{stop} \n{step} ")
 
         locks = [Lock() for _ in range(num_threads)]
         shapersm = finite_diff_shape(start, stop, step)
@@ -1373,7 +1375,7 @@ class Experiment:
 
                 new_motors = scan.metadata.data_file.get_motors()
                 new_metadata = scan.metadata.data_file.get_metadata()
-                bin_args=[(indices, start, stop, step,min_intensity_mask,scan.processing_steps, scan.skip_images, oop, map_each_image, images_so_far) for indices in chunk(list(range(scan.metadata.data_file.scan_length)), num_threads)]
+                bin_args=[(indices, start, stop, step,min_intensity_mask,scan.processing_steps, scan.skip_images, oop,self.spherical_bragg_vec, map_each_image, images_so_far) for indices in chunk(list(range(scan.metadata.data_file.scan_length)), num_threads)]
                 # Make a pool on which we'll carry out the processing.
                 # with Pool(processes=num_threads,   initializer=init_process_pool,initargs=(locks, num_threads,self.scans[0].metadata,map_frame,shape,output_file_name)) as pool:
                 
