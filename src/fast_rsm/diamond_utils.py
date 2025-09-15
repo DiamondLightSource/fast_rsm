@@ -147,7 +147,7 @@ def qxy_qz_exact(
     intensities = intensities[~np.isnan(intensities)]
 
     # Deal with variable qz axis.
-    i, j, k = (qz_axis+1) % 3, (qz_axis+2) % 3, qz_axis
+    i, j, k = (qz_axis + 1) % 3, (qz_axis + 2) % 3, qz_axis
     # Create an array of qxy, qz q-vectors.
     qxy = np.sqrt(q_vectors[:, i]**2 + q_vectors[:, j]**2)
     qz = q_vectors[:, k]
@@ -211,13 +211,13 @@ def q_to_theta(q_values: np.ndarray, energy: float) -> np.ndarray:
     planck = physical_constants["Planck constant in eV s"][0]
     speed_of_light = physical_constants["speed of light in vacuum"][0] * 1e10
     # My q_values are angular, so my wavevector needs to be angular too.
-    ang_wavevector = 2*np.pi*energy/(planck*speed_of_light)
+    ang_wavevector = 2 * np.pi * energy / (planck * speed_of_light)
 
     # Do some basic geometry.
-    theta_values = np.arccos(1 - np.square(q_values)/(2*ang_wavevector**2))
+    theta_values = np.arccos(1 - np.square(q_values) / (2 * ang_wavevector**2))
 
     # Convert from radians to degrees.
-    return theta_values*180/np.pi
+    return theta_values * 180 / np.pi
 
 
 def get_volume_and_bounds(path_to_npy: str) -> Tuple[np.ndarray]:
@@ -314,7 +314,7 @@ def _project_to_1d(volume: np.ndarray,
 
     if bin_size is None:
         # Work out the bin_size from the range of |Q| values.
-        bin_size = (max_q - min_q)/num_bins
+        bin_size = (max_q - min_q) / num_bins
 
     # Now that we know the bin_size, we can make an array of the bin edges.
     bins = np.arange(min_q, max_q, bin_size)
@@ -402,7 +402,8 @@ def intensity_vs_l(output_file_name: str,
     np.savetxt(output_file_name, to_save, header="l intensity")
 
 
-def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str, joblines, pythonlocation, outvars=None):
+def save_binoculars_hdf5(path_to_npy: np.ndarray,
+                         output_path: str, joblines, pythonlocation, outvars=None):
     """
     Saves the .npy file as a binoculars-readable hdf5 file.
     """
@@ -424,12 +425,13 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str, joblines, py
     true_grid = finite_diff_grid(start, stop, step)
     binoculars_step = step
     binoculars_start = [interval[0] for interval in true_grid]
-    binoculars_start_int = [int(np.floor(start[i]/step[i])) for i in range(3)]
+    binoculars_start_int = [int(np.floor(start[i] / step[i]))
+                            for i in range(3)]
     binoculars_stop_int = [
         int(binoculars_start_int[i] + volume.shape[i] - 1)
         for i in range(3)
     ]
-    binoculars_stop = [binoculars_stop_int[i]*binoculars_step[i]
+    binoculars_stop = [binoculars_stop_int[i] * binoculars_step[i]
                        for i in range(3)]
 
     # Make h, k and l arrays in the expected format.
@@ -449,7 +451,7 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray, output_path: str, joblines, py
                   'local_data_path', 'local_output_path', 'output_file_size', 'save_binoculars_h5', 'map_per_image', 'volume_start', 'volume_step', 'volume_stop',
                   'load_from_dat', 'edfmaskfile', 'specific_pixels', 'mask_regions', 'process_outputs', 'scan_numbers']
     # Get a list of all available variables
-    if outvars != None:
+    if outvars is not None:
         variables = list(outvars.keys())
 
         # Iterate through the variables

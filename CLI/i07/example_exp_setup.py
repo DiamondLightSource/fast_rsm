@@ -1,5 +1,5 @@
 """
-First we need to import some stuff. 
+First we need to import some stuff.
 """
 
 import os
@@ -13,11 +13,14 @@ from fast_rsm.experiment import Experiment
 # How was your sample mounted? Options are 'horizontal', 'vertical' and 'DCD'.
 setup = 'horizontal'
 
-# which experimental hutch was used 0 = unsure, 1= experimental hutch 1, 2=experimental hutch 2
+# which experimental hutch was used 0 = unsure, 1= experimental hutch 1,
+# 2=experimental hutch 2
 experimental_hutch = 1
-# Set this to the directory path where your files are saved, note you will need to include any subdirectories in this path
+# Set this to the directory path where your files are saved, note you will
+# need to include any subdirectories in this path
 local_data_path = 'path'  # '/dls/i07/data/2024/##experiment-number##/##subfolder#
-# Set this to the path where you want the output from the data processing to be saved
+# Set this to the path where you want the output from the data processing
+# to be saved
 local_output_path = 'path'  # '/dls/i07/data/2024/##experiment-number##/processing'
 
 
@@ -28,8 +31,9 @@ beam_centre = (119, 1564)
 # distance between the receiving slit and the detector). Units of meters.
 detector_distance = 0.18
 
-# if not using sample slits leave both as None, if using slits set to slit-detector/sample-detector  e.g. 0.55/0.89
-slitvertratio = 0.55/0.89  # None
+# if not using sample slits leave both as None, if using slits set to
+# slit-detector/sample-detector  e.g. 0.55/0.89
+slitvertratio = 0.55 / 0.89  # None
 slithorratio = None
 
 # critical edge of sample in degrees
@@ -94,7 +98,8 @@ qmapbins = (1200, 1200)
 ivqbins = 1000
 
 # ===========MASKING=============
-# add path to edfmaskfile created with pyFAI gui accessed via 'makemask' option in fast_rsm
+# add path to edfmaskfile created with pyFAI gui accessed via 'makemask'
+# option in fast_rsm
 edfmaskfile = None
 
 
@@ -124,7 +129,8 @@ mask_regions = None
 
 # Ignore pixels with an intensity below this value. If you don't want to ignore
 # any pixels, then set min_intensity = None. This is useful for dynamically
-# creating masks (which is really useful for generating masks from -ve numbers).
+# creating masks (which is really useful for generating masks from -ve
+# numbers).
 min_intensity = 0.
 
 # =======OPTIONS FOR SKIPPING IMAGES IF ISSUES ARE PRESENT
@@ -156,10 +162,12 @@ process_outputs = []
 map_per_image = False
 
 # There will always be a .hdf5 file created. You can set the option for exporting additonal files with the savetiffs and savedats options below
-# if you want to export '2d qpara Vs qperp maps' to extra .tiff images set savetiffs to True
+# if you want to export '2d qpara Vs qperp maps' to extra .tiff images set
+# savetiffs to True
 savetiffs = False
 
-# if you want to export '1d I Vs Q data' to extra .dat files set savedats to True
+# if you want to export '1d I Vs Q data' to extra .dat files set savedats
+# to True
 savedats = False
 
 

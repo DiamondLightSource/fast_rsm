@@ -107,7 +107,7 @@ if specific_pixels is not None:
 
 # Now deal with any regions that may have been defined.
 mask_regions_list = []
-if mask_regions != None:
+if mask_regions is not None:
     mask_regions_list = [maskval if isinstance(
         maskval, Region) else Region(*maskval) for maskval in mask_regions]
 
@@ -133,11 +133,10 @@ section to make sure backwards compatibility with setup files created for previo
 #makes sure all new variables are given False or a preset default value
 '''
 
-exp_variables_false = ['alphacritical', 'savedats',  'savetiffs']
-falsevarvalues = {var: globals()[var] if var in globals(
-) else False for var in exp_variables_false}
-for var, val in falsevarvalues.items():
-    setattr(experiment, var, val)
+exp_variables = ['alphacritical', 'savedats', 'savetiffs','spherical_bragg_vec']
+for var, val in exp_variables.items():
+    if var in globals():
+        setattr(experiment, var, val)
 
 defaults_global = {'qmapbins': 0, 'slitvertratio': None, 'slithorratio': None,
                    'DEBUG_LOGGING': 0, 'frame_name': 'hkl', 'coordinates': 'cartesian'}
@@ -162,12 +161,6 @@ if DEBUG_LOGGING == 1:
     logger = logging.getLogger(__name__)
     print(f'logging at {log_path}')
 
-defaults_exp = {'spherical_bragg_vec': np.array([0, 0, 0])}
-default_exp_vals = {var: np.array(globals()[var]) if var in globals(
-) else defaults_exp[var] for var in defaults_exp}
-for key, val in default_exp_vals.items():
-    if not hasattr(experiment, key):
-        setattr(experiment, key, val)
 
 """
 This section is for changing metadata that is stored in, or inferred from, the
@@ -193,7 +186,7 @@ for i, scan in enumerate(experiment.scans):
 
             # Now do some basic handling of spherical polar coordinates.
             out_of_plane_theta = np.sin(beam_direction[1])
-            cos_theta_in_plane = beam_direction[2]/np.cos(out_of_plane_theta)
+            cos_theta_in_plane = beam_direction[2] / np.cos(out_of_plane_theta)
             in_plane_theta = np.arccos(cos_theta_in_plane)
 
             # Work out the total displacement from the undeflected beam of the
@@ -306,7 +299,7 @@ if ('pyfai_qmap' in process_outputs) & (map_per_image == False):
     experiment.load_curve_values(scanlist[0])
     PYFAI_PONI = experiment.createponi(
         local_output_path, experiment.imshape, beam_centre=experiment.beam_centre)
-    experiment.pyfai_moving_qmap_SMM(hf, scanlist, num_threads,  local_output_path,
+    experiment.pyfai_moving_qmap_SMM(hf, scanlist, num_threads, local_output_path,
                                      PYFAI_PONI, radialrange, radialstepval, qmapbins, slitdistratios=slitratios)
     experiment.save_config_variables(hf, joblines, pythonlocation, globals())
     hf.close()

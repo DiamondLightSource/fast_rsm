@@ -45,7 +45,7 @@ def test_binned_rsm_i07_421595(path_to_resources: str):
     # Assert that this took under 20 ms per image collected (5x faster than
     # collection is an absolute minimum speed requirement).
     num_images = scan.metadata.data_file.scan_length
-    assert time_taken/num_images < 50e-3
+    assert time_taken / num_images < 50e-3
 
     print(f"Time taken for the map: {time_taken}s")
 
@@ -77,7 +77,7 @@ def test_binned_rsm_i10_693862(i10_scan: Scan, path_to_resources: str):
 
     # Make sure that it was done in < 60 ms per 4M image.
     num_images = i10_scan.metadata.data_file.scan_length
-    time_per_image = time_taken/num_images
+    time_per_image = time_taken / num_images
     print(time_per_image)
     assert time_per_image < 60e-3
 

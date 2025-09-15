@@ -72,7 +72,7 @@ def test_relative_polar(i10_metadata: RSMMetadata):
     Make sure that init relative theta is only called once.
     """
     _ = i10_metadata.relative_polar
-    i10_metadata._init_relative_polar = lambda: 1/0
+    i10_metadata._init_relative_polar = lambda: 1 / 0
 
     # This shouldn't raise because _init_relative_polar shouldn't run again.
     assert (i10_metadata.relative_polar[998, :] == 0).all()
@@ -84,7 +84,7 @@ def test_relative_azimuth(i10_metadata: RSMMetadata):
     returning the correct array.
     """
     _ = i10_metadata.relative_azimuth
-    i10_metadata._init_relative_azimuth = lambda: 1/0
+    i10_metadata._init_relative_azimuth = lambda: 1 / 0
 
     # This shouldn't raise because _init_relative_azimuth shouldn't run again.
     assert (i10_metadata.relative_azimuth[:, 1016] == 0).all()
@@ -110,7 +110,7 @@ def test_solid_angle_init_once(i10_metadata: RSMMetadata):
     Make sure that solid angles are initialized exactly once.
     """
     _ = i10_metadata.solid_angles
-    i10_metadata._init_solid_angles = lambda: 1/0
+    i10_metadata._init_solid_angles = lambda: 1 / 0
 
     # This shouldn't raise because _init_solid_angle shouldn't run again.
     _ = i10_metadata.solid_angles
@@ -149,4 +149,4 @@ def test_k_incident_length(i10_metadata: RSMMetadata):
     k-alpha.
     """
     # We're using the Cu L-3 edge.
-    assert_almost_equal(i10_metadata.k_incident_length, 1/13.30627304411753)
+    assert_almost_equal(i10_metadata.k_incident_length, 1 / 13.30627304411753)

@@ -111,9 +111,13 @@ def test_process_script(exp_setup_path, scans):
     # Assert that the process ran successfully
     assert returncode == 0, f"Process failed with setup file {exp_setup_path} and scans {scans}."
 # CTR measurements     stepped   dls/i07/data/2023/si34539-1/ana001/	492632 - 639  - omega + fast scan  10L
-# CTR measurements     stepped   dls/i07/data/2023/si34539-1/ana001/	492655 - 492662  omega+ fast scan   13L
+# CTR measurements     stepped   dls/i07/data/2023/si34539-1/ana001/
+# 492655 - 492662  omega+ fast scan   13L
 
 # CTR measurements     continuous si36936-1	all rocking curves  513349-513389   10L
-# CTR measurements     continuous si36936-1	all rocking curves 513391-513427  22L
+# CTR measurements     continuous si36936-1       all rocking curves
+# 513391-513427  22L
 
-# stepped - large area detector (p2m)  '/dls/staging/dls/i07/data/2022/cm31120-1/20220226_Soller_test'	421593
+# stepped - large area detector (p2m)
+# '/dls/staging/dls/i07/data/2022/cm31120-1/20220226_Soller_test'
+# 421593

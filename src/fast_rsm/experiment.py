@@ -10,7 +10,6 @@ from multiprocessing import Lock
 from pathlib import Path
 from time import time
 from typing import List, Tuple, Union
-import mapper_c_utils
 import numpy as np
 from diffraction_utils import Frame, Region
 from scipy.constants import physical_constants
@@ -18,21 +17,19 @@ from datetime import datetime
 from scipy.spatial.transform import Rotation as R
 import transformations as tf
 from multiprocessing.managers import SharedMemoryManager
-
-import fast_rsm.io as io
-from fast_rsm.binning import weighted_bin_1d, finite_diff_shape
-from fast_rsm.meta_analysis import get_step_from_filesize
-from fast_rsm.scan import Scan, init_process_pool, bin_maps_with_indices, chunk, \
-    init_pyfai_process_pool, pyfai_stat_qmap, pyfai_stat_ivsq, pyfai_stat_exitangles, \
-    pyfai_init_worker, pyfai_move_qmap_worker, rsm_init_worker, bin_maps_with_indices_SMM, pyfai_move_ivsq_worker, pyfai_move_exitangles_worker
-from fast_rsm.writing import linear_bin_to_vtk
 import pandas as pd
-import pyFAI
 import fabio
 # from datetime import datetime
 import h5py
 import tifffile
-from fast_rsm.scan import Scan
+import fast_rsm.io as io
+from fast_rsm.binning import weighted_bin_1d, finite_diff_shape
+from fast_rsm.meta_analysis import get_step_from_filesize
+from fast_rsm.scan import Scan, init_process_pool, bin_maps_with_indices, chunk, \
+    pyfai_stat_qmap, pyfai_stat_ivsq, pyfai_stat_exitangles, \
+    pyfai_init_worker, pyfai_move_qmap_worker, rsm_init_worker, bin_maps_with_indices_SMM, \
+    pyfai_move_ivsq_worker, pyfai_move_exitangles_worker
+from fast_rsm.writing import linear_bin_to_vtk
 
 
 import logging
@@ -95,13 +92,13 @@ def _q_to_theta(q_values, energy) -> np.array:
     planck = physical_constants["Planck constant in eV s"][0]
     speed_of_light = physical_constants["speed of light in vacuum"][0] * 1e10
     # My q_values are angular, so my wavevector needs to be angular too.
-    ang_wavevector = 2*np.pi*energy/(planck*speed_of_light)
+    ang_wavevector = 2 * np.pi * energy / (planck * speed_of_light)
 
     # Do some basic geometry.
-    theta_values = np.arccos(1 - np.square(q_values)/(2*ang_wavevector**2))
+    theta_values = np.arccos(1 - np.square(q_values) / (2 * ang_wavevector**2))
 
     # Convert from radians to degrees.
-    return theta_values*180/np.pi
+    return theta_values * 180 / np.pi
 
 
 class Experiment:
@@ -124,6 +121,13 @@ class Experiment:
         self.scans = scans
         self._data_file_names = []
         self._normalisation_file_names = []
+        defaults_exp = {'spherical_bragg_vec': np.array([0, 0, 0]),\
+                        'alphacritical': False,\
+                        'savedats': False,\
+                        'savetiffs': False}
+
+        for key, val in defaults_exp.items():
+                setattr(self, key, val)
 
     def _clean_temp_files(self) -> None:
         """
@@ -193,8 +197,8 @@ class Experiment:
         if self.scans[0].metadata.data_file.is_rotated == True:
             imshape = self.scans[0].metadata.data_file.image_shape
             for region in regions:
-                newxend = imshape[0]-region.y_start
-                newxstart = max(0, imshape[0]-region.y_end)
+                newxend = imshape[0] - region.y_start
+                newxstart = max(0, imshape[0] - region.y_end)
                 newystart = region.x_start
                 newyend = region.x_end
                 region.x_start = newxstart
@@ -207,7 +211,7 @@ class Experiment:
 
     def mask_edf(self, edfmask):
 
-        if edfmask != None:
+        if edfmask is not None:
             maskimg = fabio.open(edfmask)
             mask = maskimg.data
             if self.scans[0].metadata.data_file.is_rotated == True:
@@ -278,7 +282,7 @@ class Experiment:
             _start, _stop = self.q_bounds(map_frame, oop)
 
         if map_frame.coordinates == Frame.sphericalpolar:
-            step = (0.02, np.pi/180, np.pi/180)
+            step = (0.02, np.pi / 180, np.pi / 180)
         # Make sure start and stop match the step as required by binoculars.
         start, stop = _match_start_stop_to_step(
             step=step,
@@ -322,7 +326,7 @@ class Experiment:
                     async_results.append(pool.apply_async(
                         bin_maps_with_indices,
                         (indices, start, stop, step,
-                         min_intensity_mask,  new_motors, new_metadata,
+                         min_intensity_mask, new_motors, new_metadata,
                          scan.processing_steps, scan.skip_images, oop,
                          map_each_image, images_so_far)))
 
@@ -376,20 +380,24 @@ class Experiment:
                 shared_mem.close()
                 try:
                     shared_mem.unlink()
-                except:
+                except BaseException:
                     pass
             for shared_mem in count_mem:
                 shared_mem.close()
                 try:
                     shared_mem.unlink()
-                except:
+                except BaseException:
                     pass
 
         # makes sure counts are floats ready for division
         fcounts = count_arrays.astype(np.float32)
-        # need to specify out location to avoid working with non-initialised data
-        normalised_map = np.divide(map_arrays, fcounts, out=np.copy(
-            map_arrays), where=fcounts != 0.0)
+        # need to specify out location to avoid working with non-initialised
+        # data
+        normalised_map = np.divide(
+            map_arrays,
+            fcounts,
+            out=np.copy(map_arrays),
+            where=fcounts != 0.0)
 
         # Only save the vtk/npy files if we've been asked to.
         if save_vtk:
@@ -496,7 +504,7 @@ class Experiment:
 
         if bin_size is None:
             # Work out the bin_size from the range of |Q| values.
-            bin_size = (max_q - min_q)/num_bins
+            bin_size = (max_q - min_q) / num_bins
 
         # Now that we know the bin_size, we can make an array of the bin edges.
         bins = np.arange(min_q, max_q, bin_size)
@@ -666,7 +674,7 @@ class Experiment:
         twotheta : float
             value of angle in degrees converted to  q.
         """
-        return np.degrees(np.arcsin(q*(wavelength/(4*np.pi))*1e10))*2
+        return np.degrees(np.arcsin(q * (wavelength / (4 * np.pi)) * 1e10)) * 2
 
     def calcq(self, twotheta, wavelength):
         """
@@ -685,10 +693,11 @@ class Experiment:
             q value in m^-1.
 
         """
-        return (4*np.pi/wavelength)*np.sin(np.radians(twotheta/2))*1e-10
+        return (4 * np.pi / wavelength) * \
+            np.sin(np.radians(twotheta / 2)) * 1e-10
 
     def calcqstep(self, gammastep, gammastart, wavelength):
-        qstep = self.calcq(gammastart+gammastep, wavelength) - \
+        qstep = self.calcq(gammastart + gammastep, wavelength) - \
             self.calcq(gammastart, wavelength)
         return qstep
 
@@ -751,13 +760,18 @@ class Experiment:
             q value.
 
         """
-        return np.sin(np.radians(angle))*kmod*1e-10
+        return np.sin(np.radians(angle)) * kmod * 1e-10
 
     def get_limitcalc_vars(self, vertsetup, axis, slitvertratio, slithorratio):
 
         horvert_indices = {'vert0': [1, 0], 'hor0': [0, 1]}
-        horvert_angles = {'thvert': [self.two_theta_start, self.deltadata], 'delvert': [
-            self.deltadata, self.two_theta_start]}
+        horvert_angles = {
+            'thvert': [
+                self.two_theta_start,
+                self.deltadata],
+            'delvert': [
+                self.deltadata,
+                self.two_theta_start]}
         if (vertsetup == True) & (self.scans[0].metadata.data_file.is_rotated):
             # GOOD
             [horindex, vertindex] = horvert_indices['hor0']
@@ -765,7 +779,7 @@ class Experiment:
             verscale = -1
             horscale = 1
 
-        elif (vertsetup == True):
+        elif vertsetup == True:
             # GOOD
             [horindex, vertindex] = horvert_indices['hor0']
             [vertangles, horangles] = horvert_angles['thvert']
@@ -778,7 +792,7 @@ class Experiment:
             verscale = -1
             horscale = -1
 
-        elif (self.setup == 'DCD'):
+        elif self.setup == 'DCD':
             [horindex, vertindex] = horvert_indices['vert0']
             [vertangles, horangles] = horvert_angles['delvert']
             verscale = -1
@@ -798,24 +812,24 @@ class Experiment:
             horscale = -1
 
         if axis == 'vert':
-            pixlow = self.imshape[vertindex]-self.beam_centre[vertindex]
+            pixlow = self.imshape[vertindex] - self.beam_centre[vertindex]
             pixhigh = self.beam_centre[vertindex]
             highsection = np.max(vertangles)
             lowsection = np.min(vertangles)
             outscale = verscale
         elif axis == 'hor':
-            pixhigh = (self.beam_centre[horindex])
-            pixlow = (self.imshape[horindex]-self.beam_centre[horindex])
-            if (self.setup == 'vertical') & (self.scans[0].metadata.data_file.is_rotated):
+            pixhigh = self.beam_centre[horindex]
+            pixlow = self.imshape[horindex] - self.beam_centre[horindex]
+            if (self.setup == 'vertical') & (
+                    self.scans[0].metadata.data_file.is_rotated):
                 pixhigh, pixlow = pixlow, pixhigh
             highsection = np.max(horangles)
             lowsection = np.min(horangles)
             outscale = horscale
-
-        if (slitvertratio != None) & (axis == 'vert'):
-            pixscale = self.pixel_size*slitvertratio
-        elif (slithorratio != None) & (axis == 'hor'):
-            pixscale = self.pixel_size*slithorratio
+        if (slitvertratio is not None) & (axis == 'vert'):
+            pixscale = self.pixel_size * slitvertratio
+        elif (slithorratio is not None) & (axis == 'hor'):
+            pixscale = self.pixel_size * slithorratio
         else:
             pixscale = self.pixel_size
         [highsign, lowsign] = [1 if np.round(val, 5) == 0 else np.sign(
@@ -826,7 +840,8 @@ class Experiment:
         return horindex, vertindex, vertangles, horangles, verscale, horscale, pixhigh, \
             pixlow, outscale, pixscale, highsign, lowsign, highsection, lowsection
 
-    def calcanglim(self, axis, vertsetup=False, slitvertratio=None, slithorratio=None):
+    def calcanglim(self, axis, vertsetup=False,
+                   slitvertratio=None, slithorratio=None):
         """
         Calculates limits in exit angle for either vertical or horizontal axis
 
@@ -850,17 +865,21 @@ class Experiment:
             pixlow, outscale, pixscale, highsign, lowsign, highsection, lowsection = self.get_limitcalc_vars(
                 vertsetup, axis, slitvertratio, slithorratio)
 
-        add_section = (np.degrees(
-            np.arctan((pixhigh*pixscale)/self.detector_distance)))
-        minus_section = (np.degrees(
-            np.arctan((pixlow*pixscale)/self.detector_distance)))
+        add_section = (
+            np.degrees(
+                np.arctan(
+                    (pixhigh * pixscale) / self.detector_distance)))
+        minus_section = (
+            np.degrees(
+                np.arctan(
+                    (pixlow * pixscale) / self.detector_distance)))
         maxvertrad = np.radians(np.max(vertangles))
         if axis == 'hor':
             add_section = np.degrees(
-                np.arctan(np.tan(np.radians(add_section))/abs(np.cos(maxvertrad))))
+                np.arctan(np.tan(np.radians(add_section)) / abs(np.cos(maxvertrad))))
             minus_section = np.degrees(
-                np.arctan(np.tan(np.radians(minus_section))/abs(np.cos(maxvertrad))))
-        maxangle = highsection+(add_section)
+                np.arctan(np.tan(np.radians(minus_section)) / abs(np.cos(maxvertrad))))
+        maxangle = highsection + (add_section)
         minangle = lowsection - (minus_section)
 
         # add incorrection factors to match direction with pyfai calculations
@@ -878,11 +897,12 @@ class Experiment:
             correctionscales = {'vert': 1, 'hor': 1}
 
         outscale *= correctionscales[axis]
-        outvals = np.sort([minangle*outscale, maxangle*outscale])
+        outvals = np.sort([minangle * outscale, maxangle * outscale])
         return outvals[0], outvals[1]
         # return maxangle*outscale,minangle*outscale
 
-    def calcqlim(self, axis, vertsetup=False, slitvertratio=None, slithorratio=None):
+    def calcqlim(self, axis, vertsetup=False,
+                 slitvertratio=None, slithorratio=None):
         """
         Calculates limits in q for either vertical or horizontal axis
 
@@ -901,16 +921,16 @@ class Experiment:
             lower limit on q range.
 
         """
-        kmod = 2*np.pi / (self.incident_wavelength)
+        kmod = 2 * np.pi / (self.incident_wavelength)
 
         horindex, vertindex, vertangles, horangles, verscale, horscale, pixhigh, \
             pixlow, outscale, pixscale, highsign, lowsign, highsection, lowsection = self.get_limitcalc_vars(
                 vertsetup, axis, slitvertratio, slithorratio)
 
         maxangle = highsection + \
-            (np.degrees(np.arctan((pixhigh*pixscale)/self.detector_distance)))
+            (np.degrees(np.arctan((pixhigh * pixscale) / self.detector_distance)))
         minangle = lowsection - \
-            (np.degrees(np.arctan((pixlow*pixscale)/self.detector_distance)))
+            (np.degrees(np.arctan((pixlow * pixscale) / self.detector_distance)))
         maxanglerad = np.radians(np.max(maxangle))
         minanglerad = np.radians(np.max(minangle))
 
@@ -920,35 +940,37 @@ class Experiment:
             maxtthrad = np.radians(np.max(horangles))
 
             maxincrad = np.radians(np.max(self.incident_angle))
-            extraincq = kmod*1e-10*np.sin(maxincrad)
+            extraincq = kmod * 1e-10 * np.sin(maxincrad)
 
-            minusexitq_x = kmod*1e-10 * \
-                np.cos(maxanglerad)*np.cos(maxtthrad)*np.sin(maxincrad)
-            minusexitq_z = kmod*1e-10*np.sin(maxanglerad)*(1-np.cos(maxincrad))
-            extravert = extraincq-minusexitq_x-minusexitq_z
+            minusexitq_x = kmod * 1e-10 * \
+                np.cos(maxanglerad) * np.cos(maxtthrad) * np.sin(maxincrad)
+            minusexitq_z = kmod * 1e-10 * \
+                np.sin(maxanglerad) * (1 - np.cos(maxincrad))
+            extravert = extraincq - minusexitq_x - minusexitq_z
             qupp += extravert
 
-            minusexitq_x = kmod*1e-10 * \
-                np.cos(minanglerad)*np.cos(maxtthrad)*np.sin(maxincrad)
-            minusexitq_z = kmod*1e-10*np.sin(minanglerad)*(1-np.cos(maxincrad))
-            extravert = extraincq-minusexitq_x-minusexitq_z
+            minusexitq_x = kmod * 1e-10 * \
+                np.cos(minanglerad) * np.cos(maxtthrad) * np.sin(maxincrad)
+            minusexitq_z = kmod * 1e-10 * \
+                np.sin(minanglerad) * (1 - np.cos(maxincrad))
+            extravert = extraincq - minusexitq_x - minusexitq_z
             qlow += extravert
 
         elif axis == 'hor':
             qupp = self.SOHqcalc(maxangle, kmod)  # *2
             qlow = self.SOHqcalc(minangle, kmod)  # *2
             vertsign = [1 if np.sign(np.max(vertangles)) >= 0 else -1]
-            maxvert = np.max(vertangles) + vertsign[0]*np.degrees(np.arctan(
-                (self.beam_centre[vertindex]*self.pixel_size)/self.detector_distance))
+            maxvert = np.max(vertangles) + vertsign[0] * np.degrees(np.arctan(
+                (self.beam_centre[vertindex] * self.pixel_size) / self.detector_distance))
             maxvertrad = np.radians(maxvert)
-            s1 = kmod*np.cos(maxvertrad)*np.sin(maxanglerad)
-            s2 = kmod*(1-np.cos(maxvertrad)*np.cos(maxanglerad))
+            s1 = kmod * np.cos(maxvertrad) * np.sin(maxanglerad)
+            s2 = kmod * (1 - np.cos(maxvertrad) * np.cos(maxanglerad))
             qupp_withvert = np.sqrt(
-                np.square(s1)+np.square(s2))*1e-10*np.sign(maxangle)
-            s3 = kmod*np.cos(maxvertrad)*np.sin(minanglerad)
-            s4 = kmod*(1-np.cos(maxvertrad)*np.cos(minanglerad))
+                np.square(s1) + np.square(s2)) * 1e-10 * np.sign(maxangle)
+            s3 = kmod * np.cos(maxvertrad) * np.sin(minanglerad)
+            s4 = kmod * (1 - np.cos(maxvertrad) * np.cos(minanglerad))
             qlow_withvert = np.sqrt(
-                np.square(s3)+np.square(s4))*1e-10*np.sign(minangle)
+                np.square(s3) + np.square(s4)) * 1e-10 * np.sign(minangle)
             if (vertsetup == True):
                 outscale *= -1
             if abs(qupp_withvert) > abs(qupp):
@@ -957,16 +979,16 @@ class Experiment:
             if abs(qlow_withvert) > abs(qlow):
                 qlow = qlow_withvert
 
-        outvals = np.sort([qupp*outscale, qlow*outscale])
+        outvals = np.sort([qupp * outscale, qlow * outscale])
         return outvals[0], outvals[1]
 
     def do_savetiffs(self, hf, data, axespara, axesperp):
         datashape = np.shape(data)
-        extradims = len(datashape)-2
+        extradims = len(datashape) - 2
         outdir = hf.filename.strip('.hdf5')
         try:
             os.mkdir(outdir)
-        except:
+        except BaseException:
             print('directory already exists')
         outname = outdir.split('\\')[-1]
         if extradims == 0:
@@ -978,8 +1000,10 @@ class Experiment:
                 'Xlimits': f'min {parainfo.min()}, max {parainfo.max()}',
                 'Ylimits': f'min {perpinfo.min()}, max {perpinfo.max()}',
             }
-            tifffile.imwrite(f'{outdir}/{outname}.tiff',
-                             imdata, metadata=metadata)
+            tifffile.imwrite(
+                f'{outdir}/{outname}.tiff',
+                imdata,
+                metadata=metadata)
         if extradims == 1:
             for i1 in np.arange(datashape[0]):
                 imdata = data[i1]
@@ -991,7 +1015,9 @@ class Experiment:
                     'Ylimits': f'min {perpinfo.min()}, max {perpinfo.max()}',
                 }
                 tifffile.imwrite(
-                    f'{outdir}/{outname}_{i1}.tiff', imdata, metadata=metadata)
+                    f'{outdir}/{outname}_{i1}.tiff',
+                    imdata,
+                    metadata=metadata)
         if extradims == 2:
             for i1 in np.arange(datashape[0]):
                 for i2 in np.arange(datashape[1]):
@@ -1004,15 +1030,17 @@ class Experiment:
                         'Ylimits': f'min {perpinfo.min()}, max {perpinfo.max()}',
                     }
                     tifffile.imwrite(
-                        f'{outdir}/{outname}_{i1}_{i2}.tiff', imdata, metadata=metadata)
+                        f'{outdir}/{outname}_{i1}_{i2}.tiff',
+                        imdata,
+                        metadata=metadata)
 
     def do_savedats(self, hf, Idata, qdata, tthdata):
         datashape = np.shape(Idata)
-        extradims = len(datashape)-1
+        extradims = len(datashape) - 1
         outdir = hf.filename.strip('.hdf5')
         try:
             os.mkdir(outdir)
-        except:
+        except BaseException:
             print('directory already exists')
         metadata = f'Intensity data identical to data saved in {hf.filename}\n'
         outname = outdir.split('/')[-1]
@@ -1058,13 +1086,15 @@ class Experiment:
             data = data_in[0]
         startval = data[0]
         stopval = data[-1]
-        stepval = data[1]-data[0]
-        startind = int(np.floor(startval/stepval))
-        stopind = int(startind+len(data)-1)
-        return [ind, startval, stopval, stepval, float(startind), float(stopind)]
+        stepval = data[1] - data[0]
+        startind = int(np.floor(startval / stepval))
+        stopind = int(startind + len(data) - 1)
+        return [ind, startval, stopval, stepval,
+                float(startind), float(stopind)]
 
     def calcnewrange(range1, range2):
-        return lambda range1, range2: [min(range1[0], range2[0]), max(range1[1], range2[1])]
+        return lambda range1, range2: [
+            min(range1[0], range2[0]), max(range1[1], range2[1])]
 
     def gamdel2rots(self, gamma, delta):
         """
@@ -1084,7 +1114,7 @@ class Experiment:
         """
         rotdelta = R.from_euler('y', -delta, degrees=True)
         rotgamma = R.from_euler('z', gamma, degrees=True)
-        totalrot = rotgamma*rotdelta
+        totalrot = rotgamma * rotdelta
         fullrot = np.identity(4)
         fullrot[0:3, 0:3] = totalrot.as_matrix()
         vals = tf.euler_from_matrix(fullrot, 'rxyz')
@@ -1112,18 +1142,18 @@ class Experiment:
         self.detector_distance = scan.metadata.get_detector_distance(0)
         # else:
         #     self.detector_distance=scan.metadata.diffractometer.data_file.detector_distance
-        self.incident_wavelength = 1e-10*scan.metadata.incident_wavelength
+        self.incident_wavelength = 1e-10 * scan.metadata.incident_wavelength
         try:
             self.gammadata = np.array(
                 self.entry.instrument.diff1gamma.value_set).ravel()
-        except:
+        except BaseException:
             self.gammadata = np.array(
                 self.entry.instrument.diff1gamma.value).ravel()
         # self.deltadata=np.array( self.entry.instrument.diff1delta.value)
         try:
             self.deltadata = np.array(
                 self.entry.instrument.diff1delta.value_set).ravel()
-        except:
+        except BaseException:
             self.deltadata = np.array(
                 self.entry.instrument.diff1delta.value).ravel()
 
@@ -1137,7 +1167,7 @@ class Experiment:
             dcd_sample_dist = 1e-3 * \
                 scan.metadata.diffractometer._dcd_sample_distance[0]
             self.dcd_incdeg = np.degrees(np.arctan(
-                self.projectiony/(np.sqrt(np.square(self.projectionx)+np.square(dcd_sample_dist)))))
+                self.projectiony / (np.sqrt(np.square(self.projectionx) + np.square(dcd_sample_dist)))))
             self.incident_angle = self.dcd_incdeg
             # self.deltadata+=self.dcd_incdeg
         elif (scan.metadata.data_file.is_eh1) & (self.setup != 'DCD'):
@@ -1186,14 +1216,14 @@ class Experiment:
         f.write('}\n')
         f.write(f'Distance: {self.detector_distance}\n')
         if beam_centre == 0:
-            poni1 = (image2dshape[0]-offset)*self.pixel_size
-            poni2 = image2dshape[1]*self.pixel_size
+            poni1 = (image2dshape[0] - offset) * self.pixel_size
+            poni2 = image2dshape[1] * self.pixel_size
         elif (offset == 0) & (self.setup != 'vertical'):
-            poni1 = (beam_centre[0])*self.pixel_size
-            poni2 = beam_centre[1]*self.pixel_size
+            poni1 = (beam_centre[0]) * self.pixel_size
+            poni2 = beam_centre[1] * self.pixel_size
         elif (offset == 0) & (self.setup == 'vertical'):
-            poni1 = beam_centre[1]*self.pixel_size
-            poni2 = (image2dshape[0]-beam_centre[0])*self.pixel_size
+            poni1 = beam_centre[1] * self.pixel_size
+            poni2 = (image2dshape[0] - beam_centre[0]) * self.pixel_size
 
         f.write(f'Poni1: {poni1}\n')
         f.write(f'Poni2: {poni2}\n')
@@ -1204,7 +1234,8 @@ class Experiment:
         f.close()
         return ponioutpath
 
-    def save_projection(self, hf, projected2d, twothetas, Qangs, intensities, config):
+    def save_projection(self, hf, projected2d, twothetas,
+                        Qangs, intensities, config):
         dset = hf.create_group("projection")
         dset.create_dataset("projection_2d", data=projected2d[0])
         dset.create_dataset("config", data=str(config))
@@ -1214,7 +1245,8 @@ class Experiment:
         dset.create_dataset("Q_angstrom^-1", data=Qangs)
         dset.create_dataset("Intensity", data=intensities)
 
-    def save_integration(self, hf, twothetas, Qangs, intensities, configs, scan=0):
+    def save_integration(self, hf, twothetas, Qangs,
+                         intensities, configs, scan=0):
         dset = hf.create_group("integrations")
         dset.create_dataset("configs", data=str(configs))
         dset.create_dataset("2thetas", data=twothetas)
@@ -1235,7 +1267,10 @@ class Experiment:
 
         if self.savetiffs == True:
             self.do_savetiffs(
-                hf, qperp_qpara_map[0], qperp_qpara_map[1], qperp_qpara_map[2])
+                hf,
+                qperp_qpara_map[0],
+                qperp_qpara_map[1],
+                qperp_qpara_map[2])
 
     def save_config_variables(self, hf, joblines, pythonlocation, globalvals):
         config_group = hf.create_group('i07configuration')
@@ -1245,7 +1280,7 @@ class Experiment:
         for name in configlist:
             if name in globalvals:
                 outval = globalvals[f'{name}']
-                if outval == None:
+                if outval is None:
                     outval = 'None'
                 config_group.create_dataset(f"{name}", data=outval)
         if 'ubinfo' in globalvals:
@@ -1260,13 +1295,13 @@ class Experiment:
         config_group.create_dataset('python_location', data=pythonlocation)
 
     def reshape_to_signalshape(self, arr, signal_shape):
-        testsize = int(np.prod(signal_shape))-np.shape(arr)[0]
+        testsize = int(np.prod(signal_shape)) - np.shape(arr)[0]
 
-        fullshape = signal_shape+np.shape(arr)[1:]
+        fullshape = signal_shape + np.shape(arr)[1:]
         if testsize == 0:
             return np.reshape(arr, fullshape)
         else:
-            extradata = np.zeros((testsize,)+(np.shape(arr)[1:]))
+            extradata = np.zeros((testsize,) + (np.shape(arr)[1:]))
             outarr = np.concatenate((arr, extradata))
             return np.reshape(outarr, fullshape)
 
@@ -1276,16 +1311,17 @@ class Experiment:
             fields = scan.metadata.data_file.diamond_scan.scan_fields
             scanned = [x.decode('utf-8').split('.')[0]
                        for x in fields[:rank].nxdata]
-            scannedvalues = [np.unique(
-                scan.metadata.data_file.nx_instrument[field].value)for field in scanned]
+            scannedvalues = [
+                np.unique(
+                    scan.metadata.data_file.nx_instrument[field].value)for field in scanned]
             scannedvaluesout = [scannedvals[~np.isnan(
                 scannedvals)] for scannedvals in scannedvalues]
-        except:
+        except BaseException:
             scanned, scannedvaluesout = None, None
 
         dset = hf.create_group("scanfields")
         if scan != 0:
-            if scanned != None:
+            if scanned is not None:
                 for i, field in enumerate(scanned):
                     dset.create_dataset(
                         f"dim{i}_{field}", data=scannedvaluesout[i])
@@ -1294,8 +1330,12 @@ class Experiment:
         """
         check list of deprecated functions, and print out warning message if needed
         """
-        GIWAXSdeplist = ['curved_projection_2D', 'pyfai_1D',
-                         'qperp_qpara_map', 'large_moving_det', 'pyfai_2dqmap_IvsQ']
+        GIWAXSdeplist = [
+            'curved_projection_2D',
+            'pyfai_1D',
+            'qperp_qpara_map',
+            'large_moving_det',
+            'pyfai_2dqmap_IvsQ']
         if option in GIWAXSdeplist:
             return f"option {option} has been deprecated. GIWAXS mapping calculations now use pyFAI. Please use process outputs 'pyfai_ivsq'  , 'pyfai_qmap' and 'pyfai_exitangles'"
 
@@ -1346,10 +1386,7 @@ class Experiment:
         if map_frame.frame_name == Frame.qpar_qperp:
             map_frame.frame_name = Frame.lab
           # Compute the optimal finite differences volume.
-        logger.debug(
-            f"spherical_bragg_vec in binned_reciprocal_space_map_SMM: {self.spherical_bragg_vec}")
-        logger.debug(
-            f"values in SMM function:\n{volume_start} \n{volume_stop} \n{volume_step}")
+
         if volume_step is None:
             # Overwrite whichever of these we were given explicitly.
             if (volume_start is not None) & (volume_stop is not None):
@@ -1357,9 +1394,8 @@ class Experiment:
                 _stop = np.array(volume_stop)
             else:
 
-                logger.debug('found step none, start none, stop none')
                 _start, _stop = self.q_bounds(map_frame, oop)
-                logger.debug(f' start and stop \n{_start},\n{_stop}')
+
             step = get_step_from_filesize(_start, _stop, output_file_size)
 
         else:
@@ -1367,16 +1403,13 @@ class Experiment:
             _start, _stop = self.q_bounds(map_frame, oop)
 
         if map_frame.coordinates == Frame.sphericalpolar:
-            step = np.array([0.02, np.pi/180, np.pi/180])
+            step = np.array([0.02, np.pi / 180, np.pi / 180])
 
-        logger.debug(
-            f"before matching correction \n{_start} \n{_stop} \n{step} ")
         # Make sure start and stop match the step as required by binoculars.
         start, stop = _match_start_stop_to_step(
             step=step,
             user_bounds=(volume_start, volume_stop),
             auto_bounds=(_start, _stop))
-        logger.debug(f"after matching correction \n{start} \n{stop} \n{step} ")
 
         locks = [Lock() for _ in range(num_threads)]
         shapersm = finite_diff_shape(start, stop, step)
@@ -1391,12 +1424,16 @@ class Experiment:
 
         with SharedMemoryManager() as smm:
             shapecake = (2, 2, 2)
-            shm_rsm = smm.SharedMemory(size=np.zeros(
-                shapersm, dtype=np.float32).nbytes)
+            shm_rsm = smm.SharedMemory(
+                size=np.zeros(
+                    shapersm,
+                    dtype=np.float32).nbytes)
             shm_counts = smm.SharedMemory(
                 size=np.zeros(shapersm, dtype=np.uint32).nbytes)
             rsm_arr = np.ndarray(
-                shapersm, dtype=np.float32, buffer=shm_rsm.buf)
+                shapersm,
+                dtype=np.float32,
+                buffer=shm_rsm.buf)
             counts_arr = np.ndarray(
                 shapersm, dtype=np.uint32, buffer=shm_counts.buf)
             rsm_arr.fill(0)
@@ -1407,10 +1444,27 @@ class Experiment:
 
                 new_motors = scan.metadata.data_file.get_motors()
                 new_metadata = scan.metadata.data_file.get_metadata()
-                bin_args = [(indices, start, stop, step, min_intensity_mask, scan.processing_steps, scan.skip_images, oop, self.spherical_bragg_vec,
-                             map_each_image, images_so_far) for indices in chunk(list(range(scan.metadata.data_file.scan_length)), num_threads)]
+                bin_args = [
+                    (indices,
+                     start,
+                     stop,
+                     step,
+                     min_intensity_mask,
+                     scan.processing_steps,
+                     scan.skip_images,
+                     oop,
+                     self.spherical_bragg_vec,
+                     map_each_image,
+                     images_so_far) for indices in chunk(
+                        list(
+                            range(
+                                scan.metadata.data_file.scan_length)),
+                        num_threads)]
                 # Make a pool on which we'll carry out the processing.
-                # with Pool(processes=num_threads,   initializer=init_process_pool,initargs=(locks, num_threads,self.scans[0].metadata,map_frame,shape,output_file_name)) as pool:
+                # with Pool(processes=num_threads,
+                # initializer=init_process_pool,initargs=(locks,
+                # num_threads,self.scans[0].metadata,map_frame,shape,output_file_name))
+                # as pool:
 
                 with Pool(num_threads, initializer=rsm_init_worker, initargs=(l, shm_rsm.name, shm_counts.name, shapersm, scan.metadata, new_metadata, new_motors, num_threads, map_frame, output_file_name)) as pool:
                     print(f'started pool with num_threads={num_threads}')
@@ -1421,9 +1475,14 @@ class Experiment:
                 images_so_far += scan.metadata.data_file.scan_length
 
             # fcounts= count_arrays.astype(np.float32) #makes sure counts are floats ready for division
-            # normalised_map=np.divide(map_arrays,fcounts, out=np.copy(map_arrays),where=fcounts!=0.0)#need to specify out location to avoid working with non-initialised data
-        normalised_map = np.divide(rsm_arr, counts_arr, out=np.copy(
-            rsm_arr), where=counts_arr != 0.0)
+            # normalised_map=np.divide(map_arrays,fcounts,
+            # out=np.copy(map_arrays),where=fcounts!=0.0)#need to specify out
+            # location to avoid working with non-initialised data
+        normalised_map = np.divide(
+            rsm_arr,
+            counts_arr,
+            out=np.copy(rsm_arr),
+            where=counts_arr != 0.0)
 
         # Only save the vtk/npy files if we've been asked to.
         if save_vtk:
@@ -1456,7 +1515,7 @@ class Experiment:
         return normalised_map, start, stop, step
 
     def pyfai_setup_limits(self, scanlist, limitfunction, slitdistratios):
-        if type(scanlist) == Scan:
+        if isinstance(scanlist, Scan):
             scanlistnew = [scanlist]
         else:
             scanlistnew = scanlist
@@ -1468,28 +1527,39 @@ class Experiment:
             # anglimits,scanlength = self.pyfai_setup_limits(scan,self.calcanglim,slitdistratios)
 
             self.load_curve_values(scan)
-            dcd_sample_dist = 1e-3*scan.metadata.diffractometer._dcd_sample_distance
+            dcd_sample_dist = 1e-3 * scan.metadata.diffractometer._dcd_sample_distance
             if self.setup == 'DCD':
                 tthdirect = -1 * \
-                    np.degrees(np.arctan(self.projectionx/dcd_sample_dist))
+                    np.degrees(np.arctan(self.projectionx / dcd_sample_dist))
             else:
                 tthdirect = 0
 
-            self.two_theta_start = self.gammadata-tthdirect
+            self.two_theta_start = self.gammadata - tthdirect
 
-            if slitdistratios != None:
-                scanlimhor = limitfunction('hor', vertsetup=(
-                    self.setup == 'vertical'), slithorratio=slitdistratios[1])
-                scanlimver = limitfunction('vert', vertsetup=(
-                    self.setup == 'vertical'), slitvertratio=slitdistratios[0])
+            if slitdistratios is not None:
+                scanlimhor = limitfunction(
+                    'hor',
+                    vertsetup=(
+                        self.setup == 'vertical'),
+                    slithorratio=slitdistratios[1])
+                scanlimver = limitfunction(
+                    'vert',
+                    vertsetup=(
+                        self.setup == 'vertical'),
+                    slitvertratio=slitdistratios[0])
             else:
                 scanlimhor = limitfunction(
-                    'hor', vertsetup=(self.setup == 'vertical'))
+                    'hor', vertsetup=(
+                        self.setup == 'vertical'))
                 scanlimver = limitfunction(
-                    'vert', vertsetup=(self.setup == 'vertical'))
+                    'vert', vertsetup=(
+                        self.setup == 'vertical'))
 
-            scanlimits = [scanlimhor[0], scanlimhor[1],
-                          scanlimver[0], scanlimver[1]]
+            scanlimits = [
+                scanlimhor[0],
+                scanlimhor[1],
+                scanlimver[0],
+                scanlimver[1]]
             if limhor is None:
                 limhor = scanlimits[0:2]
                 limver = scanlimits[2:]
@@ -1500,7 +1570,7 @@ class Experiment:
         outlimits = [limhor[0], limhor[1], limver[0], limver[1]]
         if self.setup == 'vertical':
             self.beam_centre = [self.beam_centre[1], self.beam_centre[0]]
-            self.beam_centre[1] = self.imshape[0]-self.beam_centre[1]
+            self.beam_centre[1] = self.imshape[0] - self.beam_centre[1]
 
         datacheck = ('data' in list(scan.metadata.data_file.nx_detector))
         localpathcheck = (
@@ -1525,17 +1595,24 @@ class Experiment:
         shm_intensities = smm.SharedMemory(
             size=np.zeros(memshape, dtype=np.float32).nbytes)
         shm_counts = smm.SharedMemory(
-            size=np.zeros(memshape, dtype=np.float32).nbytes)
+            size=np.zeros(
+                memshape,
+                dtype=np.float32).nbytes)
         arrays_arr = np.ndarray(
-            memshape, dtype=np.float32, buffer=shm_intensities.buf)
+            memshape,
+            dtype=np.float32,
+            buffer=shm_intensities.buf)
         counts_arr = np.ndarray(
-            memshape, dtype=np.float32, buffer=shm_counts.buf)
+            memshape,
+            dtype=np.float32,
+            buffer=shm_counts.buf)
         arrays_arr.fill(0)
         counts_arr.fill(0)
         l = Lock()
         return shm_intensities, shm_counts, arrays_arr, counts_arr, l
 
-    def get_input_args(self, scanlength, scalegamma, processtype, multi, num_threads, fullargs):
+    def get_input_args(self, scanlength, scalegamma,
+                       processtype, multi, num_threads, fullargs):
         if processtype == 'slitdist':
             fullrange = np.arange(0, scanlength, scalegamma)
             selectedindices = [
@@ -1545,16 +1622,21 @@ class Experiment:
             else:
                 inputindices = selectedindices
 
-            if fullargs[-1] != None:
-                endlist = fullargs[:-1]+[fullargs[-1][0], fullargs[-1][1]]
+            if fullargs[-1] is not None:
+                endlist = fullargs[:-1] + [fullargs[-1][0], fullargs[-1][1]]
             else:
                 endlist = fullargs[:-1]
-            input_args = [[self, indices]+endlist for indices in inputindices]
+            input_args = [[self, indices] +
+                          endlist for indices in inputindices]
         return input_args
 
-    def save_hf_map(self, hf, mapname, sum_array, counts_array, mapaxisinfo, start_time):
-        norm_array = np.divide(sum_array, counts_array, out=np.copy(
-            sum_array), where=counts_array != 0.0)
+    def save_hf_map(self, hf, mapname, sum_array,
+                    counts_array, mapaxisinfo, start_time):
+        norm_array = np.divide(
+            sum_array,
+            counts_array,
+            out=np.copy(sum_array),
+            where=counts_array != 0.0)
         end_time = time()
         times = [start_time, end_time]
         dset = hf.create_group(f"{mapname}")
@@ -1570,10 +1652,11 @@ class Experiment:
         if self.savetiffs == True:
             self.do_savetiffs(hf, norm_array, mapaxisinfo[1], mapaxisinfo[0])
 
-        minutes = (times[1]-times[0])/60
+        minutes = (times[1] - times[0]) / 60
         print(f'total calculation took {minutes}  minutes')
 
-    def pyfai_moving_exitangles_SMM(self, hf, scanlist, num_threads, output_file_path, pyfaiponi, radrange, radstepval, qmapbins=[800, 800], slitdistratios=None):
+    def pyfai_moving_exitangles_SMM(self, hf, scanlist, num_threads, output_file_path,
+                                    pyfaiponi, radrange, radstepval, qmapbins=[800, 800], slitdistratios=None):
 
         exhexv_array_total = 0
         exhexv_counts_total = 0
@@ -1590,8 +1673,13 @@ class Experiment:
                     scan, self.calcanglim, slitdistratios)
                 scalegamma = 1
                 # fullargs needs to start with scan and end with slitdistratios
-                fullargs = [scan, shapeexhexv, pyfaiponi,
-                            anglimitsout, qmapbins, slitdistratios]
+                fullargs = [
+                    scan,
+                    shapeexhexv,
+                    pyfaiponi,
+                    anglimitsout,
+                    qmapbins,
+                    slitdistratios]
                 input_args = self.get_input_args(
                     scanlength, scalegamma, 'slitdist', True, num_threads, fullargs)
                 print(
@@ -1606,11 +1694,17 @@ class Experiment:
         mapaxisinfo = mapaxisinfolist[0]
         exhexv_array_total = arrays_arr
         exhexv_counts_total = counts_arr
-        self.save_hf_map(hf, "exit_angles", exhexv_array_total,
-                         exhexv_counts_total, mapaxisinfo, start_time)
+        self.save_hf_map(
+            hf,
+            "exit_angles",
+            exhexv_array_total,
+            exhexv_counts_total,
+            mapaxisinfo,
+            start_time)
         return mapaxisinfo
 
-    def pyfai_moving_qmap_SMM(self, hf, scanlist, num_threads, output_file_path, pyfaiponi, radrange, radstepval, qmapbins=(1200, 1200), slitdistratios=None):
+    def pyfai_moving_qmap_SMM(self, hf, scanlist, num_threads, output_file_path,
+                              pyfaiponi, radrange, radstepval, qmapbins=(1200, 1200), slitdistratios=None):
 
         qlimitsout = [0, 0, 0, 0]
         qpqp_array_total = 0
@@ -1632,8 +1726,13 @@ class Experiment:
                 scalegamma = 1
                 # fullargs needs to start with scan and end with slitdistratios
 
-                fullargs = [scan, shapeqpqp, pyfaiponi,
-                            qmapbins, qlimitsout, slitdistratios]
+                fullargs = [
+                    scan,
+                    shapeqpqp,
+                    pyfaiponi,
+                    qmapbins,
+                    qlimitsout,
+                    slitdistratios]
                 input_args = self.get_input_args(
                     scanlength, scalegamma, 'slitdist', True, num_threads, fullargs)
                 # print(np.shape(input_args))
@@ -1649,19 +1748,25 @@ class Experiment:
         mapaxisinfo = mapaxisinfolist[0]
         qpqp_array_total = arrays_arr
         qpqp_counts_total = counts_arr
-        self.save_hf_map(hf, "qpara_qperp", qpqp_array_total,
-                         qpqp_counts_total, mapaxisinfo, start_time)
+        self.save_hf_map(
+            hf,
+            "qpara_qperp",
+            qpqp_array_total,
+            qpqp_counts_total,
+            mapaxisinfo,
+            start_time)
         return mapaxisinfo
 
-    def pyfai_moving_ivsq_SMM(self, hf, scanlist, num_threads, output_file_path, pyfaiponi, radrange, radstepval, qmapbins=(1200, 1200), slitdistratios=None):
+    def pyfai_moving_ivsq_SMM(self, hf, scanlist, num_threads, output_file_path,
+                              pyfaiponi, radrange, radstepval, qmapbins=(1200, 1200), slitdistratios=None):
 
         fullranges, scanlength, scanlistnew = self.pyfai_setup_limits(
             scanlist, self.calcanglim, slitdistratios)
         absranges = np.abs(fullranges)
         radmax = np.max(absranges)
         # radrange=(0,radmax)
-        con1 = np.abs(fullranges[0]) < np.abs(fullranges[0]-fullranges[1])
-        con2 = np.abs(fullranges[2]) < np.abs(fullranges[2]-fullranges[3])
+        con1 = np.abs(fullranges[0]) < np.abs(fullranges[0] - fullranges[1])
+        con2 = np.abs(fullranges[2]) < np.abs(fullranges[2] - fullranges[3])
 
         if (con1) & (con2):
             radrange = (0, radmax)
@@ -1675,7 +1780,7 @@ class Experiment:
             radrange = (np.max([absranges[0], absranges[2]]),
                         np.max([absranges[1], absranges[3]]))
 
-        nqbins = int(np.ceil((radrange[1]-radrange[0])/radstepval))
+        nqbins = int(np.ceil((radrange[1] - radrange[0]) / radstepval))
 
         with SharedMemoryManager() as smm:
 
@@ -1699,8 +1804,12 @@ class Experiment:
                     pool.starmap(pyfai_move_ivsq_worker, input_args)
                 print(
                     f'finished process pool for scan {scanind+1}/{len(scanlistnew)}')
-        qi_array = np.divide(arrays_arr[0], counts_arr[0], out=np.copy(
-            arrays_arr[0]), where=counts_arr[0] != 0)
+        qi_array = np.divide(
+            arrays_arr[0],
+            counts_arr[0],
+            out=np.copy(
+                arrays_arr[0]),
+            where=counts_arr[0] != 0)
         end_time = time()
 
         dset = hf.create_group("integrations")
@@ -1710,12 +1819,13 @@ class Experiment:
 
         if self.savedats == True:
             self.do_savedats(hf, qi_array, arrays_arr[1], arrays_arr[2])
-        minutes = (end_time-start_time)/60
+        minutes = (end_time - start_time) / 60
         print(f'total calculation took {minutes}  minutes')
 
-    def pyfai_static_exitangles(self, hf, scan, num_threads, pyfaiponi, ivqbins, qmapbins=[1200, 1200], slitdistratios=None):
+    def pyfai_static_exitangles(self, hf, scan, num_threads, pyfaiponi, ivqbins, qmapbins=[
+                                1200, 1200], slitdistratios=None):
         """
-        calculate the map of vertical exit angle Vs horizontal exit angle using pyFAI 
+        calculate the map of vertical exit angle Vs horizontal exit angle using pyFAI
 
         Parameters
         ----------
@@ -1753,8 +1863,14 @@ class Experiment:
         with Pool(processes=num_threads) as pool:
 
             # fullargs needs to start with scan and end with slitdistratios
-            fullargs = [scan, self.two_theta_start, pyfaiponi,
-                        anglimits, qmapbins, ivqbins, slitdistratios]
+            fullargs = [
+                scan,
+                self.two_theta_start,
+                pyfaiponi,
+                anglimits,
+                qmapbins,
+                ivqbins,
+                slitdistratios]
             input_args = self.get_input_args(
                 scanlength, scalegamma, 'slitdist', False, num_threads, fullargs)
             results = pool.starmap(pyfai_stat_exitangles, input_args)
@@ -1776,10 +1892,17 @@ class Experiment:
             savemaps = all_maps[0]
         if "scanfields" not in hf.keys():
             self.save_scan_field_values(hf, scan)
-        self.save_hf_map(hf, "exit_angles", savemaps, np.ones(
-            np.shape(savemaps)), all_mapaxisinfo[0][0], start_time)
+        self.save_hf_map(
+            hf,
+            "exit_angles",
+            savemaps,
+            np.ones(
+                np.shape(savemaps)),
+            all_mapaxisinfo[0][0],
+            start_time)
 
-    def pyfai_static_qmap(self, hf, scan, num_threads, output_file_path, pyfaiponi, ivqbins, qmapbins=0, slitdistratios=None):
+    def pyfai_static_qmap(self, hf, scan, num_threads, output_file_path,
+                          pyfaiponi, ivqbins, qmapbins=0, slitdistratios=None):
 
         qlimits, scanlength, scanlistnew = self.pyfai_setup_limits(
             scan, self.calcqlim, slitdistratios)
@@ -1789,8 +1912,8 @@ class Experiment:
         if qmapbins == 0:
             qstep = round(self.calcq(1.00, self.incident_wavelength) -
                           self.calcq(1.01, self.incident_wavelength), 4)
-            binshor = abs(round(((qlimits[1]-qlimits[0])/qstep)*1.05))
-            binsver = abs(round(((qlimits[3]-qlimits[2])/qstep)*1.05))
+            binshor = abs(round(((qlimits[1] - qlimits[0]) / qstep) * 1.05))
+            binsver = abs(round(((qlimits[3] - qlimits[2]) / qstep) * 1.05))
             qmapbins = (binshor, binsver)
 
         scalegamma = 1
@@ -1802,8 +1925,14 @@ class Experiment:
 
         with Pool(processes=num_threads) as pool:
             # fullargs needs to start with scan and end with slitdistratios
-            fullargs = [scan, self.two_theta_start, pyfaiponi,
-                        qlimits, qmapbins, ivqbins, slitdistratios]
+            fullargs = [
+                scan,
+                self.two_theta_start,
+                pyfaiponi,
+                qlimits,
+                qmapbins,
+                ivqbins,
+                slitdistratios]
             input_args = self.get_input_args(
                 scanlength, scalegamma, 'slitdist', False, num_threads, fullargs)
             results = pool.starmap(pyfai_stat_qmap, input_args)
@@ -1819,27 +1948,42 @@ class Experiment:
         signal_shape = np.shape(scan.metadata.data_file.default_signal)
         outlist = [all_maps[0], all_xlabels[0], all_ylabels[0]]
         if len(signal_shape) > 1:
-            outlist = [self.reshape_to_signalshape(
-                arr, signal_shape) for arr in outlist]
+            outlist = [
+                self.reshape_to_signalshape(
+                    arr, signal_shape) for arr in outlist]
 
         binset = hf.create_group("binoculars")
         binset.create_dataset("counts", data=outlist[0])
         binset.create_dataset(
-            "contributions", data=np.ones(np.shape(outlist[0])))
+            "contributions",
+            data=np.ones(
+                np.shape(
+                    outlist[0])))
         axgroup = binset.create_group("axes", track_order=True)
 
         zlen = np.shape(outlist[0])[0]
         if zlen > 1:
-            axgroup.create_dataset("1_index", data=self.get_bin_axvals(
-                np.arange(zlen), 0), track_order=True)
+            axgroup.create_dataset(
+                "1_index", data=self.get_bin_axvals(
+                    np.arange(zlen), 0), track_order=True)
         else:
             axgroup.create_dataset(
-                "1_index", data=[0.0, 1.0, 1.0, 1.0, 1.0, 1.0], track_order=True)
+                "1_index",
+                data=[
+                    0.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0],
+                track_order=True)
 
-        axgroup.create_dataset("2_q_perp", data=self.get_bin_axvals(
-            outlist[1][0], 1), track_order=True)
-        axgroup.create_dataset("3_q_para", data=self.get_bin_axvals(
-            outlist[2][0], 2), track_order=True)
+        axgroup.create_dataset(
+            "2_q_perp", data=self.get_bin_axvals(
+                outlist[1][0], 1), track_order=True)
+        axgroup.create_dataset(
+            "3_q_para", data=self.get_bin_axvals(
+                outlist[2][0], 2), track_order=True)
 
         dset = hf.create_group("qpara_qperp")
         dset["qpara_qperp_map"] = h5py.SoftLink('/binoculars/counts')
@@ -1853,7 +1997,8 @@ class Experiment:
         if self.savetiffs == True:
             self.do_savetiffs(hf, outlist[0], outlist[1], outlist[2])
 
-    def pyfai_static_ivsq(self, hf, scan, num_threads, output_file_path, pyfaiponi, ivqbins, qmapbins=0, slitdistratios=None):
+    def pyfai_static_ivsq(self, hf, scan, num_threads, output_file_path,
+                          pyfaiponi, ivqbins, qmapbins=0, slitdistratios=None):
         qlimits, scanlength, scanlistnew = self.pyfai_setup_limits(
             scan, self.calcqlim, slitdistratios)
 
@@ -1862,8 +2007,8 @@ class Experiment:
         if qmapbins == 0:
             qstep = round(self.calcq(1.00, self.incident_wavelength) -
                           self.calcq(1.01, self.incident_wavelength), 4)
-            binshor = abs(round(((qlimits[1]-qlimits[0])/qstep)*1.05))
-            binsver = abs(round(((qlimits[3]-qlimits[2])/qstep)*1.05))
+            binshor = abs(round(((qlimits[1] - qlimits[0]) / qstep) * 1.05))
+            binsver = abs(round(((qlimits[3] - qlimits[2]) / qstep) * 1.05))
             qmapbins = (binshor, binsver)
 
         scalegamma = 1
@@ -1876,8 +2021,13 @@ class Experiment:
         with Pool(processes=num_threads) as pool:
 
             # fullargs needs to start with scan and end with slitdistratios
-            fullargs = [scan, self.two_theta_start,
-                        pyfaiponi, qmapbins, ivqbins, slitdistratios]
+            fullargs = [
+                scan,
+                self.two_theta_start,
+                pyfaiponi,
+                qmapbins,
+                ivqbins,
+                slitdistratios]
             input_args = self.get_input_args(
                 scanlength, scalegamma, 'slitdist', False, num_threads, fullargs)
 
@@ -1894,8 +2044,9 @@ class Experiment:
         signal_shape = np.shape(scan.metadata.data_file.default_signal)
         outlist = [all_ints[0], all_Qs[0], all_two_ths[0]]
         if len(signal_shape) > 1:
-            outlist = [self.reshape_to_signalshape(
-                arr, signal_shape) for arr in outlist]
+            outlist = [
+                self.reshape_to_signalshape(
+                    arr, signal_shape) for arr in outlist]
 
         dset = hf.create_group("integrations")
         dset.create_dataset("Intensity", data=outlist[0])
@@ -1944,7 +2095,8 @@ class Experiment:
         """
         from time import time
         t1 = time()
-        # Make sure that we have a list, in case we just received a single path.
+        # Make sure that we have a list, in case we just received a single
+        # path.
         if isinstance(nexus_paths, (str, Path)):
             nexus_paths = [nexus_paths]
 
@@ -1970,28 +2122,28 @@ def _match_start_stop_to_step(
 
     if user_bounds == (None, None):
         # use auto bounds and expand both ways
-        return (np.floor(auto_bounds[0]/step)*step,
-                np.ceil(auto_bounds[1]/step)*step)
+        return (np.floor(auto_bounds[0] / step) * step,
+                np.ceil(auto_bounds[1] / step) * step)
     elif user_bounds[0] is None:
         # keep user value and expand to rightdone image {i+1}/{totalimages}
-        stop = np.ceil(user_bounds[1]/step)*step
+        stop = np.ceil(user_bounds[1] / step) * step
         checkstop = np.sum(np.any(abs(stop - user_bounds[1]) > eps))
         if checkstop > 0:
             print(warning_str)
-        return np.floor(auto_bounds[0]/step)*step, stop
+        return np.floor(auto_bounds[0] / step) * step, stop
     elif user_bounds[1] is None:
         # keep user value and expand to left
-        start = np.floor(user_bounds[0]/step)*step
+        start = np.floor(user_bounds[0] / step) * step
         checkstart = np.sum(abs(user_bounds[0] - start) > eps)
         if checkstart > 0:
             print(warning_str)
-        return start, np.ceil(auto_bounds[1]/step)*step
+        return start, np.ceil(auto_bounds[1] / step) * step
     else:
-        start, stop = (np.floor(user_bounds[0]/step)*step,
-                       np.ceil(user_bounds[1]/step)*step)
+        start, stop = (np.floor(user_bounds[0] / step) * step,
+                       np.ceil(user_bounds[1] / step) * step)
         checkstart = np.sum(abs(user_bounds[0] - start) > eps)
         checkstop = np.sum(np.any(abs(stop - user_bounds[1]) > eps))
-        checkboth = checkstart+checkstop
+        checkboth = checkstart + checkstop
         if checkboth > 0:
             print(warning_str)
         return start, stop

@@ -15,7 +15,7 @@ def _fix_delta_q_geometry(arr: np.ndarray) -> np.ndarray:
     If arr.shape is 3D, make it 2D.
     """
     if len(arr.shape) == 3:
-        return arr.reshape((arr.shape[0]*arr.shape[1], arr.shape[2]))
+        return arr.reshape((arr.shape[0] * arr.shape[1], arr.shape[2]))
     return arr
 
 
@@ -62,7 +62,7 @@ def linear_bin(coords: np.ndarray,  # Coordinates of each intensity.
 
     # Work out dimensions and shape of finite elements volume.
     shape = finite_diff_shape(start, stop, step)
-    size = shape[0]*shape[1]*shape[2]
+    size = shape[0] * shape[1] * shape[2]
 
     # Subtract start values. As usual, subtract by scalars for speed.
     coords[:, 0] -= start[0]
@@ -279,10 +279,10 @@ def hist_shape(start, stop, step):
     """
     Returns the shape of the histogram returned by linear_bin_histdd.
     """
-    bins_0 = np.arange(start[0], stop[0]+step[0], step[0])
-    bins_1 = np.arange(start[1], stop[1]+step[1], step[1])
-    bins_2 = np.arange(start[2], stop[2]+step[2], step[2])
-    return (len(bins_0)-1, len(bins_1)-1, len(bins_2)-1)
+    bins_0 = np.arange(start[0], stop[0] + step[0], step[0])
+    bins_1 = np.arange(start[1], stop[1] + step[1], step[1])
+    bins_2 = np.arange(start[2], stop[2] + step[2], step[2])
+    return (len(bins_0) - 1, len(bins_1) - 1, len(bins_2) - 1)
 
 
 def linear_bin_histdd(coords: np.ndarray,  # Coordinates of each intensity.

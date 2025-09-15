@@ -227,7 +227,8 @@ def init_pyfai_process_pool(
     print(f"Finished initializing worker {current_process().name}.")
 
 
-def pyfai_stat_exitangles(experiment, imageindex, scan, two_theta_start, pyfaiponi, anglimits, qmapbins, ivqbins, slithdistratio=None, slitvdistratio=None) -> None:
+def pyfai_stat_exitangles(experiment, imageindex, scan, two_theta_start, pyfaiponi,
+                          anglimits, qmapbins, ivqbins, slithdistratio=None, slitvdistratio=None) -> None:
     index = imageindex
     aistart = pyFAI.load(
         pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
@@ -247,7 +248,8 @@ def pyfai_stat_exitangles(experiment, imageindex, scan, two_theta_start, pyfaipo
     return map2d[0], map2d[1], map2d[2], mapaxisinfo
 
 
-def pyfai_stat_qmap(experiment, imageindex, scan, two_theta_start, pyfaiponi, qlimits, qmapbins, ivqbins, slithdistratio=None, slitvdistratio=None) -> None:
+def pyfai_stat_qmap(experiment, imageindex, scan, two_theta_start, pyfaiponi,
+                    qlimits, qmapbins, ivqbins, slithdistratio=None, slitvdistratio=None) -> None:
     index = imageindex
     aistart = pyFAI.load(
         pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
@@ -267,7 +269,8 @@ def pyfai_stat_qmap(experiment, imageindex, scan, two_theta_start, pyfaiponi, ql
     return map2d[0], map2d[1], map2d[2], mapaxisinfo
 
 
-def pyfai_stat_ivsq(experiment, imageindex, scan, two_theta_start, pyfaiponi, qmapbins, ivqbins, slithdistratio=None, slitvdistratio=None) -> None:
+def pyfai_stat_ivsq(experiment, imageindex, scan, two_theta_start, pyfaiponi,
+                    qmapbins, ivqbins, slithdistratio=None, slitvdistratio=None) -> None:
     index = imageindex
     # , type_="pyFAI.integrator.fiber.FiberIntegrator")
     aistart = pyFAI.load(pyfaiponi)
@@ -322,7 +325,7 @@ def chunk(lst, num_chunks):
     Yields:
         the chunks. Note that this yields as a generator, it does not return.
     """
-    chunk_size = int(len(lst)/num_chunks)
+    chunk_size = int(len(lst) / num_chunks)
     if chunk_size * num_chunks < len(lst):
         chunk_size += 1
     for i in range(0, len(lst), chunk_size):
@@ -334,11 +337,11 @@ def _chunk_indices(array: np.ndarray, num_chunks: int) -> tuple:
     Yield num_chunks (N) tuples of incides (a, b) such that array[a0:b0],
     array[a1:b1], ..., array[aN:bN] spans the entire array.
     """
-    chunk_size = int(len(array)/num_chunks)
+    chunk_size = int(len(array) / num_chunks)
     if chunk_size * num_chunks < len(array):
         chunk_size += 1
     for i in range(0, len(array), chunk_size):
-        yield i, i+chunk_size
+        yield i, i + chunk_size
 
 
 def _bin_one_map(start: np.ndarray,
@@ -382,7 +385,7 @@ def _bin_one_map(start: np.ndarray,
         count = COUNT - count_before
 
         # Normalise it.
-        normalised_map = rsm/(count.astype(np.float32))
+        normalised_map = rsm / (count.astype(np.float32))
 
         # Get the unique id for this image & pad with zeros for paraview.
         image_id = str(previous_images + idx).zfill(6)
@@ -557,7 +560,7 @@ def _bin_one_map_SMM(start: np.ndarray,
         count = COUNT_ARRAY - count_before
 
         # Normalise it.
-        normalised_map = rsm/(count.astype(np.float32))
+        normalised_map = rsm / (count.astype(np.float32))
 
         # Get the unique id for this image & pad with zeros for paraview.
         image_id = str(previous_images + idx).zfill(6)
@@ -597,7 +600,8 @@ def _bin_one_map_SMM(start: np.ndarray,
         np.save(corrected_intensity_path, image.data.ravel())
 
 
-def rsm_init_worker(l, shm_rsm_name: str, shm_counts_name: str, shmshape: np.ndarray, metadata: RSMMetadata, newmetadata: dict, motors: Dict[str, np.ndarray], num_threads: int, frame: Frame, output_file_name: str = None):
+def rsm_init_worker(l, shm_rsm_name: str, shm_counts_name: str, shmshape: np.ndarray, metadata: RSMMetadata,
+                    newmetadata: dict, motors: Dict[str, np.ndarray], num_threads: int, frame: Frame, output_file_name: str = None):
 
     global lock
     global RSM_ARRAY
@@ -640,10 +644,11 @@ def pyfai_init_worker(l, shm_intensities_name, shm_counts_name, shmshape):
     lock = l
 
 
-def get_pyfai_components(experiment, i, sample_orientation, unit_ip_name, unit_oop_name, aistart, slitvdistratio, slithdistratio, scan, limits_in):
+def get_pyfai_components(experiment, i, sample_orientation, unit_ip_name,
+                         unit_oop_name, aistart, slitvdistratio, slithdistratio, scan, limits_in):
     if np.size(experiment.incident_angle) > 1:
         inc_angle = -np.radians(experiment.incident_angle[i])
-    elif type(experiment.incident_angle) == np.float64:
+    elif isinstance(experiment.incident_angle, np.float64):
         inc_angle = -np.radians(experiment.incident_angle)
     else:
         inc_angle = -np.radians(experiment.incident_angle[0])
@@ -669,9 +674,10 @@ def get_pyfai_components(experiment, i, sample_orientation, unit_ip_name, unit_o
     if np.size(experiment.deltadata) == 1:
         delval = np.array(experiment.deltadata).ravel()
 
-    if (-np.degrees(inc_angle) > experiment.alphacritical) & (experiment.setup == 'DCD'):
+    if (-np.degrees(inc_angle) >
+            experiment.alphacritical) & (experiment.setup == 'DCD'):
         # if above critical angle, account for direct beam adding to delta
-        rots = experiment.gamdel2rots(gamval, delval+np.degrees(-inc_angle))
+        rots = experiment.gamdel2rots(gamval, delval + np.degrees(-inc_angle))
     # elif (experiment.setup=='DCD'):
     #     rots = experiment.gamdel2rots(gamval, delval)
     else:
@@ -684,11 +690,11 @@ def get_pyfai_components(experiment, i, sample_orientation, unit_ip_name, unit_o
         my_ai.rot1 = rots[1]
         my_ai.rot2 = -rots[0]
 
-    if slitvdistratio != None:
+    if slitvdistratio is not None:
         my_ai.pixel1 *= slitvdistratio
         my_ai.poni1 *= slitvdistratio
 
-    if slithdistratio != None:
+    if slithdistratio is not None:
         my_ai.pixel2 *= slithdistratio
         my_ai.poni2 *= slithdistratio
 
@@ -697,17 +703,18 @@ def get_pyfai_components(experiment, i, sample_orientation, unit_ip_name, unit_o
     else:
         img_data = np.array(scan.load_image(i).data)
 
-    radial_limits = (limits_in[0]*(1.0+(0.05*-(np.sign(limits_in[0])))),
-                     limits_in[1]*(1.0+(0.05*(np.sign(limits_in[1])))))
-    azimuthal_limits = (limits_in[2]*(1.0+(0.05*-(np.sign(limits_in[2])))),
-                        limits_in[3]*(1.0+(0.05*(np.sign(limits_in[3])))))
+    radial_limits = (limits_in[0] * (1.0 + (0.05 * -(np.sign(limits_in[0])))),
+                     limits_in[1] * (1.0 + (0.05 * (np.sign(limits_in[1])))))
+    azimuthal_limits = (limits_in[2] * (1.0 + (0.05 * -(np.sign(limits_in[2])))),
+                        limits_in[3] * (1.0 + (0.05 * (np.sign(limits_in[3])))))
     limits_out = [radial_limits[0], radial_limits[1],
                   azimuthal_limits[0], azimuthal_limits[1]]
 
     return unit_ip, unit_oop, img_data, my_ai, limits_out
 
 
-def pyfai_move_qmap_worker(experiment, choiceims, scan, shapeqpqp, pyfaiponi, qmapbins, qlimits=None, slithdistratio=None, slitvdistratio=None) -> None:
+def pyfai_move_qmap_worker(experiment, choiceims, scan, shapeqpqp, pyfaiponi,
+                           qmapbins, qlimits=None, slithdistratio=None, slitvdistratio=None) -> None:
 
     global INTENSITY_ARRAY, COUNT_ARRAY
     aistart = pyFAI.load(
@@ -719,7 +726,7 @@ def pyfai_move_qmap_worker(experiment, choiceims, scan, shapeqpqp, pyfaiponi, qm
     unit_qip_name = "qip_A^-1"
     unit_qoop_name = "qoop_A^-1"
 
-    if qlimits == None:
+    if qlimits is None:
         qlimhor = experiment.calcqlim('hor', vertsetup=(
             experiment.setup == 'vertical'), slithorratio=slithdistratio)
         qlimver = experiment.calcqlim('vert', vertsetup=(
@@ -730,7 +737,7 @@ def pyfai_move_qmap_worker(experiment, choiceims, scan, shapeqpqp, pyfaiponi, qm
 
     groupnum = 15
 
-    groups = [choiceims[i:i+groupnum]
+    groups = [choiceims[i:i + groupnum]
               for i in range(0, len(choiceims), groupnum)]
     for group in groups:
         ais = []
@@ -758,7 +765,8 @@ def pyfai_move_qmap_worker(experiment, choiceims, scan, shapeqpqp, pyfaiponi, qm
     return mapaxisinfo
 
 
-def pyfai_move_ivsq_worker(experiment, imageindices, scan, shapeqi, pyfaiponi, radrange, slithdistratio=None, slitvdistratio=None) -> None:
+def pyfai_move_ivsq_worker(experiment, imageindices, scan, shapeqi,
+                           pyfaiponi, radrange, slithdistratio=None, slitvdistratio=None) -> None:
     global INTENSITY_ARRAY, COUNT_ARRAY
 
     # , type_="pyFAI.integrator.fiber.FiberIntegrator")
@@ -774,7 +782,7 @@ def pyfai_move_ivsq_worker(experiment, imageindices, scan, shapeqi, pyfaiponi, r
     groupnum = 15
     choiceims = imageindices
 
-    groups = [choiceims[i:i+groupnum]
+    groups = [choiceims[i:i + groupnum]
               for i in range(0, len(choiceims), groupnum)]
     for group in groups:
         ais = []
@@ -787,7 +795,7 @@ def pyfai_move_ivsq_worker(experiment, imageindices, scan, shapeqi, pyfaiponi, r
             ais.append(my_ai)
 
         ivqbins = shapeqi[1]
-        mg = MultiGeometry(ais,  unit=unit_tth_ip, wavelength=experiment.incident_wavelength, radial_range=(
+        mg = MultiGeometry(ais, unit=unit_tth_ip, wavelength=experiment.incident_wavelength, radial_range=(
             radrange[0], radrange[1]))
         result1d = mg.integrate1d(img_data_list, ivqbins)
         q_from_theta = [experiment.calcq(
@@ -808,7 +816,8 @@ def pyfai_move_ivsq_worker(experiment, imageindices, scan, shapeqi, pyfaiponi, r
         COUNT_ARRAY[1:] = totaloutcounts[1:]
 
 
-def pyfai_move_exitangles_worker(experiment, imageindices, scan, shapeexhexv, pyfaiponi, anglimits, qmapbins, slithdistratio=None, slitvdistratio=None) -> None:
+def pyfai_move_exitangles_worker(experiment, imageindices, scan, shapeexhexv,
+                                 pyfaiponi, anglimits, qmapbins, slithdistratio=None, slitvdistratio=None) -> None:
 
     global INTENSITY_ARRAY, COUNT_ARRAY
     aistart = pyFAI.load(
@@ -827,7 +836,7 @@ def pyfai_move_exitangles_worker(experiment, imageindices, scan, shapeexhexv, py
     groupnum = 15
     choiceims = imageindices
 
-    groups = [choiceims[i:i+groupnum]
+    groups = [choiceims[i:i + groupnum]
               for i in range(0, len(choiceims), groupnum)]
     for group in groups:
         ais = []
@@ -902,7 +911,8 @@ class Scan:
         """
         return Image(self.metadata, idx, load_data)
 
-    def q_bounds(self, frame: Frame, spherical_bragg_vec: np.array, oop: str = 'y') -> Tuple[np.ndarray]:
+    def q_bounds(self, frame: Frame, spherical_bragg_vec: np.array,
+                 oop: str = 'y') -> Tuple[np.ndarray]:
         """
         Works out the region of reciprocal space sampled by this scan.
 
@@ -957,7 +967,7 @@ class Scan:
             stop = [maxradius, np.pi, np.pi]
             return start, stop
         side_lengths = stop - start
-        padding = side_lengths/20
+        padding = side_lengths / 20
         start -= padding
         stop += padding
         return start, stop

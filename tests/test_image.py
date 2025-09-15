@@ -25,7 +25,7 @@ def test_data(i10_scan: Scan):
     """
     image = i10_scan.load_image(0)
     metadata = i10_scan.metadata
-    assert (image.data == image._raw_data/metadata.solid_angles).all()
+    assert (image.data == image._raw_data / metadata.solid_angles).all()
 
 
 def test_delta_q_01(i10_scan: Scan):
@@ -42,7 +42,7 @@ def test_delta_q_01(i10_scan: Scan):
     # Brightest pixel should be on the Bragg peak.
     max_intensity_pixel = np.where(image.data == np.max(image.data))
     max_intensity_q = np.linalg.norm(image.delta_q(frame)[max_intensity_pixel])
-    wavelength = 1/max_intensity_q
+    wavelength = 1 / max_intensity_q
 
     # Published value of CSO unit cell length is 8.931 Å.
     # Make sure that the brightest pixel corresponds to scattering from the
@@ -66,7 +66,8 @@ def test_binning(i10_scan: Scan):
     max1 = np.max(delta_q[:, :, 1])
     max2 = np.max(delta_q[:, :, 2])
 
-    step = np.array([(max0 - min0)/20, (max1 - min1)/20, (max2 - min2)/100])
+    step = np.array(
+        [(max0 - min0) / 20, (max1 - min1) / 20, (max2 - min2) / 100])
     start = np.array([min0, min1, min2])
     stop = np.array([max0, max1, max2]) + step
 

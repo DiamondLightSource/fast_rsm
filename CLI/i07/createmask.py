@@ -16,7 +16,8 @@ from PIL import Image
 
 def get_im_path(directorypath, scan_number):
     files = [file for file in os.listdir(f'{directorypath}') if '.nxs' in file]
-    found_file = [file for file in files if str(scan_number)+'.nxs' in file][0]
+    found_file = [file for file in files if str(
+        scan_number) + '.nxs' in file][0]
     filepath = f'{directorypath}/{found_file}'
     found_nexus = I07Nexus(filepath, directorypath)
     if found_nexus.has_hdf5_data == True:

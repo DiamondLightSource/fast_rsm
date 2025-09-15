@@ -23,7 +23,7 @@ def splitandopen(f, out):
             # Decode the byte string to a regular string
             decoded_string = byte_string.decode('utf-8').replace('\n', '')
             if 'scan_numbers' in decoded_string:
-                active_textfile.write('#'+decoded_string+'\n')
+                active_textfile.write('#' + decoded_string + '\n')
                 active_textfile = text_file_calc
             else:
                 # Write the decoded string to the text file
@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
     hf_path = args.hf_path
     outdir = args.out_dir
-    spacer = '='*25
+    spacer = '=' * 25
 
     f = h5py.File(hf_path, 'r')
     if 'i07configuration/joblines' in f.keys():
