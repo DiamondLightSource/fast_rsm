@@ -141,8 +141,9 @@ for key,val in defaults_global.items():
 
 
 
-print(f'debuglogging={DEBUG_LOGGING}')
+
 if DEBUG_LOGGING==1:
+    print(f'debuglogging={DEBUG_LOGGING}')
     import logging
     import logging.handlers
 
@@ -157,12 +158,10 @@ if DEBUG_LOGGING==1:
 
 defaults_exp={'spherical_bragg_vec':np.array([0,0,0])}
 default_exp_vals= {var: np.array(globals()[var]) if var in globals() else defaults_exp[var] for var in defaults_exp}
-logger.debug(f'default exp vals ={default_exp_vals}')
 for key,val in default_exp_vals.items():
     if not hasattr(experiment, key):
         setattr(experiment, key, val)
 
-logger.debug(f'val set to experiment.spherical_bragg_vec = {experiment.spherical_bragg_vec}')
 """
 This section is for changing metadata that is stored in, or inferred from, the
 nexus file. This is generally for more nonstandard stuff.
