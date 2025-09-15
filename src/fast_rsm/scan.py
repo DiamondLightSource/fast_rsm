@@ -352,7 +352,6 @@ def _bin_one_map(start: np.ndarray,
 
     image = Image(METADATA, idx)
     image._processing_steps = processing_steps
-    logger.debug("binning_one_map")
 
     # Do the mapping for this image; bin the mapping.
     q_vectors = image.q_vectors(FRAME, spherical_bragg_vec,oop=oop)
@@ -484,7 +483,7 @@ def bin_maps_with_indices_SMM(indices: List[int],
     intermediate function call is to decrease the amount of context switching/
     serialization that the interpreter has to do.
     """
-    logger.debug(f"spherical_bragg_vec value in bin_maps_with_indices = {spherical_bragg_vec}")
+
 
     # We need to catch all exceptions and explicitly print them in worker
     # threads.
@@ -528,7 +527,7 @@ def _bin_one_map_SMM(start: np.ndarray,
     Calculates and bins the reciprocal space map with index idx. Saves the
     result to the shared memory buffer.
     """
-    logger.debug(f"spherical_bragg_vec in bin_one_map_SMM: {spherical_bragg_vec}")
+
 
     if map_each_image:
         rsm_before = np.copy(RSM_ARRAY)
@@ -937,7 +936,6 @@ class Scan:
             stop = [max_q[x] if max_q[x] > stop[x] else stop[x]
                     for x in range(3)]
         start, stop = np.array(start), np.array(stop)
-        logger.debug(f"start and stop for bounds: {start} {stop}")
         #adjust start,stop,step if frame is in spherical polar co-ordinates
         if frame.coordinates==Frame.sphericalpolar:
             #calculate vector radius
