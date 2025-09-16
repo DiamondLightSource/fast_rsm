@@ -117,8 +117,9 @@ class Experiment:
             A list of all of the scans explored in this experiment.
     """
 
-    def __init__(self, scans: List[Scan]) -> None:
+    def __init__(self, scans: List[Scan], setup: str) -> None:
         self.scans = scans
+        self.setup=setup
         self._data_file_names = []
         self._normalisation_file_names = []
         defaults_exp = {'spherical_bragg_vec': np.array([0, 0, 0]),
@@ -2106,7 +2107,7 @@ class Experiment:
                         setup, path_to_data, using_dps, experimental_hutch)
             for x in nexus_paths]
         print(f"Took {time() - t1}s to load all nexus files.")
-        return cls(scans)
+        return cls(scans,setup)
 
 
 def _match_start_stop_to_step(
