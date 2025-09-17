@@ -130,7 +130,6 @@ experiment = Experiment.from_i07_nxs(
 experiment.mask_pixels(specific_pixels)
 experiment.mask_edf(edfmaskfile)
 experiment.mask_regions(mask_regions_list)
-experiment.setup = setup
 
 
 '''
@@ -325,7 +324,7 @@ if ('pyfai_ivsq' in process_outputs) & (map_per_image is False):
     process_start_time = time()
     experiment.load_curve_values(scanlist[0])
     PYFAI_PONI =createponi( experiment,local_output_path)
-    pyfai_moving_ivsq_smm(hf, scanlist, num_threads, local_output_path,
+    pyfai_moving_ivsq_smm(experiment, hf, scanlist, num_threads, local_output_path,
                                      PYFAI_PONI, radialrange, radialstepval, qmapbins, slitdistratios=slitratios)
     save_config_variables(hf, joblines, pythonlocation, globals())
     hf.close()
