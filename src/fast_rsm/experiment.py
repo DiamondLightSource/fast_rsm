@@ -1640,6 +1640,7 @@ class Experiment:
         """
         calculate setup values needed for pyfai calculations
         """
+        logger.debug("getting pyFAI limits in experiment.py")
         # pylint: disable=attribute-defined-outside-init
         if isinstance(scanlist, Scan):
             scanlistnew = [scanlist]
