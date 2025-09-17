@@ -34,9 +34,7 @@ from fast_rsm.writing import linear_bin_to_vtk
 
 from fast_rsm.logging_config import get_my_logger
 
-global DEBUG_LOGGING
-if DEBUG_LOGGING == 1:
-    logger=get_my_logger(__name__)
+logger=get_my_logger(__name__)
 
 
 lock=None
