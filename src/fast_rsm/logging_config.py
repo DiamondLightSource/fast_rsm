@@ -30,7 +30,7 @@ def get_frsm_logger(name: str):
         logger.setLevel(logging.INFO)
         # Add a rotating file handler to fast_rsm logger only
         file_handler = logging.handlers.RotatingFileHandler(log_path, maxBytes=500000, backupCount=1 )
-        file_handler.setLevel(logging.INFO)
+        file_handler.setLevel(logging.DEBUG)
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
