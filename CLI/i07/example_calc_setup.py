@@ -304,8 +304,8 @@ if ('pyfai_ivsq' in process_outputs) & (map_per_image is True):
         process_start_time = time()
         experiment.load_curve_values(scan)
         PYFAI_PONI =createponi( experiment,local_output_path)
-        pyfai_static_ivsq(
-            hf, scan, num_threads, local_output_path, PYFAI_PONI, ivqbins, qmapbins)
+        pyfai_static_ivsq(experiment,  hf, scan, num_threads,\
+                           local_output_path, PYFAI_PONI, ivqbins, qmapbins)
         save_config_variables(
             hf, joblines, pythonlocation, globals())
         hf.close()
@@ -324,8 +324,9 @@ if ('pyfai_ivsq' in process_outputs) & (map_per_image is False):
     process_start_time = time()
     experiment.load_curve_values(scanlist[0])
     PYFAI_PONI =createponi( experiment,local_output_path)
-    pyfai_moving_ivsq_smm(experiment, hf, scanlist, num_threads, local_output_path,
-                                     PYFAI_PONI, radialrange, radialstepval, qmapbins, slitdistratios=slitratios)
+    pyfai_moving_ivsq_smm(experiment, hf, scanlist, num_threads,\
+        local_output_path, PYFAI_PONI, radialrange, radialstepval,\
+          qmapbins, slitdistratios=slitratios)
     save_config_variables(hf, joblines, pythonlocation, globals())
     hf.close()
     print(
@@ -342,8 +343,8 @@ if ('pyfai_exitangles' in process_outputs) & (map_per_image == True):
         process_start_time = time()
         experiment.load_curve_values(scan)
         PYFAI_PONI =createponi( experiment,local_output_path)
-        pyfai_static_exitangles(
-            hf, scan, num_threads, PYFAI_PONI, ivqbins, qmapbins)
+        pyfai_static_exitangles(experiment,hf, scan, num_threads,\
+                                 PYFAI_PONI, ivqbins, qmapbins)
         save_config_variables(
             hf, joblines, pythonlocation, globals())
         hf.close()
@@ -362,8 +363,9 @@ if ('pyfai_exitangles' in process_outputs) & (map_per_image == False):
     process_start_time = time()
     experiment.load_curve_values(scanlist[0])
     PYFAI_PONI =createponi( experiment,local_output_path)   
-    pyfai_moving_exitangles_smm(hf, scanlist, num_threads, local_output_path,
-                                           PYFAI_PONI, radialrange, radialstepval, qmapbins, slitdistratios=slitratios)
+    pyfai_moving_exitangles_smm(experiment,hf, scanlist, num_threads,\
+            local_output_path, PYFAI_PONI, radialrange, radialstepval,\
+                  qmapbins, slitdistratios=slitratios)
     save_config_variables(hf, joblines, pythonlocation, globals())
     hf.close()
     print(
