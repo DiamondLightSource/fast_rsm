@@ -299,7 +299,7 @@ if ('pyfai_qmap' in process_outputs) & (map_per_image == False):
     experiment.load_curve_values(scanlist[0])
     PYFAI_PONI = experiment.createponi(
         local_output_path, experiment.imshape, beam_centre=experiment.beam_centre)
-    experiment.pyfai_moving_qmap_SMM(hf, scanlist, num_threads, local_output_path,
+    experiment.pyfai_moving_qmap_smm(hf, scanlist, num_threads, local_output_path,
                                      PYFAI_PONI, radialrange, radialstepval, qmapbins, slitdistratios=slitratios)
     experiment.save_config_variables(hf, joblines, pythonlocation, globals())
     hf.close()
@@ -340,7 +340,7 @@ if ('pyfai_ivsq' in process_outputs) & (map_per_image == False):
     experiment.load_curve_values(scanlist[0])
     PYFAI_PONI = experiment.createponi(
         local_output_path, experiment.imshape, beam_centre=experiment.beam_centre)
-    experiment.pyfai_moving_ivsq_SMM(hf, scanlist, num_threads, local_output_path,
+    experiment.pyfai_moving_ivsq_smm(hf, scanlist, num_threads, local_output_path,
                                      PYFAI_PONI, radialrange, radialstepval, qmapbins, slitdistratios=slitratios)
     experiment.save_config_variables(hf, joblines, pythonlocation, globals())
     hf.close()
@@ -380,7 +380,7 @@ if ('pyfai_exitangles' in process_outputs) & (map_per_image == False):
     experiment.load_curve_values(scanlist[0])
     PYFAI_PONI = experiment.createponi(
         local_output_path, experiment.imshape, beam_centre=experiment.beam_centre)
-    experiment.pyfai_moving_exitangles_SMM(hf, scanlist, num_threads, local_output_path,
+    experiment.pyfai_moving_exitangles_smm(hf, scanlist, num_threads, local_output_path,
                                            PYFAI_PONI, radialrange, radialstepval, qmapbins, slitdistratios=slitratios)
     experiment.save_config_variables(hf, joblines, pythonlocation, globals())
     hf.close()
@@ -394,7 +394,7 @@ if 'full_reciprocal_map' in process_outputs:
     map_frame = Frame(frame_name=frame_name, coordinates=coordinates)
     start_time = time()
     # Calculate and save a binned reciprocal space map, if requested.
-    experiment.binned_reciprocal_space_map_SMM(
+    experiment.binned_reciprocal_space_map_smm(
         num_threads, map_frame, output_file_size=output_file_size, oop=oop,
         min_intensity_mask=min_intensity,
         output_file_name=save_path,
