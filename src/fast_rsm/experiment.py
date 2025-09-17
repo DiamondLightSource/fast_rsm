@@ -37,7 +37,7 @@ from fast_rsm.writing import linear_bin_to_vtk
 
 from fast_rsm.logging_config import get_frsm_logger
 logger=get_frsm_logger(__name__)
-
+logger.debug("test debug inside experiment.py")
 # from memory_profiler import profile
 
 

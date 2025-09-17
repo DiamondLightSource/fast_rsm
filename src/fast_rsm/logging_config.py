@@ -37,6 +37,7 @@ def get_frsm_logger(name: str):
 
         print(f'logging at {log_path}')
         logger.info("test info line")
+        logger.debug("test debug line")
     else:
         print("logging disabled")
         logger.disabled=True
