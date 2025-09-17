@@ -134,9 +134,9 @@ section to make sure backwards compatibility with setup files created for previo
 '''
 
 exp_variables = ['alphacritical', 'savedats', 'savetiffs','spherical_bragg_vec']
-for var, val in exp_variables:
+for var in exp_variables:
     if var in globals():
-        setattr(experiment, var, val)
+        setattr(experiment, var, globals()[var])
 
 defaults_global = {'qmapbins': 0, 'slitvertratio': None, 'slithorratio': None,
                    'frame_name': 'hkl', 'coordinates': 'cartesian'}
