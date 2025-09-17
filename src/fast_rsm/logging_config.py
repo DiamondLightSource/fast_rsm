@@ -24,9 +24,10 @@ def get_frsm_logger(name: str):
     # Create fast_rsm logger
     logger = logging.getLogger(name)
     logging.basicConfig(level=logging.WARNING)
+    log_path = os.path.join('/dls/science/groups/das/ExampleData/i07/fast_rsm_example_data', 'debug.log')
     # Only configure once
     if not logger.hasHandlers():
-        log_path = os.path.join('/dls/science/groups/das/ExampleData/i07/fast_rsm_example_data', 'debug.log')
+        
         #Set root logger to WARNING to suppress third-party debug/info logs
         logger.setLevel(logging.INFO)
         # Add a rotating file handler to fast_rsm logger only
