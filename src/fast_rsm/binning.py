@@ -8,6 +8,7 @@ import numpy as np
 import mapper_c_utils
 from fast_rsm.logging_config import get_my_logger
 
+logger=get_my_logger(__name__,globals()['DEBUG_LOGGING'])
 def _fix_delta_q_geometry(arr: np.ndarray) -> np.ndarray:
     """
     If arr.shape is 3D, make it 2D.
