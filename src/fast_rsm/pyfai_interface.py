@@ -385,6 +385,83 @@ def get_pyfai_components(experiment, i, sample_orientation, unit_ip_name,
 
     return unit_ip, unit_oop, img_data, my_ai, limits_out
 
+def pyfai_setup_limits(experiment, scanlist, limitfunction, slitdistratios):
+    """
+    calculate setup values needed for pyfai calculations
+    """
+    # pylint: disable=attribute-defined-outside-init
+    if isinstance(scanlist, Scan):
+        scanlistnew = [scanlist]
+    else:
+        scanlistnew = scanlist
+
+    limhor = None
+    limver = None
+    for scan in scanlistnew:
+        experiment.load_curve_values(scan)
+        dcd_sample_dist = 1e-3 * scan.metadata.diffractometer._dcd_sample_distance
+        if experiment.setup == 'DCD':
+            tthdirect = -1 * \
+                np.degrees(np.arctan(experiment.projectionx / dcd_sample_dist))
+        else:
+            tthdirect = 0
+
+        experiment.two_theta_start = experiment.gammadata - tthdirect
+
+        if slitdistratios is not None:
+            scanlimhor = limitfunction(
+                'hor',
+                vertsetup=(
+                    experiment.setup == 'vertical'),
+                slithorratio=slitdistratios[1])
+            scanlimver = limitfunction(
+                'vert',
+                vertsetup=(
+                    experiment.setup == 'vertical'),
+                slitvertratio=slitdistratios[0])
+        else:
+            scanlimhor = limitfunction(
+                'hor', vertsetup=(
+                    experiment.setup == 'vertical'))
+            scanlimver = limitfunction(
+                'vert', vertsetup=(
+                    experiment.setup == 'vertical'))
+
+        scanlimits = [
+            scanlimhor[0],
+            scanlimhor[1],
+            scanlimver[0],
+            scanlimver[1]]
+        if limhor is None:
+            limhor = scanlimits[0:2]
+            limver = scanlimits[2:]
+        else:
+            limhor = combine_ranges(limhor, scanlimits[0:2])
+            limver = combine_ranges(limver, scanlimits[2:])
+
+    outlimits = [limhor[0], limhor[1], limver[0], limver[1]]
+    if experiment.setup == 'vertical':
+        experiment.beam_centre = [experiment.beam_centre[1], experiment.beam_centre[0]]
+        experiment.beam_centre[1] = experiment.imshape[0] - experiment.beam_centre[1]
+
+    datacheck = 'data' in list(scan.metadata.data_file.nx_detector)
+    localpathcheck = 'local_image_paths' in \
+    scan.metadata.data_file.__dict__.keys()
+    intcheck = isinstance(scan.metadata.data_file.scan_length, int)
+    if datacheck & intcheck:
+        scanlength = np.shape(
+            scan.metadata.data_file.nx_detector.data[:, 1, :])[0]
+        scanlength = min(scanlength, scan.metadata.data_file.scan_length)
+    elif datacheck:
+        scanlength = np.shape(
+            scan.metadata.data_file.nx_detector.data[:, 1, :])[0]
+    elif localpathcheck:
+        scanlength = len(scan.metadata.data_file.local_image_paths)
+    else:
+        scanlength = scan.metadata.data_file.scan_length
+
+    return outlimits, scanlength, scanlistnew
+
 
 #====moving detector processing
 
@@ -523,7 +600,7 @@ def pyfai_moving_exitangles_smm(experiment,
 
     exhexv_array_total = 0
     exhexv_counts_total = 0
-    anglimitsout, scanlength, scanlistnew = experiment.pyfai_setup_limits(
+    anglimitsout, scanlength, scanlistnew = pyfai_setup_limits(
         scanlist, experiment.calcanglim, slitdistratios)
     with SharedMemoryManager() as smm:
         shapeexhexv = (qmapbins[1], qmapbins[0])
@@ -532,7 +609,7 @@ def pyfai_moving_exitangles_smm(experiment,
         start_time = time()
         for scanind, scan in enumerate(scanlistnew):
 
-            anglimits, scanlength, scanlistnew = experiment.pyfai_setup_limits(
+            anglimits, scanlength, scanlistnew = pyfai_setup_limits(
                 scan, experiment.calcanglim, slitdistratios)
             scalegamma = 1
             # fullargs needs to start with scan and end with slitdistratios
@@ -590,7 +667,7 @@ def pyfai_moving_qmap_smm(
     qpqp_array_total = 0
     qpqp_counts_total = 0
 
-    qlimitsout, scanlength, scanlistnew = experiment.pyfai_setup_limits(
+    qlimitsout, scanlength, scanlistnew = pyfai_setup_limits(
         scanlist, experiment.calcqlim, slitdistratios)
 
     with SharedMemoryManager() as smm:
@@ -600,7 +677,7 @@ def pyfai_moving_qmap_smm(
             smm, shapeqpqp)
 
         for scanind, scan in enumerate(scanlistnew):
-            qlimits, scanlength, scanlistnew = experiment.pyfai_setup_limits(
+            qlimits, scanlength, scanlistnew = pyfai_setup_limits(
                 scan, experiment.calcqlim, slitdistratios)
             start_time = time()
             scalegamma = 1
@@ -659,7 +736,7 @@ def pyfai_moving_ivsq_smm(
 
     # pylint: disable=unused-argument
     # pylint: disable=unused-variable
-    fullranges, scanlength, scanlistnew = experiment.pyfai_setup_limits(
+    fullranges, scanlength, scanlistnew = pyfai_setup_limits(
         scanlist, experiment.calcanglim, slitdistratios)
     absranges = np.abs(fullranges)
     radmax = np.max(absranges)
@@ -688,7 +765,7 @@ def pyfai_moving_ivsq_smm(
             smm, shapeqi)
 
         for scanind, scan in enumerate(scanlistnew):
-            qlimits, scanlength, scanlistnew = experiment.pyfai_setup_limits(
+            qlimits, scanlength, scanlistnew = pyfai_setup_limits(
                 scan, experiment.calcqlim, slitdistratios)
             start_time = time()
             scalegamma = 1
@@ -979,83 +1056,6 @@ def pyfai_stat_ivsq(experiment, imageindex, scan, two_theta_start, pyfaiponi,
 #
     return intensity, tth, qvals
 
-def pyfai_setup_limits(experiment, scanlist, limitfunction, slitdistratios):
-    """
-    calculate setup values needed for pyfai calculations
-    """
-    # pylint: disable=attribute-defined-outside-init
-    if isinstance(scanlist, Scan):
-        scanlistnew = [scanlist]
-    else:
-        scanlistnew = scanlist
-
-    limhor = None
-    limver = None
-    for scan in scanlistnew:
-        experiment.load_curve_values(scan)
-        dcd_sample_dist = 1e-3 * scan.metadata.diffractometer._dcd_sample_distance
-        if experiment.setup == 'DCD':
-            tthdirect = -1 * \
-                np.degrees(np.arctan(experiment.projectionx / dcd_sample_dist))
-        else:
-            tthdirect = 0
-
-        experiment.two_theta_start = experiment.gammadata - tthdirect
-
-        if slitdistratios is not None:
-            scanlimhor = limitfunction(
-                'hor',
-                vertsetup=(
-                    experiment.setup == 'vertical'),
-                slithorratio=slitdistratios[1])
-            scanlimver = limitfunction(
-                'vert',
-                vertsetup=(
-                    experiment.setup == 'vertical'),
-                slitvertratio=slitdistratios[0])
-        else:
-            scanlimhor = limitfunction(
-                'hor', vertsetup=(
-                    experiment.setup == 'vertical'))
-            scanlimver = limitfunction(
-                'vert', vertsetup=(
-                    experiment.setup == 'vertical'))
-
-        scanlimits = [
-            scanlimhor[0],
-            scanlimhor[1],
-            scanlimver[0],
-            scanlimver[1]]
-        if limhor is None:
-            limhor = scanlimits[0:2]
-            limver = scanlimits[2:]
-        else:
-            limhor = combine_ranges(limhor, scanlimits[0:2])
-            limver = combine_ranges(limver, scanlimits[2:])
-
-    outlimits = [limhor[0], limhor[1], limver[0], limver[1]]
-    if experiment.setup == 'vertical':
-        experiment.beam_centre = [experiment.beam_centre[1], experiment.beam_centre[0]]
-        experiment.beam_centre[1] = experiment.imshape[0] - experiment.beam_centre[1]
-
-    datacheck = 'data' in list(scan.metadata.data_file.nx_detector)
-    localpathcheck = 'local_image_paths' in \
-    scan.metadata.data_file.__dict__.keys()
-    intcheck = isinstance(scan.metadata.data_file.scan_length, int)
-    if datacheck & intcheck:
-        scanlength = np.shape(
-            scan.metadata.data_file.nx_detector.data[:, 1, :])[0]
-        scanlength = min(scanlength, scan.metadata.data_file.scan_length)
-    elif datacheck:
-        scanlength = np.shape(
-            scan.metadata.data_file.nx_detector.data[:, 1, :])[0]
-    elif localpathcheck:
-        scanlength = len(scan.metadata.data_file.local_image_paths)
-    else:
-        scanlength = scan.metadata.data_file.scan_length
-
-    return outlimits, scanlength, scanlistnew
-
 def pyfai_static_exitangles(experiment, hf, scan, num_threads, pyfaiponi, ivqbins,
                             qmapbins=np.array([1200, 1200]), slitdistratios=None):
     """
@@ -1084,7 +1084,7 @@ def pyfai_static_exitangles(experiment, hf, scan, num_threads, pyfaiponi, ivqbin
     # pylint: disable=unused-argument
     # pylint: disable=unused-variable
     start_time = time()
-    anglimits, scanlength, scanlistnew = experiment.pyfai_setup_limits(
+    anglimits, scanlength, scanlistnew = pyfai_setup_limits(
         scan, experiment.calcanglim, slitdistratios)
     # calculate map bins if not specified using resolution of 0.01 degrees
 
@@ -1145,7 +1145,7 @@ def pyfai_static_qmap(experiment, hf, scan, num_threads, output_file_path,
 
     # pylint: disable=unused-argument
     # pylint: disable=unused-variable
-    qlimits, scanlength, scanlistnew = experiment.pyfai_setup_limits(
+    qlimits, scanlength, scanlistnew = pyfai_setup_limits(
         scan, experiment.calcqlim, slitdistratios)
 
     # calculate map bins if not specified using resolution of 0.01 degrees
@@ -1244,7 +1244,7 @@ def pyfai_static_ivsq(experiment, hf, scan, num_threads, output_file_path,
     """
     # pylint: disable=unused-argument
     # pylint: disable=unused-variable
-    qlimits, scanlength, scanlistnew = experiment.pyfai_setup_limits(
+    qlimits, scanlength, scanlistnew = pyfai_setup_limits(
         scan, experiment.calcqlim, slitdistratios)
 
     # calculate map bins if not specified using resolution of 0.01 degrees
