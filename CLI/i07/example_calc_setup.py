@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 from diffraction_utils import Frame, Region
 from fast_rsm.experiment import Experiment
-from fast_rsm.logging_config import configure_logging
+from fast_rsm.logging_config import configure_logging,get_frsm_logger
 import sys
 import h5py
 import nexusformat.nexus as nx
