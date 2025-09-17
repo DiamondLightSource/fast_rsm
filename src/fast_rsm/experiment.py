@@ -30,9 +30,7 @@ import fast_rsm.io as io
 from fast_rsm.binning import finite_diff_shape
 from fast_rsm.meta_analysis import get_step_from_filesize
 from fast_rsm.scan import Scan, chunk, \
-    pyfai_stat_qmap, pyfai_stat_ivsq, pyfai_stat_exitangles, \
-    pyfai_init_worker, pyfai_move_qmap_worker, rsm_init_worker, bin_maps_with_indices_smm, \
-    pyfai_move_ivsq_worker, pyfai_move_exitangles_worker
+      rsm_init_worker, bin_maps_with_indices_smm
 from fast_rsm.writing import linear_bin_to_vtk
 
 logger = logging.getLogger("fastrsm")
