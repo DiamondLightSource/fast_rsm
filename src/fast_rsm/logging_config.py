@@ -16,7 +16,7 @@ def configure_logging(enabled: bool):
     _logging_enabled = enabled
 
 
-def get_my_logger(name: str):
+def get_frsm_logger(name: str):
     """
     create custom logger for debugging fast_rsm
     """
