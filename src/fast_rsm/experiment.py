@@ -2097,7 +2097,7 @@ class Experiment:
             scan, self.calcqlim, slitdistratios)
 
         # calculate map bins if not specified using resolution of 0.01 degrees
-
+        logger.debug(f'from experiment.py calculating static qmap for scan {scan}')
         if qmapbins == 0:
             qstep = round(self.calcq(1.00, self.incident_wavelength) -
                           self.calcq(1.01, self.incident_wavelength), 4)
