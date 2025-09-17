@@ -6,7 +6,17 @@ import logging
 import logging.handlers
 import os
 
-def get_my_logger(name: str,debuglogging: int):
+
+
+# Internal flag (not global across modules)
+_logging_enabled = 0
+
+def configure_logging(enabled: bool):
+    global _logging_enabled
+    _logging_enabled = enabled
+
+
+def get_my_logger(name: str):
     """
     create custom logger for debugging fast_rsm
     """
@@ -14,7 +24,7 @@ def get_my_logger(name: str,debuglogging: int):
     # Create fast_rsm logger
     logger = logging.getLogger(name)
     logging.basicConfig(level=logging.WARNING)
-    if debuglogging==1:
+    if _logging_enabled ==1:
         log_path = os.path.join('/dls/science/groups/das/ExampleData/i07/fast_rsm_example_data', 'debug.log')
         #Set root logger to WARNING to suppress third-party debug/info logs
         logger.setLevel(logging.INFO)
