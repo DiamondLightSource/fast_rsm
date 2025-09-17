@@ -34,7 +34,7 @@ from fast_rsm.scan import Scan, chunk, \
     pyfai_init_worker, pyfai_move_qmap_worker, rsm_init_worker, bin_maps_with_indices_smm, \
     pyfai_move_ivsq_worker, pyfai_move_exitangles_worker
 from fast_rsm.writing import linear_bin_to_vtk
-
+from fast_rsm.logging_config import get_my_logger
 
 logger=get_my_logger(__name__)
 
