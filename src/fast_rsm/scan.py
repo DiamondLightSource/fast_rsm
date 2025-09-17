@@ -15,7 +15,7 @@ from multiprocessing.shared_memory import SharedMemory
 from multiprocessing import Lock
 from pathlib import Path
 from typing import Union, Tuple, List, Dict
-
+import logging
 from pyFAI.multi_geometry import MultiGeometry
 import pyFAI
 from pyFAI import units
@@ -31,8 +31,7 @@ from fast_rsm.image import Image
 from fast_rsm.rsm_metadata import RSMMetadata
 from fast_rsm.writing import linear_bin_to_vtk
 
-from fast_rsm.logging_config import get_frsm_logger
-logger=get_frsm_logger()
+logger = logging.getLogger("fastrsm")
 
 
 lock=None

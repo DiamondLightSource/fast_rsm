@@ -35,8 +35,7 @@ from fast_rsm.scan import Scan, chunk, \
     pyfai_move_ivsq_worker, pyfai_move_exitangles_worker
 from fast_rsm.writing import linear_bin_to_vtk
 
-from fast_rsm.logging_config import get_frsm_logger
-logger=get_frsm_logger()
+logger = logging.getLogger("fastrsm")
 logger.debug("test debug inside experiment.py")
 logger.info("test info inside experiment.py")
 # from memory_profiler import profile
