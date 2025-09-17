@@ -24,26 +24,25 @@ def get_frsm_logger(name: str):
     # Create fast_rsm logger
     logger = logging.getLogger(name)
     logging.basicConfig(level=logging.WARNING)
-
-     # Only configure once
+    # Only configure once
     if not logger.hasHandlers():
-        if _logging_enabled ==1:
-            log_path = os.path.join('/dls/science/groups/das/ExampleData/i07/fast_rsm_example_data', 'debug.log')
-            #Set root logger to WARNING to suppress third-party debug/info logs
-            logger.setLevel(logging.INFO)
-            # Add a rotating file handler to fast_rsm logger only
-            file_handler = logging.handlers.RotatingFileHandler(log_path, maxBytes=500000, backupCount=1 )
-            file_handler.setLevel(logging.DEBUG)
-            formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-            file_handler.setFormatter(formatter)
-            logger.addHandler(file_handler)
+        log_path = os.path.join('/dls/science/groups/das/ExampleData/i07/fast_rsm_example_data', 'debug.log')
+        #Set root logger to WARNING to suppress third-party debug/info logs
+        logger.setLevel(logging.INFO)
+        # Add a rotating file handler to fast_rsm logger only
+        file_handler = logging.handlers.RotatingFileHandler(log_path, maxBytes=500000, backupCount=1 )
+        file_handler.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
 
-            print(f'logging at {log_path}')
-            logger.info("test info line")
-            logger.debug("test debug line")
-        else:
-            print("logging disabled")
-            logger.disabled=True
-
+     
+    if _logging_enabled ==1:
+        print(f'logging at {log_path}')
+        logger.info("test info line")
+        logger.debug("test debug line")
+    else:
+        print("logging disabled")
+        logger.disabled=True
 
     return logger
