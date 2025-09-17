@@ -600,7 +600,7 @@ def pyfai_moving_exitangles_smm(experiment,
 
     exhexv_array_total = 0
     exhexv_counts_total = 0
-    anglimitsout, scanlength, scanlistnew = pyfai_setup_limits(
+    anglimitsout, scanlength, scanlistnew = pyfai_setup_limits(experiment,\
         scanlist, experiment.calcanglim, slitdistratios)
     with SharedMemoryManager() as smm:
         shapeexhexv = (qmapbins[1], qmapbins[0])
@@ -609,7 +609,7 @@ def pyfai_moving_exitangles_smm(experiment,
         start_time = time()
         for scanind, scan in enumerate(scanlistnew):
 
-            anglimits, scanlength, scanlistnew = pyfai_setup_limits(
+            anglimits, scanlength, scanlistnew = pyfai_setup_limits(experiment,\
                 scan, experiment.calcanglim, slitdistratios)
             scalegamma = 1
             # fullargs needs to start with scan and end with slitdistratios
@@ -667,7 +667,7 @@ def pyfai_moving_qmap_smm(
     qpqp_array_total = 0
     qpqp_counts_total = 0
 
-    qlimitsout, scanlength, scanlistnew = pyfai_setup_limits(
+    qlimitsout, scanlength, scanlistnew = pyfai_setup_limits(experiment,\
         scanlist, experiment.calcqlim, slitdistratios)
 
     with SharedMemoryManager() as smm:
@@ -677,7 +677,7 @@ def pyfai_moving_qmap_smm(
             smm, shapeqpqp)
 
         for scanind, scan in enumerate(scanlistnew):
-            qlimits, scanlength, scanlistnew = pyfai_setup_limits(
+            qlimits, scanlength, scanlistnew = pyfai_setup_limits(experiment,\
                 scan, experiment.calcqlim, slitdistratios)
             start_time = time()
             scalegamma = 1
@@ -736,7 +736,7 @@ def pyfai_moving_ivsq_smm(
 
     # pylint: disable=unused-argument
     # pylint: disable=unused-variable
-    fullranges, scanlength, scanlistnew = pyfai_setup_limits(
+    fullranges, scanlength, scanlistnew = pyfai_setup_limits(experiment,\
         scanlist, experiment.calcanglim, slitdistratios)
     absranges = np.abs(fullranges)
     radmax = np.max(absranges)
@@ -765,7 +765,7 @@ def pyfai_moving_ivsq_smm(
             smm, shapeqi)
 
         for scanind, scan in enumerate(scanlistnew):
-            qlimits, scanlength, scanlistnew = pyfai_setup_limits(
+            qlimits, scanlength, scanlistnew = pyfai_setup_limits(experiment,\
                 scan, experiment.calcqlim, slitdistratios)
             start_time = time()
             scalegamma = 1
@@ -1084,7 +1084,7 @@ def pyfai_static_exitangles(experiment, hf, scan, num_threads, pyfaiponi, ivqbin
     # pylint: disable=unused-argument
     # pylint: disable=unused-variable
     start_time = time()
-    anglimits, scanlength, scanlistnew = pyfai_setup_limits(
+    anglimits, scanlength, scanlistnew = pyfai_setup_limits(experiment,\
         scan, experiment.calcanglim, slitdistratios)
     # calculate map bins if not specified using resolution of 0.01 degrees
 
@@ -1145,7 +1145,7 @@ def pyfai_static_qmap(experiment, hf, scan, num_threads, output_file_path,
 
     # pylint: disable=unused-argument
     # pylint: disable=unused-variable
-    qlimits, scanlength, scanlistnew = pyfai_setup_limits(
+    qlimits, scanlength, scanlistnew = pyfai_setup_limits(experiment,\
         scan, experiment.calcqlim, slitdistratios)
 
     # calculate map bins if not specified using resolution of 0.01 degrees
@@ -1244,7 +1244,7 @@ def pyfai_static_ivsq(experiment, hf, scan, num_threads, output_file_path,
     """
     # pylint: disable=unused-argument
     # pylint: disable=unused-variable
-    qlimits, scanlength, scanlistnew = pyfai_setup_limits(
+    qlimits, scanlength, scanlistnew = pyfai_setup_limits(experiment,\
         scan, experiment.calcqlim, slitdistratios)
 
     # calculate map bins if not specified using resolution of 0.01 degrees
