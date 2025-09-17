@@ -1,49 +1,38 @@
 """
 custom module to contain methods for creating custom a custom logger
 """
-
 import logging
 import logging.handlers
 import os
 
-
-
-# Internal flag (not global across modules)
-_logging_enabled = 0
+# Centralized logging flag
+_logging_enabled = False
+_log_path = os.path.join('/dls/science/groups/das/ExampleData/i07/fast_rsm_example_data', 'debug.log')
 
 def configure_logging(enabled: bool):
     global _logging_enabled
     _logging_enabled = enabled
 
-
 def get_frsm_logger(name: str):
     """
-    create custom logger for debugging fast_rsm
+    Create or retrieve a logger for fast_rsm with consistent file logging.
     """
-
-    # Create fast_rsm logger
     logger = logging.getLogger(name)
-    logging.basicConfig(level=logging.WARNING)
-    log_path = os.path.join('/dls/science/groups/das/ExampleData/i07/fast_rsm_example_data', 'debug.log')
-    # Only configure once
-    if not logger.hasHandlers():
-        
-        #Set root logger to WARNING to suppress third-party debug/info logs
-        logger.setLevel(logging.INFO)
-        # Add a rotating file handler to fast_rsm logger only
-        file_handler = logging.handlers.RotatingFileHandler(log_path, maxBytes=500000, backupCount=1 )
+
+    if not any(isinstance(h, logging.handlers.RotatingFileHandler) for h in logger.handlers):
+        logger.setLevel(logging.DEBUG if _logging_enabled else logging.CRITICAL)
+        file_handler = logging.handlers.RotatingFileHandler(
+            _log_path, maxBytes=500000, backupCount=1
+        )
         file_handler.setLevel(logging.DEBUG)
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
 
-     
-    if _logging_enabled ==1:
-        print(f'logging at {log_path}')
-        logger.info("test info line")
-        logger.debug("test debug line")
+    if _logging_enabled:
+        print(f'Logging enabled at {_log_path}')
+        logger.info("Logger initialized")
     else:
-        print("logging disabled")
-        logger.disabled=True
+        print("Logging disabled")
 
     return logger
