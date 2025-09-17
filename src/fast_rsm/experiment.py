@@ -36,7 +36,7 @@ from fast_rsm.scan import Scan, chunk, \
 from fast_rsm.writing import linear_bin_to_vtk
 
 from fast_rsm.logging_config import get_frsm_logger
-logger=get_frsm_logger("fastrsm")
+logger=get_frsm_logger()
 logger.debug("test debug inside experiment.py")
 logger.info("test info inside experiment.py")
 # from memory_profiler import profile

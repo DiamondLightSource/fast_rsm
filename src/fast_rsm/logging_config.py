@@ -7,17 +7,18 @@ import os
 
 # Centralized logging flag
 _logging_enabled = False
+_logger_name="fastrsm"
 _log_path = os.path.join('/dls/science/groups/das/ExampleData/i07/fast_rsm_example_data', 'debug.log')
 
 def configure_logging(enabled: bool):
     global _logging_enabled
     _logging_enabled = enabled
 
-def get_frsm_logger(name: str):
+def get_frsm_logger():
     """
     Create or retrieve a logger for fast_rsm with consistent file logging.
     """
-    logger = logging.getLogger(name)
+    logger = logging.getLogger(_logger_name)
 
     if not any(isinstance(h, logging.handlers.RotatingFileHandler) for h in logger.handlers):
         logger.setLevel(logging.DEBUG if _logging_enabled else logging.CRITICAL)
