@@ -1,0 +1,1303 @@
+import copy
+import traceback
+from datetime import datetime
+from time import time
+from multiprocessing import current_process,Lock,Pool
+from multiprocessing.shared_memory import SharedMemory
+from multiprocessing.managers import SharedMemoryManager
+from pathlib import Path
+from typing import Union, Tuple, List, Dict
+import logging
+from pyFAI.multi_geometry import MultiGeometry
+import pyFAI
+from pyFAI import units
+
+import numpy as np
+
+from diffraction_utils import  Frame #I10Nexus, Vector3,
+#from diffraction_utils.diffractometers import I10RasorDiffractometer
+
+from fast_rsm.rsm_metadata import RSMMetadata
+from fast_rsm.scan import Scan,chunk
+
+
+from pathlib import Path
+from typing import Union, Tuple, List, Dict
+import logging
+from pyFAI.multi_geometry import MultiGeometry
+import pyFAI
+from pyFAI import units
+
+import numpy as np
+
+from diffraction_utils import  Frame #I10Nexus, Vector3,
+#from diffraction_utils.diffractometers import I10RasorDiffractometer
+
+
+logger = logging.getLogger("fastrsm")
+
+#====general functions
+def check_shared_memory(shared_mem_name: str) -> None:
+    """
+    Make sure that a shared memory array is not open. Clear the shared memory
+    and print a warning if it is open.
+
+    Args:
+        shared_mem_name:
+            Name of the shared memory array to check.
+    """
+    # Make sure that we don't leak this memory more than once.
+    try:
+        shm = SharedMemory(shared_mem_name,
+                           size=100)  # Totally arbitrary number.
+        shm.close()
+        shm.unlink()
+        print(f"Had to unlink *leaked* shared memory '{shared_mem_name}'...")
+    except FileNotFoundError:
+        # Don't do anything if we couldn't open 'arr'.
+        pass
+
+def createponi(experiment, outpath, offset=0):
+    """
+    creates a poni file from experiment settings to use in pyFAI functions
+
+    Parameters
+    ----------
+    outpath : string
+        directory to save poni file to.
+    image2dshape : array
+        shape of image data.
+    beam_centre : array, optional
+        x,y values for beam centre. The default is 0.
+    offset : float, optional
+        offset in x for PONI1 value. The default is 0.
+
+    Returns
+    -------
+    ponioutpath : string
+        path to saved poni file.
+
+    """
+    image2dshape=experiment.imshape
+    beam_centre=experiment.beam_centre
+    datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+    ponioutpath = fr'{outpath}/fast_rsm_{datetime_str}.poni'
+    with open(ponioutpath, 'w', encoding='utf-8') as f:
+        f.write('# PONI file created by fast_rsm\n#\n')
+        f.write('poni_version: 2\n')
+        f.write('Detector: Detector\n')
+        f.write('Detector_config: {"pixel1":')
+        pixel_line= (
+            f'{experiment.pixel_size}, '
+            f'"pixel2": {experiment.pixel_size}, '
+            f'"max_shape": [{image2dshape[0]}, {image2dshape[1]}]'
+            )
+        f.write(pixel_line)
+        f.write('}\n')
+        f.write(f'Distance: {experiment.detector_distance}\n')
+        if beam_centre == 0:
+            poni1 = (image2dshape[0] - offset) * experiment.pixel_size
+            poni2 = image2dshape[1] * experiment.pixel_size
+        elif (offset == 0) & (experiment.setup != 'vertical'):
+            poni1 = (beam_centre[0]) * experiment.pixel_size
+            poni2 = beam_centre[1] * experiment.pixel_size
+        else:  # (offset == 0) & (experiment.setup == 'vertical'):
+            poni1 = beam_centre[1] * experiment.pixel_size
+            poni2 = (image2dshape[0] - beam_centre[0]) * experiment.pixel_size
+
+        f.write(f'Poni1: {poni1}\n')
+        f.write(f'Poni2: {poni2}\n')
+        f.write('Rot1: 0.0\n')
+        f.write('Rot2: 0.0\n')
+        f.write('Rot3: 0.0\n')
+        f.write(f'Wavelength: {experiment.incident_wavelength}')
+    return ponioutpath
+
+def get_input_args(experiment, scanlength, scalegamma,
+                    multi, num_threads, fullargs):
+
+    fullrange = np.arange(0, scanlength, scalegamma)
+    selectedindices = [
+        n for n in fullrange if n not in fullargs[0].skip_images]
+    if multi:
+        inputindices = chunk(selectedindices, num_threads)
+    else:
+        inputindices = selectedindices
+
+    if fullargs[-1] is not None:
+        endlist = fullargs[:-1] + [fullargs[-1][0], fullargs[-1][1]]
+    else:
+        endlist = fullargs[:-1]
+    input_args = [[experiment, indices] +
+                    endlist for indices in inputindices]
+    return input_args
+
+#====save functions
+def save_integration(experiment, hf, twothetas, q_angs,
+                        intensities, configs, scan=0):
+    """
+    save 1d Intensity Vs Q profile to hdf5 file
+    """
+    dset = hf.create_group("integrations")
+    dset.create_dataset("configs", data=str(configs))
+    dset.create_dataset("2thetas", data=twothetas)
+    dset.create_dataset("Q_angstrom^-1", data=q_angs)
+    dset.create_dataset("Intensity", data=intensities)
+    if "scanfields" not in hf.keys():
+        save_scan_field_values(hf, scan)
+    if experiment.savedats is True:
+        experiment.do_savedats(hf, intensities, q_angs, twothetas)
+
+def save_qperp_qpara(experiment, hf, qperp_qpara_map, scan=0):
+    """
+    save a qpara vs qperp map to hdf5 file
+
+    """
+    dset = hf.create_group("qperp_qpara")
+    dset.create_dataset("images", data=qperp_qpara_map[0])
+    dset.create_dataset("qpararanges", data=qperp_qpara_map[1])
+    dset.create_dataset("qperpranges", data=qperp_qpara_map[2])
+    if "scanfields" not in hf.keys():
+        save_scan_field_values(hf, scan)
+
+    if experiment.savetiffs is True:
+        experiment.do_savetiffs(
+            hf,
+            qperp_qpara_map[0],
+            qperp_qpara_map[1],
+            qperp_qpara_map[2])
+
+def save_config_variables(hf, joblines, pythonlocation, globalvals):
+    """
+    save all variables in the configuration file to the output hdf5 file
+    """
+    config_group = hf.create_group('i07configuration')
+    configlist = [
+        'setup',
+        'experimental_hutch',
+        'using_dps',
+        'beam_centre',
+        'detector_distance',
+        'dpsx_central_pixel',
+        'dpsy_central_pixel',
+        'dpsz_central_pixel',
+        'local_data_path',
+        'local_output_path',
+        'output_file_size',
+        'save_binoculars_h5',
+        'map_per_image',
+        'volume_start',
+        'volume_step',
+        'volume_stop',
+        'load_from_dat',
+        'edfmaskfile',
+        'specific_pixels',
+        'mask_regions',
+        'process_outputs',
+        'scan_numbers']
+    for name in configlist:
+        if name in globalvals:
+            outval = globalvals[f'{name}']
+            if outval is None:
+                outval = 'None'
+            config_group.create_dataset(f"{name}", data=outval)
+    if 'ubinfo' in globalvals:
+        for i, coll in enumerate(globalvals['ubinfo']):
+            ubgroup = config_group.create_group(f'ubinfo_{i+1}')
+            ubgroup.create_dataset(
+                f'lattice_{i+1}', data=coll['diffcalc_lattice'])
+            ubgroup.create_dataset(f'u_{i+1}', data=coll['diffcalc_u'])
+            ubgroup.create_dataset(f'ub_{i+1}', data=coll['diffcalc_ub'])
+
+    config_group.create_dataset('joblines', data=joblines)
+    config_group.create_dataset('python_location', data=pythonlocation)
+
+def reshape_to_signalshape(arr, signal_shape):
+    """
+    reshape data to match expected signal shape
+    """
+    testsize = int(np.prod(signal_shape)) - np.shape(arr)[0]
+
+    fullshape = signal_shape + np.shape(arr)[1:]
+    if testsize == 0:
+        return np.reshape(arr, fullshape)
+    else:
+        extradata = np.zeros((testsize,) + (np.shape(arr)[1:]))
+        outarr = np.concatenate((arr, extradata))
+        return np.reshape(outarr, fullshape)
+
+def save_scan_field_values(hf, scan):
+    """
+    saves scanfields recorded in nexus file to hdf5 output
+    """
+
+    try:
+        rank = scan.metadata.data_file.diamond_scan.scan_rank.nxdata
+        fields = scan.metadata.data_file.diamond_scan.scan_fields
+        scanned = [x.decode('utf-8').split('.')[0]
+                    for x in fields[:rank].nxdata]
+        scannedvalues = [
+            np.unique(
+                scan.metadata.data_file.nx_instrument[field].value)for field in scanned]
+        scannedvaluesout = [scannedvals[~np.isnan(
+            scannedvals)] for scannedvals in scannedvalues]
+    except BaseException:
+        scanned, scannedvaluesout = None, None
+
+    dset = hf.create_group("scanfields")
+    if scan != 0:
+        if scanned is not None:
+            for i, field in enumerate(scanned):
+                dset.create_dataset(
+                    f"dim{i}_{field}", data=scannedvaluesout[i])
+
+def save_hf_map(experiment, hf, mapname, sum_array,
+                counts_array, mapaxisinfo, start_time):
+    norm_array = np.divide(
+        sum_array,
+        counts_array,
+        out=np.copy(sum_array),
+        where=counts_array != 0.0)
+    end_time = time()
+    times = [start_time, end_time]
+    dset = hf.create_group(f"{mapname}")
+    dset.create_dataset(f"{mapname}_map", data=norm_array)
+    dset.create_dataset("map_para", data=mapaxisinfo[1])
+    dset.create_dataset("map_para_unit", data=mapaxisinfo[3])
+    # list(reversed(mapaxisinfo[0])))
+    dset.create_dataset("map_perp", data=mapaxisinfo[0])
+    dset.create_dataset("map_perp_unit", data=mapaxisinfo[2])
+    dset.create_dataset("map_perp_indices", data=[0, 1, 2])
+    dset.create_dataset("map_para_indices", data=[0, 1, 3])
+
+    if experiment.savetiffs:
+        experiment.do_savetiffs(hf, norm_array, mapaxisinfo[1], mapaxisinfo[0])
+
+    minutes = (times[1] - times[0]) / 60
+    print(f'total calculation took {minutes}  minutes')
+
+
+#====process functions
+def deprecation_msg(option):
+    """
+    check list of deprecated functions, and print out warning message if needed
+    """
+    giwaxsdeplist = [
+        'curved_projection_2D',
+        'pyfai_1D',
+        'qperp_qpara_map',
+        'large_moving_det',
+        'pyfai_2dqmap_IvsQ']
+    if option in giwaxsdeplist:
+        return f"option {option} has been deprecated. \
+            GIWAXS mapping calculations now use pyFAI. \
+        Please use process outputs 'pyfai_ivsq'  , 'pyfai_qmap'\
+                and 'pyfai_exitangles'"
+
+def pyfai_init_worker(l, shm_intensities_name, shm_counts_name, shmshape):
+    """
+    intialiser for pyfai mappings
+    """
+    logger.debug("test debug inside scan.py/pyfai_init_worker")
+    logger.info("test info inside scan.py/pyfai_init_worker")
+    global lock
+    global SHM_INTENSITY
+    global INTENSITY_ARRAY
+    global SHM_COUNT
+    global COUNT_ARRAY
+
+    SHM_INTENSITY = SharedMemory(name=shm_intensities_name)
+    SHM_COUNT = SharedMemory(name=shm_counts_name)
+    INTENSITY_ARRAY = np.ndarray(
+        shape=shmshape, dtype=np.float32, buffer=SHM_INTENSITY.buf)
+    COUNT_ARRAY = np.ndarray(
+        shape=shmshape, dtype=np.float32, buffer=SHM_COUNT.buf)
+    lock = l
+
+def get_pyfai_components(experiment, i, sample_orientation, unit_ip_name,
+                         unit_oop_name, aistart, slitvdistratio, slithdistratio, scan, limits_in):
+    """
+    get components need for mapping with pyFAI
+    """
+    if np.size(experiment.incident_angle) > 1:
+        inc_angle = -np.radians(experiment.incident_angle[i])
+    elif isinstance(experiment.incident_angle, np.float64):
+        inc_angle = -np.radians(experiment.incident_angle)
+    else:
+        inc_angle = -np.radians(experiment.incident_angle[0])
+
+    if experiment.setup == 'DCD':
+        inc_angle_out = 0  # debug setting incident angle to 0
+    else:
+        inc_angle_out = inc_angle
+
+    unit_ip = units.get_unit_fiber(
+        unit_ip_name, sample_orientation=sample_orientation, incident_angle=inc_angle_out)
+    unit_oop = units.get_unit_fiber(
+        unit_oop_name, sample_orientation=sample_orientation, incident_angle=inc_angle_out)
+
+    gamval = 0
+    delval = 0
+    if np.size(experiment.gammadata) > 1:
+        gamval = -np.array(experiment.two_theta_start).ravel()[i]
+    if np.size(experiment.gammadata) == 1:
+        gamval = -np.array(experiment.two_theta_start).ravel()
+    if np.size(experiment.deltadata) > 1:
+        delval = np.array(experiment.deltadata).ravel()[i]
+    if np.size(experiment.deltadata) == 1:
+        delval = np.array(experiment.deltadata).ravel()
+
+    if (-np.degrees(inc_angle) >
+            experiment.alphacritical) & (experiment.setup == 'DCD'):
+        # if above critical angle, account for direct beam adding to delta
+        rots = experiment.gamdel2rots(gamval, delval + np.degrees(-inc_angle))
+    # elif (experiment.setup=='DCD'):
+    #     rots = experiment.gamdel2rots(gamval, delval)
+    else:
+        rots = experiment.gamdel2rots(gamval, delval)
+
+    my_ai = copy.deepcopy(aistart)
+    my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
+
+    if experiment.setup == 'vertical':
+        my_ai.rot1 = rots[1]
+        my_ai.rot2 = -rots[0]
+
+    if slitvdistratio is not None:
+        my_ai.pixel1 *= slitvdistratio
+        my_ai.poni1 *= slitvdistratio
+
+    if slithdistratio is not None:
+        my_ai.pixel2 *= slithdistratio
+        my_ai.poni2 *= slithdistratio
+
+    if experiment.setup == 'vertical':
+        img_data = np.rot90(scan.load_image(i).data, -1)
+    else:
+        img_data = np.array(scan.load_image(i).data)
+
+    radial_limits = (limits_in[0] * (1.0 + (0.05 * -(np.sign(limits_in[0])))),
+                     limits_in[1] * (1.0 + (0.05 * (np.sign(limits_in[1])))))
+    azimuthal_limits = (limits_in[2] * (1.0 + (0.05 * -(np.sign(limits_in[2])))),
+                        limits_in[3] * (1.0 + (0.05 * (np.sign(limits_in[3])))))
+    limits_out = [radial_limits[0], radial_limits[1],
+                  azimuthal_limits[0], azimuthal_limits[1]]
+
+    return unit_ip, unit_oop, img_data, my_ai, limits_out
+
+
+#====moving detector processing
+
+def init_pyfai_process_pool(
+        locks: List[Lock],
+        num_threads: int,
+        metadata: RSMMetadata,
+        shapeqi: tuple,
+    shapecake: tuple,
+        shapeqpqpmap: tuple,
+        output_file_name: str = None
+) -> None:
+    """
+    Initializes a processing pool to have a global shared lock.
+
+    Args:
+        locks:
+            A list of the locks that will be shared between spawned processes.
+        num_threads:
+            The total number of processes that are being spawned in the pool.
+        shape:
+            Passed if you want to make PYFAI_QI and CAKE arrays global.
+    """
+    # pylint: disable=global-variable-undefined.
+
+    # Make a global lock for the shared memory block used in parallel code.
+    global LOCKS
+
+    # Some metadata that a worker thread should always have access to.
+    global NUM_THREADS
+    global METADATA
+
+    # Not always necessary and may be set to None.
+    global OUTPUT_FILE_NAME
+
+    # These are numpy arrays whose buffer corresponds to the shared memory
+    # buffer. It's more convenient to access these later than to directly work
+    # with the shared memory buffer.
+    global PYFAI_QI
+    global CAKE
+    global QPQPMAP
+
+    # We want to keep track of what we've called our shared memory arrays.
+    global SHARED_PYFAI_QI_NAME
+    global SHARED_CAKE_NAME
+    global SHARED_QPQPMAP_NAME
+    # Why do we need to make the shared memory blocks global, if we're giving
+    # global access to them via the numpy 'PYFAI_QI' and 'CAKE' arrays? The answer
+    # is that we need the shared memory arrays to remain in scope, or they'll be
+    # freed.
+    global SHARED_PYFAI_QI
+    global SHARED_CAKE
+    global SHARED_QPQPMAP
+
+    LOCKS = locks
+    NUM_THREADS = num_threads
+    METADATA = metadata
+
+    OUTPUT_FILE_NAME = output_file_name
+
+    # Work out how many bytes we're going to need by making a dummy array.
+    arrqi = np.ndarray(shape=shapeqi, dtype=np.float32)
+    arrcake = np.ndarray(shape=shapecake, dtype=np.float32)
+    arrqpqpmap = np.ndarray(shape=shapeqpqpmap, dtype=np.float32)
+
+    # Construct the shared memory buffers.
+    SHARED_PYFAI_QI_NAME = f'pyfai_qi_{current_process().name}'
+    SHARED_CAKE_NAME = f'cake_{current_process().name}'
+    SHARED_QPQPMAP_NAME = f'qpqpmap_{current_process().name}'
+
+    check_shared_memory(SHARED_PYFAI_QI_NAME)
+    check_shared_memory(SHARED_CAKE_NAME)
+    check_shared_memory(SHARED_QPQPMAP_NAME)
+
+    SHARED_PYFAI_QI = SharedMemory(
+        name=SHARED_PYFAI_QI_NAME, create=True, size=arrqi.nbytes)
+    SHARED_CAKE = SharedMemory(
+        name=SHARED_CAKE_NAME, create=True, size=arrcake.nbytes)
+    SHARED_QPQPMAP = SharedMemory(
+        name=SHARED_QPQPMAP_NAME, create=True, size=arrqpqpmap.nbytes)
+
+    # Construct the global references to the shared memory arrays.
+    PYFAI_QI = np.ndarray(shapeqi, dtype=np.float32,
+                          buffer=SHARED_PYFAI_QI.buf)
+    CAKE = np.ndarray(shapecake, dtype=np.float32, buffer=SHARED_CAKE.buf)
+    QPQPMAP = np.ndarray(shapeqpqpmap, dtype=np.float32,
+                         buffer=SHARED_QPQPMAP.buf)
+
+    # Initialize the shared memory arrays.
+    PYFAI_QI.fill(0)
+    CAKE.fill(0)
+    QPQPMAP.fill(0)
+
+    print(f"Finished initializing worker {current_process().name}.")
+
+def start_smm(smm, memshape):
+    """
+    start up the shared memory manager and associated data arrays
+    """
+    shm_intensities = smm.SharedMemory(
+        size=np.zeros(memshape, dtype=np.float32).nbytes)
+    shm_counts = smm.SharedMemory(
+        size=np.zeros(
+            memshape,
+            dtype=np.float32).nbytes)
+    arrays_arr = np.ndarray(
+        memshape,
+        dtype=np.float32,
+        buffer=shm_intensities.buf)
+    counts_arr = np.ndarray(
+        memshape,
+        dtype=np.float32,
+        buffer=shm_counts.buf)
+    arrays_arr.fill(0)
+    counts_arr.fill(0)
+    l = Lock()
+    return shm_intensities, shm_counts, arrays_arr, counts_arr, l
+
+def pyfai_moving_exitangles_smm(experiment,
+                                hf,
+                                scanlist,
+                                num_threads,
+                                output_file_path,
+                                pyfaiponi,
+                                radrange,
+                                radstepval,
+                                qmapbins=np.array([800,
+                                                    800]),
+                                slitdistratios=None):
+    """
+    calculate exit angle map with moving detector
+    """
+
+    # pylint: disable=unused-argument
+    # pylint: disable=unused-variable
+
+    exhexv_array_total = 0
+    exhexv_counts_total = 0
+    anglimitsout, scanlength, scanlistnew = experiment.pyfai_setup_limits(
+        scanlist, experiment.calcanglim, slitdistratios)
+    with SharedMemoryManager() as smm:
+        shapeexhexv = (qmapbins[1], qmapbins[0])
+        shm_intensities, shm_counts, arrays_arr, counts_arr, l = experiment.start_smm(
+            smm, shapeexhexv)
+        start_time = time()
+        for scanind, scan in enumerate(scanlistnew):
+
+            anglimits, scanlength, scanlistnew = experiment.pyfai_setup_limits(
+                scan, experiment.calcanglim, slitdistratios)
+            scalegamma = 1
+            # fullargs needs to start with scan and end with slitdistratios
+            fullargs = [
+                scan,
+                shapeexhexv,
+                pyfaiponi,
+                anglimitsout,
+                qmapbins,
+                slitdistratios]
+            input_args = experiment.get_input_args(
+                scanlength, scalegamma, True, num_threads, fullargs)
+            print(f'starting process pool with num_threads=\
+    {num_threads} for scan {scanind+1}/{len(scanlistnew)}')
+
+            with Pool(num_threads, initializer=pyfai_init_worker, \
+    initargs=(l, shm_intensities.name, shm_counts.name, shapeexhexv)) as pool:
+                mapaxisinfolist = pool.starmap(
+                    pyfai_move_exitangles_worker, input_args)
+            print(
+                f'finished process pool for scan {scanind+1}/{len(scanlistnew)}')
+
+    mapaxisinfo = mapaxisinfolist[0]
+    exhexv_array_total = arrays_arr
+    exhexv_counts_total = counts_arr
+    experiment.save_hf_map(
+        hf,
+        "exit_angles",
+        exhexv_array_total,
+        exhexv_counts_total,
+        mapaxisinfo,
+        start_time)
+    return mapaxisinfo
+
+def pyfai_moving_qmap_smm(
+        experiment,
+        hf,
+        scanlist,
+        num_threads,
+        output_file_path,
+        pyfaiponi,
+        radrange,
+        radstepval,
+        qmapbins=(
+            1200,
+            1200),
+        slitdistratios=None):
+    """
+    calculate q_para vs q_perp map for a moving detector scan
+    """
+
+    # pylint: disable=unused-argument
+    # pylint: disable=unused-variable
+    qlimitsout = [0, 0, 0, 0]
+    qpqp_array_total = 0
+    qpqp_counts_total = 0
+
+    qlimitsout, scanlength, scanlistnew = experiment.pyfai_setup_limits(
+        scanlist, experiment.calcqlim, slitdistratios)
+
+    with SharedMemoryManager() as smm:
+
+        shapeqpqp = (qmapbins[1], qmapbins[0])
+        shm_intensities, shm_counts, arrays_arr, counts_arr, l = experiment.start_smm(
+            smm, shapeqpqp)
+
+        for scanind, scan in enumerate(scanlistnew):
+            qlimits, scanlength, scanlistnew = experiment.pyfai_setup_limits(
+                scan, experiment.calcqlim, slitdistratios)
+            start_time = time()
+            scalegamma = 1
+            # fullargs needs to start with scan and end with slitdistratios
+
+            fullargs = [
+                scan,
+                shapeqpqp,
+                pyfaiponi,
+                qmapbins,
+                qlimitsout,
+                slitdistratios]
+            input_args = experiment.get_input_args(
+                scanlength, scalegamma, True, num_threads, fullargs)
+            # print(np.shape(input_args))
+            print(
+                f'starting process pool with num_threads=\
+                {num_threads} for scan {scanind+1}/{len(scanlistnew)}')
+
+            with Pool(num_threads, \
+                        initializer=pyfai_init_worker, \
+            initargs=(l, shm_intensities.name, shm_counts.name, shapeqpqp)) as pool:
+                mapaxisinfolist = pool.starmap(
+                    pyfai_move_qmap_worker, input_args)
+            print(
+                f'finished process pool for scan {scanind+1}/{len(scanlistnew)}')
+
+    mapaxisinfo = mapaxisinfolist[0]
+    qpqp_array_total = arrays_arr
+    qpqp_counts_total = counts_arr
+    experiment.save_hf_map(
+        hf,
+        "qpara_qperp",
+        qpqp_array_total,
+        qpqp_counts_total,
+        mapaxisinfo,
+        start_time)
+    return mapaxisinfo
+
+def pyfai_moving_ivsq_smm(
+        experiment,
+        hf,
+        scanlist,
+        num_threads,
+        output_file_path,
+        pyfaiponi,
+        radrange,
+        radstepval,
+        qmapbins=(
+            1200,
+            1200),
+        slitdistratios=None):
+    """
+    calculate 1d Intensity Vs Q profile for a moving detector scan
+    """
+
+    # pylint: disable=unused-argument
+    # pylint: disable=unused-variable
+    fullranges, scanlength, scanlistnew = experiment.pyfai_setup_limits(
+        scanlist, experiment.calcanglim, slitdistratios)
+    absranges = np.abs(fullranges)
+    radmax = np.max(absranges)
+    # radrange=(0,radmax)
+    con1 = np.abs(fullranges[0]) < np.abs(fullranges[0] - fullranges[1])
+    con2 = np.abs(fullranges[2]) < np.abs(fullranges[2] - fullranges[3])
+
+    if (con1) & (con2):
+        radrange = (0, radmax)
+
+    elif con1:
+        radrange = np.sort([absranges[2], absranges[3]])
+    elif con2:
+        radrange = np.sort([absranges[0], absranges[1]])
+    else:
+
+        radrange = (np.max([absranges[0], absranges[2]]),
+                    np.max([absranges[1], absranges[3]]))
+
+    nqbins = int(np.ceil((radrange[1] - radrange[0]) / radstepval))
+
+    with SharedMemoryManager() as smm:
+
+        shapeqi = (3, np.abs(nqbins))
+        shm_intensities, shm_counts, arrays_arr, counts_arr, l = experiment.start_smm(
+            smm, shapeqi)
+
+        for scanind, scan in enumerate(scanlistnew):
+            qlimits, scanlength, scanlistnew = experiment.pyfai_setup_limits(
+                scan, experiment.calcqlim, slitdistratios)
+            start_time = time()
+            scalegamma = 1
+            # fullargs needs to start with scan and end with slitdistratios
+            fullargs = [scan, shapeqi, pyfaiponi, radrange, slitdistratios]
+            input_args = experiment.get_input_args(
+                scanlength, scalegamma, True, num_threads, fullargs)
+            print(
+                f'starting process pool with num_threads=\
+                {num_threads} for scan {scanind+1}/{len(scanlistnew)}')
+
+            with Pool(num_threads, \
+                        initializer=pyfai_init_worker, \
+                initargs=(l, shm_intensities.name, shm_counts.name, shapeqi)) as pool:
+                pool.starmap(pyfai_move_ivsq_worker, input_args)
+            print(
+                f'finished process pool for scan {scanind+1}/{len(scanlistnew)}')
+    qi_array = np.divide(
+        arrays_arr[0],
+        counts_arr[0],
+        out=np.copy(
+            arrays_arr[0]),
+        where=counts_arr[0] != 0)
+    end_time = time()
+
+    dset = hf.create_group("integrations")
+    dset.create_dataset("Intensity", data=qi_array)
+    dset.create_dataset("Q_angstrom^-1", data=arrays_arr[1])
+    dset.create_dataset("2thetas", data=arrays_arr[2])
+
+    if experiment.savedats:
+        experiment.do_savedats(hf, qi_array, arrays_arr[1], arrays_arr[2])
+    minutes = (end_time - start_time) / 60
+    print(f'total calculation took {minutes}  minutes')
+
+
+def pyfai_move_qmap_worker(experiment, choiceims, scan, shapeqpqp, pyfaiponi,
+         qmapbins, qlimits=None, slithdistratio=None, slitvdistratio=None) -> None:
+    """
+    calculate 2d q_para Vs q_perp map for moving detector scan using pyFAI
+    
+    """
+
+    global INTENSITY_ARRAY, COUNT_ARRAY
+    aistart = pyFAI.load(pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
+
+    shapemap = shapeqpqp
+    totalqpqpmap = np.zeros((shapemap[0], shapemap[1]))
+    totalqpqpcounts = np.zeros((shapemap[0], shapemap[1]))
+    unit_qip_name = "qip_A^-1"
+    unit_qoop_name = "qoop_A^-1"
+
+    if qlimits is None:
+        qlimhor = experiment.calcqlim('hor', vertsetup=(
+            experiment.setup == 'vertical'), slithorratio=slithdistratio)
+        qlimver = experiment.calcqlim('vert', vertsetup=(
+            experiment.setup == 'vertical'), slitvertratio=slitvdistratio)
+        qlimits = [qlimhor[0], qlimhor[1], qlimver[0], qlimver[1]]
+
+    sample_orientation = 1
+
+    groupnum = 15
+
+    groups = [choiceims[i:i + groupnum]
+              for i in range(0, len(choiceims), groupnum)]
+    for group in groups:
+        ais = []
+        img_data_list = []
+        for i in group:
+            unit_qip, unit_qoop, img_data, my_ai, ai_limits = \
+                get_pyfai_components(experiment, i, sample_orientation,\
+    unit_qip_name, unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, qlimits)
+
+            img_data_list.append(img_data)
+            ais.append(my_ai)
+
+        for current_n, current_ai in enumerate(ais):
+            current_img = img_data_list[current_n]
+            map2d = current_ai.integrate2d(current_img, qmapbins[0],\
+             qmapbins[1], unit=(unit_qip, unit_qoop),\
+             radial_range=(ai_limits[0], ai_limits[1]),\
+             azimuth_range=(ai_limits[2], ai_limits[3]),\
+             method=("no", "csr", "cython"))
+
+            totalqpqpmap += map2d.sum_signal
+            totalqpqpcounts += map2d.count
+
+    mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
+        map2d.azimuthal_unit), str(map2d.radial_unit)]
+    with lock:
+        INTENSITY_ARRAY += totalqpqpmap
+        COUNT_ARRAY += totalqpqpcounts.astype(dtype=np.int32)
+    return mapaxisinfo
+
+def pyfai_move_ivsq_worker(experiment, imageindices, scan, shapeqi,
+                           pyfaiponi, radrange, slithdistratio=None, slitvdistratio=None) -> None:
+    """
+    calculate 1d intensity vs q profile for moving detector scan using pyFAI
+    
+    """
+    # pylint: disable=global-variable-not-assigned
+    # pylint: disable=unused-variable
+    global INTENSITY_ARRAY, COUNT_ARRAY
+
+    # , type_="pyFAI.integrator.fiber.FiberIntegrator")
+    aistart = pyFAI.load(pyfaiponi)
+    # 15-07-2025  fiber integrator not currently working with multigeomtery
+    totaloutqi = np.zeros(shapeqi)
+    totaloutcounts = np.zeros(shapeqi)
+
+    unit_qip_name = "2th_deg"  # "qtot_A^-1"# "qip_A^-1"
+    unit_qoop_name = "qoop_A^-1"
+
+    sample_orientation = 1
+    groupnum = 15
+    choiceims = imageindices
+
+    groups = [choiceims[i:i + groupnum]
+              for i in range(0, len(choiceims), groupnum)]
+    for group in groups:
+        ais = []
+        img_data_list = []
+        for i in group:
+            unit_tth_ip, unit_qoop, img_data, my_ai, ai_limits = get_pyfai_components(
+                experiment, i, sample_orientation, unit_qip_name, \
+                unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, [0, 1, 0, 1])
+
+            img_data_list.append(img_data)
+            ais.append(my_ai)
+
+        ivqbins = shapeqi[1]
+        mg = MultiGeometry(ais, unit=unit_tth_ip,\
+                     wavelength=experiment.incident_wavelength,\
+                        radial_range=(
+            radrange[0], radrange[1]))
+        result1d = mg.integrate1d(img_data_list, ivqbins)
+        q_from_theta = [experiment.calcq(
+            val, experiment.incident_wavelength) for val in result1d.radial]
+        # theta_from_q= [experiment.calctheta(val, experiment.incident_wavelength) \
+        # for val in result1d.radial]
+
+        totaloutqi[0] += result1d.sum_signal
+        totaloutqi[1] = q_from_theta
+        totaloutqi[2] = result1d.radial
+
+        totaloutcounts[0] += result1d.count  # [int(val) for val in I>0]
+        totaloutcounts[1] = q_from_theta
+        totaloutcounts[2] = result1d.radial  # theta_from_q#
+    with lock:
+        INTENSITY_ARRAY[0] += totaloutqi[0]
+        INTENSITY_ARRAY[1:] = totaloutqi[1:]
+        COUNT_ARRAY[0] += totaloutcounts[0]
+        COUNT_ARRAY[1:] = totaloutcounts[1:]
+
+def pyfai_move_exitangles_worker(experiment, imageindices, scan,\
+                                shapeexhexv,pyfaiponi, anglimits,\
+                qmapbins, slithdistratio=None, slitvdistratio=None) -> None:
+    """
+    calculate exit angle map for moving detector scan using pyFAI
+
+    """
+    global INTENSITY_ARRAY, COUNT_ARRAY
+    aistart = pyFAI.load(pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
+
+    shapemap = shapeexhexv
+    totalexhexvmap = np.zeros((shapemap[0], shapemap[1]))
+    totalexhexvcounts = np.zeros((shapemap[0], shapemap[1]))
+    unit_qip_name = "exit_angle_horz_deg"
+    unit_qoop_name = "exit_angle_vert_deg"
+    sample_orientation = 1
+
+    # if experiment.setup=='vertical':
+    #     sample_orientation=4
+
+    groupnum = 15
+    choiceims = imageindices
+
+    groups = [choiceims[i:i + groupnum]
+              for i in range(0, len(choiceims), groupnum)]
+    for group in groups:
+        ais = []
+        img_data_list = []
+        for i in group:
+            unit_qip, unit_qoop, img_data, my_ai, ai_limits = get_pyfai_components(
+                experiment, i, sample_orientation, unit_qip_name,\
+                unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, anglimits)
+
+            img_data_list.append(img_data)
+            ais.append(my_ai)
+
+        for current_n, current_ai in enumerate(ais):
+            current_img = img_data_list[current_n]
+            map2d = current_ai.integrate2d(current_img, qmapbins[0], qmapbins[1], \
+                    unit=(unit_qip, unit_qoop),\
+                radial_range=(ai_limits[0], ai_limits[1]),\
+                azimuth_range=(ai_limits[2], ai_limits[3]),\
+                    method=("no", "csr", "cython"))
+            totalexhexvmap += map2d.sum_signal
+            totalexhexvcounts += map2d.count
+
+    mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
+        map2d.azimuthal_unit), str(map2d.radial_unit)]
+    with lock:
+        INTENSITY_ARRAY += totalexhexvmap
+        COUNT_ARRAY += totalexhexvcounts
+    return mapaxisinfo
+
+
+#====static detector processing
+def pyfai_stat_exitangles(experiment, imageindex, scan, two_theta_start, pyfaiponi,\
+    anglimits, qmapbins, ivqbins, slithdistratio=None, slitvdistratio=None) -> None:
+    """
+    calculate exit angle map for static detector scan data using pyFAI Fiber integrator
+    """
+    # pylint: disable=unused-argument
+    # pylint: disable=unused-variable
+    index = imageindex
+    aistart = pyFAI.load(pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
+
+    sample_orientation = 1
+    unit_qip_name = "exit_angle_horz_deg"
+    unit_qoop_name = "exit_angle_vert_deg"
+
+    unit_qip, unit_qoop, img_data, my_ai, ai_limits = get_pyfai_components(
+        experiment, index, sample_orientation, unit_qip_name, unit_qoop_name,\
+              aistart, slitvdistratio, slithdistratio, scan, anglimits)
+
+    map2d = my_ai.integrate2d(img_data, qmapbins[0], qmapbins[1], unit=(unit_qip, unit_qoop),
+                              radial_range=(ai_limits[0], ai_limits[1]), \
+        azimuth_range=(ai_limits[2], ai_limits[3]), method=("no", "csr", "cython"))
+    mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
+        map2d.azimuthal_unit), str(map2d.radial_unit)]
+
+    return map2d[0], map2d[1], map2d[2], mapaxisinfo
+
+def pyfai_stat_qmap(experiment, imageindex, scan, two_theta_start, pyfaiponi,
+                    qlimits, qmapbins, ivqbins, slithdistratio=None, slitvdistratio=None) -> None:
+    """
+    calculate q_para Vs q_perp map for static detector scan data using pyFAI Fiber integrator
+    """
+    # pylint: disable=unused-argument
+    # pylint: disable=unused-variable
+    index = imageindex
+    aistart = pyFAI.load(pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
+
+    sample_orientation = 1
+
+    unit_qip_name = "qip_A^-1"
+    unit_qoop_name = "qoop_A^-1"
+
+    unit_qip, unit_qoop, img_data, my_ai, ai_limits = get_pyfai_components(
+        experiment, index, sample_orientation, unit_qip_name,\
+              unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, qlimits)
+
+    map2d = my_ai.integrate2d(img_data, qmapbins[0], qmapbins[1], unit=(unit_qip, unit_qoop),
+                              radial_range=(ai_limits[0], ai_limits[1]), \
+                azimuth_range=(ai_limits[2], ai_limits[3]), method=("no", "csr", "cython"))
+    mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
+        map2d.azimuthal_unit), str(map2d.radial_unit)]
+    return map2d[0], map2d[1], map2d[2], mapaxisinfo
+
+def pyfai_stat_ivsq(experiment, imageindex, scan, two_theta_start, pyfaiponi,
+                    qmapbins, ivqbins, slithdistratio=None, slitvdistratio=None) -> None:
+    """
+    calculate Intensity Vs Q profile for static detector scan data using pyFAI Fiber integrator
+    """
+    # pylint: disable=unused-argument
+    # pylint: disable=unused-variable
+    index = imageindex
+    # , type_="pyFAI.integrator.fiber.FiberIntegrator")
+    aistart = pyFAI.load(pyfaiponi)
+    sample_orientation = 1
+
+    unit_qip_name = "qtot_A^-1"
+    unit_qoop_name = "qoop_A^-1"
+    unit_q_tot, unit_qoop, img_data, my_ai, ai_limits = get_pyfai_components(
+        experiment, index, sample_orientation, unit_qip_name,\
+     unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, [0, 1, 0, 1])
+
+    tth, intensity = my_ai.integrate1d_ng(img_data,
+                                  ivqbins,
+                                  unit="2th_deg", polarization_factor=1)
+    qvals = [experiment.calcq(tthval, experiment.incident_wavelength)
+         for tthval in tth]
+    # Q, I = my_ai.integrate1d_ng(img_data,
+    #                             ivqbins,
+    #                             unit="q_A^-1", polarization_factor=1)
+#
+    return intensity, tth, qvals
+
+def pyfai_setup_limits(experiment, scanlist, limitfunction, slitdistratios):
+    """
+    calculate setup values needed for pyfai calculations
+    """
+    # pylint: disable=attribute-defined-outside-init
+    if isinstance(scanlist, Scan):
+        scanlistnew = [scanlist]
+    else:
+        scanlistnew = scanlist
+
+    limhor = None
+    limver = None
+    for scan in scanlistnew:
+        experiment.load_curve_values(scan)
+        dcd_sample_dist = 1e-3 * scan.metadata.diffractometer._dcd_sample_distance
+        if experiment.setup == 'DCD':
+            tthdirect = -1 * \
+                np.degrees(np.arctan(experiment.projectionx / dcd_sample_dist))
+        else:
+            tthdirect = 0
+
+        experiment.two_theta_start = experiment.gammadata - tthdirect
+
+        if slitdistratios is not None:
+            scanlimhor = limitfunction(
+                'hor',
+                vertsetup=(
+                    experiment.setup == 'vertical'),
+                slithorratio=slitdistratios[1])
+            scanlimver = limitfunction(
+                'vert',
+                vertsetup=(
+                    experiment.setup == 'vertical'),
+                slitvertratio=slitdistratios[0])
+        else:
+            scanlimhor = limitfunction(
+                'hor', vertsetup=(
+                    experiment.setup == 'vertical'))
+            scanlimver = limitfunction(
+                'vert', vertsetup=(
+                    experiment.setup == 'vertical'))
+
+        scanlimits = [
+            scanlimhor[0],
+            scanlimhor[1],
+            scanlimver[0],
+            scanlimver[1]]
+        if limhor is None:
+            limhor = scanlimits[0:2]
+            limver = scanlimits[2:]
+        else:
+            limhor = combine_ranges(limhor, scanlimits[0:2])
+            limver = combine_ranges(limver, scanlimits[2:])
+
+    outlimits = [limhor[0], limhor[1], limver[0], limver[1]]
+    if experiment.setup == 'vertical':
+        experiment.beam_centre = [experiment.beam_centre[1], experiment.beam_centre[0]]
+        experiment.beam_centre[1] = experiment.imshape[0] - experiment.beam_centre[1]
+
+    datacheck = 'data' in list(scan.metadata.data_file.nx_detector)
+    localpathcheck = 'local_image_paths' in \
+    scan.metadata.data_file.__dict__.keys()
+    intcheck = isinstance(scan.metadata.data_file.scan_length, int)
+    if datacheck & intcheck:
+        scanlength = np.shape(
+            scan.metadata.data_file.nx_detector.data[:, 1, :])[0]
+        scanlength = min(scanlength, scan.metadata.data_file.scan_length)
+    elif datacheck:
+        scanlength = np.shape(
+            scan.metadata.data_file.nx_detector.data[:, 1, :])[0]
+    elif localpathcheck:
+        scanlength = len(scan.metadata.data_file.local_image_paths)
+    else:
+        scanlength = scan.metadata.data_file.scan_length
+
+    return outlimits, scanlength, scanlistnew
+
+def pyfai_static_exitangles(experiment, hf, scan, num_threads, pyfaiponi, ivqbins,
+                            qmapbins=np.array([1200, 1200]), slitdistratios=None):
+    """
+    calculate the map of vertical exit angle Vs horizontal exit angle using pyFAI
+
+    Parameters
+    ----------
+    hf : hdf5 file
+        open hdf5 file to write data to.
+    scan : scan object
+        scan to be analysed.
+    num_threads : int
+        number of threads used in calculation.
+    pyfaiponi : string
+        path to PONI file.
+    ivqbins : int
+        number of bins for I Vs Q profile.
+    qmapbins : array, optional
+        number of x,y bins for map. The default is 0.
+
+    Returns
+    -------
+    None.
+
+    """
+    # pylint: disable=unused-argument
+    # pylint: disable=unused-variable
+    start_time = time()
+    anglimits, scanlength, scanlistnew = experiment.pyfai_setup_limits(
+        scan, experiment.calcanglim, slitdistratios)
+    # calculate map bins if not specified using resolution of 0.01 degrees
+
+    scalegamma = 1
+
+    print(f'starting process pool with num_threads={num_threads}')
+    all_maps = []
+    all_xlabels = []
+    all_ylabels = []
+    all_mapaxisinfo = []
+
+    with Pool(processes=num_threads) as pool:
+
+        # fullargs needs to start with scan and end with slitdistratios
+        fullargs = [
+            scan,
+            experiment.two_theta_start,
+            pyfaiponi,
+            anglimits,
+            qmapbins,
+            ivqbins,
+            slitdistratios]
+        input_args = experiment.get_input_args(
+            scanlength, scalegamma, False, num_threads, fullargs)
+        results = pool.starmap(pyfai_stat_exitangles, input_args)
+        maps = [result[0] for result in results]
+        xlabels = [result[1] for result in results]
+        ylabels = [result[2] for result in results]
+        mapaxisinfo = [result[3] for result in results]
+        all_maps.append(maps)
+        all_xlabels.append(xlabels)
+        all_ylabels.append(ylabels)
+        all_mapaxisinfo.append(mapaxisinfo)
+
+    print('finished process pool')
+
+    signal_shape = np.shape(scan.metadata.data_file.default_signal)
+    if len(signal_shape) > 1:
+        savemaps = experiment.reshape_to_signalshape(all_maps[0], signal_shape)
+    else:
+        savemaps = all_maps[0]
+    if "scanfields" not in hf.keys():
+        experiment.save_scan_field_values(hf, scan)
+    experiment.save_hf_map(
+        hf,
+        "exit_angles",
+        savemaps,
+        np.ones(
+            np.shape(savemaps)),
+        all_mapaxisinfo[0][0],
+        start_time)
+
+def pyfai_static_qmap(experiment, hf, scan, num_threads, output_file_path,
+                        pyfaiponi, ivqbins, qmapbins=0, slitdistratios=None):
+    """
+    calculate 2d q_para vs q_perp mape for a static detector scan
+    """
+
+    # pylint: disable=unused-argument
+    # pylint: disable=unused-variable
+    qlimits, scanlength, scanlistnew = experiment.pyfai_setup_limits(
+        scan, experiment.calcqlim, slitdistratios)
+
+    # calculate map bins if not specified using resolution of 0.01 degrees
+    if qmapbins == 0:
+        qstep = round(experiment.calcq(1.00, experiment.incident_wavelength) -
+                        experiment.calcq(1.01, experiment.incident_wavelength), 4)
+        binshor = abs(round(((qlimits[1] - qlimits[0]) / qstep) * 1.05))
+        binsver = abs(round(((qlimits[3] - qlimits[2]) / qstep) * 1.05))
+        qmapbins = (binshor, binsver)
+
+    scalegamma = 1
+
+    print(f'starting process pool with num_threads={num_threads}')
+    all_maps = []
+    all_xlabels = []
+    all_ylabels = []
+
+    with Pool(processes=num_threads) as pool:
+        # fullargs needs to start with scan and end with slitdistratios
+        fullargs = [
+            scan,
+            experiment.two_theta_start,
+            pyfaiponi,
+            qlimits,
+            qmapbins,
+            ivqbins,
+            slitdistratios]
+        input_args = experiment.get_input_args(
+            scanlength, scalegamma, False, num_threads, fullargs)
+        results = pool.starmap(pyfai_stat_qmap, input_args)
+        maps = [result[0] for result in results]
+        xlabels = [result[1] for result in results]
+        ylabels = [result[2] for result in results]
+        all_maps.append(maps)
+        all_xlabels.append(xlabels)
+        all_ylabels.append(ylabels)
+
+    print('finished process pool')
+
+    signal_shape = np.shape(scan.metadata.data_file.default_signal)
+    outlist = [all_maps[0], all_xlabels[0], all_ylabels[0]]
+    if len(signal_shape) > 1:
+        outlist = [
+            experiment.reshape_to_signalshape(
+                arr, signal_shape) for arr in outlist]
+
+    binset = hf.create_group("binoculars")
+    binset.create_dataset("counts", data=outlist[0])
+    binset.create_dataset(
+        "contributions",
+        data=np.ones(
+            np.shape(
+                outlist[0])))
+    axgroup = binset.create_group("axes", track_order=True)
+
+    zlen = np.shape(outlist[0])[0]
+    if zlen > 1:
+        axgroup.create_dataset(
+            "1_index", data=experiment.get_bin_axvals(
+                np.arange(zlen), 0), track_order=True)
+    else:
+        axgroup.create_dataset(
+            "1_index",
+            data=[
+                0.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0],
+            track_order=True)
+
+    axgroup.create_dataset(
+        "2_q_perp", data=experiment.get_bin_axvals(
+            outlist[1][0], 1), track_order=True)
+    axgroup.create_dataset(
+        "3_q_para", data=experiment.get_bin_axvals(
+            outlist[2][0], 2), track_order=True)
+
+    dset = hf.create_group("qpara_qperp")
+    dset["qpara_qperp_map"] = h5py.SoftLink('/binoculars/counts')
+    dset.create_dataset("map_para", data=outlist[1])
+    dset.create_dataset("map_perp", data=outlist[2])
+    dset.create_dataset("map_perp_indices", data=[0, 1, 2])
+    dset.create_dataset("map_para_indices", data=[0, 1, 3])
+
+    if "scanfields" not in hf.keys():
+        experiment.save_scan_field_values(hf, scan)
+    if experiment.savetiffs:
+        experiment.do_savetiffs(hf, outlist[0], outlist[1], outlist[2])
+
+def pyfai_static_ivsq(experiment, hf, scan, num_threads, output_file_path,
+                        pyfaiponi, ivqbins, qmapbins=0, slitdistratios=None):
+    """
+    calculate Intensity Vs Q 1d profile from static detector scan
+    """
+    # pylint: disable=unused-argument
+    # pylint: disable=unused-variable
+    qlimits, scanlength, scanlistnew = experiment.pyfai_setup_limits(
+        scan, experiment.calcqlim, slitdistratios)
+
+    # calculate map bins if not specified using resolution of 0.01 degrees
+
+    if qmapbins == 0:
+        qstep = round(experiment.calcq(1.00, experiment.incident_wavelength) -
+                        experiment.calcq(1.01, experiment.incident_wavelength), 4)
+        binshor = abs(round(((qlimits[1] - qlimits[0]) / qstep) * 1.05))
+        binsver = abs(round(((qlimits[3] - qlimits[2]) / qstep) * 1.05))
+        qmapbins = (binshor, binsver)
+
+    scalegamma = 1
+
+    print(f'starting process pool with num_threads={num_threads}')
+    all_ints = []
+    all_two_ths = []
+    all_qs = []
+
+    with Pool(processes=num_threads) as pool:
+
+        # fullargs needs to start with scan and end with slitdistratios
+        fullargs = [
+            scan,
+            experiment.two_theta_start,
+            pyfaiponi,
+            qmapbins,
+            ivqbins,
+            slitdistratios]
+        input_args = experiment.get_input_args(
+            scanlength, scalegamma, False, num_threads, fullargs)
+
+        results = pool.starmap(pyfai_stat_ivsq, input_args)
+        intensities = [result[0] for result in results]
+        two_th_vals = [result[1] for result in results]
+        q_vals = [result[2] for result in results]
+        all_ints.append(intensities)
+        all_two_ths.append(two_th_vals)
+        all_qs.append(q_vals)
+
+    print('finished process pool')
+
+    signal_shape = np.shape(scan.metadata.data_file.default_signal)
+    outlist = [all_ints[0], all_qs[0], all_two_ths[0]]
+    if len(signal_shape) > 1:
+        outlist = [
+            experiment.reshape_to_signalshape(
+                arr, signal_shape) for arr in outlist]
+
+    dset = hf.create_group("integrations")
+    dset.create_dataset("Intensity", data=outlist[0])
+    dset.create_dataset("Q_angstrom^-1", data=outlist[1])
+    dset.create_dataset("2thetas", data=outlist[2])
+    if "scanfields" not in hf.keys():
+        experiment.save_scan_field_values(hf, scan)
+    if experiment.savedats is True:
+        experiment.do_savedats(hf, outlist[0], outlist[1], outlist[2])

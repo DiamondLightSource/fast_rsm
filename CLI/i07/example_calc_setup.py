@@ -5,13 +5,6 @@ unless you know what you're doing.
 """
 
 # Warn if dps offsets are silly.
-import sys
-import os
-import h5py
-import nexusformat.nexus as nx
-from time import time
-from fast_rsm.diamond_utils import save_binoculars_hdf5
-from datetime import datetime
 if ((dpsx_central_pixel > 10) or (dpsy_central_pixel > 10) or
         (dpsz_central_pixel > 10)):
     raise ValueError("DPS central pixel units should be meters. Detected "
@@ -146,22 +139,6 @@ for key, val in defaults_global.items():
         globals()[key] = val
 
 
-# if DEBUG_LOGGING == 1:
-#     print(f'debuglogging={DEBUG_LOGGING}')
-#     import logging
-#     import logging.handlers
-
-#     log_path = os.path.join(
-#         '/dls/science/groups/das/ExampleData/i07/fast_rsm_example_data', 'debug.log')
-
-#     logging.basicConfig(handlers=[logging.handlers.RotatingFileHandler(log_path, maxBytes=500000, backupCount=1)],
-#                         level=logging.DEBUG,
-#                         format='%(asctime)s - %(levelname)s - %(message)s'
-#                         )
-#     logger = logging.getLogger(__name__)
-#     print(f'logging at {log_path}')
-
-
 """
 This section is for changing metadata that is stored in, or inferred from, the
 nexus file. This is generally for more nonstandard stuff.
@@ -268,7 +245,7 @@ name_end = scan_numbers[i]
 deplist = [print(experiment.deprecation_msg(output))
            for output in process_outputs]
 
-if ('pyfai_qmap' in process_outputs) & (map_per_image == True):
+if ('pyfai_qmap' in process_outputs) & (map_per_image is True):
     for i, scan in enumerate(experiment.scans):
         name_end = scan_numbers[i]
         datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
@@ -276,11 +253,10 @@ if ('pyfai_qmap' in process_outputs) & (map_per_image == True):
         hf = h5py.File(f'{local_output_path}/{projected_name}.hdf5', "w")
         process_start_time = time()
         experiment.load_curve_values(scan)
-        PYFAI_PONI = experiment.createponi(
-            local_output_path, experiment.imshape, beam_centre=experiment.beam_centre)
-        experiment.pyfai_static_qmap(
-            hf, scan, num_threads, local_output_path, PYFAI_PONI, ivqbins, qmapbins)
-        experiment.save_config_variables(
+        PYFAI_PONI =createponi( experiment,local_output_path)
+        pyfai_static_qmap(experiment,hf, scan, num_threads,\
+                           local_output_path, PYFAI_PONI, ivqbins, qmapbins)
+        save_config_variables(
             hf, joblines, pythonlocation, globals())
         hf.close()
         print(
@@ -289,7 +265,7 @@ if ('pyfai_qmap' in process_outputs) & (map_per_image == True):
         print(f"\n 2d Q map calculations took {total_time}s")
 
 
-if ('pyfai_qmap' in process_outputs) & (map_per_image == False):
+if ('pyfai_qmap' in process_outputs) & (map_per_image is False):
     scanlist = experiment.scans
     name_end = scan_numbers[0]
     datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
@@ -297,11 +273,10 @@ if ('pyfai_qmap' in process_outputs) & (map_per_image == False):
     hf = h5py.File(f'{local_output_path}/{projected_name}.hdf5', "w")
     process_start_time = time()
     experiment.load_curve_values(scanlist[0])
-    PYFAI_PONI = experiment.createponi(
-        local_output_path, experiment.imshape, beam_centre=experiment.beam_centre)
-    experiment.pyfai_moving_qmap_smm(hf, scanlist, num_threads, local_output_path,
+    PYFAI_PONI =createponi( experiment,local_output_path)
+    pyfai_moving_qmap_smm(experiment,hf, scanlist, num_threads, local_output_path,
                                      PYFAI_PONI, radialrange, radialstepval, qmapbins, slitdistratios=slitratios)
-    experiment.save_config_variables(hf, joblines, pythonlocation, globals())
+    save_config_variables(hf, joblines, pythonlocation, globals())
     hf.close()
     print(f"saved 2d map data to {local_output_path}/{projected_name}.hdf5")
 
@@ -309,7 +284,7 @@ if ('pyfai_qmap' in process_outputs) & (map_per_image == False):
     print(f"\n 2d Q map calculation took {total_time}s")
 
 
-if ('pyfai_ivsq' in process_outputs) & (map_per_image == True):
+if ('pyfai_ivsq' in process_outputs) & (map_per_image is True):
     for i, scan in enumerate(experiment.scans):
         name_end = scan_numbers[i]
         datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
@@ -317,11 +292,10 @@ if ('pyfai_ivsq' in process_outputs) & (map_per_image == True):
         hf = h5py.File(f'{local_output_path}/{projected_name}.hdf5', "w")
         process_start_time = time()
         experiment.load_curve_values(scan)
-        PYFAI_PONI = experiment.createponi(
-            local_output_path, experiment.imshape, beam_centre=experiment.beam_centre)
-        experiment.pyfai_static_ivsq(
+        PYFAI_PONI =createponi( experiment,local_output_path)
+        pyfai_static_ivsq(
             hf, scan, num_threads, local_output_path, PYFAI_PONI, ivqbins, qmapbins)
-        experiment.save_config_variables(
+        save_config_variables(
             hf, joblines, pythonlocation, globals())
         hf.close()
         print(
@@ -330,7 +304,7 @@ if ('pyfai_ivsq' in process_outputs) & (map_per_image == True):
         print(f"\n Azimuthal integrations took {total_time}s")
 
 
-if ('pyfai_ivsq' in process_outputs) & (map_per_image == False):
+if ('pyfai_ivsq' in process_outputs) & (map_per_image is False):
     scanlist = experiment.scans
     name_end = scan_numbers[0]
     datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
@@ -338,11 +312,10 @@ if ('pyfai_ivsq' in process_outputs) & (map_per_image == False):
     hf = h5py.File(f'{local_output_path}/{projected_name}.hdf5', "w")
     process_start_time = time()
     experiment.load_curve_values(scanlist[0])
-    PYFAI_PONI = experiment.createponi(
-        local_output_path, experiment.imshape, beam_centre=experiment.beam_centre)
-    experiment.pyfai_moving_ivsq_smm(hf, scanlist, num_threads, local_output_path,
+    PYFAI_PONI =createponi( experiment,local_output_path)
+    pyfai_moving_ivsq_smm(hf, scanlist, num_threads, local_output_path,
                                      PYFAI_PONI, radialrange, radialstepval, qmapbins, slitdistratios=slitratios)
-    experiment.save_config_variables(hf, joblines, pythonlocation, globals())
+    save_config_variables(hf, joblines, pythonlocation, globals())
     hf.close()
     print(
         f"saved 1d integration data to {local_output_path}/{projected_name}.hdf5")
@@ -357,8 +330,7 @@ if ('pyfai_exitangles' in process_outputs) & (map_per_image == True):
         hf = h5py.File(f'{local_output_path}/{projected_name}.hdf5', "w")
         process_start_time = time()
         experiment.load_curve_values(scan)
-        PYFAI_PONI = experiment.createponi(
-            local_output_path, experiment.imshape, beam_centre=experiment.beam_centre)
+        PYFAI_PONI =createponi( experiment,local_output_path)
         experiment.pyfai_static_exitangles(
             hf, scan, num_threads, PYFAI_PONI, ivqbins, qmapbins)
         experiment.save_config_variables(

@@ -12,7 +12,6 @@ from fast_rsm.rsm_metadata import RSMMetadata
 
 import fast_rsm.corrections as corrections
 
-    
 class Image:
     """
     The class used to store raw image data. Internally, this data is stored as
@@ -273,7 +272,6 @@ class Image:
         k_out_squares = np.square(k_out_array[i, j, :])
 
         # k_out_sqares' shape depends on what i and j are. Handle all 3 cases.
-        
         if len(k_out_squares.shape) == 1:
             norms = np.sum(k_out_squares)
         elif len(k_out_squares.shape) == 2:
