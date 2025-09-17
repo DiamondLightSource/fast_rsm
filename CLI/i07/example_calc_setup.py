@@ -3,7 +3,19 @@
 This section prepares the calculation. You probably shouldn't change any'qperp_qpara_map',thing here
 unless you know what you're doing.
 """
-
+import os
+import multiprocessing
+from pathlib import Path
+import numpy as np
+from diffraction_utils import Frame, Region
+from fast_rsm.experiment import Experiment
+import sys
+import h5py
+import nexusformat.nexus as nx
+from fast_rsm.pyfai_interface import *
+from time import time
+from fast_rsm.diamond_utils import save_binoculars_hdf5
+from datetime import datetime
 # Warn if dps offsets are silly.
 if ((dpsx_central_pixel > 10) or (dpsy_central_pixel > 10) or
         (dpsz_central_pixel > 10)):
