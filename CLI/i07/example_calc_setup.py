@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 from diffraction_utils import Frame, Region
 from fast_rsm.experiment import Experiment
+from fast_rsm.logging_config import configure_logging
 import sys
 import h5py
 import nexusformat.nexus as nx
@@ -21,6 +22,10 @@ if ((dpsx_central_pixel > 10) or (dpsy_central_pixel > 10) or
         (dpsz_central_pixel > 10)):
     raise ValueError("DPS central pixel units should be meters. Detected "
                      "values greater than 10m")
+
+configure_logging(DEBUG_LOG)
+logger=get_frsm_logger()
+
 
 
 # Which synchrotron axis should become the out-of-plane (001) direction.
