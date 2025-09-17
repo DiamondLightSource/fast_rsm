@@ -134,32 +134,32 @@ section to make sure backwards compatibility with setup files created for previo
 '''
 
 exp_variables = ['alphacritical', 'savedats', 'savetiffs','spherical_bragg_vec']
-for var, val in exp_variables.items():
+for var, val in exp_variables:
     if var in globals():
         setattr(experiment, var, val)
 
 defaults_global = {'qmapbins': 0, 'slitvertratio': None, 'slithorratio': None,
-                   'DEBUG_LOGGING': 0, 'frame_name': 'hkl', 'coordinates': 'cartesian'}
+                   'frame_name': 'hkl', 'coordinates': 'cartesian'}
 
 for key, val in defaults_global.items():
     if key not in globals():
         globals()[key] = val
 
 
-if DEBUG_LOGGING == 1:
-    print(f'debuglogging={DEBUG_LOGGING}')
-    import logging
-    import logging.handlers
+# if DEBUG_LOGGING == 1:
+#     print(f'debuglogging={DEBUG_LOGGING}')
+#     import logging
+#     import logging.handlers
 
-    log_path = os.path.join(
-        '/dls/science/groups/das/ExampleData/i07/fast_rsm_example_data', 'debug.log')
+#     log_path = os.path.join(
+#         '/dls/science/groups/das/ExampleData/i07/fast_rsm_example_data', 'debug.log')
 
-    logging.basicConfig(handlers=[logging.handlers.RotatingFileHandler(log_path, maxBytes=500000, backupCount=1)],
-                        level=logging.DEBUG,
-                        format='%(asctime)s - %(levelname)s - %(message)s'
-                        )
-    logger = logging.getLogger(__name__)
-    print(f'logging at {log_path}')
+#     logging.basicConfig(handlers=[logging.handlers.RotatingFileHandler(log_path, maxBytes=500000, backupCount=1)],
+#                         level=logging.DEBUG,
+#                         format='%(asctime)s - %(levelname)s - %(message)s'
+#                         )
+#     logger = logging.getLogger(__name__)
+#     print(f'logging at {log_path}')
 
 
 """
