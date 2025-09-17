@@ -12,10 +12,6 @@ from fast_rsm.rsm_metadata import RSMMetadata
 
 import fast_rsm.corrections as corrections
 
-from fast_rsm.logging_config import get_my_logger
-
-#if globals()['DEBUG_LOGGING'] == 1:
-logger=get_my_logger(__name__)
     
 class Image:
     """
