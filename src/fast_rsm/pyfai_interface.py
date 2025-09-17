@@ -527,7 +527,7 @@ def pyfai_moving_exitangles_smm(experiment,
         scanlist, experiment.calcanglim, slitdistratios)
     with SharedMemoryManager() as smm:
         shapeexhexv = (qmapbins[1], qmapbins[0])
-        shm_intensities, shm_counts, arrays_arr, counts_arr, l = experiment.start_smm(
+        shm_intensities, shm_counts, arrays_arr, counts_arr, l = start_smm(
             smm, shapeexhexv)
         start_time = time()
         for scanind, scan in enumerate(scanlistnew):
@@ -543,7 +543,7 @@ def pyfai_moving_exitangles_smm(experiment,
                 anglimitsout,
                 qmapbins,
                 slitdistratios]
-            input_args = experiment.get_input_args(
+            input_args = get_input_args(
                 scanlength, scalegamma, True, num_threads, fullargs)
             print(f'starting process pool with num_threads=\
     {num_threads} for scan {scanind+1}/{len(scanlistnew)}')
@@ -558,7 +558,7 @@ def pyfai_moving_exitangles_smm(experiment,
     mapaxisinfo = mapaxisinfolist[0]
     exhexv_array_total = arrays_arr
     exhexv_counts_total = counts_arr
-    experiment.save_hf_map(
+    save_hf_map(
         hf,
         "exit_angles",
         exhexv_array_total,
@@ -596,7 +596,7 @@ def pyfai_moving_qmap_smm(
     with SharedMemoryManager() as smm:
 
         shapeqpqp = (qmapbins[1], qmapbins[0])
-        shm_intensities, shm_counts, arrays_arr, counts_arr, l = experiment.start_smm(
+        shm_intensities, shm_counts, arrays_arr, counts_arr, l = start_smm(
             smm, shapeqpqp)
 
         for scanind, scan in enumerate(scanlistnew):
@@ -613,7 +613,7 @@ def pyfai_moving_qmap_smm(
                 qmapbins,
                 qlimitsout,
                 slitdistratios]
-            input_args = experiment.get_input_args(
+            input_args = get_input_args(
                 scanlength, scalegamma, True, num_threads, fullargs)
             # print(np.shape(input_args))
             print(
@@ -631,7 +631,7 @@ def pyfai_moving_qmap_smm(
     mapaxisinfo = mapaxisinfolist[0]
     qpqp_array_total = arrays_arr
     qpqp_counts_total = counts_arr
-    experiment.save_hf_map(
+    save_hf_map(
         hf,
         "qpara_qperp",
         qpqp_array_total,
@@ -684,7 +684,7 @@ def pyfai_moving_ivsq_smm(
     with SharedMemoryManager() as smm:
 
         shapeqi = (3, np.abs(nqbins))
-        shm_intensities, shm_counts, arrays_arr, counts_arr, l = experiment.start_smm(
+        shm_intensities, shm_counts, arrays_arr, counts_arr, l = start_smm(
             smm, shapeqi)
 
         for scanind, scan in enumerate(scanlistnew):
@@ -694,7 +694,7 @@ def pyfai_moving_ivsq_smm(
             scalegamma = 1
             # fullargs needs to start with scan and end with slitdistratios
             fullargs = [scan, shapeqi, pyfaiponi, radrange, slitdistratios]
-            input_args = experiment.get_input_args(
+            input_args = get_input_args(
                 scanlength, scalegamma, True, num_threads, fullargs)
             print(
                 f'starting process pool with num_threads=\
@@ -1107,7 +1107,7 @@ def pyfai_static_exitangles(experiment, hf, scan, num_threads, pyfaiponi, ivqbin
             qmapbins,
             ivqbins,
             slitdistratios]
-        input_args = experiment.get_input_args(
+        input_args = get_input_args(
             scanlength, scalegamma, False, num_threads, fullargs)
         results = pool.starmap(pyfai_stat_exitangles, input_args)
         maps = [result[0] for result in results]
@@ -1123,12 +1123,12 @@ def pyfai_static_exitangles(experiment, hf, scan, num_threads, pyfaiponi, ivqbin
 
     signal_shape = np.shape(scan.metadata.data_file.default_signal)
     if len(signal_shape) > 1:
-        savemaps = experiment.reshape_to_signalshape(all_maps[0], signal_shape)
+        savemaps = reshape_to_signalshape(all_maps[0], signal_shape)
     else:
         savemaps = all_maps[0]
     if "scanfields" not in hf.keys():
-        experiment.save_scan_field_values(hf, scan)
-    experiment.save_hf_map(
+        save_scan_field_values(hf, scan)
+    save_hf_map(
         hf,
         "exit_angles",
         savemaps,
@@ -1173,7 +1173,7 @@ def pyfai_static_qmap(experiment, hf, scan, num_threads, output_file_path,
             qmapbins,
             ivqbins,
             slitdistratios]
-        input_args = experiment.get_input_args(
+        input_args = get_input_args(
             scanlength, scalegamma, False, num_threads, fullargs)
         results = pool.starmap(pyfai_stat_qmap, input_args)
         maps = [result[0] for result in results]
@@ -1189,7 +1189,7 @@ def pyfai_static_qmap(experiment, hf, scan, num_threads, output_file_path,
     outlist = [all_maps[0], all_xlabels[0], all_ylabels[0]]
     if len(signal_shape) > 1:
         outlist = [
-            experiment.reshape_to_signalshape(
+            reshape_to_signalshape(
                 arr, signal_shape) for arr in outlist]
 
     binset = hf.create_group("binoculars")
@@ -1233,7 +1233,7 @@ def pyfai_static_qmap(experiment, hf, scan, num_threads, output_file_path,
     dset.create_dataset("map_para_indices", data=[0, 1, 3])
 
     if "scanfields" not in hf.keys():
-        experiment.save_scan_field_values(hf, scan)
+        save_scan_field_values(hf, scan)
     if experiment.savetiffs:
         experiment.do_savetiffs(hf, outlist[0], outlist[1], outlist[2])
 
@@ -1273,7 +1273,7 @@ def pyfai_static_ivsq(experiment, hf, scan, num_threads, output_file_path,
             qmapbins,
             ivqbins,
             slitdistratios]
-        input_args = experiment.get_input_args(
+        input_args = get_input_args(
             scanlength, scalegamma, False, num_threads, fullargs)
 
         results = pool.starmap(pyfai_stat_ivsq, input_args)
@@ -1290,7 +1290,7 @@ def pyfai_static_ivsq(experiment, hf, scan, num_threads, output_file_path,
     outlist = [all_ints[0], all_qs[0], all_two_ths[0]]
     if len(signal_shape) > 1:
         outlist = [
-            experiment.reshape_to_signalshape(
+            reshape_to_signalshape(
                 arr, signal_shape) for arr in outlist]
 
     dset = hf.create_group("integrations")
@@ -1298,6 +1298,6 @@ def pyfai_static_ivsq(experiment, hf, scan, num_threads, output_file_path,
     dset.create_dataset("Q_angstrom^-1", data=outlist[1])
     dset.create_dataset("2thetas", data=outlist[2])
     if "scanfields" not in hf.keys():
-        experiment.save_scan_field_values(hf, scan)
+        save_scan_field_values(hf, scan)
     if experiment.savedats is True:
         experiment.do_savedats(hf, outlist[0], outlist[1], outlist[2])

@@ -254,7 +254,7 @@ ubinfo = [
 name_end = scan_numbers[i]
 
 # check for deprecated GIWAXS functions and print message if needed
-deplist = [print(experiment.deprecation_msg(output))
+deplist = [print(deprecation_msg(output))
            for output in process_outputs]
 
 if ('pyfai_qmap' in process_outputs) & (map_per_image is True):
@@ -343,9 +343,9 @@ if ('pyfai_exitangles' in process_outputs) & (map_per_image == True):
         process_start_time = time()
         experiment.load_curve_values(scan)
         PYFAI_PONI =createponi( experiment,local_output_path)
-        experiment.pyfai_static_exitangles(
+        pyfai_static_exitangles(
             hf, scan, num_threads, PYFAI_PONI, ivqbins, qmapbins)
-        experiment.save_config_variables(
+        save_config_variables(
             hf, joblines, pythonlocation, globals())
         hf.close()
         print(
@@ -362,11 +362,10 @@ if ('pyfai_exitangles' in process_outputs) & (map_per_image == False):
     hf = h5py.File(f'{local_output_path}/{projected_name}.hdf5', "w")
     process_start_time = time()
     experiment.load_curve_values(scanlist[0])
-    PYFAI_PONI = experiment.createponi(
-        local_output_path, experiment.imshape, beam_centre=experiment.beam_centre)
-    experiment.pyfai_moving_exitangles_smm(hf, scanlist, num_threads, local_output_path,
+    PYFAI_PONI =createponi( experiment,local_output_path)   
+    pyfai_moving_exitangles_smm(hf, scanlist, num_threads, local_output_path,
                                            PYFAI_PONI, radialrange, radialstepval, qmapbins, slitdistratios=slitratios)
-    experiment.save_config_variables(hf, joblines, pythonlocation, globals())
+    save_config_variables(hf, joblines, pythonlocation, globals())
     hf.close()
     print(
         f"saved 2d exit angle map  data to {local_output_path}/{projected_name}.hdf5")
