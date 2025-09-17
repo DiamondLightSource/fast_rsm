@@ -1,14 +1,12 @@
 """
 This module contains functions for binning 3D scalar fields.
 """
-# test comment from new linux machine
-import time
 
 import fast_histogram as fast
 import numpy as np
 
 import mapper_c_utils
-
+from fast_rsm.logging_config import get_my_logger
 
 def _fix_delta_q_geometry(arr: np.ndarray) -> np.ndarray:
     """

@@ -2,7 +2,6 @@
 This module contains the class that is used to store images.
 """
 
-
 from typing import Union
 
 import numpy as np
@@ -12,11 +11,12 @@ import mapper_c_utils
 from fast_rsm.rsm_metadata import RSMMetadata
 
 import fast_rsm.corrections as corrections
-import logging
 
-logger = logging.getLogger(__name__)
+from fast_rsm.logging_config import get_my_logger
 
-
+if globals()['DEBUG_LOGGING'] == 1:
+    logger=get_my_logger(__name__)
+    
 class Image:
     """
     The class used to store raw image data. Internally, this data is stored as
@@ -75,7 +75,7 @@ class Image:
         necessary at this point.
         """
         if isinstance(self.metadata.data_file, I07Nexus):
-            if (self.metadata.data_file.is_rotated):
+            if self.metadata.data_file.is_rotated:
                 # The detector has been rotated in the experiment!
                 # NOTE: this is slow. If you flip your detector and run fscans,
                 # f#!@ you.
@@ -277,6 +277,7 @@ class Image:
         k_out_squares = np.square(k_out_array[i, j, :])
 
         # k_out_sqares' shape depends on what i and j are. Handle all 3 cases.
+        
         if len(k_out_squares.shape) == 1:
             norms = np.sum(k_out_squares)
         elif len(k_out_squares.shape) == 2:
@@ -363,7 +364,7 @@ class Image:
                 [0, 0, 1],
                 [1, 0, 0]
             ])
-        elif oop == 'z':
+        else:   #oop == 'z'
             coord_change_mat = np.array([
                 [1, 0, 0],
                 [0, 1, 0],
@@ -372,11 +373,14 @@ class Image:
 
         ub_mat = np.matmul(ub_mat, coord_change_mat)
 
-        # #ADD IN HERE INVERSE OF OMEGA AND ALPHA ROTATIONS, WHICH ARE NOT INCLUDED IN THE UB MATRIX. Currently only have kout-kin which is Hlab. For hkl in vertical mode we need
+        # #ADD IN HERE INVERSE OF OMEGA AND ALPHA ROTATIONS, WHICH ARE NOT INCLUDED \
+        #  IN THE UB MATRIX. Currently only have kout-kin which is Hlab. \
+        # For hkl in vertical mode we need
         # # B^(-1)  U^(-1) (Ω^(-1)  A^(-1)  H_lab)
         # #or for horizontal
         # #B^(-1)  U^(-1) (Θ^(-1)  χ^(-1)  H_lab)
-        # #incorrectly labelled U matrix, is actually the necessary omega+alpha or theta-chi- rotations
+        # #incorrectly labelled U matrix, is actually the necessary \
+        # omega+alpha or theta-chi- rotations
         # samplerotations=self.diffractometer.get_u_matrix(frame.scan_index)
         # invSampRot=np.linalg.inv(samplerotations)
         # ub_mat=np.matmul(ub_mat,invSampRot)

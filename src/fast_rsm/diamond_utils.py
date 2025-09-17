@@ -4,7 +4,6 @@ specifically at Diamond.
 """
 
 import os
-import sys
 from typing import Tuple
 
 import fast_histogram
@@ -447,9 +446,13 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray,
     axes_group = nx.NXgroup(h=h_arr, k=k_arr, l=l_arr)
 
     config_group = nx.NXgroup()
-    configlist = ['setup', 'experimental_hutch', 'using_dps', 'beam_centre', 'detector_distance', 'dpsx_central_pixel', 'dpsy_central_pixel', 'dpsz_central_pixel',
-                  'local_data_path', 'local_output_path', 'output_file_size', 'save_binoculars_h5', 'map_per_image', 'volume_start', 'volume_step', 'volume_stop',
-                  'load_from_dat', 'edfmaskfile', 'specific_pixels', 'mask_regions', 'process_outputs', 'scan_numbers']
+    configlist = ['setup', 'experimental_hutch', 'using_dps', 'beam_centre', \
+                  'detector_distance', 'dpsx_central_pixel', 'dpsy_central_pixel',\
+                'dpsz_central_pixel','local_data_path', 'local_output_path',\
+                'output_file_size', 'save_binoculars_h5', 'map_per_image',\
+                'volume_start', 'volume_step', 'volume_stop',\
+                'load_from_dat', 'edfmaskfile', 'specific_pixels', \
+                'mask_regions', 'process_outputs', 'scan_numbers']
     # Get a list of all available variables
     if outvars is not None:
         variables = list(outvars.keys())
@@ -473,7 +476,8 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray,
     config_group['joblines'] = joblines
     # Make a corresponding (mandatory) "binoculars" group.
     binoculars_group = nx.NXgroup(
-        axes=axes_group, contributions=contributions, counts=(volume), i07configuration=config_group)
+        axes=axes_group, contributions=contributions,\
+              counts=(volume), i07configuration=config_group)
     binoculars_group.attrs['type'] = 'Space'
 
     # Make a root which contains the binoculars group.

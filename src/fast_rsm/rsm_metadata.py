@@ -343,7 +343,8 @@ class RSMMetadata:
         # Save this value to an array with the same shape as the images.
         self._horizontal_pixel_offsets = np.zeros(image_shape, np.float32)
         for i, pixel_offset in enumerate(pixel_offsets):
-            # accounting for rotation is done when loading in image, so no need for treating data differently here
+            # accounting for rotation is done when \
+            # loading in image, so no need for treating data differently here
             # if self.data_file.is_rotated:
             #     self._horizontal_pixel_offsets[i, :] = pixel_offset
             # else:

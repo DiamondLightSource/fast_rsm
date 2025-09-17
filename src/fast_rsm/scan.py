@@ -4,7 +4,11 @@ information relating to a reciprocal space scan.
 """
 
 # pylint: disable=protected-access
+# pylint: disable=global-statement
 
+
+
+import copy
 import traceback
 from multiprocessing import current_process
 from multiprocessing.shared_memory import SharedMemory
@@ -12,10 +16,14 @@ from multiprocessing import Lock
 from pathlib import Path
 from typing import Union, Tuple, List, Dict
 
+from pyFAI.multi_geometry import MultiGeometry
+import pyFAI
+from pyFAI import units
+
 import numpy as np
 
-from diffraction_utils import I10Nexus, Vector3, Frame
-from diffraction_utils.diffractometers import I10RasorDiffractometer
+from diffraction_utils import  Frame #I10Nexus, Vector3,
+#from diffraction_utils.diffractometers import I10RasorDiffractometer
 
 import fast_rsm.io as io
 from fast_rsm.binning import weighted_bin_3d
@@ -23,15 +31,25 @@ from fast_rsm.image import Image
 from fast_rsm.rsm_metadata import RSMMetadata
 from fast_rsm.writing import linear_bin_to_vtk
 
-from pyFAI.multi_geometry import MultiGeometry
-import pyFAI
-from pyFAI import units
-import copy
 
-import logging
+from fast_rsm.logging_config import get_my_logger
 
-logger = logging.getLogger(__name__)
+global DEBUG_LOGGING
+if DEBUG_LOGGING == 1:
+    logger=get_my_logger(__name__)
 
+
+lock=None
+RSM_ARRAY=None
+COUNT_ARRAY=None
+SHM_RSM=None
+SHM_COUNT=None
+METADATA=None
+NUM_THREADS=None
+FRAME=None
+OUTPUT_FILE_NAME=None
+SHM_INTENSITY=None
+INTENSITY_ARRAY=None
 
 def check_shared_memory(shared_mem_name: str) -> None:
     """
@@ -227,21 +245,27 @@ def init_pyfai_process_pool(
     print(f"Finished initializing worker {current_process().name}.")
 
 
-def pyfai_stat_exitangles(experiment, imageindex, scan, two_theta_start, pyfaiponi,
-                          anglimits, qmapbins, ivqbins, slithdistratio=None, slitvdistratio=None) -> None:
+def pyfai_stat_exitangles(experiment, imageindex, scan, two_theta_start, pyfaiponi,\
+    anglimits, qmapbins, ivqbins, slithdistratio=None, slitvdistratio=None) -> None:
+    """
+    calculate exit angle map for static detector scan data using pyFAI Fiber integrator
+    """
+    # pylint: disable=unused-argument
+    # pylint: disable=unused-variable
     index = imageindex
-    aistart = pyFAI.load(
-        pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
+    aistart = pyFAI.load(pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
 
     sample_orientation = 1
     unit_qip_name = "exit_angle_horz_deg"
     unit_qoop_name = "exit_angle_vert_deg"
 
     unit_qip, unit_qoop, img_data, my_ai, ai_limits = get_pyfai_components(
-        experiment, index, sample_orientation, unit_qip_name, unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, anglimits)
+        experiment, index, sample_orientation, unit_qip_name, unit_qoop_name,\
+              aistart, slitvdistratio, slithdistratio, scan, anglimits)
 
     map2d = my_ai.integrate2d(img_data, qmapbins[0], qmapbins[1], unit=(unit_qip, unit_qoop),
-                              radial_range=(ai_limits[0], ai_limits[1]), azimuth_range=(ai_limits[2], ai_limits[3]), method=("no", "csr", "cython"))
+                              radial_range=(ai_limits[0], ai_limits[1]), \
+        azimuth_range=(ai_limits[2], ai_limits[3]), method=("no", "csr", "cython"))
     mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
         map2d.azimuthal_unit), str(map2d.radial_unit)]
 
@@ -250,9 +274,13 @@ def pyfai_stat_exitangles(experiment, imageindex, scan, two_theta_start, pyfaipo
 
 def pyfai_stat_qmap(experiment, imageindex, scan, two_theta_start, pyfaiponi,
                     qlimits, qmapbins, ivqbins, slithdistratio=None, slitvdistratio=None) -> None:
+    """
+    calculate q_para Vs q_perp map for static detector scan data using pyFAI Fiber integrator
+    """
+    # pylint: disable=unused-argument
+    # pylint: disable=unused-variable
     index = imageindex
-    aistart = pyFAI.load(
-        pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
+    aistart = pyFAI.load(pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
 
     sample_orientation = 1
 
@@ -260,10 +288,12 @@ def pyfai_stat_qmap(experiment, imageindex, scan, two_theta_start, pyfaiponi,
     unit_qoop_name = "qoop_A^-1"
 
     unit_qip, unit_qoop, img_data, my_ai, ai_limits = get_pyfai_components(
-        experiment, index, sample_orientation, unit_qip_name, unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, qlimits)
+        experiment, index, sample_orientation, unit_qip_name,\
+              unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, qlimits)
 
     map2d = my_ai.integrate2d(img_data, qmapbins[0], qmapbins[1], unit=(unit_qip, unit_qoop),
-                              radial_range=(ai_limits[0], ai_limits[1]), azimuth_range=(ai_limits[2], ai_limits[3]), method=("no", "csr", "cython"))
+                              radial_range=(ai_limits[0], ai_limits[1]), \
+                azimuth_range=(ai_limits[2], ai_limits[3]), method=("no", "csr", "cython"))
     mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
         map2d.azimuthal_unit), str(map2d.radial_unit)]
     return map2d[0], map2d[1], map2d[2], mapaxisinfo
@@ -271,6 +301,11 @@ def pyfai_stat_qmap(experiment, imageindex, scan, two_theta_start, pyfaiponi,
 
 def pyfai_stat_ivsq(experiment, imageindex, scan, two_theta_start, pyfaiponi,
                     qmapbins, ivqbins, slithdistratio=None, slitvdistratio=None) -> None:
+    """
+    calculate Intensity Vs Q profile for static detector scan data using pyFAI Fiber integrator
+    """
+    # pylint: disable=unused-argument
+    # pylint: disable=unused-variable
     index = imageindex
     # , type_="pyFAI.integrator.fiber.FiberIntegrator")
     aistart = pyFAI.load(pyfaiponi)
@@ -279,18 +314,19 @@ def pyfai_stat_ivsq(experiment, imageindex, scan, two_theta_start, pyfaiponi,
     unit_qip_name = "qtot_A^-1"
     unit_qoop_name = "qoop_A^-1"
     unit_q_tot, unit_qoop, img_data, my_ai, ai_limits = get_pyfai_components(
-        experiment, index, sample_orientation, unit_qip_name, unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, [0, 1, 0, 1])
+        experiment, index, sample_orientation, unit_qip_name,\
+     unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, [0, 1, 0, 1])
 
-    tth, I = my_ai.integrate1d_ng(img_data,
+    tth, intensity = my_ai.integrate1d_ng(img_data,
                                   ivqbins,
                                   unit="2th_deg", polarization_factor=1)
-    Q = [experiment.calcq(tthval, experiment.incident_wavelength)
+    qvals = [experiment.calcq(tthval, experiment.incident_wavelength)
          for tthval in tth]
     # Q, I = my_ai.integrate1d_ng(img_data,
     #                             ivqbins,
     #                             unit="q_A^-1", polarization_factor=1)
 #
-    return I, tth, Q
+    return intensity, tth, qvals
 
 
 def _on_exit(shared_mem: SharedMemory) -> None:
@@ -459,7 +495,7 @@ def bin_maps_with_indices(indices: List[int],
 
             # print(f"Processing image {idx}. ", end='')
             _bin_one_map(start, stop, step, min_intensity, idx,
-                         processing_steps, oop, spherical_bragg_vec, map_each_image, previous_images)
+                processing_steps, oop, spherical_bragg_vec, map_each_image, previous_images)
     except Exception as exception:
         print("Exception thrown in bin_one_map:")
         print(traceback.format_exc())
@@ -475,7 +511,7 @@ def bin_maps_with_indices(indices: List[int],
 # ==========testing functions========
 
 
-def bin_maps_with_indices_SMM(indices: List[int],
+def bin_maps_with_indices_smm(indices: List[int],
                               start: np.ndarray,
                               stop: np.ndarray,
                               step: np.ndarray,
@@ -504,8 +540,8 @@ def bin_maps_with_indices_SMM(indices: List[int],
                 continue
 
             # print(f"Processing image {idx}. ", end='')
-            _bin_one_map_SMM(start, stop, step, min_intensity, idx,
-                             processing_steps, oop, spherical_bragg_vec, map_each_image, previous_images)
+            _bin_one_map_smm(start, stop, step, min_intensity, idx,
+                processing_steps, oop, spherical_bragg_vec, map_each_image, previous_images)
     except Exception as exception:
         print("Exception thrown in bin_one_map:")
         print(traceback.format_exc())
@@ -518,7 +554,7 @@ def bin_maps_with_indices_SMM(indices: List[int],
     # return SHARED_RSM_NAME, SHARED_COUNT_NAME
 
 
-def _bin_one_map_SMM(start: np.ndarray,
+def _bin_one_map_smm(start: np.ndarray,
                      stop: np.ndarray,
                      step: np.ndarray,
                      min_intensity: float,
@@ -586,6 +622,7 @@ def _bin_one_map_SMM(start: np.ndarray,
         fresh_image = Image(METADATA, idx)
         q_vectors = fresh_image.q_vectors(
             FRAME,
+            spherical_bragg_vec,
             oop=oop,
             lorentz_correction=False,
             pol_correction=False)
@@ -600,8 +637,13 @@ def _bin_one_map_SMM(start: np.ndarray,
         np.save(corrected_intensity_path, image.data.ravel())
 
 
-def rsm_init_worker(l, shm_rsm_name: str, shm_counts_name: str, shmshape: np.ndarray, metadata: RSMMetadata,
-                    newmetadata: dict, motors: Dict[str, np.ndarray], num_threads: int, frame: Frame, output_file_name: str = None):
+def rsm_init_worker(l, shm_rsm_name: str, shm_counts_name: str, shmshape: np.ndarray,\
+                    metadata: RSMMetadata,newmetadata: dict,\
+                    motors: Dict[str, np.ndarray], num_threads: int, \
+                    frame: Frame, output_file_name: str = None):
+    """
+    initialiser for reciprocal space mapping
+    """
 
     global lock
     global RSM_ARRAY
@@ -629,6 +671,9 @@ def rsm_init_worker(l, shm_rsm_name: str, shm_counts_name: str, shmshape: np.nda
 
 
 def pyfai_init_worker(l, shm_intensities_name, shm_counts_name, shmshape):
+    """
+    intialiser for pyfai mappings
+    """
     global lock
     global SHM_INTENSITY
     global INTENSITY_ARRAY
@@ -646,6 +691,9 @@ def pyfai_init_worker(l, shm_intensities_name, shm_counts_name, shmshape):
 
 def get_pyfai_components(experiment, i, sample_orientation, unit_ip_name,
                          unit_oop_name, aistart, slitvdistratio, slithdistratio, scan, limits_in):
+    """
+    get components need for mapping with pyFAI
+    """
     if np.size(experiment.incident_angle) > 1:
         inc_angle = -np.radians(experiment.incident_angle[i])
     elif isinstance(experiment.incident_angle, np.float64):
@@ -714,11 +762,14 @@ def get_pyfai_components(experiment, i, sample_orientation, unit_ip_name,
 
 
 def pyfai_move_qmap_worker(experiment, choiceims, scan, shapeqpqp, pyfaiponi,
-                           qmapbins, qlimits=None, slithdistratio=None, slitvdistratio=None) -> None:
+         qmapbins, qlimits=None, slithdistratio=None, slitvdistratio=None) -> None:
+    """
+    calculate 2d q_para Vs q_perp map for moving detector scan using pyFAI
+    
+    """
 
     global INTENSITY_ARRAY, COUNT_ARRAY
-    aistart = pyFAI.load(
-        pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
+    aistart = pyFAI.load(pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
 
     shapemap = shapeqpqp
     totalqpqpmap = np.zeros((shapemap[0], shapemap[1]))
@@ -743,16 +794,20 @@ def pyfai_move_qmap_worker(experiment, choiceims, scan, shapeqpqp, pyfaiponi,
         ais = []
         img_data_list = []
         for i in group:
-            unit_qip, unit_qoop, img_data, my_ai, ai_limits = get_pyfai_components(experiment, i, sample_orientation,
-                                                                                   unit_qip_name, unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, qlimits)
+            unit_qip, unit_qoop, img_data, my_ai, ai_limits = \
+                get_pyfai_components(experiment, i, sample_orientation,\
+    unit_qip_name, unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, qlimits)
 
             img_data_list.append(img_data)
             ais.append(my_ai)
 
         for current_n, current_ai in enumerate(ais):
             current_img = img_data_list[current_n]
-            map2d = current_ai.integrate2d(current_img, qmapbins[0], qmapbins[1], unit=(unit_qip, unit_qoop),
-                                           radial_range=(ai_limits[0], ai_limits[1]), azimuth_range=(ai_limits[2], ai_limits[3]), method=("no", "csr", "cython"))
+            map2d = current_ai.integrate2d(current_img, qmapbins[0],\
+             qmapbins[1], unit=(unit_qip, unit_qoop),\
+             radial_range=(ai_limits[0], ai_limits[1]),\
+             azimuth_range=(ai_limits[2], ai_limits[3]),\
+             method=("no", "csr", "cython"))
 
             totalqpqpmap += map2d.sum_signal
             totalqpqpcounts += map2d.count
@@ -767,6 +822,12 @@ def pyfai_move_qmap_worker(experiment, choiceims, scan, shapeqpqp, pyfaiponi,
 
 def pyfai_move_ivsq_worker(experiment, imageindices, scan, shapeqi,
                            pyfaiponi, radrange, slithdistratio=None, slitvdistratio=None) -> None:
+    """
+    calculate 1d intensity vs q profile for moving detector scan using pyFAI
+    
+    """
+    # pylint: disable=global-variable-not-assigned
+    # pylint: disable=unused-variable
     global INTENSITY_ARRAY, COUNT_ARRAY
 
     # , type_="pyFAI.integrator.fiber.FiberIntegrator")
@@ -789,18 +850,22 @@ def pyfai_move_ivsq_worker(experiment, imageindices, scan, shapeqi,
         img_data_list = []
         for i in group:
             unit_tth_ip, unit_qoop, img_data, my_ai, ai_limits = get_pyfai_components(
-                experiment, i, sample_orientation, unit_qip_name, unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, [0, 1, 0, 1])
+                experiment, i, sample_orientation, unit_qip_name, \
+                unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, [0, 1, 0, 1])
 
             img_data_list.append(img_data)
             ais.append(my_ai)
 
         ivqbins = shapeqi[1]
-        mg = MultiGeometry(ais, unit=unit_tth_ip, wavelength=experiment.incident_wavelength, radial_range=(
+        mg = MultiGeometry(ais, unit=unit_tth_ip,\
+                     wavelength=experiment.incident_wavelength,\
+                        radial_range=(
             radrange[0], radrange[1]))
         result1d = mg.integrate1d(img_data_list, ivqbins)
         q_from_theta = [experiment.calcq(
             val, experiment.incident_wavelength) for val in result1d.radial]
-        # theta_from_q= [experiment.calctheta(val, experiment.incident_wavelength) for val in result1d.radial]
+        # theta_from_q= [experiment.calctheta(val, experiment.incident_wavelength) \
+        # for val in result1d.radial]
 
         totaloutqi[0] += result1d.sum_signal
         totaloutqi[1] = q_from_theta
@@ -816,12 +881,15 @@ def pyfai_move_ivsq_worker(experiment, imageindices, scan, shapeqi,
         COUNT_ARRAY[1:] = totaloutcounts[1:]
 
 
-def pyfai_move_exitangles_worker(experiment, imageindices, scan, shapeexhexv,
-                                 pyfaiponi, anglimits, qmapbins, slithdistratio=None, slitvdistratio=None) -> None:
+def pyfai_move_exitangles_worker(experiment, imageindices, scan,\
+                                shapeexhexv,pyfaiponi, anglimits,\
+                qmapbins, slithdistratio=None, slitvdistratio=None) -> None:
+    """
+    calculate exit angle map for moving detector scan using pyFAI
 
+    """
     global INTENSITY_ARRAY, COUNT_ARRAY
-    aistart = pyFAI.load(
-        pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
+    aistart = pyFAI.load(pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
 
     shapemap = shapeexhexv
     totalexhexvmap = np.zeros((shapemap[0], shapemap[1]))
@@ -843,15 +911,19 @@ def pyfai_move_exitangles_worker(experiment, imageindices, scan, shapeexhexv,
         img_data_list = []
         for i in group:
             unit_qip, unit_qoop, img_data, my_ai, ai_limits = get_pyfai_components(
-                experiment, i, sample_orientation, unit_qip_name, unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, anglimits)
+                experiment, i, sample_orientation, unit_qip_name,\
+                unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, anglimits)
 
             img_data_list.append(img_data)
             ais.append(my_ai)
 
         for current_n, current_ai in enumerate(ais):
             current_img = img_data_list[current_n]
-            map2d = current_ai.integrate2d(current_img, qmapbins[0], qmapbins[1], unit=(unit_qip, unit_qoop),
-                                           radial_range=(ai_limits[0], ai_limits[1]), azimuth_range=(ai_limits[2], ai_limits[3]), method=("no", "csr", "cython"))
+            map2d = current_ai.integrate2d(current_img, qmapbins[0], qmapbins[1], \
+                    unit=(unit_qip, unit_qoop),\
+                radial_range=(ai_limits[0], ai_limits[1]),\
+                azimuth_range=(ai_limits[2], ai_limits[3]),\
+                    method=("no", "csr", "cython"))
             totalexhexvmap += map2d.sum_signal
             totalexhexvcounts += map2d.count
 
@@ -972,45 +1044,45 @@ class Scan:
         stop += padding
         return start, stop
 
-    def from_i10(cls,
-                 path_to_nx: Union[str, Path],
-                 beam_centre: Tuple[int],
-                 detector_distance: float,
-                 sample_oop: Vector3,
-                 path_to_data: str = ''):
-        """
-        Instantiates a Scan from the path to an I10 nexus file, a beam centre
-        coordinate, a detector distance (this isn't stored in i10 nexus files)
-        and a sample out-of-plane vector.
+    # def from_i10(cls,
+    #              path_to_nx: Union[str, Path],
+    #              beam_centre: Tuple[int],
+    #              detector_distance: float,
+    #              sample_oop: Vector3,
+    #              path_to_data: str = ''):
+    #     """
+    #     Instantiates a Scan from the path to an I10 nexus file, a beam centre
+    #     coordinate, a detector distance (this isn't stored in i10 nexus files)
+    #     and a sample out-of-plane vector.
 
-        Args:
-            path_to_nx:
-                Path to the nexus file containing the scan metadata.
-            beam_centre:
-                A (y, x) tuple of the beam centre, measured in the usual image
-                coordinate system, in units of pixels.
-            detector_distance:
-                The distance between the sample and the detector, which cant
-                be stored in i10 nexus files so needs to be given by the user.
-            sample_oop:
-                An instance of a diffraction_utils Vector3 which descrbes the
-                sample out of plane vector.
-            path_to_data:
-                Path to the directory in which the images are stored. Defaults
-                to '', in which case a bunch of reasonable directories will be
-                searched for the images.
-        """
-        # Load the nexus file.
-        i10_nexus = I10Nexus(path_to_nx, path_to_data, detector_distance)
+    #     Args:
+    #         path_to_nx:
+    #             Path to the nexus file containing the scan metadata.
+    #         beam_centre:
+    #             A (y, x) tuple of the beam centre, measured in the usual image
+    #             coordinate system, in units of pixels.
+    #         detector_distance:
+    #             The distance between the sample and the detector, which cant
+    #             be stored in i10 nexus files so needs to be given by the user.
+    #         sample_oop:
+    #             An instance of a diffraction_utils Vector3 which descrbes the
+    #             sample out of plane vector.
+    #         path_to_data:
+    #             Path to the directory in which the images are stored. Defaults
+    #             to '', in which case a bunch of reasonable directories will be
+    #             searched for the images.
+    #     """
+    #     # Load the nexus file.
+    #     i10_nexus = I10Nexus(path_to_nx, path_to_data, detector_distance)
 
-        # Load the state of the RASOR diffractometer; prepare the metadata.
-        diff = I10RasorDiffractometer(i10_nexus, sample_oop, 'area')
-        meta = RSMMetadata(diff, beam_centre)
+    #     # Load the state of the RASOR diffractometer; prepare the metadata.
+    #     diff = I10RasorDiffractometer(i10_nexus, sample_oop, 'area')
+    #     meta = RSMMetadata(diff, beam_centre)
 
-        # Make sure the sample_oop vector's frame's diffractometer is correct.
-        sample_oop.frame.diffractometer = diff
+    #     # Make sure the sample_oop vector's frame's diffractometer is correct.
+    #     sample_oop.frame.diffractometer = diff
 
-        return cls(meta)
+    #     return cls(meta)
 
     @staticmethod
     def from_i07(path_to_nx: Union[str, Path],
