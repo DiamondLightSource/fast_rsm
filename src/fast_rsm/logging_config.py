@@ -26,7 +26,6 @@ def get_my_logger(name: str):
     logging.basicConfig(level=logging.WARNING)
     if _logging_enabled ==1:
         log_path = os.path.join('/dls/science/groups/das/ExampleData/i07/fast_rsm_example_data', 'debug.log')
-        print(f"logging enabled to : {log_path}")
         #Set root logger to WARNING to suppress third-party debug/info logs
         logger.setLevel(logging.INFO)
         # Add a rotating file handler to fast_rsm logger only

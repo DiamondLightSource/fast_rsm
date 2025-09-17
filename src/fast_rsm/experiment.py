@@ -34,9 +34,6 @@ from fast_rsm.scan import Scan, chunk, \
     pyfai_init_worker, pyfai_move_qmap_worker, rsm_init_worker, bin_maps_with_indices_smm, \
     pyfai_move_ivsq_worker, pyfai_move_exitangles_worker
 from fast_rsm.writing import linear_bin_to_vtk
-from fast_rsm.logging_config import get_my_logger
-
-logger=get_my_logger(__name__)
 
 # from memory_profiler import profile
 
@@ -878,7 +875,7 @@ class Experiment:
         outdict = {}
         for name in outlist:
             outdict[name] = locals().get(name, None)
-        logger.debug(f"get_limitcalc_vars give outdict={outdict}")
+        db_logger.debug(f"get_limitcalc_vars give outdict={outdict}")
         return outdict
     # horindex, vertindex, vertangles, horangles, verscale, horscale, pixhigh, \
    # pixlow,outscale,pixscale, highsign, lowsign, highsection, lowsection #
@@ -2097,7 +2094,7 @@ class Experiment:
             scan, self.calcqlim, slitdistratios)
 
         # calculate map bins if not specified using resolution of 0.01 degrees
-        logger.debug(f'from experiment.py calculating static qmap for scan {scan}')
+        db_logger.debug(f'from experiment.py calculating static qmap for scan {scan}')
         if qmapbins == 0:
             qstep = round(self.calcq(1.00, self.incident_wavelength) -
                           self.calcq(1.01, self.incident_wavelength), 4)

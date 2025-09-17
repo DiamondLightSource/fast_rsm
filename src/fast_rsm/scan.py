@@ -32,9 +32,6 @@ from fast_rsm.rsm_metadata import RSMMetadata
 from fast_rsm.writing import linear_bin_to_vtk
 
 
-from fast_rsm.logging_config import get_my_logger
-
-logger=get_my_logger(__name__)
 
 
 lock=None
