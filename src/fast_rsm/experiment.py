@@ -36,8 +36,7 @@ from fast_rsm.scan import Scan, chunk, \
 from fast_rsm.writing import linear_bin_to_vtk
 
 logger = logging.getLogger("fastrsm")
-logger.debug("test debug inside experiment.py")
-logger.info("test info inside experiment.py")
+
 # from memory_profiler import profile
 
 
@@ -1640,7 +1639,8 @@ class Experiment:
         """
         calculate setup values needed for pyfai calculations
         """
-        logger.debug("getting pyFAI limits in experiment.py")
+        logger.debug("test debug inside experiment.py/pyfai setup limits")
+        logger.info("test info inside experiment.py/pyfai setup limits")
         # pylint: disable=attribute-defined-outside-init
         if isinstance(scanlist, Scan):
             scanlistnew = [scanlist]

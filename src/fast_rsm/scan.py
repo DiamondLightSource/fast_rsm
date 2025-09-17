@@ -669,6 +669,8 @@ def pyfai_init_worker(l, shm_intensities_name, shm_counts_name, shmshape):
     """
     intialiser for pyfai mappings
     """
+    logger.debug("test debug inside scan.py/pyfai_init_worker")
+    logger.info("test info inside scan.py/pyfai_init_worker")
     global lock
     global SHM_INTENSITY
     global INTENSITY_ARRAY
