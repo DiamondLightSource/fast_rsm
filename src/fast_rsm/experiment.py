@@ -36,7 +36,7 @@ from fast_rsm.scan import Scan, chunk, \
 from fast_rsm.writing import linear_bin_to_vtk
 
 
-logger = logging.getLogger(__name__)
+logger=get_my_logger(__name__)
 
 # from memory_profiler import profile
 
