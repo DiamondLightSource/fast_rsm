@@ -620,7 +620,7 @@ def pyfai_moving_exitangles_smm(experiment,
                 anglimitsout,
                 qmapbins,
                 slitdistratios]
-            input_args = get_input_args(
+            input_args = get_input_args(experiment,\
                 scanlength, scalegamma, True, num_threads, fullargs)
             print(f'starting process pool with num_threads=\
     {num_threads} for scan {scanind+1}/{len(scanlistnew)}')
@@ -635,7 +635,7 @@ def pyfai_moving_exitangles_smm(experiment,
     mapaxisinfo = mapaxisinfolist[0]
     exhexv_array_total = arrays_arr
     exhexv_counts_total = counts_arr
-    save_hf_map(
+    save_hf_map(experiment,\
         hf,
         "exit_angles",
         exhexv_array_total,
@@ -690,7 +690,7 @@ def pyfai_moving_qmap_smm(
                 qmapbins,
                 qlimitsout,
                 slitdistratios]
-            input_args = get_input_args(
+            input_args = get_input_args(experiment,\
                 scanlength, scalegamma, True, num_threads, fullargs)
             # print(np.shape(input_args))
             print(
@@ -708,7 +708,7 @@ def pyfai_moving_qmap_smm(
     mapaxisinfo = mapaxisinfolist[0]
     qpqp_array_total = arrays_arr
     qpqp_counts_total = counts_arr
-    save_hf_map(
+    save_hf_map(experiment,\
         hf,
         "qpara_qperp",
         qpqp_array_total,
@@ -771,7 +771,7 @@ def pyfai_moving_ivsq_smm(
             scalegamma = 1
             # fullargs needs to start with scan and end with slitdistratios
             fullargs = [scan, shapeqi, pyfaiponi, radrange, slitdistratios]
-            input_args = get_input_args(
+            input_args = get_input_args(experiment,\
                 scanlength, scalegamma, True, num_threads, fullargs)
             print(
                 f'starting process pool with num_threads=\
@@ -1107,7 +1107,7 @@ def pyfai_static_exitangles(experiment, hf, scan, num_threads, pyfaiponi, ivqbin
             qmapbins,
             ivqbins,
             slitdistratios]
-        input_args = get_input_args(
+        input_args = get_input_args(experiment,\
             scanlength, scalegamma, False, num_threads, fullargs)
         results = pool.starmap(pyfai_stat_exitangles, input_args)
         maps = [result[0] for result in results]
@@ -1128,13 +1128,9 @@ def pyfai_static_exitangles(experiment, hf, scan, num_threads, pyfaiponi, ivqbin
         savemaps = all_maps[0]
     if "scanfields" not in hf.keys():
         save_scan_field_values(hf, scan)
-    save_hf_map(
-        hf,
-        "exit_angles",
-        savemaps,
-        np.ones(
-            np.shape(savemaps)),
-        all_mapaxisinfo[0][0],
+    save_hf_map(experiment,\
+        hf, "exit_angles",savemaps, np.ones(np.shape(savemaps)),\
+        all_mapaxisinfo[0][0],\
         start_time)
 
 def pyfai_static_qmap(experiment, hf, scan, num_threads, output_file_path,
@@ -1173,7 +1169,7 @@ def pyfai_static_qmap(experiment, hf, scan, num_threads, output_file_path,
             qmapbins,
             ivqbins,
             slitdistratios]
-        input_args = get_input_args(
+        input_args = get_input_args(experiment,\
             scanlength, scalegamma, False, num_threads, fullargs)
         results = pool.starmap(pyfai_stat_qmap, input_args)
         maps = [result[0] for result in results]
@@ -1273,7 +1269,7 @@ def pyfai_static_ivsq(experiment, hf, scan, num_threads, output_file_path,
             qmapbins,
             ivqbins,
             slitdistratios]
-        input_args = get_input_args(
+        input_args = get_input_args(experiment,\
             scanlength, scalegamma, False, num_threads, fullargs)
 
         results = pool.starmap(pyfai_stat_ivsq, input_args)
