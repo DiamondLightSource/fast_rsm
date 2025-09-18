@@ -218,6 +218,7 @@ class Experiment:
             mask = maskimg.data
             logger.debug(f"edf mask filepath = {edfmask}")
             logger.debug(f"shape of mask as loaded from edf = {np.shape(mask)}")
+            logger.debug(f"rot check scan 1 = {self.scans[0].metadata.data_file.is_rotated}")
             if self.scans[0].metadata.data_file.is_rotated is True:
                 logger.debug("found detector rotation")
                 mask = np.rot90(np.flip(mask, axis=0), 1)
