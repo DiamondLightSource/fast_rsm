@@ -55,10 +55,10 @@ from fast_rsm.experiment import Experiment
 
 def create_standard_experiment(input_globals):
 
-    list_to_unpack=[dpsx_central_pixel,dpsy_central_pixel,dpsz_central_pixel,cylinder_axis,setup,\
-                    output_file_size,local_data_path,scan_numbers,beam_centre,detector_distance,setup,\
-                      using_dps,experimental_hutch,edfmaskfile,mask_regions,load_from_dat,skipscans,skipimages,\
-                         slithorratio,slitvertratio ]
+    list_to_unpack=['dpsx_central_pixel','dpsy_central_pixel','dpsz_central_pixel','cylinder_axis','setup',\
+                    'output_file_size','local_data_path','scan_numbers','beam_centre','detector_distance','setup',\
+                      'using_dps','experimental_hutch','edfmaskfile','mask_regions','load_from_dat','skipscans','skipimages',\
+                         'slithorratio','slitvertratio' ]
     
     dpsx_central_pixel,dpsy_central_pixel,dpsz_central_pixel,cylinder_axis,setup,\
                     output_file_size,local_data_path,scan_numbers,beam_centre,detector_distance,setup,\
