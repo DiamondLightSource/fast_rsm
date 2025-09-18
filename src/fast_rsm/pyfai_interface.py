@@ -141,6 +141,13 @@ def reshape_to_signalshape(arr, signal_shape):
         outarr = np.concatenate((arr, extradata))
         return np.reshape(outarr, fullshape)
 
+def get_qmapbins(qlimits,experiment):
+        qstep = round(experiment.calcq(1.00, experiment.incident_wavelength) -
+                        experiment.calcq(1.01, experiment.incident_wavelength), 4)
+        binshor = abs(round(((qlimits[1] - qlimits[0]) / qstep) * 1.05))
+        binsver = abs(round(((qlimits[3] - qlimits[2]) / qstep) * 1.05))
+        return (binshor, binsver)
+
 #====save functions
 def save_integration(experiment, hf, twothetas, q_angs,
                         intensities, configs, scan=0):
@@ -170,8 +177,7 @@ def save_qperp_qpara(experiment, hf, qperp_qpara_map, scan=0):
         save_scan_field_values(hf, scan)
 
     if experiment.savetiffs is True:
-        experiment.do_savetiffs(
-            hf,
+        experiment.do_savetiffs( hf,
             qperp_qpara_map[0],
             qperp_qpara_map[1],
             qperp_qpara_map[2])
@@ -574,8 +580,6 @@ def start_smm(smm, memshape):
 
 
 #====moving detector processing
-
-
 def pyfai_moving_exitangles_smm(experiment,
                                 hf,
                                 scanlist,
@@ -930,9 +934,6 @@ def pyfai_move_exitangles_worker(experiment, imageindices, scan,\
     unit_qoop_name = "exit_angle_vert_deg"
     sample_orientation = 1
 
-    # if experiment.setup=='vertical':
-    #     sample_orientation=4
-
     groupnum = 15
     choiceims = imageindices
 
@@ -1139,11 +1140,7 @@ def pyfai_static_qmap(experiment, hf, scan, num_threads, output_file_path,
 
     # calculate map bins if not specified using resolution of 0.01 degrees
     if qmapbins == 0:
-        qstep = round(experiment.calcq(1.00, experiment.incident_wavelength) -
-                        experiment.calcq(1.01, experiment.incident_wavelength), 4)
-        binshor = abs(round(((qlimits[1] - qlimits[0]) / qstep) * 1.05))
-        binsver = abs(round(((qlimits[3] - qlimits[2]) / qstep) * 1.05))
-        qmapbins = (binshor, binsver)
+        qmapbins = get_qmapbins(qlimits,experiment)
 
     scalegamma = 1
 
@@ -1198,13 +1195,7 @@ def pyfai_static_qmap(experiment, hf, scan, num_threads, output_file_path,
     else:
         axgroup.create_dataset(
             "1_index",
-            data=[
-                0.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0],
+            data=[0.0,1.0,1.0,1.0,1.0,1.0],
             track_order=True)
 
     axgroup.create_dataset(
@@ -1237,13 +1228,8 @@ def pyfai_static_ivsq(experiment, hf, scan, num_threads, output_file_path,
         scan, experiment.calcqlim, slitdistratios)
 
     # calculate map bins if not specified using resolution of 0.01 degrees
-
     if qmapbins == 0:
-        qstep = round(experiment.calcq(1.00, experiment.incident_wavelength) -
-                        experiment.calcq(1.01, experiment.incident_wavelength), 4)
-        binshor = abs(round(((qlimits[1] - qlimits[0]) / qstep) * 1.05))
-        binsver = abs(round(((qlimits[3] - qlimits[2]) / qstep) * 1.05))
-        qmapbins = (binshor, binsver)
+        qmapbins = get_qmapbins(qlimits,experiment)
 
     scalegamma = 1
 

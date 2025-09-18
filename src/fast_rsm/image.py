@@ -3,7 +3,7 @@ This module contains the class that is used to store images.
 """
 
 from typing import Union
-
+import logging
 import numpy as np
 from diffraction_utils import Frame, I07Nexus, Polarisation
 
@@ -12,6 +12,7 @@ from fast_rsm.rsm_metadata import RSMMetadata
 
 import fast_rsm.corrections as corrections
 
+logger = logging.getLogger("fastrsm")
 class Image:
     """
     The class used to store raw image data. Internally, this data is stored as
@@ -41,6 +42,7 @@ class Image:
             # Allocate, but don't initialize.
             self._raw_data = np.ndarray(metadata.data_file.image_shape)
 
+        logger.debug(f"shape at start Image: {np.shape(self._raw_data)}")
         self.metadata = metadata
         self.diffractometer = self.metadata.diffractometer
         self.index = index
@@ -55,7 +57,7 @@ class Image:
         # already have account for rotation.
         if load_image:
             self._correct_img_axes()
-
+        logger.debug(f"shape after _correct_img_axes : {np.shape(self._raw_data)}")
         # Storage for all of the processing steps to be applied to the _raw_data
         # prior to mapping.
         self._processing_steps = []
@@ -149,6 +151,8 @@ class Image:
                 arr /= scan_entry.entry.attenuation.count_time.nxdata
         except AttributeError:
             pass
+        logger.debug(f"mask shape in data function: {np.shape(self.metadata.edfmask.astype(bool))}\n")
+        logger.debug(f"data arr shape in data function: {np.shape(arr)}\n")
         # if there is an edf mask file loaded, apply mask
         if self.metadata.edfmask is not None:
             arr[self.metadata.edfmask.astype(bool)] = np.nan
