@@ -25,6 +25,13 @@ from fast_rsm.scan import Scan,chunk
 logger = logging.getLogger("fastrsm")
 
 #====general functions
+
+def combine_ranges(range1, range2):
+    """
+    combines two ranges to give the widest possible range
+    """
+    return (min(range1[0], range2[0]), max(range1[1], range2[1]))
+
 def check_shared_memory(shared_mem_name: str) -> None:
     """
     Make sure that a shared memory array is not open. Clear the shared memory
@@ -633,8 +640,7 @@ def pyfai_moving_exitangles_smm(experiment,
         start_time)
     return mapaxisinfo
 
-def pyfai_moving_qmap_smm(
-        experiment,
+def pyfai_moving_qmap_smm(experiment,
         hf,
         scanlist,
         num_threads,
@@ -689,8 +695,7 @@ def pyfai_moving_qmap_smm(
             with Pool(num_threads, \
                         initializer=pyfai_init_worker, \
             initargs=(l, shm_intensities.name, shm_counts.name, shapeqpqp)) as pool:
-                mapaxisinfolist = pool.starmap(
-                    pyfai_move_qmap_worker, input_args)
+                mapaxisinfolist = pool.starmap(pyfai_move_qmap_worker, input_args)
             print(
                 f'finished process pool for scan {scanind+1}/{len(scanlistnew)}')
 
