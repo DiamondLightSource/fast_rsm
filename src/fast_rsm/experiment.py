@@ -216,6 +216,7 @@ class Experiment:
         if edfmask is not None:
             maskimg = fabio.open(edfmask)
             mask = maskimg.data
+            logger.debug(f"shape of mask as loaded from edf = {np.shape(mask)}")
             if self.scans[0].metadata.data_file.is_rotated is True:
                 mask = np.rot90(np.flip(mask, axis=0), 1)
         else:
@@ -449,7 +450,7 @@ class Experiment:
         #     verscale = -1
         #     horscale = -1
 
-        
+
         # pylint: disable=unused-variable
         outscale = 1
         if axis == 'vert':
