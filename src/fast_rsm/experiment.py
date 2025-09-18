@@ -1032,8 +1032,9 @@ class Experiment:
 
     def pyfai_moving_exitangles_SMM(self,hf,scanlist,num_threads,output_file_path,\
                                     pyfaiponi,radrange,radstepval,qmapbins=[800,800],slitdistratios=None):
+        
         return new_pyfai_moving_exitangles_smm(self,hf,scanlist,num_threads,output_file_path,\
-                                    pyfaiponi,radrange,radstepval,qmapbins=[800,800],slitdistratios=None))
+                                    pyfaiponi,radrange,radstepval,qmapbins=[800,800],slitdistratios=None)
 
     @classmethod
     def from_i07_nxs(cls,
