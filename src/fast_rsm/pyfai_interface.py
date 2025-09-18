@@ -1,5 +1,6 @@
 import copy
 import traceback
+import h5py
 from datetime import datetime
 from time import time
 from multiprocessing import current_process,Lock,Pool
@@ -19,19 +20,6 @@ from diffraction_utils import  Frame #I10Nexus, Vector3,
 
 from fast_rsm.rsm_metadata import RSMMetadata
 from fast_rsm.scan import Scan,chunk
-
-
-from pathlib import Path
-from typing import Union, Tuple, List, Dict
-import logging
-from pyFAI.multi_geometry import MultiGeometry
-import pyFAI
-from pyFAI import units
-
-import numpy as np
-
-from diffraction_utils import  Frame #I10Nexus, Vector3,
-#from diffraction_utils.diffractometers import I10RasorDiffractometer
 
 
 logger = logging.getLogger("fastrsm")
@@ -132,6 +120,20 @@ def get_input_args(experiment, scanlength, scalegamma,
                     endlist for indices in inputindices]
     return input_args
 
+def reshape_to_signalshape(arr, signal_shape):
+    """
+    reshape data to match expected signal shape
+    """
+    testsize = int(np.prod(signal_shape)) - np.shape(arr)[0]
+
+    fullshape = signal_shape + np.shape(arr)[1:]
+    if testsize == 0:
+        return np.reshape(arr, fullshape)
+    else:
+        extradata = np.zeros((testsize,) + (np.shape(arr)[1:]))
+        outarr = np.concatenate((arr, extradata))
+        return np.reshape(outarr, fullshape)
+
 #====save functions
 def save_integration(experiment, hf, twothetas, q_angs,
                         intensities, configs, scan=0):
@@ -211,20 +213,6 @@ def save_config_variables(hf, joblines, pythonlocation, globalvals):
 
     config_group.create_dataset('joblines', data=joblines)
     config_group.create_dataset('python_location', data=pythonlocation)
-
-def reshape_to_signalshape(arr, signal_shape):
-    """
-    reshape data to match expected signal shape
-    """
-    testsize = int(np.prod(signal_shape)) - np.shape(arr)[0]
-
-    fullshape = signal_shape + np.shape(arr)[1:]
-    if testsize == 0:
-        return np.reshape(arr, fullshape)
-    else:
-        extradata = np.zeros((testsize,) + (np.shape(arr)[1:]))
-        outarr = np.concatenate((arr, extradata))
-        return np.reshape(outarr, fullshape)
 
 def save_scan_field_values(hf, scan):
     """
@@ -462,9 +450,6 @@ def pyfai_setup_limits(experiment, scanlist, limitfunction, slitdistratios):
 
     return outlimits, scanlength, scanlistnew
 
-
-#====moving detector processing
-
 def init_pyfai_process_pool(
         locks: List[Lock],
         num_threads: int,
@@ -579,6 +564,10 @@ def start_smm(smm, memshape):
     counts_arr.fill(0)
     l = Lock()
     return shm_intensities, shm_counts, arrays_arr, counts_arr, l
+
+
+#====moving detector processing
+
 
 def pyfai_moving_exitangles_smm(experiment,
                                 hf,
@@ -801,7 +790,6 @@ def pyfai_moving_ivsq_smm(
     minutes = (end_time - start_time) / 60
     print(f'total calculation took {minutes}  minutes')
 
-
 def pyfai_move_qmap_worker(experiment, choiceims, scan, shapeqpqp, pyfaiponi,
          qmapbins, qlimits=None, slithdistratio=None, slitvdistratio=None) -> None:
     """
@@ -975,7 +963,7 @@ def pyfai_move_exitangles_worker(experiment, imageindices, scan,\
 
 
 #====static detector processing
-def pyfai_stat_exitangles(experiment, imageindex, scan, two_theta_start, pyfaiponi,\
+def pyfai_stat_exitangles_worker(experiment, imageindex, scan, two_theta_start, pyfaiponi,\
     anglimits, qmapbins, ivqbins, slithdistratio=None, slitvdistratio=None) -> None:
     """
     calculate exit angle map for static detector scan data using pyFAI Fiber integrator
@@ -1001,7 +989,7 @@ def pyfai_stat_exitangles(experiment, imageindex, scan, two_theta_start, pyfaipo
 
     return map2d[0], map2d[1], map2d[2], mapaxisinfo
 
-def pyfai_stat_qmap(experiment, imageindex, scan, two_theta_start, pyfaiponi,
+def pyfai_stat_qmap_worker(experiment, imageindex, scan, two_theta_start, pyfaiponi,
                     qlimits, qmapbins, ivqbins, slithdistratio=None, slitvdistratio=None) -> None:
     """
     calculate q_para Vs q_perp map for static detector scan data using pyFAI Fiber integrator
@@ -1027,7 +1015,7 @@ def pyfai_stat_qmap(experiment, imageindex, scan, two_theta_start, pyfaiponi,
         map2d.azimuthal_unit), str(map2d.radial_unit)]
     return map2d[0], map2d[1], map2d[2], mapaxisinfo
 
-def pyfai_stat_ivsq(experiment, imageindex, scan, two_theta_start, pyfaiponi,
+def pyfai_stat_ivsq_worker(experiment, imageindex, scan, two_theta_start, pyfaiponi,
                     qmapbins, ivqbins, slithdistratio=None, slitvdistratio=None) -> None:
     """
     calculate Intensity Vs Q profile for static detector scan data using pyFAI Fiber integrator
@@ -1109,7 +1097,7 @@ def pyfai_static_exitangles(experiment, hf, scan, num_threads, pyfaiponi, ivqbin
             slitdistratios]
         input_args = get_input_args(experiment,\
             scanlength, scalegamma, False, num_threads, fullargs)
-        results = pool.starmap(pyfai_stat_exitangles, input_args)
+        results = pool.starmap(pyfai_stat_exitangles_worker, input_args)
         maps = [result[0] for result in results]
         xlabels = [result[1] for result in results]
         ylabels = [result[2] for result in results]
@@ -1171,7 +1159,7 @@ def pyfai_static_qmap(experiment, hf, scan, num_threads, output_file_path,
             slitdistratios]
         input_args = get_input_args(experiment,\
             scanlength, scalegamma, False, num_threads, fullargs)
-        results = pool.starmap(pyfai_stat_qmap, input_args)
+        results = pool.starmap(pyfai_stat_qmap_worker, input_args)
         maps = [result[0] for result in results]
         xlabels = [result[1] for result in results]
         ylabels = [result[2] for result in results]
@@ -1272,7 +1260,7 @@ def pyfai_static_ivsq(experiment, hf, scan, num_threads, output_file_path,
         input_args = get_input_args(experiment,\
             scanlength, scalegamma, False, num_threads, fullargs)
 
-        results = pool.starmap(pyfai_stat_ivsq, input_args)
+        results = pool.starmap(pyfai_stat_ivsq_worker, input_args)
         intensities = [result[0] for result in results]
         two_th_vals = [result[1] for result in results]
         q_vals = [result[2] for result in results]
