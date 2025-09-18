@@ -1,3 +1,6 @@
+"""
+Module for the functions used to interface with pyFAI package
+"""
 import copy
 import traceback
 import h5py
@@ -19,7 +22,8 @@ from diffraction_utils import  Frame #I10Nexus, Vector3,
 #from diffraction_utils.diffractometers import I10RasorDiffractometer
 
 from fast_rsm.rsm_metadata import RSMMetadata
-from fast_rsm.scan import Scan,chunk
+from fast_rsm.scan import Scan,chunk,check_shared_memory
+
 
 
 logger = logging.getLogger("fastrsm")
@@ -31,26 +35,6 @@ def combine_ranges(range1, range2):
     combines two ranges to give the widest possible range
     """
     return (min(range1[0], range2[0]), max(range1[1], range2[1]))
-
-def check_shared_memory(shared_mem_name: str) -> None:
-    """
-    Make sure that a shared memory array is not open. Clear the shared memory
-    and print a warning if it is open.
-
-    Args:
-        shared_mem_name:
-            Name of the shared memory array to check.
-    """
-    # Make sure that we don't leak this memory more than once.
-    try:
-        shm = SharedMemory(shared_mem_name,
-                           size=100)  # Totally arbitrary number.
-        shm.close()
-        shm.unlink()
-        print(f"Had to unlink *leaked* shared memory '{shared_mem_name}'...")
-    except FileNotFoundError:
-        # Don't do anything if we couldn't open 'arr'.
-        pass
 
 def createponi(experiment, outpath, offset=0):
     """
@@ -369,8 +353,6 @@ def get_pyfai_components(experiment, i, sample_orientation, unit_ip_name,
     if slithdistratio is not None:
         my_ai.pixel2 *= slithdistratio
         my_ai.poni2 *= slithdistratio
-    logger.debug(f"detector rotation = {scan.metadata.data_file.is_rotated}")
-    logger.debug(f"experimental setup ={experiment.setup}")
     if experiment.setup == 'vertical':
         img_data = np.rot90(scan.load_image(i).data, -1)
     else:

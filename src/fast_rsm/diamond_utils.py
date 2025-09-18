@@ -5,16 +5,466 @@ specifically at Diamond.
 
 import os
 from typing import Tuple
-
+import h5py
 import fast_histogram
 import numpy as np
 from scipy.constants import physical_constants
-
+from datetime import datetime
 import nexusformat.nexus as nx
-
+from diffraction_utils import Frame, Region
 from fast_rsm.binning import weighted_bin_1d, finite_diff_grid
+from fast_rsm.pyfai_interface import *
 
 
+
+
+# # The frame/coordinate system you want the map to be carried out in.
+# # Options for frame_name argument are:
+# #     Frame.hkl     (map into hkl space - requires UB matrix in nexus file)
+# #     Frame.sample_holder   (standard map into 1/Å)
+# #     Frame.lab     (map into frame attached to lab.)
+# #
+# # Options for coordinates argument are:
+# #     Frame.cartesian   (normal cartesian coords: hkl, Qx Qy Qz, etc.)
+# #     Frame.polar       (cylindrical polar with cylinder axis set by the
+# #                        cylinder_axis variable)
+# #
+# # Frame.polar will give an output like a more general version of PyFAI.
+# # Frame.cartesian is for hkl maps and Qx/Qy/Qz. Any combination of frame_name
+# # and coordinates will work, so try them out; get a feel for them.
+# # Note that if you want something like a q_parallel, q_perpendicular projection,
+# # you should choose Frame.lab with cartesian coordinates. From this data, your
+# # projection can be easily computed.
+# frame_name = Frame.hkl
+# coordinates = Frame.cartesian
+
+# # Ignore this unless you selected Frame.polar.
+# # This sets the axis about which your polar coordinates will be generated.
+# # Options are 'x', 'y' and 'z'. These are the synchrotron coordinates, rotated
+# # according to your requested frame_name. For instance, if you select
+# # Frame.lab, then 'x', 'y' and 'z' will correspond exactly to the synchrotron
+# # coordinate system (z along beam, y up). If you select frame.sample_holder and
+# # rotate your sample by an azimuthal angle µ, then 'y' will still be vertically
+# # up, but 'x' and 'z' will have been rotated about 'y' by the angle µ.
+# # Leave this as "None" if you aren't using cylindrical coordinates.
+##cylinder_axis = None
+
+def make_compatible(experiment):
+    '''
+    section to make sure backwards compatibility with setup files created for previous versions of fast_rsm
+    #makes sure all new variables are given False or a preset default value
+    '''
+
+    exp_variables = ['alphacritical', 'savedats', 'savetiffs','spherical_bragg_vec']
+    for var in exp_variables:
+        if var in globals():
+            setattr(experiment, var, globals()[var])
+
+    defaults_global = {'qmapbins': 0, 'slitvertratio': None, 'slithorratio': None,
+                    'frame_name': 'hkl', 'coordinates': 'cartesian','skipscans':None,\
+                        'skipimages':None, 'cylinder_axis':None}
+
+    for key, val in defaults_global.items():
+        if key not in globals():
+            globals()[key] = val
+    
+    return experiment
+
+def initial_value_checks(dps_centres,cylinder_axis,setup,output_file_size):
+    dpsx_central_pixel,dpsy_central_pixel,dpsz_central_pixel=dps_centres
+    # Warn if dps offsets are silly.
+    if ((dpsx_central_pixel > 10) or (dpsy_central_pixel > 10) or
+            (dpsz_central_pixel > 10)):
+        raise ValueError("DPS central pixel units should be meters. Detected "
+                        "values greater than 10m")
+    
+    # Which synchrotron axis should become the out-of-plane (001) direction.
+    # Defaults to 'y'; can be 'x', 'y' or 'z'.
+    setup_oops = {'vertical': 'x', 'horizontal': 'y', 'DCD': 'y'}
+    if setup in setup_oops:
+        oop = setup_oops[setup]
+    else:
+        raise ValueError(
+            "Setup not recognised. Must be 'vertical', 'horizontal' or 'DCD.")
+    if output_file_size > 2000:
+        raise ValueError("output_file_size must not exceed 2000. "
+                        f"Value received was {output_file_size}.")
+        
+    # Overwrite the above oop value depending on requested cylinder axis for polar
+    # coords.
+    if cylinder_axis is not None:
+        oop = cylinder_axis
+    
+    return oop
+
+# # Overwrite the above oop value depending on requested cylinder axis for polar
+# # coords.
+# if cylinder_axis is not None:
+#     oop = cylinder_axis
+def standard_adjustments(experiment,adjustment_args):
+    detector_distance,dps_centres,load_from_dat,scan_numbers,skipscans,skipimages=adjustment_args
+    dpsx_central_pixel,dpsy_central_pixel,dpsz_central_pixel=dps_centres
+
+    total_images = 0
+    for i, scan in enumerate(experiment.scans):
+        total_images += scan.metadata.data_file.scan_length
+        # Deal with the dps offsets.
+        if scan.metadata.data_file.using_dps:
+            if scan.metadata.data_file.setup == 'DCD':
+                # If we're using the DCD and the DPS, our offset calculation is
+                # somewhat involved. If you're confused about this and would like to
+                # see a derivation, contact Richard Brearton.
+
+                # Work out the in-plane and out-of-plane incident light angles.
+                # To do this, first grab a unit vector pointing along the beam.
+                lab_frame = Frame(Frame.lab, scan.metadata.diffractometer,
+                                coordinates=Frame.cartesian)
+                beam_direction = scan.metadata.diffractometer.get_incident_beam(
+                    lab_frame).array
+
+                # Now do some basic handling of spherical polar coordinates.
+                out_of_plane_theta = np.sin(beam_direction[1])
+                cos_theta_in_plane = beam_direction[2] / np.cos(out_of_plane_theta)
+                in_plane_theta = np.arccos(cos_theta_in_plane)
+
+                # Work out the total displacement from the undeflected beam of the
+                # central pixel, in the x and y directions (we know z already).
+                # Note that dx, dy are being calculated with signs consistent with
+                # synchrotron coordinates.
+                total_dx = -detector_distance * np.tan(in_plane_theta)
+                total_dy = detector_distance * np.tan(out_of_plane_theta)
+
+                # From these values we can compute true DPS offsets.
+                dps_off_x = total_dx - dpsx_central_pixel
+                dps_off_y = total_dy - dpsy_central_pixel
+
+                scan.metadata.data_file.dpsx += dps_off_x
+                scan.metadata.data_file.dpsy += dps_off_y
+                scan.metadata.data_file.dpsz -= dpsz_central_pixel
+            else:
+                # If we aren't using the DCD, our life is much simpler.
+                scan.metadata.data_file.dpsx -= dpsx_central_pixel
+                scan.metadata.data_file.dpsy -= dpsy_central_pixel
+                scan.metadata.data_file.dpsz -= dpsz_central_pixel
+
+            # Load from .dat files if we've been asked.
+            if load_from_dat:
+                dat_path = data_dir / f"{scan_numbers[i]}.dat"
+                scan.metadata.data_file.populate_data_from_dat(dat_path)
+        # reads in skip information and skips specified images in specified files
+
+        if skipscans not None:
+            if (int(scan_numbers[i]) in skipscans):
+                scan.skip_images += skipimages[np.where(
+                    np.array(skipscans) == int(scan_numbers[i]))[0][0]]
+    return experiment,total_images
+
+def make_mask_lists(specific_pixels,mask_regions):
+    # Prepare the pixel mask. First, deal with any specific pixels that we have.
+    # Note that these are defined (x, y) and we need (y, x) which are the
+    # (slow, fast) axes. So: first we need to deal with that!
+    if specific_pixels is not None:
+        specific_pixels = specific_pixels[1], specific_pixels[0]
+
+    # Now deal with any regions that may have been defined.
+    mask_regions_list = []
+    if mask_regions is not None:
+        mask_regions_list = [maskval if isinstance(
+            maskval, Region) else Region(*maskval) for maskval in mask_regions]
+
+    # Now swap (x, y) for each of the regions.
+    if mask_regions_list is not None:
+        for region in mask_regions_list:
+            region.x_start, region.y_start = region.y_start, region.x_start
+            region.x_end, region.y_end = region.y_end, region.x_end
+    
+    return mask_regions_list,specific_pixels
+
+def run_process_list(experiment,process_outputs,input_args):
+    """
+    separate function for sending of jobs defined by process output list and input arguments
+    """
+
+    map_per_image,scan_numbers,local_output_path,joblines,num_threads,\
+        ivqbins,qmapbins,pythonlocation,radialrange,radialstepval,slitratios,frame_name,oop,\
+            output_file_size,coordinates,volume_start,volume_stop,volume_step,min_intensity,\
+                save_path,total_images,save_binoculars_h5 =input_args
+    
+    if ('pyfai_qmap' in process_outputs) & (map_per_image == True):
+        for i, scan in enumerate(experiment.scans):
+            name_end = scan_numbers[i]
+            datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+            projected_name = f'Qmap_{name_end}_{datetime_str}'
+            hf = h5py.File(f'{local_output_path}/{projected_name}.hdf5', "w")
+            process_start_time = time()
+            experiment.load_curve_values(scan)
+            PYFAI_PONI =createponi( experiment,local_output_path)
+            pyfai_static_qmap(experiment,hf, scan, num_threads,\
+                            local_output_path, PYFAI_PONI, ivqbins, qmapbins)
+            save_config_variables(
+                hf, joblines, pythonlocation, globals())
+            hf.close()
+            print(
+                f"saved 2d map  data to {local_output_path}/{projected_name}.hdf5")
+            total_time = time() - process_start_time
+            print(f"\n 2d Q map calculations took {total_time}s")
+
+    if ('pyfai_qmap' in process_outputs) & (map_per_image == False):
+        scanlist = experiment.scans
+        name_end = scan_numbers[0]
+        datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+        projected_name = f'Qmap_{name_end}_{datetime_str}'
+        hf = h5py.File(f'{local_output_path}/{projected_name}.hdf5', "w")
+        process_start_time = time()
+        experiment.load_curve_values(scanlist[0])
+        PYFAI_PONI =createponi( experiment,local_output_path)
+        pyfai_moving_qmap_smm(experiment,hf, scanlist, num_threads, local_output_path,
+                                        PYFAI_PONI, radialrange, radialstepval, qmapbins, slitdistratios=slitratios)
+        save_config_variables(hf, joblines, pythonlocation, globals())
+        hf.close()
+        print(f"saved 2d map data to {local_output_path}/{projected_name}.hdf5")
+
+        total_time = time() - process_start_time
+        print(f"\n 2d Q map calculation took {total_time}s")
+
+    if ('pyfai_ivsq' in process_outputs) & (map_per_image == True):
+        for i, scan in enumerate(experiment.scans):
+            name_end = scan_numbers[i]
+            datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+            projected_name = f'IvsQ_{name_end}_{datetime_str}'
+            hf = h5py.File(f'{local_output_path}/{projected_name}.hdf5', "w")
+            process_start_time = time()
+            experiment.load_curve_values(scan)
+            PYFAI_PONI =createponi( experiment,local_output_path)
+            pyfai_static_ivsq(experiment,  hf, scan, num_threads,\
+                            local_output_path, PYFAI_PONI, ivqbins, qmapbins)
+            save_config_variables(
+                hf, joblines, pythonlocation, globals())
+            hf.close()
+            print(
+                f"saved 1d integration data to {local_output_path}/{projected_name}.hdf5")
+            total_time = time() - process_start_time
+            print(f"\n Azimuthal integrations took {total_time}s")
+
+    if ('pyfai_ivsq' in process_outputs) & (map_per_image == False):
+        scanlist = experiment.scans
+        name_end = scan_numbers[0]
+        datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+        projected_name = f'IvsQ_{name_end}_{datetime_str}'
+        hf = h5py.File(f'{local_output_path}/{projected_name}.hdf5', "w")
+        process_start_time = time()
+        experiment.load_curve_values(scanlist[0])
+        PYFAI_PONI =createponi( experiment,local_output_path)
+        pyfai_moving_ivsq_smm(experiment, hf, scanlist, num_threads,\
+            local_output_path, PYFAI_PONI, radialrange, radialstepval,\
+            qmapbins, slitdistratios=slitratios)
+        save_config_variables(hf, joblines, pythonlocation, globals())
+        hf.close()
+        print(
+            f"saved 1d integration data to {local_output_path}/{projected_name}.hdf5")
+        total_time = time() - process_start_time
+        print(f"\n Azimuthal integration took {total_time}s")
+
+    if ('pyfai_exitangles' in process_outputs) & (map_per_image == True):
+        for i, scan in enumerate(experiment.scans):
+            name_end = scan_numbers[i]
+            datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+            projected_name = f'exitmap_{name_end}_{datetime_str}'
+            hf = h5py.File(f'{local_output_path}/{projected_name}.hdf5', "w")
+            process_start_time = time()
+            experiment.load_curve_values(scan)
+            PYFAI_PONI =createponi( experiment,local_output_path)
+            pyfai_static_exitangles(experiment,hf, scan, num_threads,\
+                                    PYFAI_PONI, ivqbins, qmapbins)
+            save_config_variables(
+                hf, joblines, pythonlocation, globals())
+            hf.close()
+            print(
+                f"saved 2d exit angle map  data to {local_output_path}/{projected_name}.hdf5")
+            total_time = time() - process_start_time
+            print(f"\n 2d exit angle map calculations took {total_time}s")
+
+    if ('pyfai_exitangles' in process_outputs) & (map_per_image == False):
+        scanlist = experiment.scans
+        name_end = scan_numbers[0]
+        datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+        projected_name = f'exitmap_{name_end}_{datetime_str}'
+        hf = h5py.File(f'{local_output_path}/{projected_name}.hdf5', "w")
+        process_start_time = time()
+        experiment.load_curve_values(scanlist[0])
+        PYFAI_PONI =createponi( experiment,local_output_path)   
+        pyfai_moving_exitangles_smm(experiment,hf, scanlist, num_threads,\
+                local_output_path, PYFAI_PONI, radialrange, radialstepval,\
+                    qmapbins, slitdistratios=slitratios)
+        save_config_variables(hf, joblines, pythonlocation, globals())
+        hf.close()
+        print(
+            f"saved 2d exit angle map  data to {local_output_path}/{projected_name}.hdf5")
+        total_time = time() - process_start_time
+        print(f"\n 2d exit angle map calculations took {total_time}s")
+
+    if 'full_reciprocal_map' in process_outputs:
+        
+        processing_dir = Path(local_output_path)
+
+        # Here we calculate a sensible file name that hasn't been taken.
+        i = 0
+
+        save_file_name = f"mapped_scan_{scan_numbers[0]}_{i}"
+        save_path = processing_dir / save_file_name
+        # Make sure that this name hasn't been used in the past.
+        extensions = [".npy", ".vtk", "_l.txt", "_tth.txt", "_Q.txt", ""]
+        while any(os.path.exists(str(save_path) + ext) for ext in extensions):
+            i += 1
+            save_file_name = f"mapped_scan_{scan_numbers[0]}_{i}"
+            save_path = processing_dir / save_file_name
+
+            if i > 1e7:
+                raise ValueError(
+                    "Either you tried to save this file 10000000 times, or something "
+                    "went wrong. I'm going with the latter, but exiting out anyway.")
+        map_frame = Frame(frame_name=frame_name, coordinates=coordinates)
+        start_time = time()
+        # Calculate and save a binned reciprocal space map, if requested.
+        experiment.binned_reciprocal_space_map_smm(
+            num_threads, map_frame, output_file_size=output_file_size, oop=oop,
+            min_intensity_mask=min_intensity,
+            output_file_name=save_path,
+            volume_start=volume_start, volume_stop=volume_stop,
+            volume_step=volume_step,
+            map_each_image=map_per_image)
+
+        if save_binoculars_h5 == True:
+            outvars = globals()
+
+            save_binoculars_hdf5(str(save_path) + ".npy", str(save_path) +
+                                '.hdf5', joblines, pythonlocation, outvars)
+            print(f"\nSaved BINoculars file to {save_path}.hdf5.\n")
+
+        # Finally, print that it's finished We'll use this to work out when the
+        # processing is done.
+        total_time = time() - start_time
+        print(f"\nProcessing took {total_time}s")
+        print(f"This corresponds to {total_time*1000/total_images}ms per image.\n")
+
+def save_binoculars_hdf5(path_to_npy: np.ndarray,
+                         output_path: str, joblines, pythonlocation, outvars=None):
+    """
+    Saves the .npy file as a binoculars-readable hdf5 file.
+    """
+    # Load the volume and the bounds.
+    volume, start, stop, step = get_volume_and_bounds(path_to_npy)
+
+    # Binoculars expects float64s with no NaNs.
+    volume = volume.astype(np.float64)
+
+    # Allow binoculars to generate the NaNs naturally.
+    contributions = np.empty_like(volume)
+    contributions[np.isnan(volume)] = 0
+    contributions[~np.isnan(volume)] = 1
+    volume = np.nan_to_num(volume)
+
+    # make sure to use consistent conventions for the grid.
+    # internally, the used grid is defined by np.arange(start, stop, step)
+    # which may be missing the last element!
+    true_grid = finite_diff_grid(start, stop, step)
+    binoculars_step = step
+    binoculars_start = [interval[0] for interval in true_grid]
+    binoculars_start_int = [int(np.floor(start[i] / step[i]))
+                            for i in range(3)]
+    binoculars_stop_int = [
+        int(binoculars_start_int[i] + volume.shape[i] - 1)
+        for i in range(3)
+    ]
+    binoculars_stop = [binoculars_stop_int[i] * binoculars_step[i]
+                       for i in range(3)]
+
+    # Make h, k and l arrays in the expected format.
+    h_arr, k_arr, l_arr = (
+        tuple(np.array([i, binoculars_start[i], binoculars_stop[i],
+                        binoculars_step[i],
+                        float(binoculars_start_int[i]),  # binoculars
+                        float(binoculars_stop_int[i])])  # uses int()
+              for i in range(3))
+    )
+
+    # Turn those into an axes group.
+    axes_group = nx.NXgroup(h=h_arr, k=k_arr, l=l_arr)
+
+    config_group = nx.NXgroup()
+    configlist = ['setup', 'experimental_hutch', 'using_dps', 'beam_centre', \
+                  'detector_distance', 'dpsx_central_pixel', 'dpsy_central_pixel',\
+                'dpsz_central_pixel','local_data_path', 'local_output_path',\
+                'output_file_size', 'save_binoculars_h5', 'map_per_image',\
+                'volume_start', 'volume_step', 'volume_stop',\
+                'load_from_dat', 'edfmaskfile', 'specific_pixels', \
+                'mask_regions', 'process_outputs', 'scan_numbers']
+    # Get a list of all available variables
+    if outvars is not None:
+        variables = list(outvars.keys())
+
+        # Iterate through the variables
+        for var_name in variables:
+            # Check if the variable name is in configlist
+            if var_name in configlist:
+                # Get the variable value
+                var_value = outvars[var_name]
+
+                # Add the variable to config_group
+                config_group[var_name] = str(var_value)
+        if 'ubinfo' in outvars:
+            for i, coll in enumerate(outvars['ubinfo']):
+                config_group[f'ubinfo_{i+1}'] = nx.NXgroup()
+                config_group[f'ubinfo_{i+1}'][f'lattice_{i+1}'] = coll['diffcalc_lattice']
+                config_group[f'ubinfo_{i+1}'][f'u_{i+1}'] = coll['diffcalc_u']
+                config_group[f'ubinfo_{i+1}'][f'ub_{i+1}'] = coll['diffcalc_ub']
+    config_group['python_version'] = pythonlocation
+    config_group['joblines'] = joblines
+    # Make a corresponding (mandatory) "binoculars" group.
+    binoculars_group = nx.NXgroup(
+        axes=axes_group, contributions=contributions,\
+              counts=(volume), i07configuration=config_group)
+    binoculars_group.attrs['type'] = 'Space'
+
+    # Make a root which contains the binoculars group.
+    bin_hdf = nx.NXroot(binoculars=binoculars_group)
+
+    # Save it!
+    bin_hdf.save(output_path)
+
+def get_volume_and_bounds(path_to_npy: str) -> Tuple[np.ndarray]:
+    """
+    Takes the path to a .npy file. Loads the volume stored in the .npy file, and
+    also grabs the definition of the corresponding finite differences volume
+    from the bounds file.
+
+    Args:
+        path_to_npy:
+            Path to the .npy file containing the volume of interest.
+
+    Returns:
+        A tuple taking the form (volume, start, stop, step), where each element
+        of the tuple is a numpy array of values. The first value returned is the
+        full reciprocal space volume, and could be very large (up to ~GB).
+    """
+    # In case we were given a pathlib.path.
+    path_to_npy = str(path_to_npy)
+    # Work out the path to the bounds file.
+    path_to_bounds = path_to_npy[:-4] + "_bounds.txt"
+
+    # Load the data.
+    volume = np.load(path_to_npy)
+    q_bounds = np.loadtxt(path_to_bounds)
+
+    # Scrape the start/stop/step values.
+    start, stop, step = q_bounds[:, 0], q_bounds[:, 1], q_bounds[:, 2]
+
+    # And return what we were asked for!
+    return volume, start, stop, step
+
+
+
+#========old obsolete functions
 def load_exact_map(
     q_vector_path: str, intensities_path: str
 ) -> Tuple[np.ndarray, np.ndarray]:
@@ -219,35 +669,6 @@ def q_to_theta(q_values: np.ndarray, energy: float) -> np.ndarray:
     return theta_values * 180 / np.pi
 
 
-def get_volume_and_bounds(path_to_npy: str) -> Tuple[np.ndarray]:
-    """
-    Takes the path to a .npy file. Loads the volume stored in the .npy file, and
-    also grabs the definition of the corresponding finite differences volume
-    from the bounds file.
-
-    Args:
-        path_to_npy:
-            Path to the .npy file containing the volume of interest.
-
-    Returns:
-        A tuple taking the form (volume, start, stop, step), where each element
-        of the tuple is a numpy array of values. The first value returned is the
-        full reciprocal space volume, and could be very large (up to ~GB).
-    """
-    # In case we were given a pathlib.path.
-    path_to_npy = str(path_to_npy)
-    # Work out the path to the bounds file.
-    path_to_bounds = path_to_npy[:-4] + "_bounds.txt"
-
-    # Load the data.
-    volume = np.load(path_to_npy)
-    q_bounds = np.loadtxt(path_to_bounds)
-
-    # Scrape the start/stop/step values.
-    start, stop, step = q_bounds[:, 0], q_bounds[:, 1], q_bounds[:, 2]
-
-    # And return what we were asked for!
-    return volume, start, stop, step
 
 
 def _project_to_1d(volume: np.ndarray,
@@ -400,91 +821,6 @@ def intensity_vs_l(output_file_name: str,
     print(f"Saving intensity vs l to {output_file_name}")
     np.savetxt(output_file_name, to_save, header="l intensity")
 
-
-def save_binoculars_hdf5(path_to_npy: np.ndarray,
-                         output_path: str, joblines, pythonlocation, outvars=None):
-    """
-    Saves the .npy file as a binoculars-readable hdf5 file.
-    """
-    # Load the volume and the bounds.
-    volume, start, stop, step = get_volume_and_bounds(path_to_npy)
-
-    # Binoculars expects float64s with no NaNs.
-    volume = volume.astype(np.float64)
-
-    # Allow binoculars to generate the NaNs naturally.
-    contributions = np.empty_like(volume)
-    contributions[np.isnan(volume)] = 0
-    contributions[~np.isnan(volume)] = 1
-    volume = np.nan_to_num(volume)
-
-    # make sure to use consistent conventions for the grid.
-    # internally, the used grid is defined by np.arange(start, stop, step)
-    # which may be missing the last element!
-    true_grid = finite_diff_grid(start, stop, step)
-    binoculars_step = step
-    binoculars_start = [interval[0] for interval in true_grid]
-    binoculars_start_int = [int(np.floor(start[i] / step[i]))
-                            for i in range(3)]
-    binoculars_stop_int = [
-        int(binoculars_start_int[i] + volume.shape[i] - 1)
-        for i in range(3)
-    ]
-    binoculars_stop = [binoculars_stop_int[i] * binoculars_step[i]
-                       for i in range(3)]
-
-    # Make h, k and l arrays in the expected format.
-    h_arr, k_arr, l_arr = (
-        tuple(np.array([i, binoculars_start[i], binoculars_stop[i],
-                        binoculars_step[i],
-                        float(binoculars_start_int[i]),  # binoculars
-                        float(binoculars_stop_int[i])])  # uses int()
-              for i in range(3))
-    )
-
-    # Turn those into an axes group.
-    axes_group = nx.NXgroup(h=h_arr, k=k_arr, l=l_arr)
-
-    config_group = nx.NXgroup()
-    configlist = ['setup', 'experimental_hutch', 'using_dps', 'beam_centre', \
-                  'detector_distance', 'dpsx_central_pixel', 'dpsy_central_pixel',\
-                'dpsz_central_pixel','local_data_path', 'local_output_path',\
-                'output_file_size', 'save_binoculars_h5', 'map_per_image',\
-                'volume_start', 'volume_step', 'volume_stop',\
-                'load_from_dat', 'edfmaskfile', 'specific_pixels', \
-                'mask_regions', 'process_outputs', 'scan_numbers']
-    # Get a list of all available variables
-    if outvars is not None:
-        variables = list(outvars.keys())
-
-        # Iterate through the variables
-        for var_name in variables:
-            # Check if the variable name is in configlist
-            if var_name in configlist:
-                # Get the variable value
-                var_value = outvars[var_name]
-
-                # Add the variable to config_group
-                config_group[var_name] = str(var_value)
-        if 'ubinfo' in outvars:
-            for i, coll in enumerate(outvars['ubinfo']):
-                config_group[f'ubinfo_{i+1}'] = nx.NXgroup()
-                config_group[f'ubinfo_{i+1}'][f'lattice_{i+1}'] = coll['diffcalc_lattice']
-                config_group[f'ubinfo_{i+1}'][f'u_{i+1}'] = coll['diffcalc_u']
-                config_group[f'ubinfo_{i+1}'][f'ub_{i+1}'] = coll['diffcalc_ub']
-    config_group['python_version'] = pythonlocation
-    config_group['joblines'] = joblines
-    # Make a corresponding (mandatory) "binoculars" group.
-    binoculars_group = nx.NXgroup(
-        axes=axes_group, contributions=contributions,\
-              counts=(volume), i07configuration=config_group)
-    binoculars_group.attrs['type'] = 'Space'
-
-    # Make a root which contains the binoculars group.
-    bin_hdf = nx.NXroot(binoculars=binoculars_group)
-
-    # Save it!
-    bin_hdf.save(output_path)
 
 
 def most_recent_cluster_output():
