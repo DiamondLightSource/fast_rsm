@@ -4,16 +4,19 @@ specifically at Diamond.
 """
 
 import os
+import multiprocessing
+from pathlib import Path
+import numpy as np
 from typing import Tuple
 import h5py
 import fast_histogram
-import numpy as np
 from scipy.constants import physical_constants
 from datetime import datetime
 import nexusformat.nexus as nx
 from diffraction_utils import Frame, Region
 from fast_rsm.binning import weighted_bin_1d, finite_diff_grid
 from fast_rsm.pyfai_interface import *
+from fast_rsm.experiment import Experiment
 
 
 
@@ -49,6 +52,50 @@ from fast_rsm.pyfai_interface import *
 # # Leave this as "None" if you aren't using cylindrical coordinates.
 ##cylinder_axis = None
 
+
+def create_standard_experiment(input_globals):
+
+    list_to_unpack=[dpsx_central_pixel,dpsy_central_pixel,dpsz_central_pixel,cylinder_axis,setup,\
+                    output_file_size,local_data_path,scan_numbers,beam_centre,detector_distance,setup,\
+                      using_dps,experimental_hutch,edfmaskfile,mask_regions,load_from_dat,skipscans,skipimages,\
+                         slithorratio,slitvertratio ]
+    
+    dpsx_central_pixel,dpsy_central_pixel,dpsz_central_pixel,cylinder_axis,setup,\
+                    output_file_size,local_data_path,scan_numbers,beam_centre,detector_distance,setup,\
+                      using_dps,experimental_hutch,edfmaskfile,mask_regions,load_from_dat,skipscans,skipimages,\
+                      slithorratio,slitvertratio= \
+                        [input_globals[keyval] for keyval in list_to_unpack]
+    dps_centres= [dpsx_central_pixel,dpsy_central_pixel,dpsz_central_pixel]
+
+    oop= initial_value_checks(dps_centres,cylinder_axis,setup,output_file_size)
+
+    # Max number of cores available for processing.
+    num_threads = multiprocessing.cpu_count()
+
+    data_dir = Path(local_data_path)
+    # Work out the paths to each of the nexus files. Store as pathlib.Path objects.
+    nxs_paths = [data_dir / f"i07-{x}.nxs" for x in scan_numbers]
+
+    mask_regions_list,specific_pixels =  make_mask_lists(specific_pixels,mask_regions)
+
+    # Finally, instantiate the Experiment object.
+    experiment = Experiment.from_i07_nxs(
+        nxs_paths, beam_centre, detector_distance, setup,
+        using_dps=using_dps, experimental_hutch=experimental_hutch)
+
+    experiment.mask_pixels(specific_pixels)
+    experiment.mask_edf(edfmaskfile)
+    experiment.mask_regions(mask_regions_list)
+
+    experiment=make_exp_compatible(experiment)
+
+
+    adjustment_args=[detector_distance,dps_centres,load_from_dat,scan_numbers,skipscans,skipimages,\
+                    slithorratio,slitvertratio,data_dir]
+    experiment,total_images,slitratios=standard_adjustments(experiment,adjustment_args)
+
+    return experiment,num_threads,total_images,slitratios,oop
+
 def make_globals_compatible(input_globals):
     '''
     section to alter globals to make sure backwards compatibility with setup files created for previous versions of fast_rsm
@@ -56,7 +103,7 @@ def make_globals_compatible(input_globals):
     '''
     defaults_global = {'qmapbins': 0, 'slitvertratio': None, 'slithorratio': None,
                     'frame_name': 'hkl', 'coordinates': 'cartesian','skipscans':None,\
-                        'skipimages':None, 'cylinder_axis':None}
+                        'skipimages':None, 'cylinder_axis':None,'DEBUG_LOG':0}
 
     for key, val in defaults_global.items():
         if key not in input_globals:
