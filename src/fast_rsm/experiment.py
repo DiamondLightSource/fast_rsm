@@ -38,12 +38,6 @@ logger = logging.getLogger("fastrsm")
 # from memory_profiler import profile
 
 
-def combine_ranges(range1, range2):
-    """
-    combines two ranges to give the widest possible range
-    """
-    return (min(range1[0], range2[0]), max(range1[1], range2[1]))
-
 
 def _remove_file(path: Union[str, Path]):
     """
@@ -393,44 +387,69 @@ class Experiment:
             'delvert': [
                 self.deltadata,
                 self.two_theta_start]}
-        if (vertsetup is True) & (self.scans[0].metadata.data_file.is_rotated):
-            # GOOD
-            [horindex, vertindex] = horvert_indices['hor0']
-            [vertangles, horangles] = horvert_angles['thvert']
-            verscale = -1
-            horscale = 1
-
-        elif vertsetup is True:
-            # GOOD
-            [horindex, vertindex] = horvert_indices['hor0']
-            [vertangles, horangles] = horvert_angles['thvert']
-            verscale = -1
-            horscale = -1
-
-        elif (self.setup == 'DCD') & (self.scans[0].metadata.data_file.is_rotated):
-            [horindex, vertindex] = horvert_indices['vert0']
-            [vertangles, horangles] = horvert_angles['delvert']
-            verscale = -1
-            horscale = -1
-
-        elif self.setup == 'DCD':
-            [horindex, vertindex] = horvert_indices['vert0']
-            [vertangles, horangles] = horvert_angles['delvert']
-            verscale = -1
-            horscale = -1
-
-        elif (vertsetup is False) & (self.scans[0].metadata.data_file.is_rotated):
-            [horindex, vertindex] = horvert_indices['vert0']
-            [vertangles, horangles] = horvert_angles['delvert']
-            verscale = -1
-            horscale = 1
-
+        
+        if self.scans[0].metadata.data_file.is_rotated:
+            rot_option='rot'
         else:
-            # GOOD
-            [horindex, vertindex] = horvert_indices['vert0']
-            [vertangles, horangles] = horvert_angles['delvert']
-            verscale = -1
-            horscale = -1
+            rot_option='norot'
+
+        chosen_setup=f'{self.setup}_{rot_option}'
+        
+        index_scales={'vertical_rot': ['hor0','thvert',-1,1],\
+                      'vertical_norot':['hor0','thvert',-1,-1],\
+                      'DCD_rot':['vert0','delvert',-1,-1],\
+                      'DCD_norot':['vert0','delvert',-1,-1],\
+                      'horizontal_rot':['vert0','delvert',-1,1],\
+                      'horizontal_norot':['vert0','delvert',-1,-1],\
+                      }
+        
+        chosen_ind_scales=index_scales[chosen_setup]
+        [horindex, vertindex] = horvert_indices[chosen_ind_scales[0]]
+        [vertangles, horangles] = horvert_angles[chosen_ind_scales[1]]
+        verscale = chosen_ind_scales[2]
+        horscale = chosen_ind_scales[3]
+
+
+        # if (vertsetup is True) & (self.scans[0].metadata.data_file.is_rotated):
+        #     # GOOD
+        #     [horindex, vertindex] = horvert_indices['hor0']
+        #     [vertangles, horangles] = horvert_angles['thvert']
+        #     verscale = -1
+        #     horscale = 1
+
+        # elif vertsetup is True:
+        #     # GOOD
+        #     [horindex, vertindex] = horvert_indices['hor0']
+        #     [vertangles, horangles] = horvert_angles['thvert']
+        #     verscale = -1
+        #     horscale = -1
+
+        # elif (self.setup == 'DCD') & (self.scans[0].metadata.data_file.is_rotated):
+        #     [horindex, vertindex] = horvert_indices['vert0']
+        #     [vertangles, horangles] = horvert_angles['delvert']
+        #     verscale = -1
+        #     horscale = -1
+
+        # elif self.setup == 'DCD':
+        #     [horindex, vertindex] = horvert_indices['vert0']
+        #     [vertangles, horangles] = horvert_angles['delvert']
+        #     verscale = -1
+        #     horscale = -1
+
+        # elif (vertsetup is False) & (self.scans[0].metadata.data_file.is_rotated):
+        #     [horindex, vertindex] = horvert_indices['vert0']
+        #     [vertangles, horangles] = horvert_angles['delvert']
+        #     verscale = -1
+        #     horscale = 1
+
+        # else:
+        #     # GOOD
+        #     [horindex, vertindex] = horvert_indices['vert0']
+        #     [vertangles, horangles] = horvert_angles['delvert']
+        #     verscale = -1
+        #     horscale = -1
+
+        
         # pylint: disable=unused-variable
         outscale = 1
         if axis == 'vert':
