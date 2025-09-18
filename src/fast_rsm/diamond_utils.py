@@ -58,12 +58,12 @@ def create_standard_experiment(input_globals):
     list_to_unpack=['dpsx_central_pixel','dpsy_central_pixel','dpsz_central_pixel','cylinder_axis','setup',\
                     'output_file_size','local_data_path','scan_numbers','beam_centre','detector_distance','setup',\
                       'using_dps','experimental_hutch','edfmaskfile','mask_regions','load_from_dat','skipscans','skipimages',\
-                         'slithorratio','slitvertratio' ]
+                         'slithorratio','slitvertratio' ,'specific_pixels']
     
     dpsx_central_pixel,dpsy_central_pixel,dpsz_central_pixel,cylinder_axis,setup,\
                     output_file_size,local_data_path,scan_numbers,beam_centre,detector_distance,setup,\
                       using_dps,experimental_hutch,edfmaskfile,mask_regions,load_from_dat,skipscans,skipimages,\
-                      slithorratio,slitvertratio= \
+                      slithorratio,slitvertratio,specific_pixels= \
                         [input_globals[keyval] for keyval in list_to_unpack]
     dps_centres= [dpsx_central_pixel,dpsy_central_pixel,dpsz_central_pixel]
 
