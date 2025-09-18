@@ -216,6 +216,7 @@ class Experiment:
         if edfmask is not None:
             maskimg = fabio.open(edfmask)
             mask = maskimg.data
+            logger.debug(f"edf mask filepath = {edfmask}")
             logger.debug(f"shape of mask as loaded from edf = {np.shape(mask)}")
             if self.scans[0].metadata.data_file.is_rotated is True:
                 mask = np.rot90(np.flip(mask, axis=0), 1)
