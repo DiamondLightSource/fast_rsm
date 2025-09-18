@@ -299,8 +299,6 @@ def pyfai_init_worker(l, shm_intensities_name, shm_counts_name, shmshape):
     """
     intialiser for pyfai mappings
     """
-    logger.debug("test debug inside scan.py/pyfai_init_worker")
-    logger.info("test info inside scan.py/pyfai_init_worker")
     global lock
     global SHM_INTENSITY
     global INTENSITY_ARRAY
@@ -371,7 +369,8 @@ def get_pyfai_components(experiment, i, sample_orientation, unit_ip_name,
     if slithdistratio is not None:
         my_ai.pixel2 *= slithdistratio
         my_ai.poni2 *= slithdistratio
-
+    logger.debug(f"detector rotation = {scan.metadata.data_file.is_rotated}")
+    logger.debug(f"experimental setup ={experiment.setup}")
     if experiment.setup == 'vertical':
         img_data = np.rot90(scan.load_image(i).data, -1)
     else:
