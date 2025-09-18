@@ -47,7 +47,7 @@ experiment=make_exp_compatible(experiment)
 
 adjustment_args=[detector_distance,dps_centres,load_from_dat,scan_numbers,skipscans,skipimages,\
                  slithorratio,slitvertratio,data_dir]
-total_images,experiment,slitratios=standard_adjustments(experiment,adjustment_args)
+experiment,total_images,slitratios=standard_adjustments(experiment,adjustment_args)
 
 """
 This section is for changing metadata that is stored in, or inferred from, the
