@@ -49,7 +49,7 @@ from fast_rsm.pyfai_interface import *
 # # Leave this as "None" if you aren't using cylindrical coordinates.
 ##cylinder_axis = None
 
-def make_globals_compatible():
+def make_globals_compatible(input_globals):
     '''
     section to alter globals to make sure backwards compatibility with setup files created for previous versions of fast_rsm
     #makes sure all new variables are given False or a preset default value
@@ -59,8 +59,8 @@ def make_globals_compatible():
                         'skipimages':None, 'cylinder_axis':None}
 
     for key, val in defaults_global.items():
-        if key not in globals():
-            globals()[key] = val
+        if key not in input_globals:
+            input_globals[key] = val
 
 
 def make_exp_compatible(experiment):

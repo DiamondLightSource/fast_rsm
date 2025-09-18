@@ -21,7 +21,7 @@ configure_logging(DEBUG_LOG)
 logger=get_frsm_logger()
 
 dps_centres= [dpsx_central_pixel,dpsy_central_pixel,dpsz_central_pixel]
-make_globals_compatible()
+make_globals_compatible(globals())
 oop= initial_value_checks(dps_centres,cylinder_axis,setup,output_file_size)
 
 # Max number of cores available for processing.
