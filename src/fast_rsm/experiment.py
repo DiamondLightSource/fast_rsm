@@ -220,6 +220,7 @@ class Experiment:
             logger.debug(f"shape of mask as loaded from edf = {np.shape(mask)}")
             if self.scans[0].metadata.data_file.is_rotated is True:
                 mask = np.rot90(np.flip(mask, axis=0), 1)
+            logger.debug(f"shape of mask after rotation check = {np.shape(mask)}")
         else:
             mask = None
 
