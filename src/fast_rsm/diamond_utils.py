@@ -49,17 +49,11 @@ from fast_rsm.pyfai_interface import *
 # # Leave this as "None" if you aren't using cylindrical coordinates.
 ##cylinder_axis = None
 
-def make_compatible(experiment):
+def make_globals_compatible():
     '''
-    section to make sure backwards compatibility with setup files created for previous versions of fast_rsm
+    section to alter globals to make sure backwards compatibility with setup files created for previous versions of fast_rsm
     #makes sure all new variables are given False or a preset default value
     '''
-
-    exp_variables = ['alphacritical', 'savedats', 'savetiffs','spherical_bragg_vec']
-    for var in exp_variables:
-        if var in globals():
-            setattr(experiment, var, globals()[var])
-
     defaults_global = {'qmapbins': 0, 'slitvertratio': None, 'slithorratio': None,
                     'frame_name': 'hkl', 'coordinates': 'cartesian','skipscans':None,\
                         'skipimages':None, 'cylinder_axis':None}
@@ -67,7 +61,18 @@ def make_compatible(experiment):
     for key, val in defaults_global.items():
         if key not in globals():
             globals()[key] = val
-    
+
+
+def make_exp_compatible(experiment):
+    '''
+    section to alter experiment to make sure backwards compatibility with setup files created for previous versions of fast_rsm
+    #makes sure all new variables are given False or a preset default value
+    '''
+
+    exp_variables = ['alphacritical', 'savedats', 'savetiffs','spherical_bragg_vec']
+    for var in exp_variables:
+        if var in globals():
+            setattr(experiment, var, globals()[var])
     return experiment
 
 def initial_value_checks(dps_centres,cylinder_axis,setup,output_file_size):

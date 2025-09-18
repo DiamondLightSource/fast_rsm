@@ -10,7 +10,7 @@ import numpy as np
 from diffraction_utils import Frame, Region
 from fast_rsm.diamond_utils import run_process_list, \
     standard_adjustments, make_mask_lists, initial_value_checks,\
-    make_compatible
+    make_exp_compatible,make_globals_compatible
 from fast_rsm.experiment import Experiment
 from fast_rsm.logging_config import configure_logging,get_frsm_logger
 import sys
@@ -21,7 +21,7 @@ configure_logging(DEBUG_LOG)
 logger=get_frsm_logger()
 
 dps_centres= [dpsx_central_pixel,dpsy_central_pixel,dpsz_central_pixel]
-
+make_globals_compatible()
 oop= initial_value_checks(dps_centres,cylinder_axis,setup,output_file_size)
 
 # Max number of cores available for processing.
@@ -42,7 +42,7 @@ experiment.mask_pixels(specific_pixels)
 experiment.mask_edf(edfmaskfile)
 experiment.mask_regions(mask_regions_list)
 
-experiment=make_compatible(experiment)
+experiment=make_exp_compatible(experiment)
 
 
 adjustment_args=[detector_distance,dps_centres,load_from_dat,scan_numbers,skipscans,skipimages,\
