@@ -102,7 +102,8 @@ def initial_value_checks(dps_centres,cylinder_axis,setup,output_file_size):
 # if cylinder_axis is not None:
 #     oop = cylinder_axis
 def standard_adjustments(experiment,adjustment_args):
-    detector_distance,dps_centres,load_from_dat,scan_numbers,skipscans,skipimages=adjustment_args
+    detector_distance,dps_centres,load_from_dat,scan_numbers,skipscans,skipimages,\
+         slithorratio,slitvertratio,data_dir=adjustment_args
     dpsx_central_pixel,dpsy_central_pixel,dpsz_central_pixel=dps_centres
 
     total_images = 0
@@ -153,11 +154,17 @@ def standard_adjustments(experiment,adjustment_args):
                 scan.metadata.data_file.populate_data_from_dat(dat_path)
         # reads in skip information and skips specified images in specified files
 
-        if skipscans not None:
+        if skipscans is not None:
             if (int(scan_numbers[i]) in skipscans):
                 scan.skip_images += skipimages[np.where(
                     np.array(skipscans) == int(scan_numbers[i]))[0][0]]
-    return experiment,total_images
+                
+    if experiment.scans[0].metadata.data_file.is_rotated:
+        slitratios = [slithorratio, slitvertratio]
+    else:
+        slitratios = [slitvertratio, slithorratio]
+
+    return experiment,total_images,slitratios
 
 def make_mask_lists(specific_pixels,mask_regions):
     # Prepare the pixel mask. First, deal with any specific pixels that we have.

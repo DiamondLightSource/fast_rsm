@@ -31,7 +31,6 @@ data_dir = Path(local_data_path)
 # Work out the paths to each of the nexus files. Store as pathlib.Path objects.
 nxs_paths = [data_dir / f"i07-{x}.nxs" for x in scan_numbers]
 
-
 mask_regions_list,specific_pixels =  make_mask_lists(specific_pixels,mask_regions)
 
 # Finally, instantiate the Experiment object.
@@ -46,8 +45,9 @@ experiment.mask_regions(mask_regions_list)
 experiment=make_compatible(experiment)
 
 
-adjustment_args=[detector_distance,dps_centres,load_from_dat,scan_numbers,skipscans,skipimages]
-total_images,experiment=standard_adjustments(experiment,adjustment_args)
+adjustment_args=[detector_distance,dps_centres,load_from_dat,scan_numbers,skipscans,skipimages,\
+                 slithorratio,slitvertratio,data_dir]
+total_images,experiment,slitratios=standard_adjustments(experiment,adjustment_args)
 
 """
 This section is for changing metadata that is stored in, or inferred from, the
@@ -68,12 +68,6 @@ uncommend loop over scans to adjust metadata within scans
 #     #     [0, 1, 0],
 #     #     [0, 0, 1]
 #     # ])
-
-
-if experiment.scans[0].metadata.data_file.is_rotated:
-    slitratios = [slithorratio, slitvertratio]
-else:
-    slitratios = [slitvertratio, slithorratio]
 
 
 # Get the full path of the current file
