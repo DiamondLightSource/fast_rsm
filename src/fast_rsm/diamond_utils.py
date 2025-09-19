@@ -109,7 +109,7 @@ def make_globals_compatible(input_globals):
     '''
     defaults_global = {'qmapbins': 0, 'slitvertratio': None, 'slithorratio': None,
                     'frame_name': 'hkl', 'coordinates': 'cartesian','skipscans':None,\
-                        'skipimages':None, 'cylinder_axis':None,'DEBUG_LOG':0}
+                        'skipimages':None, 'cylinder_axis':None,'DEBUG_LOG':0,'ivqbins':1000}
 
     for key, val in defaults_global.items():
         if key not in input_globals:
