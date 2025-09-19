@@ -166,50 +166,47 @@ def save_qperp_qpara(experiment, hf, qperp_qpara_map, scan=0):
             qperp_qpara_map[1],
             qperp_qpara_map[2])
 
-def save_config_variables(hf, joblines, pythonlocation, globalvals):
+def save_config_variables(hf, process_config): ##oblines, pythonlocation, globalvals):
     """
     save all variables in the configuration file to the output hdf5 file
     """
     config_group = hf.create_group('i07configuration')
-    configlist = [
-        'setup',
-        'experimental_hutch',
-        'using_dps',
-        'beam_centre',
-        'detector_distance',
-        'dpsx_central_pixel',
-        'dpsy_central_pixel',
-        'dpsz_central_pixel',
-        'local_data_path',
-        'local_output_path',
-        'output_file_size',
-        'save_binoculars_h5',
-        'map_per_image',
-        'volume_start',
-        'volume_step',
-        'volume_stop',
-        'load_from_dat',
-        'edfmaskfile',
-        'specific_pixels',
-        'mask_regions',
-        'process_outputs',
-        'scan_numbers']
-    for name in configlist:
-        if name in globalvals:
-            outval = globalvals[f'{name}']
-            if outval is None:
-                outval = 'None'
-            config_group.create_dataset(f"{name}", data=outval)
-    if 'ubinfo' in globalvals:
-        for i, coll in enumerate(globalvals['ubinfo']):
-            ubgroup = config_group.create_group(f'ubinfo_{i+1}')
-            ubgroup.create_dataset(
-                f'lattice_{i+1}', data=coll['diffcalc_lattice'])
-            ubgroup.create_dataset(f'u_{i+1}', data=coll['diffcalc_u'])
-            ubgroup.create_dataset(f'ub_{i+1}', data=coll['diffcalc_ub'])
+    # configlist = [
+    #     'setup',
+    #     'experimental_hutch',
+    #     'using_dps',
+    #     'beam_centre',
+    #     'detector_distance',
+    #     'dpsx_central_pixel',
+    #     'dpsy_central_pixel',
+    #     'dpsz_central_pixel',
+    #     'local_data_path',
+    #     'local_output_path',
+    #     'output_file_size',
+    #     'save_binoculars_h5',
+    #     'map_per_image',
+    #     'volume_start',
+    #     'volume_step',
+    #     'volume_stop',
+    #     'load_from_dat',
+    #     'edfmaskfile',
+    #     'specific_pixels',
+    #     'mask_regions',
+    #     'process_outputs',
+    #     'scan_numbers']
+    outdict=vars(process_config)
+    for key,val in outdict.items():
+        if key=='ubinfo':
+            for i, coll in enumerate(outdict['ubinfo']):
+                ubgroup = config_group.create_group(f'ubinfo_{i+1}')
+                ubgroup.create_dataset(
+                    f'lattice_{i+1}', data=coll['diffcalc_lattice'])
+                ubgroup.create_dataset(f'u_{i+1}', data=coll['diffcalc_u'])
+                ubgroup.create_dataset(f'ub_{i+1}', data=coll['diffcalc_ub'])
 
-    config_group.create_dataset('joblines', data=joblines)
-    config_group.create_dataset('python_location', data=pythonlocation)
+        if val is None:
+            val = 'None'
+        config_group.create_dataset(f"{key}", data=val)
 
 def save_scan_field_values(hf, scan):
     """

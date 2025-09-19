@@ -4,6 +4,7 @@ specifically at Diamond.
 """
 
 import os
+import sys
 import multiprocessing
 from pathlib import Path
 import numpy as np
@@ -54,7 +55,7 @@ from fast_rsm.logging_config import configure_logging,get_frsm_logger
 ##cylinder_axis = None
 
 
-def experiment_config():
+def experiment_config(scans):
     # Get the directory where this script is located
     base_dir = os.path.dirname(os.path.abspath(__file__))
     
@@ -64,6 +65,7 @@ def experiment_config():
     # Load the YAML file
     with open(config_path, "r") as f:
             config_dict = yaml.safe_load(f)
+    config_dict['scan_numbers']=scans
 
     return config_dict
 
@@ -75,7 +77,7 @@ def experiment_config():
 #                         'slithorratio','slitvertratio' ,'specific_pixels','DEBUG_LOG','full_path']
 #     return list_to_unpack
 
-def create_standard_experiment(input_globals: dict,scan_numbers,DEBUG_LOG=0):
+def create_standard_experiment(input_globals: dict,DEBUG_LOG=0):
 
     cfg=SimpleNamespace(**input_globals)
     
@@ -91,12 +93,11 @@ def create_standard_experiment(input_globals: dict,scan_numbers,DEBUG_LOG=0):
     cfg.joblines = f.readlines()
     f.close()
     dps_centres= [cfg.dpsx_central_pixel,cfg.dpsy_central_pixel,cfg.dpsz_central_pixel]
-    cfg.scan_numbers=scan_numbers
     cfg.oop= initial_value_checks(dps_centres,cfg.cylinder_axis,cfg.setup,cfg.output_file_size)
 
     # Max number of cores available for processing.
     cfg.num_threads = multiprocessing.cpu_count()
-
+    cfg.pythonlocation = sys.executable
     data_dir = Path(cfg.local_data_path)
     # Work out the paths to each of the nexus files. Store as pathlib.Path objects.
     nxs_paths = [data_dir / f"i07-{x}.nxs" for x in cfg.scan_numbers]
@@ -112,26 +113,13 @@ def create_standard_experiment(input_globals: dict,scan_numbers,DEBUG_LOG=0):
     experiment.mask_edf(cfg.edfmaskfile)
     experiment.mask_regions(mask_regions_list)
 
-    experiment=make_exp_compatible(experiment)
-
-
-    adjustment_args=[cfg.detector_distance,dps_centres,cfg.load_from_dat,scan_numbers,cfg.skipscans,cfg.skipimages,\
-                    slithorratio,slitvertratio,data_dir]
+    adjustment_args=[cfg.detector_distance,dps_centres,cfg.load_from_dat,cfg.scan_numbers,cfg.skipscans,cfg.skipimages,\
+                    cfg.slithorratio,cfg.slitvertratio,data_dir]
     experiment,cfg.total_images,cfg.slitratios=standard_adjustments(experiment,adjustment_args)
+    # grab ub information
+    cfg.ubinfo = [scan.metadata.data_file.nx_instrument.diffcalchdr for scan in experiment.scans]
 
     return experiment,cfg
-
-def make_exp_compatible(experiment):
-    '''
-    section to alter experiment to make sure backwards compatibility with setup files created for previous versions of fast_rsm
-    #makes sure all new variables are given False or a preset default value
-    '''
-
-    exp_variables = ['alphacritical', 'savedats', 'savetiffs','spherical_bragg_vec']
-    for var in exp_variables:
-        if var in globals():
-            setattr(experiment, var, globals()[var])
-    return experiment
 
 def initial_value_checks(dps_centres,cylinder_axis,setup,output_file_size):
     dpsx_central_pixel,dpsy_central_pixel,dpsz_central_pixel=dps_centres
@@ -250,19 +238,6 @@ def run_process_list(experiment,process_config):
     """
     separate function for sending of jobs defined by process output list and input arguments
     """
-
-    # process_var_list_to_unpack=['map_per_image','scan_numbers','local_output_path','joblines','num_threads',\
-    #     'ivqbins','qmapbins','pythonlocation','radialrange','radialstepval','slitratios','frame_name','oop',\
-    #         'output_file_size','coordinates','volume_start','volume_stop','volume_step','min_intensity',\
-    #             'total_images','save_binoculars_h5','process_outputs']
-
-                        
-    # map_per_image,scan_numbers,local_output_path,joblines,num_threads,\
-    #     ivqbins,qmapbins,pythonlocation,radialrange,radialstepval,slitratios,frame_name,oop,\
-    #         output_file_size,coordinates,volume_start,volume_stop,volume_step,min_intensity,\
-    #             total_images,save_binoculars_h5,process_outputs =\
-    #                 [input_globals[keyval] for keyval in process_var_list_to_unpack]
-    
     cfg=process_config
     # check for deprecated GIWAXS functions and print message if needed
     for output in cfg.process_outputs:
@@ -279,151 +254,148 @@ def run_process_list(experiment,process_config):
             PYFAI_PONI =createponi( experiment,cfg.local_output_path)
             pyfai_static_qmap(experiment,hf, scan, cfg.num_threads,\
                             cfg.local_output_path, PYFAI_PONI, cfg.ivqbins, cfg.qmapbins)
-            save_config_variables(
-                hf, cfg.joblines, cfg.pythonlocation, globals())
+            save_config_variables(hf, cfg)
             hf.close()
             print(
-                f"saved 2d map  data to {local_output_path}/{projected_name}.hdf5")
+                f"saved 2d map  data to {cfg.local_output_path}/{projected_name}.hdf5")
             total_time = time() - process_start_time
             print(f"\n 2d Q map calculations took {total_time}s")
 
-    if ('pyfai_qmap' in process_outputs) & (map_per_image == False):
+    if ('pyfai_qmap' in cfg.process_outputs) & (cfg.map_per_image == False):
         scanlist = experiment.scans
-        name_end = scan_numbers[0]
+        name_end = cfg.scan_numbers[0]
         datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
         projected_name = f'Qmap_{name_end}_{datetime_str}'
-        hf = h5py.File(f'{local_output_path}/{projected_name}.hdf5', "w")
+        hf = h5py.File(f'{cfg.local_output_path}/{projected_name}.hdf5', "w")
         process_start_time = time()
         experiment.load_curve_values(scanlist[0])
-        PYFAI_PONI =createponi( experiment,local_output_path)
-        pyfai_moving_qmap_smm(experiment,hf, scanlist, num_threads, local_output_path,
-                                        PYFAI_PONI, radialrange, radialstepval, qmapbins, slitdistratios=slitratios)
-        save_config_variables(hf, joblines, pythonlocation, globals())
+        PYFAI_PONI =createponi( experiment,cfg.local_output_path)
+        pyfai_moving_qmap_smm(experiment,hf, scanlist, cfg.num_threads, cfg.local_output_path,
+                                        PYFAI_PONI, cfg.radialrange, cfg.radialstepval, cfg.qmapbins, slitdistratios=cfg.slitratios)
+        save_config_variables(hf, cfg)
         hf.close()
-        print(f"saved 2d map data to {local_output_path}/{projected_name}.hdf5")
+        print(f"saved 2d map data to {cfg.local_output_path}/{projected_name}.hdf5")
 
         total_time = time() - process_start_time
         print(f"\n 2d Q map calculation took {total_time}s")
 
-    if ('pyfai_ivsq' in process_outputs) & (map_per_image == True):
+    if ('pyfai_ivsq' in cfg.process_outputs) & (cfg.map_per_image == True):
         for i, scan in enumerate(experiment.scans):
-            name_end = scan_numbers[i]
+            name_end = cfg.scan_numbers[i]
             datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
             projected_name = f'IvsQ_{name_end}_{datetime_str}'
-            hf = h5py.File(f'{local_output_path}/{projected_name}.hdf5', "w")
+            hf = h5py.File(f'{cfg.local_output_path}/{projected_name}.hdf5', "w")
             process_start_time = time()
             experiment.load_curve_values(scan)
-            PYFAI_PONI =createponi( experiment,local_output_path)
-            pyfai_static_ivsq(experiment,  hf, scan, num_threads,\
-                            local_output_path, PYFAI_PONI, ivqbins, qmapbins)
-            save_config_variables(
-                hf, joblines, pythonlocation, globals())
+            PYFAI_PONI =createponi( experiment,cfg.local_output_path)
+            pyfai_static_ivsq(experiment,  hf, scan, cfg.num_threads,\
+                            cfg.local_output_path, PYFAI_PONI, cfg.ivqbins, cfg.qmapbins)
+            save_config_variables(hf, cfg)
             hf.close()
             print(
-                f"saved 1d integration data to {local_output_path}/{projected_name}.hdf5")
+                f"saved 1d integration data to {cfg.local_output_path}/{projected_name}.hdf5")
             total_time = time() - process_start_time
             print(f"\n Azimuthal integrations took {total_time}s")
 
-    if ('pyfai_ivsq' in process_outputs) & (map_per_image == False):
+    if ('pyfai_ivsq' in cfg.process_outputs) & (cfg.map_per_image == False):
         scanlist = experiment.scans
-        name_end = scan_numbers[0]
+        name_end = cfg.scan_numbers[0]
         datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
         projected_name = f'IvsQ_{name_end}_{datetime_str}'
-        hf = h5py.File(f'{local_output_path}/{projected_name}.hdf5', "w")
+        hf = h5py.File(f'{cfg.local_output_path}/{projected_name}.hdf5', "w")
         process_start_time = time()
         experiment.load_curve_values(scanlist[0])
-        PYFAI_PONI =createponi( experiment,local_output_path)
-        pyfai_moving_ivsq_smm(experiment, hf, scanlist, num_threads,\
-            local_output_path, PYFAI_PONI, radialrange, radialstepval,\
-            qmapbins, slitdistratios=slitratios)
-        save_config_variables(hf, joblines, pythonlocation, globals())
+        PYFAI_PONI =createponi( experiment,cfg.local_output_path)
+        pyfai_moving_ivsq_smm(experiment, hf, scanlist, cfg.num_threads,\
+            cfg.local_output_path, PYFAI_PONI, cfg.radialrange, cfg.radialstepval,\
+            cfg.qmapbins, slitdistratios=cfg.slitratios)
+        save_config_variables(hf, cfg)
         hf.close()
         print(
-            f"saved 1d integration data to {local_output_path}/{projected_name}.hdf5")
+            f"saved 1d integration data to {cfg.local_output_path}/{projected_name}.hdf5")
         total_time = time() - process_start_time
         print(f"\n Azimuthal integration took {total_time}s")
 
-    if ('pyfai_exitangles' in process_outputs) & (map_per_image == True):
+    if ('pyfai_exitangles' in cfg.process_outputs) & (cfg.map_per_image == True):
         for i, scan in enumerate(experiment.scans):
-            name_end = scan_numbers[i]
+            name_end = cfg.scan_numbers[i]
             datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
             projected_name = f'exitmap_{name_end}_{datetime_str}'
-            hf = h5py.File(f'{local_output_path}/{projected_name}.hdf5', "w")
+            hf = h5py.File(f'{cfg.local_output_path}/{projected_name}.hdf5', "w")
             process_start_time = time()
             experiment.load_curve_values(scan)
-            PYFAI_PONI =createponi( experiment,local_output_path)
-            pyfai_static_exitangles(experiment,hf, scan, num_threads,\
-                                    PYFAI_PONI, ivqbins, qmapbins)
-            save_config_variables(
-                hf, joblines, pythonlocation, globals())
+            PYFAI_PONI =createponi( experiment,cfg.local_output_path)
+            pyfai_static_exitangles(experiment,hf, scan, cfg.num_threads,\
+                                    PYFAI_PONI, cfg.ivqbins, cfg.qmapbins)
+            save_config_variables(hf, cfg)
             hf.close()
             print(
-                f"saved 2d exit angle map  data to {local_output_path}/{projected_name}.hdf5")
+                f"saved 2d exit angle map  data to {cfg.local_output_path}/{projected_name}.hdf5")
             total_time = time() - process_start_time
             print(f"\n 2d exit angle map calculations took {total_time}s")
 
-    if ('pyfai_exitangles' in process_outputs) & (map_per_image == False):
+    if ('pyfai_exitangles' in cfg.process_outputs) & (cfg.map_per_image == False):
         scanlist = experiment.scans
-        name_end = scan_numbers[0]
+        name_end = cfg.scan_numbers[0]
         datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
         projected_name = f'exitmap_{name_end}_{datetime_str}'
-        hf = h5py.File(f'{local_output_path}/{projected_name}.hdf5', "w")
+        hf = h5py.File(f'{cfg.local_output_path}/{projected_name}.hdf5', "w")
         process_start_time = time()
         experiment.load_curve_values(scanlist[0])
-        PYFAI_PONI =createponi( experiment,local_output_path)   
-        pyfai_moving_exitangles_smm(experiment,hf, scanlist, num_threads,\
-                local_output_path, PYFAI_PONI, radialrange, radialstepval,\
-                    qmapbins, slitdistratios=slitratios)
-        save_config_variables(hf, joblines, pythonlocation, globals())
+        PYFAI_PONI =createponi( experiment,cfg.local_output_path)   
+        pyfai_moving_exitangles_smm(experiment,hf, scanlist, cfg.num_threads,\
+                cfg.local_output_path, PYFAI_PONI, cfg.radialrange, cfg.radialstepval,\
+                    cfg.qmapbins, slitdistratios=cfg.slitratios)
+        save_config_variables(hf, cfg)
         hf.close()
         print(
-            f"saved 2d exit angle map  data to {local_output_path}/{projected_name}.hdf5")
+            f"saved 2d exit angle map  data to {cfg.local_output_path}/{projected_name}.hdf5")
         total_time = time() - process_start_time
         print(f"\n 2d exit angle map calculations took {total_time}s")
 
-    if 'full_reciprocal_map' in process_outputs:
+    if 'full_reciprocal_map' in cfg.process_outputs:
         
-        processing_dir = Path(local_output_path)
+        processing_dir = Path(cfg.local_output_path)
 
         # Here we calculate a sensible file name that hasn't been taken.
         i = 0
 
-        save_file_name = f"mapped_scan_{scan_numbers[0]}_{i}"
+        save_file_name = f"mapped_scan_{cfg.scan_numbers[0]}_{i}"
         save_path = processing_dir / save_file_name
         # Make sure that this name hasn't been used in the past.
         extensions = [".npy", ".vtk", "_l.txt", "_tth.txt", "_Q.txt", ""]
         while any(os.path.exists(str(save_path) + ext) for ext in extensions):
             i += 1
-            save_file_name = f"mapped_scan_{scan_numbers[0]}_{i}"
+            save_file_name = f"mapped_scan_{cfg.scan_numbers[0]}_{i}"
             save_path = processing_dir / save_file_name
 
             if i > 1e7:
                 raise ValueError(
                     "Either you tried to save this file 10000000 times, or something "
                     "went wrong. I'm going with the latter, but exiting out anyway.")
-        map_frame = Frame(frame_name=frame_name, coordinates=coordinates)
+        map_frame = Frame(frame_name=cfg.frame_name, coordinates=cfg.coordinates)
         start_time = time()
         # Calculate and save a binned reciprocal space map, if requested.
         experiment.binned_reciprocal_space_map_smm(
-            num_threads, map_frame, output_file_size=output_file_size, oop=oop,
-            min_intensity_mask=min_intensity,
+            cfg.num_threads, map_frame, output_file_size=cfg.output_file_size, oop=cfg.oop,
+            min_intensity_mask=cfg.min_intensity,
             output_file_name=save_path,
-            volume_start=volume_start, volume_stop=volume_stop,
-            volume_step=volume_step,
-            map_each_image=map_per_image)
+            volume_start=cfg.volume_start, volume_stop=cfg.volume_stop,
+            volume_step=cfg.volume_step,
+            map_each_image=cfg.map_per_image)
 
-        if save_binoculars_h5 == True:
+        if cfg.save_binoculars_h5 == True:
             outvars = globals()
 
             save_binoculars_hdf5(str(save_path) + ".npy", str(save_path) +
-                                '.hdf5', joblines, pythonlocation, outvars)
+                                '.hdf5', cfg.joblines, cfg.pythonlocation, outvars)
             print(f"\nSaved BINoculars file to {save_path}.hdf5.\n")
 
         # Finally, print that it's finished We'll use this to work out when the
         # processing is done.
         total_time = time() - start_time
         print(f"\nProcessing took {total_time}s")
-        print(f"This corresponds to {total_time*1000/total_images}ms per image.\n")
+        print(f"This corresponds to {total_time*1000/cfg.total_images}ms per image.\n")
 
 def save_binoculars_hdf5(path_to_npy: np.ndarray,
                          output_path: str, joblines, pythonlocation, outvars=None):
