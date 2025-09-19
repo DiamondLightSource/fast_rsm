@@ -238,9 +238,8 @@ def run_process_list(experiment,process_config):
             hf = h5py.File(f'{cfg.local_output_path}/{projected_name}.hdf5', "w")
             process_start_time = time()
             experiment.load_curve_values(scan)
-            PYFAI_PONI =createponi( experiment,cfg.local_output_path)
-            pyfai_static_qmap(experiment,hf, scan, cfg.num_threads,\
-                            cfg.local_output_path, PYFAI_PONI, cfg.ivqbins, cfg.qmapbins)
+            cfg.pyfaiponi =createponi( experiment,cfg.local_output_path)
+            pyfai_static_qmap(experiment,hf, scan, cfg)
             save_config_variables(hf, cfg)
             hf.close()
             print(
@@ -330,9 +329,7 @@ def run_process_list(experiment,process_config):
         process_start_time = time()
         experiment.load_curve_values(scanlist[0])
         PYFAI_PONI =createponi( experiment,cfg.local_output_path)   
-        pyfai_moving_exitangles_smm(experiment,hf, scanlist, cfg.num_threads,\
-                cfg.local_output_path, PYFAI_PONI, cfg.radialrange, cfg.radialstepval,\
-                    cfg.qmapbins, slitdistratios=cfg.slitratios)
+        pyfai_moving_exitangles_smm(experiment,hf, scanlist, cfg)
         save_config_variables(hf, cfg)
         hf.close()
         print(
@@ -364,7 +361,8 @@ def run_process_list(experiment,process_config):
         start_time = time()
         # Calculate and save a binned reciprocal space map, if requested.
         experiment.binned_reciprocal_space_map_smm(
-            cfg.num_threads, map_frame, output_file_size=cfg.output_file_size, oop=cfg.oop,
+            cfg.num_threads, map_frame, cfg,
+            output_file_size=cfg.output_file_size, oop=cfg.oop,
             min_intensity_mask=cfg.min_intensity,
             output_file_name=save_path,
             volume_start=cfg.volume_start, volume_stop=cfg.volume_stop,
