@@ -6,7 +6,7 @@ from datetime import datetime
 from multiprocessing.managers import SharedMemoryManager
 from multiprocessing import Pool, Lock
 from ast import literal_eval
-
+from types import SimpleNamespace
 import logging
 import os
 # from multiprocessing.shared_memory import SharedMemory
@@ -121,11 +121,6 @@ class Experiment:
         self.setup = setup
         self._data_file_names = []
         self._normalisation_file_names = []
-        # self.spherical_bragg_vec= np.array([0, 0, 0])
-        # self.savedats= False
-        # self.savetiffs= False
-        # self.alphacritical= 0
-        self.default_config=self._setup_default_config()
 
 
         none_exp = ['pixel_size', 'entry', 'detector_distance',
@@ -229,7 +224,8 @@ class Experiment:
         for scan in self.scans:
             scan.metadata.edfmask = mask
 
-    def q_bounds(self, frame: Frame, oop: str = 'y') -> Tuple[np.ndarray]:
+    def q_bounds(self, frame: Frame, spherical_bragg_vec: np.ndarray,\
+                  oop: str = 'y') -> Tuple[np.ndarray]:
         """
         Works out the region of reciprocal space sampled by every scan in this
         experiment. This is reasonably performant, but should really be
@@ -242,7 +238,7 @@ class Experiment:
         starts, stops = [], []
         for scan in self.scans:
             start, stop = scan.q_bounds(
-                frame, spherical_bragg_vec=self.spherical_bragg_vec, oop=oop)
+                frame, spherical_bragg_vec, oop=oop)
             starts.append(start)
             stops.append(stop)
 
@@ -866,6 +862,7 @@ class Experiment:
     def binned_reciprocal_space_map_smm(self,
                                         num_threads: int,
                                         map_frame: Frame,
+                                        process_config: SimpleNamespace,
                                         output_file_name: str = "mapped",
                                         min_intensity_mask: float = None,
                                         output_file_size: float = 100,
@@ -906,6 +903,7 @@ class Experiment:
         # For simplicity, if qpar_qperp is asked for, we swap to the lab frame.
         # They're the same, but qpar_qperp is an average.
         # original_frame_name = map_frame.frame_name
+        cfg=process_config
         if map_frame.frame_name == Frame.qpar_qperp:
             map_frame.frame_name = Frame.lab
           # Compute the optimal finite differences volume.
@@ -917,13 +915,15 @@ class Experiment:
                 _stop = np.array(volume_stop)
             else:
 
-                _start, _stop = self.q_bounds(map_frame, oop)
+                _start, _stop = self.q_bounds(map_frame,np.ndarray(cfg.spherical_bragg_vec),\
+                                               oop)
 
             step = get_step_from_filesize(_start, _stop, output_file_size)
 
         else:
             step = np.array(volume_step)
-            _start, _stop = self.q_bounds(map_frame, oop)
+            _start, _stop = self.q_bounds(map_frame,np.ndarray(cfg.spherical_bragg_vec),\
+                                           oop)
 
         if map_frame.coordinates == Frame.sphericalpolar:
             step = np.array([0.02, np.pi / 180, np.pi / 180])
@@ -937,12 +937,6 @@ class Experiment:
         # locks = [Lock() for _ in range(num_threads)]
         shapersm = finite_diff_shape(start, stop, step)
 
-        # time_1 = time()
-        # map_mem_total=[]
-        # count_mem_total=[]
-        # map_arrays = 0
-        # count_arrays = 0
-        # norm_arrays = 0
         images_so_far = 0
 
         with SharedMemoryManager() as smm:
@@ -974,7 +968,7 @@ class Experiment:
                      scan.processing_steps,
                      scan.skip_images,
                      oop,
-                     self.spherical_bragg_vec,
+                     np.ndarray(cfg.spherical_bragg_vec),
                      map_each_image,
                      images_so_far) for indices in chunk(
                         list(
