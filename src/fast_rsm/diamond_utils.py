@@ -17,8 +17,7 @@ from diffraction_utils import Frame, Region
 from fast_rsm.binning import weighted_bin_1d, finite_diff_grid
 from fast_rsm.pyfai_interface import *
 from fast_rsm.experiment import Experiment
-
-
+from fast_rsm.logging_config import configure_logging,get_frsm_logger
 
 
 # # The frame/coordinate system you want the map to be carried out in.
@@ -54,17 +53,24 @@ from fast_rsm.experiment import Experiment
 
 
 def create_standard_experiment(input_globals):
+    make_globals_compatible(globals())
 
     list_to_unpack=['dpsx_central_pixel','dpsy_central_pixel','dpsz_central_pixel','cylinder_axis','setup',\
                     'output_file_size','local_data_path','scan_numbers','beam_centre','detector_distance','setup',\
                       'using_dps','experimental_hutch','edfmaskfile','mask_regions','load_from_dat','skipscans','skipimages',\
-                         'slithorratio','slitvertratio' ,'specific_pixels']
+                         'slithorratio','slitvertratio' ,'specific_pixels','DEBUG_LOG']
     
     dpsx_central_pixel,dpsy_central_pixel,dpsz_central_pixel,cylinder_axis,setup,\
                     output_file_size,local_data_path,scan_numbers,beam_centre,detector_distance,setup,\
                       using_dps,experimental_hutch,edfmaskfile,mask_regions,load_from_dat,skipscans,skipimages,\
-                      slithorratio,slitvertratio,specific_pixels= \
+                      slithorratio,slitvertratio,specific_pixels,DEBUG_LOG= \
                         [input_globals[keyval] for keyval in list_to_unpack]
+    
+    configure_logging(DEBUG_LOG)
+    logger=get_frsm_logger()
+    f = open(full_path)
+    joblines = f.readlines()
+    f.close()
     dps_centres= [dpsx_central_pixel,dpsy_central_pixel,dpsz_central_pixel]
 
     oop= initial_value_checks(dps_centres,cylinder_axis,setup,output_file_size)
@@ -94,7 +100,7 @@ def create_standard_experiment(input_globals):
                     slithorratio,slitvertratio,data_dir]
     experiment,total_images,slitratios=standard_adjustments(experiment,adjustment_args)
 
-    return experiment,num_threads,total_images,slitratios,oop
+    return experiment,num_threads,total_images,slitratios,oop,joblines
 
 def make_globals_compatible(input_globals):
     '''
@@ -108,7 +114,6 @@ def make_globals_compatible(input_globals):
     for key, val in defaults_global.items():
         if key not in input_globals:
             input_globals[key] = val
-
 
 def make_exp_compatible(experiment):
     '''
@@ -149,10 +154,6 @@ def initial_value_checks(dps_centres,cylinder_axis,setup,output_file_size):
     
     return oop
 
-# # Overwrite the above oop value depending on requested cylinder axis for polar
-# # coords.
-# if cylinder_axis is not None:
-#     oop = cylinder_axis
 def standard_adjustments(experiment,adjustment_args):
     detector_distance,dps_centres,load_from_dat,scan_numbers,skipscans,skipimages,\
          slithorratio,slitvertratio,data_dir=adjustment_args
@@ -239,15 +240,25 @@ def make_mask_lists(specific_pixels,mask_regions):
     
     return mask_regions_list,specific_pixels
 
-def run_process_list(experiment,process_outputs,input_args):
+def run_process_list(experiment,process_outputs,input_globals):
     """
     separate function for sending of jobs defined by process output list and input arguments
     """
+    process_var_list_to_unpack=['map_per_image','scan_numbers','local_output_path','joblines','num_threads',\
+        'ivqbins','qmapbins','pythonlocation','radialrange','radialstepval','slitratios','frame_name','oop',\
+            'output_file_size','coordinates','volume_start','volume_stop','volume_step','min_intensity',\
+                'save_path','total_images','save_binoculars_h5','process_outputs']
 
+                        
     map_per_image,scan_numbers,local_output_path,joblines,num_threads,\
         ivqbins,qmapbins,pythonlocation,radialrange,radialstepval,slitratios,frame_name,oop,\
             output_file_size,coordinates,volume_start,volume_stop,volume_step,min_intensity,\
-                save_path,total_images,save_binoculars_h5 =input_args
+                save_path,total_images,save_binoculars_h5,process_outputs =\
+                    [input_globals[keyval] for keyval in process_var_list_to_unpack]
+    
+    # check for deprecated GIWAXS functions and print message if needed
+    for output in process_outputs:
+        print(deprecation_msg(output)) 
     
     if ('pyfai_qmap' in process_outputs) & (map_per_image == True):
         for i, scan in enumerate(experiment.scans):
