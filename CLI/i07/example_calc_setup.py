@@ -3,7 +3,7 @@ from fast_rsm.diamond_utils import run_process_list,\
         create_standard_experiment,experiment_config
 
 default_config=experiment_config(scan_numbers)
-default_config['fullpath']=__file__
+default_config['full_path']=__file__
 for key,val in default_config.items():
     if key in globals():
         default_config[key]=globals()[key]
