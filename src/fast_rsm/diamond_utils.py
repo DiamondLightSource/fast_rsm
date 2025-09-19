@@ -240,7 +240,7 @@ def make_mask_lists(specific_pixels,mask_regions):
     
     return mask_regions_list,specific_pixels
 
-def run_process_list(experiment,process_outputs,input_globals):
+def run_process_list(experiment,input_globals):
     """
     separate function for sending of jobs defined by process output list and input arguments
     """
