@@ -8,7 +8,7 @@ full_path = __file__
 default_config=experiment_config(scan_numbers)
 for key,val in default_config.items():
     if key in globals():
-        setattr(default_config,key,globals()[key])
+        default_config[key]=globals()[key]
 #create experiment object
 experiment,process_config=create_standard_experiment(default_config)
 
