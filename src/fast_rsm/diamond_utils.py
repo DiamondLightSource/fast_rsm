@@ -55,7 +55,7 @@ from fast_rsm.logging_config import configure_logging,get_frsm_logger
 ##cylinder_axis = None
 
 
-def experiment_config(scans,full_path):
+def experiment_config(scans):
     # Get the directory where this script is located
     base_dir = os.path.dirname(os.path.abspath(__file__))
     
