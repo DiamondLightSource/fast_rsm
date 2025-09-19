@@ -247,7 +247,7 @@ def run_process_list(experiment,input_globals):
     process_var_list_to_unpack=['map_per_image','scan_numbers','local_output_path','joblines','num_threads',\
         'ivqbins','qmapbins','pythonlocation','radialrange','radialstepval','slitratios','frame_name','oop',\
             'output_file_size','coordinates','volume_start','volume_stop','volume_step','min_intensity',\
-                ,'total_images','save_binoculars_h5','process_outputs']
+                'total_images','save_binoculars_h5','process_outputs']
 
                         
     map_per_image,scan_numbers,local_output_path,joblines,num_threads,\
