@@ -22,7 +22,7 @@ import transformations as tf
 
 import pandas as pd
 import fabio
-
+import yaml
 # from datetime import datetime
 import h5py
 import tifffile
@@ -121,10 +121,12 @@ class Experiment:
         self.setup = setup
         self._data_file_names = []
         self._normalisation_file_names = []
-        self.spherical_bragg_vec= np.array([0, 0, 0])
-        self.savedats= False
-        self.savetiffs= False
-        self.alphacritical= 0
+        # self.spherical_bragg_vec= np.array([0, 0, 0])
+        # self.savedats= False
+        # self.savetiffs= False
+        # self.alphacritical= 0
+        self.default_config=self._setup_default_config()
+
 
         none_exp = ['pixel_size', 'entry', 'detector_distance',
                     'incident_wavelength', 'gammadata', 'deltadata', 'dcdrad']

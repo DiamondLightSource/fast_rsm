@@ -55,7 +55,7 @@ from fast_rsm.logging_config import configure_logging,get_frsm_logger
 ##cylinder_axis = None
 
 
-def experiment_config(scans):
+def experiment_config(scans,full_path):
     # Get the directory where this script is located
     base_dir = os.path.dirname(os.path.abspath(__file__))
     
@@ -70,22 +70,9 @@ def experiment_config(scans):
     return config_dict
 
     
-# def get_unpack_list():
-#     list_to_unpack=['dpsx_central_pixel','dpsy_central_pixel','dpsz_central_pixel','cylinder_axis','setup',\
-#                 'output_file_size','local_data_path','scan_numbers','beam_centre','detector_distance','setup',\
-#                     'using_dps','experimental_hutch','edfmaskfile','mask_regions','load_from_dat','skipscans','skipimages',\
-#                         'slithorratio','slitvertratio' ,'specific_pixels','DEBUG_LOG','full_path']
-#     return list_to_unpack
-
 def create_standard_experiment(input_globals: dict,DEBUG_LOG=0):
 
     cfg=SimpleNamespace(**input_globals)
-    
-    # dpsx_central_pixel,dpsy_central_pixel,dpsz_central_pixel,cylinder_axis,setup,\
-    #                 output_file_size,local_data_path,scan_numbers,beam_centre,detector_distance,setup,\
-    #                   using_dps,experimental_hutch,edfmaskfile,mask_regions,load_from_dat,skipscans,skipimages,\
-    #                   slithorratio,slitvertratio,specific_pixels,DEBUG_LOG,full_path= \
-    #                     [input_globals[keyval] for keyval in list_to_unpack]
     
     configure_logging(DEBUG_LOG)
     logger=get_frsm_logger()

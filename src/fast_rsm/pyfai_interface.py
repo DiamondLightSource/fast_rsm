@@ -196,6 +196,7 @@ def save_config_variables(hf, process_config): ##oblines, pythonlocation, global
     #     'scan_numbers']
     outdict=vars(process_config)
     for key,val in outdict.items():
+        logger.debug(f"key ={key},val={val},type={type(val)}")
         if key=='ubinfo':
             for i, coll in enumerate(outdict['ubinfo']):
                 ubgroup = config_group.create_group(f'ubinfo_{i+1}')
@@ -203,7 +204,7 @@ def save_config_variables(hf, process_config): ##oblines, pythonlocation, global
                     f'lattice_{i+1}', data=coll['diffcalc_lattice'])
                 ubgroup.create_dataset(f'u_{i+1}', data=coll['diffcalc_u'])
                 ubgroup.create_dataset(f'ub_{i+1}', data=coll['diffcalc_ub'])
-
+            continue
         if val is None:
             val = 'None'
         config_group.create_dataset(f"{key}", data=val)
