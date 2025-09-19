@@ -147,8 +147,6 @@ def init_process_pool(
     print(f"Finished initializing worker {current_process().name}.")
 
 
-
-
 def _on_exit(shared_mem: SharedMemory) -> None:
     """
     Can be used with the atexit module. Makes sure that the shared memory is

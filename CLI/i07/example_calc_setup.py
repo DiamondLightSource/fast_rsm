@@ -11,11 +11,12 @@ for key,val in default_config.items():
 experiment,process_config=create_standard_experiment(default_config)
 
 
-"""
-This section is for changing metadata that is stored in, or inferred from, the
-nexus file. This is generally for more nonstandard stuff.
-uncomment loop over scans to adjust metadata within each scan
-"""
+####============SPECIAL ADJUSTMENTS ==================================================
+# This section is for changing metadata that is stored in, or inferred from, the
+# nexus file. This is generally for more nonstandard stuff.
+# uncomment loop over scans to adjust metadata within each scan
+
+
 # for i, scan in enumerate(experiment.scans):
 #     """
 #     area for making special adjustments to metadata information
@@ -30,6 +31,8 @@ uncomment loop over scans to adjust metadata within each scan
 #         [0, 1, 0],
 #         [0, 0, 1]
 #     ])
+####=============================================================
 
 run_process_list(experiment,process_config)
 print("PROCESSING FINISHED.")
+ 
