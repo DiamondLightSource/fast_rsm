@@ -53,7 +53,7 @@ from fast_rsm.logging_config import configure_logging,get_frsm_logger
 
 
 def create_standard_experiment(input_globals):
-    make_globals_compatible(input_globals())
+    make_globals_compatible(input_globals)
 
     list_to_unpack=['dpsx_central_pixel','dpsy_central_pixel','dpsz_central_pixel','cylinder_axis','setup',\
                     'output_file_size','local_data_path','scan_numbers','beam_centre','detector_distance','setup',\
