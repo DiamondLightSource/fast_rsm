@@ -4,9 +4,9 @@ local_data_path: 'path'
 local_output_path: 'path'  
 beam_centre: (119, 1564)
 detector_distance: 0.18
-slitvertratio: 0.55 / 0.89  # None
+slitvertratio: None
 slithorratio: None
-alphacritical: 0.08
+alphacritical: 0
 using_dps: False
 dpsx_central_pixel: 0
 dpsy_central_pixel: 0
@@ -23,8 +23,6 @@ qmapbins: (1200, 1200)
 ivqbins: 1000
 edfmaskfile: None
 specific_pixels: None 
-mask_1: (0, 75, 0, 194)
-mask_2: (425, 485, 0, 194)
 mask_regions: None
 min_intensity: 0.
 skipscans: []
@@ -33,17 +31,8 @@ process_outputs: []
 map_per_image: False
 savetiffs: False
 savedats: False
-qmapbins: 0 
-slitvertratio: None
-slithorratio: None
 frame_name: 'hkl'
 coordinates: 'cartesian'
-skipscans: None
-skipimages: None
 cylinder_axis: None 
 DEBUG_LOG: 0 
-ivqbins: 1000
-alphacritical: 0
-savedats: False
-savetiffs: False 
 spherical_bragg_vec: [0,0,0]
