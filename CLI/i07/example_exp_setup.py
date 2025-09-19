@@ -170,6 +170,5 @@ savetiffs = False
 # to True
 savedats = False
 
-
 # The scan numbers of the scans that you want to use to produce this reciprocal
 # space map.

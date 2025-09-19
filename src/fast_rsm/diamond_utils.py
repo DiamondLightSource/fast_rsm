@@ -7,6 +7,8 @@ import os
 import multiprocessing
 from pathlib import Path
 import numpy as np
+import yaml
+from types import SimpleNamespace
 from typing import Tuple
 import h5py
 import fast_histogram
@@ -52,68 +54,72 @@ from fast_rsm.logging_config import configure_logging,get_frsm_logger
 ##cylinder_axis = None
 
 
-def create_standard_experiment(input_globals):
-    make_globals_compatible(input_globals)
-
-    list_to_unpack=['dpsx_central_pixel','dpsy_central_pixel','dpsz_central_pixel','cylinder_axis','setup',\
-                    'output_file_size','local_data_path','scan_numbers','beam_centre','detector_distance','setup',\
-                      'using_dps','experimental_hutch','edfmaskfile','mask_regions','load_from_dat','skipscans','skipimages',\
-                         'slithorratio','slitvertratio' ,'specific_pixels','DEBUG_LOG','full_path']
+def experiment_config():
+    # Get the directory where this script is located
+    base_dir = os.path.dirname(os.path.abspath(__file__))
     
-    dpsx_central_pixel,dpsy_central_pixel,dpsz_central_pixel,cylinder_axis,setup,\
-                    output_file_size,local_data_path,scan_numbers,beam_centre,detector_distance,setup,\
-                      using_dps,experimental_hutch,edfmaskfile,mask_regions,load_from_dat,skipscans,skipimages,\
-                      slithorratio,slitvertratio,specific_pixels,DEBUG_LOG,full_path= \
-                        [input_globals[keyval] for keyval in list_to_unpack]
+    # Construct the full path to the YAML file
+    config_path = os.path.join(base_dir, "default_config.yaml")
+    
+    # Load the YAML file
+    with open(config_path, "r") as f:
+            config_dict = yaml.safe_load(f)
+
+    return config_dict
+
+    
+# def get_unpack_list():
+#     list_to_unpack=['dpsx_central_pixel','dpsy_central_pixel','dpsz_central_pixel','cylinder_axis','setup',\
+#                 'output_file_size','local_data_path','scan_numbers','beam_centre','detector_distance','setup',\
+#                     'using_dps','experimental_hutch','edfmaskfile','mask_regions','load_from_dat','skipscans','skipimages',\
+#                         'slithorratio','slitvertratio' ,'specific_pixels','DEBUG_LOG','full_path']
+#     return list_to_unpack
+
+def create_standard_experiment(input_globals: dict,scan_numbers,DEBUG_LOG=0):
+
+    cfg=SimpleNamespace(**input_globals)
+    
+    # dpsx_central_pixel,dpsy_central_pixel,dpsz_central_pixel,cylinder_axis,setup,\
+    #                 output_file_size,local_data_path,scan_numbers,beam_centre,detector_distance,setup,\
+    #                   using_dps,experimental_hutch,edfmaskfile,mask_regions,load_from_dat,skipscans,skipimages,\
+    #                   slithorratio,slitvertratio,specific_pixels,DEBUG_LOG,full_path= \
+    #                     [input_globals[keyval] for keyval in list_to_unpack]
     
     configure_logging(DEBUG_LOG)
     logger=get_frsm_logger()
-    f = open(full_path)
-    joblines = f.readlines()
+    f = open(cfg.full_path)
+    cfg.joblines = f.readlines()
     f.close()
-    dps_centres= [dpsx_central_pixel,dpsy_central_pixel,dpsz_central_pixel]
-
-    oop= initial_value_checks(dps_centres,cylinder_axis,setup,output_file_size)
+    dps_centres= [cfg.dpsx_central_pixel,cfg.dpsy_central_pixel,cfg.dpsz_central_pixel]
+    cfg.scan_numbers=scan_numbers
+    cfg.oop= initial_value_checks(dps_centres,cfg.cylinder_axis,cfg.setup,cfg.output_file_size)
 
     # Max number of cores available for processing.
-    num_threads = multiprocessing.cpu_count()
+    cfg.num_threads = multiprocessing.cpu_count()
 
-    data_dir = Path(local_data_path)
+    data_dir = Path(cfg.local_data_path)
     # Work out the paths to each of the nexus files. Store as pathlib.Path objects.
-    nxs_paths = [data_dir / f"i07-{x}.nxs" for x in scan_numbers]
+    nxs_paths = [data_dir / f"i07-{x}.nxs" for x in cfg.scan_numbers]
 
-    mask_regions_list,specific_pixels =  make_mask_lists(specific_pixels,mask_regions)
+    mask_regions_list,specific_pixels =  make_mask_lists(cfg.specific_pixels,cfg.mask_regions)
 
     # Finally, instantiate the Experiment object.
     experiment = Experiment.from_i07_nxs(
-        nxs_paths, beam_centre, detector_distance, setup,
-        using_dps=using_dps, experimental_hutch=experimental_hutch)
+        nxs_paths, cfg.beam_centre, cfg.detector_distance, cfg.setup,
+        using_dps=cfg.using_dps, experimental_hutch=cfg.experimental_hutch)
 
     experiment.mask_pixels(specific_pixels)
-    experiment.mask_edf(edfmaskfile)
+    experiment.mask_edf(cfg.edfmaskfile)
     experiment.mask_regions(mask_regions_list)
 
     experiment=make_exp_compatible(experiment)
 
 
-    adjustment_args=[detector_distance,dps_centres,load_from_dat,scan_numbers,skipscans,skipimages,\
+    adjustment_args=[cfg.detector_distance,dps_centres,cfg.load_from_dat,scan_numbers,cfg.skipscans,cfg.skipimages,\
                     slithorratio,slitvertratio,data_dir]
-    experiment,total_images,slitratios=standard_adjustments(experiment,adjustment_args)
+    experiment,cfg.total_images,cfg.slitratios=standard_adjustments(experiment,adjustment_args)
 
-    return experiment,num_threads,total_images,slitratios,oop,joblines
-
-def make_globals_compatible(input_globals):
-    '''
-    section to alter globals to make sure backwards compatibility with setup files created for previous versions of fast_rsm
-    #makes sure all new variables are given False or a preset default value
-    '''
-    defaults_global = {'qmapbins': 0, 'slitvertratio': None, 'slithorratio': None,
-                    'frame_name': 'hkl', 'coordinates': 'cartesian','skipscans':None,\
-                        'skipimages':None, 'cylinder_axis':None,'DEBUG_LOG':0,'ivqbins':1000}
-
-    for key, val in defaults_global.items():
-        if key not in input_globals:
-            input_globals[key] = val
+    return experiment,cfg
 
 def make_exp_compatible(experiment):
     '''
@@ -240,39 +246,41 @@ def make_mask_lists(specific_pixels,mask_regions):
     
     return mask_regions_list,specific_pixels
 
-def run_process_list(experiment,input_globals):
+def run_process_list(experiment,process_config):
     """
     separate function for sending of jobs defined by process output list and input arguments
     """
-    process_var_list_to_unpack=['map_per_image','scan_numbers','local_output_path','joblines','num_threads',\
-        'ivqbins','qmapbins','pythonlocation','radialrange','radialstepval','slitratios','frame_name','oop',\
-            'output_file_size','coordinates','volume_start','volume_stop','volume_step','min_intensity',\
-                'total_images','save_binoculars_h5','process_outputs']
+
+    # process_var_list_to_unpack=['map_per_image','scan_numbers','local_output_path','joblines','num_threads',\
+    #     'ivqbins','qmapbins','pythonlocation','radialrange','radialstepval','slitratios','frame_name','oop',\
+    #         'output_file_size','coordinates','volume_start','volume_stop','volume_step','min_intensity',\
+    #             'total_images','save_binoculars_h5','process_outputs']
 
                         
-    map_per_image,scan_numbers,local_output_path,joblines,num_threads,\
-        ivqbins,qmapbins,pythonlocation,radialrange,radialstepval,slitratios,frame_name,oop,\
-            output_file_size,coordinates,volume_start,volume_stop,volume_step,min_intensity,\
-                total_images,save_binoculars_h5,process_outputs =\
-                    [input_globals[keyval] for keyval in process_var_list_to_unpack]
+    # map_per_image,scan_numbers,local_output_path,joblines,num_threads,\
+    #     ivqbins,qmapbins,pythonlocation,radialrange,radialstepval,slitratios,frame_name,oop,\
+    #         output_file_size,coordinates,volume_start,volume_stop,volume_step,min_intensity,\
+    #             total_images,save_binoculars_h5,process_outputs =\
+    #                 [input_globals[keyval] for keyval in process_var_list_to_unpack]
     
+    cfg=process_config
     # check for deprecated GIWAXS functions and print message if needed
-    for output in process_outputs:
+    for output in cfg.process_outputs:
         print(deprecation_msg(output)) 
     
-    if ('pyfai_qmap' in process_outputs) & (map_per_image == True):
+    if ('pyfai_qmap' in cfg.process_outputs) & (cfg.map_per_image == True):
         for i, scan in enumerate(experiment.scans):
-            name_end = scan_numbers[i]
+            name_end = cfg.scan_numbers[i]
             datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
             projected_name = f'Qmap_{name_end}_{datetime_str}'
-            hf = h5py.File(f'{local_output_path}/{projected_name}.hdf5', "w")
+            hf = h5py.File(f'{cfg.local_output_path}/{projected_name}.hdf5', "w")
             process_start_time = time()
             experiment.load_curve_values(scan)
-            PYFAI_PONI =createponi( experiment,local_output_path)
-            pyfai_static_qmap(experiment,hf, scan, num_threads,\
-                            local_output_path, PYFAI_PONI, ivqbins, qmapbins)
+            PYFAI_PONI =createponi( experiment,cfg.local_output_path)
+            pyfai_static_qmap(experiment,hf, scan, cfg.num_threads,\
+                            cfg.local_output_path, PYFAI_PONI, cfg.ivqbins, cfg.qmapbins)
             save_config_variables(
-                hf, joblines, pythonlocation, globals())
+                hf, cfg.joblines, cfg.pythonlocation, globals())
             hf.close()
             print(
                 f"saved 2d map  data to {local_output_path}/{projected_name}.hdf5")
