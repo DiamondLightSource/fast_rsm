@@ -4,8 +4,8 @@ local_data_path: 'path'
 local_output_path: 'path'  
 beam_centre: (119, 1564)
 detector_distance: 0.18
-slitvertratio: None
-slithorratio: None
+slitvertratio: 1
+slithorratio: 1
 alphacritical: 0
 using_dps: False
 dpsx_central_pixel: 0
