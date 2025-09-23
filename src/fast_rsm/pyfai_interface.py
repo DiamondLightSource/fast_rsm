@@ -611,7 +611,6 @@ def pyfai_moving_qmap_smm(experiment,
     # pylint: disable=unused-argument
     # pylint: disable=unused-variable
     cfg=process_config
-    qlimitsout = [0, 0, 0, 0]
     qpqp_array_total = 0
     qpqp_counts_total = 0
 
@@ -758,12 +757,12 @@ def pyfai_move_qmap_worker(experiment, choiceims, scan, process_config) -> None:
     unit_qip_name = "qip_A^-1"
     unit_qoop_name = "qoop_A^-1"
 
-    if qlimits is None:
+    if cfg.qlimits is None:
         qlimhor = experiment.calcqlim('hor', vertsetup=(
             experiment.setup == 'vertical'), slithorratio=cfg.slitratios[0])
         qlimver = experiment.calcqlim('vert', vertsetup=(
             experiment.setup == 'vertical'), slitvertratio=cfg.slitratios[1])
-        qlimits = [qlimhor[0], qlimhor[1], qlimver[0], qlimver[1]]
+        cfg.qlimits = [qlimhor[0], qlimhor[1], qlimver[0], qlimver[1]]
 
     sample_orientation = 1
 
@@ -777,7 +776,7 @@ def pyfai_move_qmap_worker(experiment, choiceims, scan, process_config) -> None:
         for i in group:
             unit_qip, unit_qoop, img_data, my_ai, ai_limits = \
                 get_pyfai_components(experiment, i, sample_orientation,\
-    unit_qip_name, unit_qoop_name, aistart, cfg.slitvdistratio, cfg.slithdistratio, scan, qlimits)
+    unit_qip_name, unit_qoop_name, aistart, cfg.slitvdistratio, cfg.slithdistratio, scan, cfg.qlimits)
 
             img_data_list.append(img_data)
             ais.append(my_ai)
