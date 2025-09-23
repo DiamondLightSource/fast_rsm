@@ -273,7 +273,7 @@ def pyfai_init_worker(l, shm_intensities_name, shm_counts_name, shmshape):
     lock = l
 
 def get_pyfai_components(experiment, i, sample_orientation, unit_ip_name,
-                         unit_oop_name, aistart, slitvdistratio, slithdistratio, scan, limits_in):
+                         unit_oop_name, aistart, slitratios, alphacritical, scan, limits_in):
     """
     get components need for mapping with pyFAI
     """
@@ -306,7 +306,7 @@ def get_pyfai_components(experiment, i, sample_orientation, unit_ip_name,
         delval = np.array(experiment.deltadata).ravel()
 
     if (-np.degrees(inc_angle) >
-            experiment.alphacritical) & (experiment.setup == 'DCD'):
+            alphacritical) & (experiment.setup == 'DCD'):
         # if above critical angle, account for direct beam adding to delta
         rots = experiment.gamdel2rots(gamval, delval + np.degrees(-inc_angle))
     # elif (experiment.setup=='DCD'):
@@ -321,13 +321,13 @@ def get_pyfai_components(experiment, i, sample_orientation, unit_ip_name,
         my_ai.rot1 = rots[1]
         my_ai.rot2 = -rots[0]
 
-    if slitvdistratio is not None:
-        my_ai.pixel1 *= slitvdistratio
-        my_ai.poni1 *= slitvdistratio
+    if slitratios[0] is not None:
+        my_ai.pixel1 *= slitratios[0]
+        my_ai.poni1 *= slitratios[0]
 
-    if slithdistratio is not None:
-        my_ai.pixel2 *= slithdistratio
-        my_ai.poni2 *= slithdistratio
+    if slitratios[1] is not None:
+        my_ai.pixel2 *= slitratios[1]
+        my_ai.poni2 *= slitratios[1]
     if experiment.setup == 'vertical':
         img_data = np.rot90(scan.load_image(i).data, -1)
     else:
@@ -776,7 +776,7 @@ def pyfai_move_qmap_worker(experiment, choiceims, scan, process_config) -> None:
         for i in group:
             unit_qip, unit_qoop, img_data, my_ai, ai_limits = \
                 get_pyfai_components(experiment, i, sample_orientation,\
-    unit_qip_name, unit_qoop_name, aistart, cfg.slitratios[0], cfg.slitratios[1], scan, cfg.qlimits)
+    unit_qip_name, unit_qoop_name, aistart, cfg.slitratios, cfg.alphacritical, scan, cfg.qlimits)
 
             img_data_list.append(img_data)
             ais.append(my_ai)
@@ -1092,8 +1092,7 @@ def pyfai_static_qmap(experiment, hf, scan, process_config: SimpleNamespace):
     cfg.multi=False
     with Pool(processes=cfg.num_threads) as pool:
         # fullargs needs to start with scan and end with slitdistratios
-        input_args = get_input_args(experiment,\
-             scan, cfg)
+        input_args = get_input_args(experiment, scan, cfg)
         results = pool.starmap(pyfai_stat_qmap_worker, input_args)
         maps = [result[0] for result in results]
         xlabels = [result[1] for result in results]
