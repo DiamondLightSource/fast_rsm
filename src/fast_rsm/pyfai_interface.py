@@ -616,7 +616,7 @@ def pyfai_moving_qmap_smm(experiment,
     qpqp_counts_total = 0
 
     cfg.qlimitsout, cfg.scanlength, cfg.scanlistnew = pyfai_setup_limits(experiment,\
-        scanlist, experiment.calcqlim, cfg.slitdistratios)
+        scanlist, experiment.calcqlim, cfg.slitratios)
 
     cfg.multi=True
     with SharedMemoryManager() as smm:
@@ -627,7 +627,7 @@ def pyfai_moving_qmap_smm(experiment,
 
         for scanind, scan in enumerate(cfg.scanlistnew):
             cfg.qlimits, cfg.scanlength, cfg.scanlistnew = pyfai_setup_limits(experiment,\
-                scan, experiment.calcqlim, cfg.slitdistratios)
+                scan, experiment.calcqlim, cfg.slitratios)
             start_time = time()
             cfg.scalegamma = 1
             # fullargs needs to start with scan and end with slitdistratios
@@ -760,9 +760,9 @@ def pyfai_move_qmap_worker(experiment, choiceims, scan, process_config) -> None:
 
     if qlimits is None:
         qlimhor = experiment.calcqlim('hor', vertsetup=(
-            experiment.setup == 'vertical'), slithorratio=cfg.slithdistratio)
+            experiment.setup == 'vertical'), slithorratio=cfg.slitratios[0])
         qlimver = experiment.calcqlim('vert', vertsetup=(
-            experiment.setup == 'vertical'), slitvertratio=cfg.slitvdistratio)
+            experiment.setup == 'vertical'), slitvertratio=cfg.slitratios[1])
         qlimits = [qlimhor[0], qlimhor[1], qlimver[0], qlimver[1]]
 
     sample_orientation = 1
