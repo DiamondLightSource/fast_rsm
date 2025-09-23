@@ -603,62 +603,46 @@ def pyfai_moving_exitangles_smm(experiment,
 
 def pyfai_moving_qmap_smm(experiment,
         hf,
-        scanlist,
-        num_threads,
-        output_file_path,
-        pyfaiponi,
-        radrange,
-        radstepval,
-        qmapbins=(
-            1200,
-            1200),
-        slitdistratios=None):
+        scanlist,process_config):
     """
     calculate q_para vs q_perp map for a moving detector scan
     """
 
     # pylint: disable=unused-argument
     # pylint: disable=unused-variable
+    cfg=process_config
     qlimitsout = [0, 0, 0, 0]
     qpqp_array_total = 0
     qpqp_counts_total = 0
 
-    qlimitsout, scanlength, scanlistnew = pyfai_setup_limits(experiment,\
-        scanlist, experiment.calcqlim, slitdistratios)
+    cfg.qlimitsout, cfg.scanlength, cfg.scanlistnew = pyfai_setup_limits(experiment,\
+        scanlist, experiment.calcqlim, cfg.slitdistratios)
 
+    cfg.multi=True
     with SharedMemoryManager() as smm:
 
-        shapeqpqp = (qmapbins[1], qmapbins[0])
+        cfg.shapeqpqp = (cfg.qmapbins[1], cfg.qmapbins[0])
         shm_intensities, shm_counts, arrays_arr, counts_arr, l = start_smm(
-            smm, shapeqpqp)
+            smm, cfg.shapeqpqp)
 
-        for scanind, scan in enumerate(scanlistnew):
-            qlimits, scanlength, scanlistnew = pyfai_setup_limits(experiment,\
-                scan, experiment.calcqlim, slitdistratios)
+        for scanind, scan in enumerate(cfg.scanlistnew):
+            cfg.qlimits, cfg.scanlength, cfg.scanlistnew = pyfai_setup_limits(experiment,\
+                scan, experiment.calcqlim, cfg.slitdistratios)
             start_time = time()
-            scalegamma = 1
+            cfg.scalegamma = 1
             # fullargs needs to start with scan and end with slitdistratios
-
-            fullargs = [
-                scan,
-                shapeqpqp,
-                pyfaiponi,
-                qmapbins,
-                qlimitsout,
-                slitdistratios]
-            input_args = get_input_args(experiment,\
-                scanlength, scalegamma, True, num_threads, fullargs)
+            input_args = get_input_args(experiment, scan, cfg)
             # print(np.shape(input_args))
             print(
                 f'starting process pool with num_threads=\
-                {num_threads} for scan {scanind+1}/{len(scanlistnew)}')
+                {cfg.num_threads} for scan {scanind+1}/{len(cfg.scanlistnew)}')
 
-            with Pool(num_threads, \
+            with Pool(cfg.num_threads, \
                         initializer=pyfai_init_worker, \
-            initargs=(l, shm_intensities.name, shm_counts.name, shapeqpqp)) as pool:
+            initargs=(l, shm_intensities.name, shm_counts.name, cfg.shapeqpqp)) as pool:
                 mapaxisinfolist = pool.starmap(pyfai_move_qmap_worker, input_args)
             print(
-                f'finished process pool for scan {scanind+1}/{len(scanlistnew)}')
+                f'finished process pool for scan {scanind+1}/{len(cfg.scanlistnew)}')
 
     mapaxisinfo = mapaxisinfolist[0]
     qpqp_array_total = arrays_arr
@@ -670,6 +654,8 @@ def pyfai_moving_qmap_smm(experiment,
         qpqp_counts_total,
         mapaxisinfo,
         start_time)
+    save_config_variables(hf, cfg)
+    hf.close()
     return mapaxisinfo
 
 def pyfai_moving_ivsq_smm(
@@ -756,17 +742,17 @@ def pyfai_moving_ivsq_smm(
     minutes = (end_time - start_time) / 60
     print(f'total calculation took {minutes}  minutes')
 
-def pyfai_move_qmap_worker(experiment, choiceims, scan, shapeqpqp, pyfaiponi,
-         qmapbins, qlimits=None, slithdistratio=None, slitvdistratio=None) -> None:
+def pyfai_move_qmap_worker(experiment, choiceims, scan, process_config) -> None:
     """
     calculate 2d q_para Vs q_perp map for moving detector scan using pyFAI
     
     """
 
     global INTENSITY_ARRAY, COUNT_ARRAY
-    aistart = pyFAI.load(pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
+    cfg=process_config
+    aistart = pyFAI.load(cfg.pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
 
-    shapemap = shapeqpqp
+    shapemap = cfg.shapeqpqp
     totalqpqpmap = np.zeros((shapemap[0], shapemap[1]))
     totalqpqpcounts = np.zeros((shapemap[0], shapemap[1]))
     unit_qip_name = "qip_A^-1"
@@ -774,9 +760,9 @@ def pyfai_move_qmap_worker(experiment, choiceims, scan, shapeqpqp, pyfaiponi,
 
     if qlimits is None:
         qlimhor = experiment.calcqlim('hor', vertsetup=(
-            experiment.setup == 'vertical'), slithorratio=slithdistratio)
+            experiment.setup == 'vertical'), slithorratio=cfg.slithdistratio)
         qlimver = experiment.calcqlim('vert', vertsetup=(
-            experiment.setup == 'vertical'), slitvertratio=slitvdistratio)
+            experiment.setup == 'vertical'), slitvertratio=cfg.slitvdistratio)
         qlimits = [qlimhor[0], qlimhor[1], qlimver[0], qlimver[1]]
 
     sample_orientation = 1
@@ -791,15 +777,15 @@ def pyfai_move_qmap_worker(experiment, choiceims, scan, shapeqpqp, pyfaiponi,
         for i in group:
             unit_qip, unit_qoop, img_data, my_ai, ai_limits = \
                 get_pyfai_components(experiment, i, sample_orientation,\
-    unit_qip_name, unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, qlimits)
+    unit_qip_name, unit_qoop_name, aistart, cfg.slitvdistratio, cfg.slithdistratio, scan, qlimits)
 
             img_data_list.append(img_data)
             ais.append(my_ai)
 
         for current_n, current_ai in enumerate(ais):
             current_img = img_data_list[current_n]
-            map2d = current_ai.integrate2d(current_img, qmapbins[0],\
-             qmapbins[1], unit=(unit_qip, unit_qoop),\
+            map2d = current_ai.integrate2d(current_img, cfg.qmapbins[0],\
+             cfg.qmapbins[1], unit=(unit_qip, unit_qoop),\
              radial_range=(ai_limits[0], ai_limits[1]),\
              azimuth_range=(ai_limits[2], ai_limits[3]),\
              method=("no", "csr", "cython"))
@@ -1091,12 +1077,12 @@ def pyfai_static_qmap(experiment, hf, scan, process_config: SimpleNamespace):
     cfg=process_config
     # pylint: disable=unused-argument
     # pylint: disable=unused-variable
-    cfg.qlimits, cfg.scanlength, scanlistnew = pyfai_setup_limits(experiment,\
+    cfg.qlimits, cfg.scanlength, cfg.scanlistnew = pyfai_setup_limits(experiment,\
         scan, experiment.calcqlim, cfg.slitdistratios)
 
     # calculate map bins if not specified using resolution of 0.01 degrees
-    if qmapbins == 0:
-        qmapbins = get_qmapbins(cfg.qlimits,experiment)
+    if cfg.qmapbins == 0:
+        cfg.qmapbins = get_qmapbins(cfg.qlimits,experiment)
 
     cfg.scalegamma = 1
 

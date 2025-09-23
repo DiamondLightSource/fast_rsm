@@ -55,6 +55,7 @@ from fast_rsm.logging_config import configure_logging,get_frsm_logger
 ##cylinder_axis = None
 
 
+
 def experiment_config(scans):
     # Get the directory where this script is located
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -70,9 +71,9 @@ def experiment_config(scans):
     return config_dict
 
     
-def create_standard_experiment(input_globals: dict,DEBUG_LOG=0):
+def create_standard_experiment(input_config: dict,DEBUG_LOG=0):
 
-    cfg=SimpleNamespace(**input_globals)
+    cfg=SimpleNamespace(**input_config)
     
     configure_logging(DEBUG_LOG)
     logger=get_frsm_logger()
@@ -147,9 +148,7 @@ def standard_adjustments(experiment,adjustment_args):
         if scan.metadata.data_file.using_dps:
             if scan.metadata.data_file.setup == 'DCD':
                 # If we're using the DCD and the DPS, our offset calculation is
-                # somewhat involved. If you're confused about this and would like to
-                # see a derivation, contact Richard Brearton.
-
+                # somewhat involved. 
                 # Work out the in-plane and out-of-plane incident light angles.
                 # To do this, first grab a unit vector pointing along the beam.
                 lab_frame = Frame(Frame.lab, scan.metadata.diffractometer,
@@ -221,6 +220,17 @@ def make_mask_lists(specific_pixels,mask_regions):
     
     return mask_regions_list,specific_pixels
 
+def make_new_hdf5(cfg: SimpleNamespace ,scan_index: int, name_start: str,\
+                  experiment: Experiment):
+    name_end = cfg.scan_numbers[scan_index]
+    datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+    cfg.projected_name = f'{name_start}_{name_end}_{datetime_str}'
+    cfg.process_start_time= time()
+    experiment.load_curve_values(experiment.scans[scan_index])
+    cfg.pyfaiponi =createponi( experiment,cfg.local_output_path)
+    return h5py.File(f'{cfg.local_output_path}/{cfg.projected_name}.hdf5', "w")
+
+
 def run_process_list(experiment,process_config):
     """
     separate function for sending of jobs defined by process output list and input arguments
@@ -228,41 +238,24 @@ def run_process_list(experiment,process_config):
     cfg=process_config
     # check for deprecated GIWAXS functions and print message if needed
     for output in cfg.process_outputs:
-        print(deprecation_msg(output)) 
+        print(deprecation_msg(output))
     
     if ('pyfai_qmap' in cfg.process_outputs) & (cfg.map_per_image == True):
         for i, scan in enumerate(experiment.scans):
-            name_end = cfg.scan_numbers[i]
-            datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
-            projected_name = f'Qmap_{name_end}_{datetime_str}'
-            hf = h5py.File(f'{cfg.local_output_path}/{projected_name}.hdf5', "w")
-            process_start_time = time()
-            experiment.load_curve_values(scan)
-            cfg.pyfaiponi =createponi( experiment,cfg.local_output_path)
+            hf = make_new_hdf5(cfg,i,'Qmap',experiment)
             pyfai_static_qmap(experiment,hf, scan, cfg)
-            save_config_variables(hf, cfg)
-            hf.close()
-            print(
-                f"saved 2d map  data to {cfg.local_output_path}/{projected_name}.hdf5")
-            total_time = time() - process_start_time
+            print(f"saved 2d map  data to\
+                   {cfg.local_output_path}/{cfg.projected_name}.hdf5")
+            total_time = time() - cfg.process_start_time
             print(f"\n 2d Q map calculations took {total_time}s")
 
     if ('pyfai_qmap' in cfg.process_outputs) & (cfg.map_per_image == False):
         scanlist = experiment.scans
-        name_end = cfg.scan_numbers[0]
-        datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
-        projected_name = f'Qmap_{name_end}_{datetime_str}'
-        hf = h5py.File(f'{cfg.local_output_path}/{projected_name}.hdf5', "w")
-        process_start_time = time()
-        experiment.load_curve_values(scanlist[0])
-        PYFAI_PONI =createponi( experiment,cfg.local_output_path)
-        pyfai_moving_qmap_smm(experiment,hf, scanlist, cfg.num_threads, cfg.local_output_path,
-                                        PYFAI_PONI, cfg.radialrange, cfg.radialstepval, cfg.qmapbins, slitdistratios=cfg.slitratios)
-        save_config_variables(hf, cfg)
-        hf.close()
-        print(f"saved 2d map data to {cfg.local_output_path}/{projected_name}.hdf5")
+        hf = make_new_hdf5(cfg,0,'Qmap',experiment)
+        pyfai_moving_qmap_smm(experiment,hf, scanlist, cfg)
+        print(f"saved 2d map data to {cfg.local_output_path}/{cfg.projected_name}.hdf5")
 
-        total_time = time() - process_start_time
+        total_time = time() - cfg.process_start_time
         print(f"\n 2d Q map calculation took {total_time}s")
 
     if ('pyfai_ivsq' in cfg.process_outputs) & (cfg.map_per_image == True):
