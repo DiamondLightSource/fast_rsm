@@ -97,7 +97,7 @@ def get_input_args(experiment,scan, process_config: SimpleNamespace):
     cfg=process_config
     fullrange = np.arange(0, cfg.scanlength,  cfg.scalegamma)
     selectedindices = [
-        n for n in fullrange if n not in cfg.skip_images]
+        n for n in fullrange if n not in cfg.skipimages]
     if cfg.multi:
         inputindices = chunk(selectedindices, cfg.num_threads)
     else:
