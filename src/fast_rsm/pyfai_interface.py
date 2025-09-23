@@ -776,7 +776,7 @@ def pyfai_move_qmap_worker(experiment, choiceims, scan, process_config) -> None:
         for i in group:
             unit_qip, unit_qoop, img_data, my_ai, ai_limits = \
                 get_pyfai_components(experiment, i, sample_orientation,\
-    unit_qip_name, unit_qoop_name, aistart, cfg.slitvdistratio, cfg.slithdistratio, scan, cfg.qlimits)
+    unit_qip_name, unit_qoop_name, aistart, cfg.slitratios[0], cfg.slitratios[1], scan, cfg.qlimits)
 
             img_data_list.append(img_data)
             ais.append(my_ai)
@@ -954,7 +954,7 @@ def pyfai_stat_qmap_worker(experiment, imageindex, scan, process_config: SimpleN
 
     unit_qip, unit_qoop, img_data, my_ai, ai_limits = get_pyfai_components(
         experiment, index, sample_orientation, unit_qip_name,\
-              unit_qoop_name, aistart, cfg.slitvdistratio, cfg.slithdistratio, scan, cfg.qlimits)
+              unit_qoop_name, aistart, cfg.slitratios[0], cfg.slitratios[1], scan, cfg.qlimits)
 
     map2d = my_ai.integrate2d(img_data, cfg.qmapbins[0], cfg.qmapbins[1], unit=(unit_qip, unit_qoop),
                               radial_range=(ai_limits[0], ai_limits[1]), \
