@@ -691,7 +691,7 @@ def pyfai_moving_ivsq_smm(experiment, hf, scanlist, process_config):
     dset.create_dataset("Q_angstrom^-1", data=arrays_arr[1])
     dset.create_dataset("2thetas", data=arrays_arr[2])
 
-    if experiment.savedats:
+    if cfg.savedats:
         experiment.do_savedats(hf, qi_array, arrays_arr[1], arrays_arr[2])
     save_config_variables(hf, cfg)
     hf.close()
