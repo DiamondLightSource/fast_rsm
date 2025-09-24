@@ -212,7 +212,8 @@ def save_scan_field_values(hf, scan):
                     f"dim{i}_{field}", data=scannedvaluesout[i])
 
 def save_hf_map(experiment, hf, mapname, sum_array,
-                counts_array, mapaxisinfo, start_time):
+                counts_array, mapaxisinfo, start_time,process_config):
+    cfg=process_config
     norm_array = np.divide(
         sum_array,
         counts_array,
@@ -230,7 +231,7 @@ def save_hf_map(experiment, hf, mapname, sum_array,
     dset.create_dataset("map_perp_indices", data=[0, 1, 2])
     dset.create_dataset("map_para_indices", data=[0, 1, 3])
 
-    if experiment.savetiffs:
+    if cfg.savetiffs:
         experiment.do_savetiffs(hf, norm_array, mapaxisinfo[1], mapaxisinfo[0])
 
     minutes = (times[1] - times[0]) / 60
@@ -652,7 +653,7 @@ def pyfai_moving_qmap_smm(experiment,
         qpqp_array_total,
         qpqp_counts_total,
         mapaxisinfo,
-        start_time)
+        start_time, cfg)
     save_config_variables(hf, cfg)
     hf.close()
     return mapaxisinfo
