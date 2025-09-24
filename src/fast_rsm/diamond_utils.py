@@ -77,6 +77,7 @@ def create_standard_experiment(input_config: dict,DEBUG_LOG=0):
     
     configure_logging(DEBUG_LOG)
     logger=get_frsm_logger()
+    logger.debug("creating standard experiment object")
     f = open(cfg.full_path)
     cfg.joblines = f.readlines()
     f.close()
