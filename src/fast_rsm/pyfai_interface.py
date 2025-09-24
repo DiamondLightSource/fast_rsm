@@ -638,12 +638,11 @@ def pyfai_moving_ivsq_smm(experiment, hf, scanlist, process_config):
         scanlist, experiment.calcanglim, cfg.slitratios)
     absranges = np.abs(cfg.fullranges)
     radmax = np.max(absranges)
-    # radrange=(0,radmax)
     con1 = np.abs(cfg.fullranges[0]) < np.abs(cfg.fullranges[0] - cfg.fullranges[1])
     con2 = np.abs(cfg.fullranges[2]) < np.abs(cfg.fullranges[2] - cfg.fullranges[3])
 
     if (con1) & (con2):
-        radrange = (0, radmax)
+        cfg.radrange = (0, radmax)
 
     elif con1:
         cfg.radrange = np.sort([absranges[2], absranges[3]])
@@ -653,7 +652,7 @@ def pyfai_moving_ivsq_smm(experiment, hf, scanlist, process_config):
         cfg.radrange = (np.max([absranges[0], absranges[2]]),
                     np.max([absranges[1], absranges[3]]))
 
-    cfg.nqbins = int(np.ceil((radrange[1] - radrange[0]) / cfg.radialstepval))
+    cfg.nqbins = int(np.ceil((cfg.radrange[1] - cfg.radrange[0]) / cfg.radialstepval))
 
     with SharedMemoryManager() as smm:
 
