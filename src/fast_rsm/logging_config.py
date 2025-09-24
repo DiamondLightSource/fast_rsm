@@ -12,6 +12,7 @@ _log_path = os.path.join('/dls/science/groups/das/ExampleData/i07/fast_rsm_examp
 
 def configure_logging(enabled: bool):
     global _logging_enabled
+    print(f"change logging to {enabled}")
     _logging_enabled = enabled
 
 def get_frsm_logger():
