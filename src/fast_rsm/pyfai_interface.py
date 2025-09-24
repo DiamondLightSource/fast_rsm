@@ -2,7 +2,7 @@
 Module for the functions used to interface with pyFAI package
 """
 import copy
-import traceback
+import yaml
 import h5py
 from types import SimpleNamespace
 from datetime import datetime
@@ -170,10 +170,13 @@ def save_config_variables(hf, process_config): ##oblines, pythonlocation, global
     """
     save all variables in the configuration file to the output hdf5 file
     """
+    cfg=process_config
     config_group = hf.create_group('i07configuration')
-    outdict=vars(process_config)
-    for key,val in outdict.items():
-        logger.debug(f"key ={key},val={val},type={type(val)}")
+    outdict=vars(cfg)
+    with open(cfg.default_config_path, "r") as f:
+            default_config_dict = yaml.safe_load(f)
+    default_config_dict['ubinfo']=0 #add in ubinfo to defaults, so that parsing defaults finds it
+    for key in default_config_dict:
         if key=='ubinfo':
             for i, coll in enumerate(outdict['ubinfo']):
                 ubgroup = config_group.create_group(f'ubinfo_{i+1}')
@@ -182,6 +185,8 @@ def save_config_variables(hf, process_config): ##oblines, pythonlocation, global
                 ubgroup.create_dataset(f'u_{i+1}', data=coll['diffcalc_u'])
                 ubgroup.create_dataset(f'ub_{i+1}', data=coll['diffcalc_ub'])
             continue
+        val=outdict[key]
+        logger.debug(f"key ={key},val={val},type={type(val)}")
         if val is None:
             val = 'None'
         config_group.create_dataset(f"{key}", data=val)
@@ -1149,6 +1154,8 @@ def pyfai_static_qmap(experiment, hf, scan, process_config: SimpleNamespace):
         save_scan_field_values(hf, scan)
     if experiment.savetiffs:
         experiment.do_savetiffs(hf, outlist[0], outlist[1], outlist[2])
+    save_config_variables(hf, cfg)
+    hf.close()
 
 def pyfai_static_ivsq(experiment, hf, scan, num_threads, output_file_path,
                         pyfaiponi, ivqbins, qmapbins=0, slitdistratios=None):

@@ -67,6 +67,7 @@ def experiment_config(scans):
     with open(config_path, "r") as f:
             config_dict = yaml.safe_load(f)
     config_dict['scan_numbers']=scans
+    config_dict['default_config_path']=config_path
 
     return config_dict
 
