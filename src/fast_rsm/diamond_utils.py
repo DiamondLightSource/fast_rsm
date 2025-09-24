@@ -107,7 +107,7 @@ def create_standard_experiment(input_config: dict,DEBUG_LOG=0):
     # grab ub information
     cfg.ubinfo = [scan.metadata.data_file.nx_instrument.diffcalchdr for scan in experiment.scans]
 
-    return experiment,cfg
+    return experiment, cfg, logger
 
 def initial_value_checks(dps_centres,cylinder_axis,setup,output_file_size):
     dpsx_central_pixel,dpsy_central_pixel,dpsz_central_pixel=dps_centres
@@ -236,6 +236,7 @@ def run_process_list(experiment,process_config):
     separate function for sending of jobs defined by process output list and input arguments
     """
     cfg=process_config
+    logger.debug("entered run_process_list")
     # check for deprecated GIWAXS functions and print message if needed
     for output in cfg.process_outputs:
         print(deprecation_msg(output))
