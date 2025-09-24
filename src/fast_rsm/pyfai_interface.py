@@ -344,7 +344,7 @@ def get_pyfai_components(experiment, i, sample_orientation, unit_ip_name,
 
     return unit_ip, unit_oop, img_data, my_ai, limits_out
 
-def pyfai_setup_limits(experiment, scanlist, limitfunction, slitdistratios):
+def pyfai_setup_limits(experiment, scanlist, limitfunction, slitratios):
     """
     calculate setup values needed for pyfai calculations
     """
@@ -367,17 +367,17 @@ def pyfai_setup_limits(experiment, scanlist, limitfunction, slitdistratios):
 
         experiment.two_theta_start = experiment.gammadata - tthdirect
 
-        if slitdistratios is not None:
+        if slitratios is not None:
             scanlimhor = limitfunction(
                 'hor',
                 vertsetup=(
                     experiment.setup == 'vertical'),
-                slithorratio=slitdistratios[1])
+                slithorratio=slitratios[1])
             scanlimver = limitfunction(
                 'vert',
                 vertsetup=(
                     experiment.setup == 'vertical'),
-                slitvertratio=slitdistratios[0])
+                slitvertratio=slitratios[0])
         else:
             scanlimhor = limitfunction(
                 'hor', vertsetup=(
@@ -547,7 +547,7 @@ def pyfai_moving_exitangles_smm(experiment, hf, scanlist, process_config):
     exhexv_array_total = 0
     exhexv_counts_total = 0
     cfg.anglimitsout, cfg.scanlength, cfg.scanlistnew = pyfai_setup_limits(experiment,\
-        scanlist, experiment.calcanglim, cfg.slitdistratios)
+        scanlist, experiment.calcanglim, cfg.slitratios)
     cfg.multi=True
     with SharedMemoryManager() as smm:
         cfg.shapeexhexv = (cfg.qmapbins[1], cfg.qmapbins[0])
@@ -557,7 +557,7 @@ def pyfai_moving_exitangles_smm(experiment, hf, scanlist, process_config):
         for scanind, scan in enumerate(cfg.scanlistnew):
 
             cfg.anglimits, cfg.scanlength, cfg.scanlistnew = pyfai_setup_limits(experiment,\
-                scan, experiment.calcanglim, cfg.slitdistratios)
+                scan, experiment.calcanglim, cfg.slitratios)
             cfg.scalegamma = 1
             start_time = time()
             input_args = get_input_args(experiment,scan,cfg)
@@ -639,7 +639,7 @@ def pyfai_moving_ivsq_smm(
         qmapbins=(
             1200,
             1200),
-        slitdistratios=None):
+        slitratios=None):
     """
     calculate 1d Intensity Vs Q profile for a moving detector scan
     """
@@ -647,7 +647,7 @@ def pyfai_moving_ivsq_smm(
     # pylint: disable=unused-argument
     # pylint: disable=unused-variable
     fullranges, scanlength, scanlistnew = pyfai_setup_limits(experiment,\
-        scanlist, experiment.calcanglim, slitdistratios)
+        scanlist, experiment.calcanglim, slitratios)
     absranges = np.abs(fullranges)
     radmax = np.max(absranges)
     # radrange=(0,radmax)
@@ -676,11 +676,11 @@ def pyfai_moving_ivsq_smm(
 
         for scanind, scan in enumerate(scanlistnew):
             qlimits, scanlength, scanlistnew = pyfai_setup_limits(experiment,\
-                scan, experiment.calcqlim, slitdistratios)
+                scan, experiment.calcqlim, slitratios)
             start_time = time()
             scalegamma = 1
-            # fullargs needs to start with scan and end with slitdistratios
-            fullargs = [scan, shapeqi, pyfaiponi, radrange, slitdistratios]
+            # fullargs needs to start with scan and end with slitratios
+            fullargs = [scan, shapeqi, pyfaiponi, radrange, slitratios]
             input_args = get_input_args(experiment,\
                 scanlength, scalegamma, True, num_threads, fullargs)
             print(
@@ -1035,7 +1035,7 @@ def pyfai_static_qmap(experiment, hf, scan, process_config: SimpleNamespace):
     """
     cfg=process_config
     cfg.qlimits, cfg.scanlength, cfg.scanlistnew = pyfai_setup_limits(experiment,\
-        scan, experiment.calcqlim, cfg.slitdistratios)
+        scan, experiment.calcqlim, cfg.slitratios)
     
     # calculate map bins if not specified using resolution of 0.01 degrees
     if cfg.qmapbins == 0:
@@ -1088,7 +1088,7 @@ def pyfai_static_ivsq(experiment, hf, scan, process_config):
     # pylint: disable=unused-variable
     cfg=process_config
     cfg.qlimits, cfg.scanlength, cfg.scanlistnew = pyfai_setup_limits(experiment,\
-        scan, experiment.calcqlim, cfg.slitdistratios)
+        scan, experiment.calcqlim, cfg.slitratios)
 
     # calculate map bins if not specified using resolution of 0.01 degrees
     if qmapbins == 0:

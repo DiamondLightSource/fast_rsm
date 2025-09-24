@@ -263,15 +263,8 @@ def run_process_list(experiment,process_config):
 
     if ('pyfai_ivsq' in cfg.process_outputs) & (cfg.map_per_image == True):
         for i, scan in enumerate(experiment.scans):
-            name_end = cfg.scan_numbers[i]
-            datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
-            projected_name = f'IvsQ_{name_end}_{datetime_str}'
-            hf = h5py.File(f'{cfg.local_output_path}/{projected_name}.hdf5', "w")
-            process_start_time = time()
-            experiment.load_curve_values(scan)
-            PYFAI_PONI =createponi( experiment,cfg.local_output_path)
-            pyfai_static_ivsq(experiment,  hf, scan, cfg.num_threads,\
-                            cfg.local_output_path, PYFAI_PONI, cfg.ivqbins, cfg.qmapbins)
+            hf = make_new_hdf5(cfg,i,'IvsQ',experiment)
+            pyfai_static_ivsq(experiment,  hf, scan, cfg)
             save_config_variables(hf, cfg)
             hf.close()
             print(
@@ -290,7 +283,7 @@ def run_process_list(experiment,process_config):
         PYFAI_PONI =createponi( experiment,cfg.local_output_path)
         pyfai_moving_ivsq_smm(experiment, hf, scanlist, cfg.num_threads,\
             cfg.local_output_path, PYFAI_PONI, cfg.radialrange, cfg.radialstepval,\
-            cfg.qmapbins, slitdistratios=cfg.slitratios)
+            cfg.qmapbins, slitratios=cfg.slitratios)
         save_config_variables(hf, cfg)
         hf.close()
         print(
