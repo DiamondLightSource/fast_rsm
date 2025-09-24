@@ -936,6 +936,7 @@ class Experiment:
 
         # locks = [Lock() for _ in range(num_threads)]
         shapersm = finite_diff_shape(start, stop, step)
+        logger.debug(f"shapersm= {shapersm}")
 
         images_so_far = 0
 
@@ -975,6 +976,7 @@ class Experiment:
                             range(
                                 scan.metadata.data_file.scan_length)),
                         num_threads)]
+                logger.debug(f"bin_args ={bin_args}")
 
                 with Pool(num_threads, initializer=rsm_init_worker, \
             initargs=(l, shm_rsm.name, shm_counts.name, shapersm, scan.metadata,\
