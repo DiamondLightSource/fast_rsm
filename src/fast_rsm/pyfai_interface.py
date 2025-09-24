@@ -653,7 +653,7 @@ def pyfai_moving_ivsq_smm(experiment, hf, scanlist, process_config):
                     np.max([absranges[1], absranges[3]]))
 
     cfg.nqbins = int(np.ceil((cfg.radrange[1] - cfg.radrange[0]) / cfg.radialstepval))
-
+    cfg.multi=True
     with SharedMemoryManager() as smm:
 
         cfg.shapeqi = (3, np.abs(cfg.nqbins))
