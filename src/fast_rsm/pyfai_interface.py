@@ -999,7 +999,7 @@ def pyfai_static_exitangles(experiment, hf, scan,  process_config: SimpleNamespa
     save_hf_map(experiment,\
         hf, "exit_angles",savemaps, np.ones(np.shape(savemaps)),\
         all_mapaxisinfo[0][0],\
-        start_time)
+        start_time,cfg)
     save_config_variables(hf, cfg)
     hf.close()
 
