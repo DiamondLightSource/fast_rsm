@@ -974,7 +974,7 @@ def pyfai_static_exitangles(experiment, hf, scan,  process_config: SimpleNamespa
     all_xlabels = []
     all_ylabels = []
     all_mapaxisinfo = []
-
+    cfg.multi=False
     with Pool(processes= cfg.num_threads) as pool:
         input_args = get_input_args(experiment,scan,cfg)
         results = pool.starmap(pyfai_stat_exitangles_worker, input_args)
