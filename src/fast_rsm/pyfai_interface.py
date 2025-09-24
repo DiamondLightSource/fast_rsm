@@ -829,17 +829,16 @@ def pyfai_move_ivsq_worker(experiment, imageindices, scan, shapeqi,
         COUNT_ARRAY[0] += totaloutcounts[0]
         COUNT_ARRAY[1:] = totaloutcounts[1:]
 
-def pyfai_move_exitangles_worker(experiment, imageindices, scan,\
-                                shapeexhexv,pyfaiponi, anglimits,\
-                qmapbins, slithdistratio=None, slitvdistratio=None) -> None:
+def pyfai_move_exitangles_worker(experiment, imageindices, scan,process_config) -> None:
     """
     calculate exit angle map for moving detector scan using pyFAI
 
     """
+    cfg=process_config
     global INTENSITY_ARRAY, COUNT_ARRAY
-    aistart = pyFAI.load(pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
+    aistart = pyFAI.load(cfg.pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
 
-    shapemap = shapeexhexv
+    shapemap = cfg.shapeexhexv
     totalexhexvmap = np.zeros((shapemap[0], shapemap[1]))
     totalexhexvcounts = np.zeros((shapemap[0], shapemap[1]))
     unit_qip_name = "exit_angle_horz_deg"
@@ -857,14 +856,14 @@ def pyfai_move_exitangles_worker(experiment, imageindices, scan,\
         for i in group:
             unit_qip, unit_qoop, img_data, my_ai, ai_limits = get_pyfai_components(
                 experiment, i, sample_orientation, unit_qip_name,\
-                unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, anglimits)
+                unit_qoop_name, aistart, cfg.slitratios[0], cfg.slitratios[1], scan, cfg.anglimits)
 
             img_data_list.append(img_data)
             ais.append(my_ai)
 
         for current_n, current_ai in enumerate(ais):
             current_img = img_data_list[current_n]
-            map2d = current_ai.integrate2d(current_img, qmapbins[0], qmapbins[1], \
+            map2d = current_ai.integrate2d(current_img, shapemap[0], shapemap[1], \
                     unit=(unit_qip, unit_qoop),\
                 radial_range=(ai_limits[0], ai_limits[1]),\
                 azimuth_range=(ai_limits[2], ai_limits[3]),\
