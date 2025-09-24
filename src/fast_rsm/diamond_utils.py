@@ -275,9 +275,9 @@ def run_process_list(experiment,process_config):
         scanlist_function=run_scanlist_combined
 
     for output in cfg.process_outputs:
-        if output != "full_reciprocal_"
-        runoptions=functions_dict[output]
-        scanlist_function(cfg,experiment,runoptions)
+        if output != "full_reciprocal_map":
+            runoptions=functions_dict[output]
+            scanlist_function(cfg,experiment,runoptions)
 
     # if ('pyfai_qmap' in cfg.process_outputs) & (cfg.map_per_image == True):
     #     for i, scan in enumerate(experiment.scans):
