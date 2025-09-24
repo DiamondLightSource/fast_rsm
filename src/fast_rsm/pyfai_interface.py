@@ -170,8 +170,11 @@ def save_config_variables(hf, process_config): ##oblines, pythonlocation, global
     config_group = hf.create_group('i07configuration')
     outdict=vars(cfg)
     with open(cfg.default_config_path, "r") as f:
-            default_config_dict = yaml.safe_load(f)
-    default_config_dict['ubinfo']=0 #add in ubinfo to defaults, so that parsing defaults finds it
+        default_config_dict = yaml.safe_load(f)
+    #add in extra to defaults that arent set by user, so that parsing defaults finds it
+    default_config_dict['ubinfo']=0
+    default_config_dict['pythonlocation']=0 
+    default_config_dict['joblines']=0
     for key in default_config_dict:
         if key=='ubinfo':
             for i, coll in enumerate(outdict['ubinfo']):

@@ -281,113 +281,57 @@ def run_process_list(experiment,process_config):
             runoptions=functions_dict[output]
             scanlist_function(cfg,experiment,runoptions)
 
-    # if ('pyfai_qmap' in cfg.process_outputs) & (cfg.map_per_image == True):
-    #     for i, scan in enumerate(experiment.scans):
-
-    #         hf = make_new_hdf5(cfg,i,'Qmap',experiment)
-    #         pyfai_static_qmap(experiment,hf, scan, cfg)
-    #         print(f"saved 2d map  data to\
-    #                {cfg.local_output_path}/{cfg.projected_name}.hdf5")
-    #         total_time = (time() - cfg.process_start_time)/60
-    #         print(f"\n 2d Q map calculations took {total_time} minutes")
-
-    # if ('pyfai_qmap' in cfg.process_outputs) & (cfg.map_per_image == False):
-    #     scanlist = experiment.scans
-    #     hf = make_new_hdf5(cfg,0,'Qmap',experiment)
-    #     pyfai_moving_qmap_smm(experiment,hf, scanlist, cfg)
-    #     print(f"saved 2d map data to \
-    #           {cfg.local_output_path}/{cfg.projected_name}.hdf5")
-
-    #     total_time = (time() - cfg.process_start_time)/60
-    #     print(f"\n 2d Q map calculation took {total_time} minutes")
-
-    # if ('pyfai_exitangles' in cfg.process_outputs) & (cfg.map_per_image == True):
-    #     for i, scan in enumerate(experiment.scans):
-    #         hf = make_new_hdf5(cfg,i,'exitmap',experiment)
-    #         pyfai_static_exitangles(experiment,hf, scan, cfg)
-    #         print(f"saved 2d exit angle map  data to\
-    #                {cfg.local_output_path}/{cfg.projected_name}.hdf5")
-    #         total_time = (time() - cfg.process_start_time)/60
-    #         print(f"\n 2d exit angle map calculations took {total_time} minutes")
-
-    # if ('pyfai_exitangles' in cfg.process_outputs) & (cfg.map_per_image == False):
-    #     scanlist = experiment.scans
-    #     hf = make_new_hdf5(cfg,0,"exitmap",experiment)
-    #     pyfai_moving_exitangles_smm(experiment,hf, scanlist, cfg)
-    #     print(f"saved 2d exit angle map  data to\
-    #            {cfg.local_output_path}/{cfg.projected_name}.hdf5")
-    #     total_time = (time() - cfg.process_start_time)/60
-    #     print(f"\n 2d exit angle map calculations took {total_time} minutes")
-
-    # if ('pyfai_ivsq' in cfg.process_outputs) & (cfg.map_per_image == True):
-    #     for i, scan in enumerate(experiment.scans):
-    #         hf = make_new_hdf5(cfg,i,'IvsQ',experiment)
-    #         pyfai_static_ivsq(experiment,  hf, scan, cfg)
-    #         print(f"saved 1d integration data to\
-    #                {cfg.local_output_path}/{cfg.projected_name}.hdf5")
-    #         total_time = time() - cfg.process_start_time
-    #         print(f"\n Azimuthal integrations took {total_time}s")
-
-    # if ('pyfai_ivsq' in cfg.process_outputs) & (cfg.map_per_image == False):
-    #     scanlist = experiment.scans
-    #     hf = make_new_hdf5(cfg,0,'IvsQ',experiment)
-    #     pyfai_moving_ivsq_smm(experiment, hf, scanlist, cfg)
-    #     print(f"saved 1d integration data to\
-    #           {cfg.local_output_path}/{cfg.projected_name}.hdf5")
-    #     total_time = (time() - cfg.process_start_time)/60
-    #     print(f"\n Azimuthal integration took {total_time} minutes")
-
-
     if 'full_reciprocal_map' in cfg.process_outputs:
-        
-        processing_dir = Path(cfg.local_output_path)
+        run_full_map_process(experiment,cfg)
 
-        # Here we calculate a sensible file name that hasn't been taken.
-        i = 0
+def run_full_map_process(experiment,cfg):
+    processing_dir = Path(cfg.local_output_path)
 
+    # Here we calculate a sensible file name that hasn't been taken.
+    i = 0
+    save_file_name = f"mapped_scan_{cfg.scan_numbers[0]}_{i}"
+    save_path = processing_dir / save_file_name
+    # Make sure that this name hasn't been used in the past.
+    extensions = [".npy", ".vtk", "_l.txt", "_tth.txt", "_Q.txt", ""]
+    while any(os.path.exists(str(save_path) + ext) for ext in extensions):
+        i += 1
         save_file_name = f"mapped_scan_{cfg.scan_numbers[0]}_{i}"
         save_path = processing_dir / save_file_name
-        # Make sure that this name hasn't been used in the past.
-        extensions = [".npy", ".vtk", "_l.txt", "_tth.txt", "_Q.txt", ""]
-        while any(os.path.exists(str(save_path) + ext) for ext in extensions):
-            i += 1
-            save_file_name = f"mapped_scan_{cfg.scan_numbers[0]}_{i}"
-            save_path = processing_dir / save_file_name
 
-            if i > 1e7:
-                raise ValueError(
-                    "Either you tried to save this file 10000000 times, or something "
-                    "went wrong. I'm going with the latter, but exiting out anyway.")
-        map_frame = Frame(frame_name=cfg.frame_name, coordinates=cfg.coordinates)
-        start_time = time()
-        # Calculate and save a binned reciprocal space map, if requested.
-        experiment.binned_reciprocal_space_map_smm(
-            cfg.num_threads, map_frame, cfg,
-            output_file_size=cfg.output_file_size, oop=cfg.oop,
-            min_intensity_mask=cfg.min_intensity,
-            output_file_name=save_path,
-            volume_start=cfg.volume_start, volume_stop=cfg.volume_stop,
-            volume_step=cfg.volume_step,
-            map_each_image=cfg.map_per_image)
+        if i > 1e7:
+            raise ValueError(
+                "Either you tried to save this file 10000000 times, or something "
+                "went wrong. I'm going with the latter, but exiting out anyway.")
+    map_frame = Frame(frame_name=cfg.frame_name, coordinates=cfg.coordinates)
+    start_time = time()
+    # Calculate and save a binned reciprocal space map, if requested.
+    experiment.binned_reciprocal_space_map_smm(
+        cfg.num_threads, map_frame, cfg,
+        output_file_size=cfg.output_file_size, oop=cfg.oop,
+        min_intensity_mask=cfg.min_intensity,
+        output_file_name=save_path,
+        volume_start=cfg.volume_start, volume_stop=cfg.volume_stop,
+        volume_step=cfg.volume_step,
+        map_each_image=cfg.map_per_image)
 
-        if cfg.save_binoculars_h5 == True:
-            outvars = globals()
+    if cfg.save_binoculars_h5 == True:
+        save_binoculars_hdf5(str(save_path) + ".npy", str(save_path) +
+                            '.hdf5', cfg)
+        print(f"\nSaved BINoculars file to {save_path}.hdf5.\n")
 
-            save_binoculars_hdf5(str(save_path) + ".npy", str(save_path) +
-                                '.hdf5', cfg.joblines, cfg.pythonlocation, outvars)
-            print(f"\nSaved BINoculars file to {save_path}.hdf5.\n")
-
-        # Finally, print that it's finished We'll use this to work out when the
-        # processing is done.
-        total_time = time() - start_time
-        print(f"\nProcessing took {total_time}s")
-        print(f"This corresponds to {total_time*1000/cfg.total_images}ms per image.\n")
+    # Finally, print that it's finished We'll use this to work out when the
+    # processing is done.
+    total_time = time() - start_time
+    print(f"\nProcessing took {total_time}s")
+    print(f"This corresponds to {total_time*1000/cfg.total_images}ms per image.\n")
 
 def save_binoculars_hdf5(path_to_npy: np.ndarray,
-                         output_path: str, joblines, pythonlocation, outvars=None):
+                         output_path: str, process_config: SimpleNamespace):
     """
     Saves the .npy file as a binoculars-readable hdf5 file.
     """
+
+    cfg = process_config
     # Load the volume and the bounds.
     volume, start, stop, step = get_volume_and_bounds(path_to_npy)
 
@@ -424,49 +368,67 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray,
               for i in range(3))
     )
 
-    # Turn those into an axes group.
-    axes_group = nx.NXgroup(h=h_arr, k=k_arr, l=l_arr)
+    with h5py.File(output_path, "w") as hf:
+        
+        # Add metadata to the root group
+        hf.attrs['file_time'] = datetime.datetime.now().isoformat()
+        hf.attrs['h5py_version'] = h5py.version.version
+        hf.attrs['HDF5_version'] = h5py.version.hdf5_version
 
-    config_group = nx.NXgroup()
-    configlist = ['setup', 'experimental_hutch', 'using_dps', 'beam_centre', \
-                  'detector_distance', 'dpsx_central_pixel', 'dpsy_central_pixel',\
-                'dpsz_central_pixel','local_data_path', 'local_output_path',\
-                'output_file_size', 'save_binoculars_h5', 'map_per_image',\
-                'volume_start', 'volume_step', 'volume_stop',\
-                'load_from_dat', 'edfmaskfile', 'specific_pixels', \
-                'mask_regions', 'process_outputs', 'scan_numbers']
-    # Get a list of all available variables
-    if outvars is not None:
-        variables = list(outvars.keys())
+        binoculars_group=hf.create_group("binoculars")
+        binoculars_group.attrs['type'] = 'Space'
+        axes_group=binoculars_group.create_group("axes")
+        axes_datasets={"h": h_arr, "k": k_arr, "l": l_arr}
+        for name,data in axes_datasets.items():
+            axes_group.create_dataset(name,data=data)
+        
+        hf.create_dataset("contributions",data=contributions)
+        hf.create_dataset("counts",data=volume)
+        save_config_variables(hf,cfg)
 
-        # Iterate through the variables
-        for var_name in variables:
-            # Check if the variable name is in configlist
-            if var_name in configlist:
-                # Get the variable value
-                var_value = outvars[var_name]
+    # # Turn those into an axes group.
+    # axes_group = nx.NXgroup(h=h_arr, k=k_arr, l=l_arr)
 
-                # Add the variable to config_group
-                config_group[var_name] = str(var_value)
-        if 'ubinfo' in outvars:
-            for i, coll in enumerate(outvars['ubinfo']):
-                config_group[f'ubinfo_{i+1}'] = nx.NXgroup()
-                config_group[f'ubinfo_{i+1}'][f'lattice_{i+1}'] = coll['diffcalc_lattice']
-                config_group[f'ubinfo_{i+1}'][f'u_{i+1}'] = coll['diffcalc_u']
-                config_group[f'ubinfo_{i+1}'][f'ub_{i+1}'] = coll['diffcalc_ub']
-    config_group['python_version'] = pythonlocation
-    config_group['joblines'] = joblines
-    # Make a corresponding (mandatory) "binoculars" group.
-    binoculars_group = nx.NXgroup(
-        axes=axes_group, contributions=contributions,\
-              counts=(volume), i07configuration=config_group)
-    binoculars_group.attrs['type'] = 'Space'
+    # config_group = nx.NXgroup()
+    # configlist = ['setup', 'experimental_hutch', 'using_dps', 'beam_centre', \
+    #               'detector_distance', 'dpsx_central_pixel', 'dpsy_central_pixel',\
+    #             'dpsz_central_pixel','local_data_path', 'local_output_path',\
+    #             'output_file_size', 'save_binoculars_h5', 'map_per_image',\
+    #             'volume_start', 'volume_step', 'volume_stop',\
+    #             'load_from_dat', 'edfmaskfile', 'specific_pixels', \
+    #             'mask_regions', 'process_outputs', 'scan_numbers']
+    # # Get a list of all available variables
+    # if cfg.outvars is not None:
+    #     variables = list(outvars.keys())
 
-    # Make a root which contains the binoculars group.
-    bin_hdf = nx.NXroot(binoculars=binoculars_group)
+    #     # Iterate through the variables
+    #     for var_name in variables:
+    #         # Check if the variable name is in configlist
+    #         if var_name in configlist:
+    #             # Get the variable value
+    #             var_value = outvars[var_name]
 
-    # Save it!
-    bin_hdf.save(output_path)
+    #             # Add the variable to config_group
+    #             config_group[var_name] = str(var_value)
+    #     if 'ubinfo' in outvars:
+    #         for i, coll in enumerate(outvars['ubinfo']):
+    #             config_group[f'ubinfo_{i+1}'] = nx.NXgroup()
+    #             config_group[f'ubinfo_{i+1}'][f'lattice_{i+1}'] = coll['diffcalc_lattice']
+    #             config_group[f'ubinfo_{i+1}'][f'u_{i+1}'] = coll['diffcalc_u']
+    #             config_group[f'ubinfo_{i+1}'][f'ub_{i+1}'] = coll['diffcalc_ub']
+    # config_group['python_version'] = pythonlocation
+    # config_group['joblines'] = joblines
+    # # Make a corresponding (mandatory) "binoculars" group.
+    # binoculars_group = nx.NXgroup(
+    #     axes=axes_group, contributions=contributions,\
+    #           counts=(volume), i07configuration=config_group)
+    # binoculars_group.attrs['type'] = 'Space'
+
+    # # Make a root which contains the binoculars group.
+    # bin_hdf = nx.NXroot(binoculars=binoculars_group)
+
+    # # Save it!
+    # bin_hdf.save(output_path)
 
 def get_volume_and_bounds(path_to_npy: str) -> Tuple[np.ndarray]:
     """
