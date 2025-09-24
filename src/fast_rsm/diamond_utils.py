@@ -286,7 +286,7 @@ def run_process_list(experiment,process_config):
         for i, scan in enumerate(experiment.scans):
             hf = make_new_hdf5(cfg,i,'IvsQ',experiment)
             pyfai_static_ivsq(experiment,  hf, scan, cfg)
-            print(f"saved 1d integration data toz
+            print(f"saved 1d integration data to\
                    {cfg.local_output_path}/{cfg.projected_name}.hdf5")
             total_time = time() - cfg.process_start_time
             print(f"\n Azimuthal integrations took {total_time}s")
