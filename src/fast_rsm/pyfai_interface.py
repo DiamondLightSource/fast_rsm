@@ -1072,8 +1072,8 @@ def pyfai_static_ivsq(experiment, hf, scan, process_config: SimpleNamespace):
         scan, experiment.calcqlim, cfg.slitratios)
 
     # calculate map bins if not specified using resolution of 0.01 degrees
-    if qmapbins == 0:
-        qmapbins = get_qmapbins(cfg.qlimits,experiment)
+    if cfg.qmapbins == 0:
+        cfg.qmapbins = get_qmapbins(cfg.qlimits,experiment)
     cfg.scalegamma = 1
 
     print(f'starting process pool with num_threads={cfg.num_threads}')
