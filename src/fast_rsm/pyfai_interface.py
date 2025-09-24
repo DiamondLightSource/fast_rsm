@@ -574,7 +574,7 @@ def pyfai_moving_exitangles_smm(experiment, hf, scanlist, process_config):
     exhexv_array_total = arrays_arr
     exhexv_counts_total = counts_arr
     save_hf_map(experiment, hf, "exit_angles", exhexv_array_total, exhexv_counts_total,\
-                mapaxisinfo, start_time)
+                mapaxisinfo, start_time, cfg)
     save_config_variables(hf, cfg)
     hf.close()
     return mapaxisinfo
@@ -861,7 +861,7 @@ def pyfai_move_exitangles_worker(experiment, imageindices, scan,process_config) 
 
         for current_n, current_ai in enumerate(ais):
             current_img = img_data_list[current_n]
-            map2d = current_ai.integrate2d(current_img, shapemap[0], shapemap[1], \
+            map2d = current_ai.integrate2d(current_img, shapemap[1], shapemap[0], \
                     unit=(unit_qip, unit_qoop),\
                 radial_range=(ai_limits[0], ai_limits[1]),\
                 azimuth_range=(ai_limits[2], ai_limits[3]),\
