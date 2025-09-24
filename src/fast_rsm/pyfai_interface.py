@@ -550,6 +550,7 @@ def pyfai_moving_exitangles_smm(experiment, hf, scanlist, process_config):
         scanlist, experiment.calcanglim, cfg.slitratios)
     cfg.multi=True
     with SharedMemoryManager() as smm:
+
         cfg.shapeexhexv = (cfg.qmapbins[1], cfg.qmapbins[0])
         shm_intensities, shm_counts, arrays_arr, counts_arr, lock = start_smm(
             smm, cfg.shapeexhexv)
@@ -559,15 +560,13 @@ def pyfai_moving_exitangles_smm(experiment, hf, scanlist, process_config):
             cfg.anglimits, cfg.scanlength, cfg.scanlistnew = pyfai_setup_limits(experiment,\
                 scan, experiment.calcanglim, cfg.slitratios)
             cfg.scalegamma = 1
-            start_time = time()
             input_args = get_input_args(experiment,scan,cfg)
             print(f'starting process pool with num_threads=\
                   {cfg.num_threads} for scan {scanind+1}/{len(cfg.scanlistnew)}')
 
             with Pool(cfg.num_threads, initializer=pyfai_init_worker, \
     initargs=(lock, shm_intensities.name, shm_counts.name, cfg.shapeexhexv)) as pool:
-                mapaxisinfolist = pool.starmap(
-                    pyfai_move_exitangles_worker, input_args)
+                mapaxisinfolist = pool.starmap(pyfai_move_exitangles_worker, input_args)
             print(
                 f'finished process pool for scan {scanind+1}/{len(cfg.scanlistnew)}')
 
@@ -600,11 +599,10 @@ def pyfai_moving_qmap_smm(experiment, hf, scanlist, process_config):
         cfg.shapeqpqp = (cfg.qmapbins[1], cfg.qmapbins[0])
         shm_intensities, shm_counts, arrays_arr, counts_arr, lock = start_smm(
             smm, cfg.shapeqpqp)
-
+        start_time = time()
         for scanind, scan in enumerate(cfg.scanlistnew):
             cfg.qlimits, cfg.scanlength, cfg.scanlistnew = pyfai_setup_limits(experiment,\
                 scan, experiment.calcqlim, cfg.slitratios)
-            start_time = time()
             cfg.scalegamma = 1
             input_args = get_input_args(experiment, scan, cfg)
             print(
@@ -856,7 +854,7 @@ def pyfai_move_exitangles_worker(experiment, imageindices, scan,process_config) 
         for i in group:
             unit_qip, unit_qoop, img_data, my_ai, ai_limits = get_pyfai_components(
                 experiment, i, sample_orientation, unit_qip_name,\
-                unit_qoop_name, aistart, cfg.slitratios[0], cfg.slitratios[1], scan, cfg.anglimits)
+                unit_qoop_name, aistart, cfg.slitratios, cfg.alphacritical,scan, cfg.anglimits)
 
             img_data_list.append(img_data)
             ais.append(my_ai)
@@ -896,7 +894,7 @@ def pyfai_stat_exitangles_worker(experiment, imageindex, scan, process_config: S
 
     unit_qip, unit_qoop, img_data, my_ai, ai_limits = get_pyfai_components(
         experiment, index, sample_orientation, unit_qip_name, unit_qoop_name,\
-              aistart, cfg.slitratios[0], cfg.slitratios[1], scan, cfg.anglimits)
+              aistart, cfg.slitratios, cfg.alphacritical, scan, cfg.anglimits)
 
     map2d = my_ai.integrate2d(img_data,  cfg.qmapbins[0],  cfg.qmapbins[1], unit=(unit_qip, unit_qoop),
                               radial_range=(ai_limits[0], ai_limits[1]), \
@@ -923,7 +921,7 @@ def pyfai_stat_qmap_worker(experiment, imageindex, scan, process_config: SimpleN
 
     unit_qip, unit_qoop, img_data, my_ai, ai_limits = get_pyfai_components(
         experiment, index, sample_orientation, unit_qip_name,\
-              unit_qoop_name, aistart, cfg.slitratios[0], cfg.slitratios[1], scan, cfg.qlimits)
+              unit_qoop_name, aistart, cfg.slitratios, cfg.alphacritical, scan, cfg.qlimits)
 
     map2d = my_ai.integrate2d(img_data, cfg.qmapbins[0], cfg.qmapbins[1], unit=(unit_qip, unit_qoop),
                               radial_range=(ai_limits[0], ai_limits[1]), \
