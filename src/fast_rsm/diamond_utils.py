@@ -71,11 +71,11 @@ def experiment_config(scans):
     return config_dict
 
     
-def create_standard_experiment(input_config: dict,DEBUG_LOG=0):
+def create_standard_experiment(input_config: dict):
 
     cfg=SimpleNamespace(**input_config)
     
-    configure_logging(DEBUG_LOG)
+    configure_logging(cfg.DEBUG_LOG)
     logger=get_frsm_logger()
     logger.debug("creating standard experiment object")
     f = open(cfg.full_path)
