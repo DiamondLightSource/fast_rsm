@@ -103,10 +103,6 @@ def get_input_args(experiment,scan, process_config: SimpleNamespace):
     else:
         inputindices = selectedindices
 
-    # if fullargs[-1] is not None:
-    #     endlist = fullargs[:-1] + [fullargs[-1][0], fullargs[-1][1]]
-    # else:
-    #     endlist = fullargs[:-1]
     input_args = [[experiment, indices,scan,cfg]
                     for indices in inputindices]
     return input_args
@@ -542,74 +538,49 @@ def start_smm(smm, memshape):
 
 
 #====moving detector processing
-def pyfai_moving_exitangles_smm(experiment,
-                                hf,
-                                scanlist,
-                                process_config):
+def pyfai_moving_exitangles_smm(experiment, hf, scanlist, process_config):
     """
     calculate exit angle map with moving detector
     """
     cfg=process_config
-    num_threads=cfg.num_threads
-    output_file_path=cfg.output_file_path
-    pyfaiponi=cfg.pyfaiponi
-    radrange=cfg.radrange
-    radstepval=cfg.radstepval
-    qmapbins=cfg.qmapbins
-    slitdistratios=cfg.slitdistratios
-    cfg.shapeexhexv = (qmapbins[1], qmapbins[0])
-    # pylint: disable=unused-argument
-    # pylint: disable=unused-variable
-
+    
     exhexv_array_total = 0
     exhexv_counts_total = 0
-    anglimitsout, scanlength, scanlistnew = pyfai_setup_limits(experiment,\
-        scanlist, experiment.calcanglim, slitdistratios)
+    cfg.anglimitsout, cfg.scanlength, cfg.scanlistnew = pyfai_setup_limits(experiment,\
+        scanlist, experiment.calcanglim, cfg.slitdistratios)
+    cfg.multi=True
     with SharedMemoryManager() as smm:
-        shapeexhexv = (qmapbins[1], qmapbins[0])
-        shm_intensities, shm_counts, arrays_arr, counts_arr, l = start_smm(
-            smm, shapeexhexv)
+        cfg.shapeexhexv = (cfg.qmapbins[1], cfg.qmapbins[0])
+        shm_intensities, shm_counts, arrays_arr, counts_arr, lock = start_smm(
+            smm, cfg.shapeexhexv)
         start_time = time()
-        for scanind, scan in enumerate(scanlistnew):
+        for scanind, scan in enumerate(cfg.scanlistnew):
 
-            anglimits, scanlength, scanlistnew = pyfai_setup_limits(experiment,\
-                scan, experiment.calcanglim, slitdistratios)
-            scalegamma = 1
-            # fullargs needs to start with scan and end with slitdistratios
-            fullargs = [
-                scan,
-                shapeexhexv,
-                pyfaiponi,
-                anglimitsout,
-                qmapbins,
-                slitdistratios]
-            input_args = get_input_args(experiment,\
-                scanlength, scalegamma, True, num_threads, fullargs)
+            cfg.anglimits, cfg.scanlength, cfg.scanlistnew = pyfai_setup_limits(experiment,\
+                scan, experiment.calcanglim, cfg.slitdistratios)
+            cfg.scalegamma = 1
+            start_time = time()
+            input_args = get_input_args(experiment,scan,cfg)
             print(f'starting process pool with num_threads=\
-    {num_threads} for scan {scanind+1}/{len(scanlistnew)}')
+                  {cfg.num_threads} for scan {scanind+1}/{len(cfg.scanlistnew)}')
 
-            with Pool(num_threads, initializer=pyfai_init_worker, \
-    initargs=(l, shm_intensities.name, shm_counts.name, shapeexhexv)) as pool:
+            with Pool(cfg.num_threads, initializer=pyfai_init_worker, \
+    initargs=(lock, shm_intensities.name, shm_counts.name, cfg.shapeexhexv)) as pool:
                 mapaxisinfolist = pool.starmap(
                     pyfai_move_exitangles_worker, input_args)
             print(
-                f'finished process pool for scan {scanind+1}/{len(scanlistnew)}')
+                f'finished process pool for scan {scanind+1}/{len(cfg.scanlistnew)}')
 
     mapaxisinfo = mapaxisinfolist[0]
     exhexv_array_total = arrays_arr
     exhexv_counts_total = counts_arr
-    save_hf_map(experiment,\
-        hf,
-        "exit_angles",
-        exhexv_array_total,
-        exhexv_counts_total,
-        mapaxisinfo,
-        start_time)
+    save_hf_map(experiment, hf, "exit_angles", exhexv_array_total, exhexv_counts_total,\
+                mapaxisinfo, start_time)
+    save_config_variables(hf, cfg)
+    hf.close()
     return mapaxisinfo
 
-def pyfai_moving_qmap_smm(experiment,
-        hf,
-        scanlist,process_config):
+def pyfai_moving_qmap_smm(experiment, hf, scanlist, process_config):
     """
     calculate q_para vs q_perp map for a moving detector scan
     """
@@ -627,7 +598,7 @@ def pyfai_moving_qmap_smm(experiment,
     with SharedMemoryManager() as smm:
 
         cfg.shapeqpqp = (cfg.qmapbins[1], cfg.qmapbins[0])
-        shm_intensities, shm_counts, arrays_arr, counts_arr, l = start_smm(
+        shm_intensities, shm_counts, arrays_arr, counts_arr, lock = start_smm(
             smm, cfg.shapeqpqp)
 
         for scanind, scan in enumerate(cfg.scanlistnew):
@@ -635,16 +606,14 @@ def pyfai_moving_qmap_smm(experiment,
                 scan, experiment.calcqlim, cfg.slitratios)
             start_time = time()
             cfg.scalegamma = 1
-            # fullargs needs to start with scan and end with slitdistratios
             input_args = get_input_args(experiment, scan, cfg)
-            # print(np.shape(input_args))
             print(
                 f'starting process pool with num_threads=\
                 {cfg.num_threads} for scan {scanind+1}/{len(cfg.scanlistnew)}')
 
             with Pool(cfg.num_threads, \
                         initializer=pyfai_init_worker, \
-            initargs=(l, shm_intensities.name, shm_counts.name, cfg.shapeqpqp)) as pool:
+            initargs=(lock, shm_intensities.name, shm_counts.name, cfg.shapeqpqp)) as pool:
                 mapaxisinfolist = pool.starmap(pyfai_move_qmap_worker, input_args)
             print(
                 f'finished process pool for scan {scanind+1}/{len(cfg.scanlistnew)}')
@@ -652,13 +621,8 @@ def pyfai_moving_qmap_smm(experiment,
     mapaxisinfo = mapaxisinfolist[0]
     qpqp_array_total = arrays_arr
     qpqp_counts_total = counts_arr
-    save_hf_map(experiment,\
-        hf,
-        "qpara_qperp",
-        qpqp_array_total,
-        qpqp_counts_total,
-        mapaxisinfo,
-        start_time, cfg)
+    save_hf_map(experiment, hf, "qpara_qperp", qpqp_array_total, qpqp_counts_total,\
+                mapaxisinfo, start_time, cfg)
     save_config_variables(hf, cfg)
     hf.close()
     return mapaxisinfo
@@ -917,15 +881,15 @@ def pyfai_move_exitangles_worker(experiment, imageindices, scan,\
 
 
 #====static detector processing
-def pyfai_stat_exitangles_worker(experiment, imageindex, scan, two_theta_start, pyfaiponi,\
-    anglimits, qmapbins, ivqbins, slithdistratio=None, slitvdistratio=None) -> None:
+def pyfai_stat_exitangles_worker(experiment, imageindex, scan, process_config: SimpleNamespace) -> None:
     """
     calculate exit angle map for static detector scan data using pyFAI Fiber integrator
     """
     # pylint: disable=unused-argument
     # pylint: disable=unused-variable
+    cfg = process_config
     index = imageindex
-    aistart = pyFAI.load(pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
+    aistart = pyFAI.load(cfg.pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
 
     sample_orientation = 1
     unit_qip_name = "exit_angle_horz_deg"
@@ -933,9 +897,9 @@ def pyfai_stat_exitangles_worker(experiment, imageindex, scan, two_theta_start, 
 
     unit_qip, unit_qoop, img_data, my_ai, ai_limits = get_pyfai_components(
         experiment, index, sample_orientation, unit_qip_name, unit_qoop_name,\
-              aistart, slitvdistratio, slithdistratio, scan, anglimits)
+              aistart, cfg.slitratios[0], cfg.slitratios[1], scan, cfg.anglimits)
 
-    map2d = my_ai.integrate2d(img_data, qmapbins[0], qmapbins[1], unit=(unit_qip, unit_qoop),
+    map2d = my_ai.integrate2d(img_data,  cfg.qmapbins[0],  cfg.qmapbins[1], unit=(unit_qip, unit_qoop),
                               radial_range=(ai_limits[0], ai_limits[1]), \
         azimuth_range=(ai_limits[2], ai_limits[3]), method=("no", "csr", "cython"))
     mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
@@ -998,8 +962,7 @@ def pyfai_stat_ivsq_worker(experiment, imageindex, scan, two_theta_start, pyfaip
 #
     return intensity, tth, qvals
 
-def pyfai_static_exitangles(experiment, hf, scan, num_threads, pyfaiponi, ivqbins,
-                            qmapbins=np.array([1200, 1200]), slitdistratios=None):
+def pyfai_static_exitangles(experiment, hf, scan,  process_config: SimpleNamespace):
     """
     calculate the map of vertical exit angle Vs horizontal exit angle using pyFAI
 
@@ -1023,34 +986,23 @@ def pyfai_static_exitangles(experiment, hf, scan, num_threads, pyfaiponi, ivqbin
     None.
 
     """
-    # pylint: disable=unused-argument
-    # pylint: disable=unused-variable
+    cfg = process_config
     start_time = time()
-    anglimits, scanlength, scanlistnew = pyfai_setup_limits(experiment,\
-        scan, experiment.calcanglim, slitdistratios)
+    cfg.anglimits,  cfg.scanlength,  cfg.scanlistnew = pyfai_setup_limits(experiment,\
+        scan, experiment.calcanglim,  cfg.slitdistratios)
     # calculate map bins if not specified using resolution of 0.01 degrees
+    if cfg.qmapbins == 0:
+        cfg.qmapbins = get_qmapbins(cfg.qlimits,experiment)
+    cfg.scalegamma = 1
 
-    scalegamma = 1
-
-    print(f'starting process pool with num_threads={num_threads}')
+    print(f'starting process pool with num_threads={ cfg.num_threads}')
     all_maps = []
     all_xlabels = []
     all_ylabels = []
     all_mapaxisinfo = []
 
-    with Pool(processes=num_threads) as pool:
-
-        # fullargs needs to start with scan and end with slitdistratios
-        fullargs = [
-            scan,
-            experiment.two_theta_start,
-            pyfaiponi,
-            anglimits,
-            qmapbins,
-            ivqbins,
-            slitdistratios]
-        input_args = get_input_args(experiment,\
-            scanlength, scalegamma, False, num_threads, fullargs)
+    with Pool(processes= cfg.num_threads) as pool:
+        input_args = get_input_args(experiment,scan,cfg)
         results = pool.starmap(pyfai_stat_exitangles_worker, input_args)
         maps = [result[0] for result in results]
         xlabels = [result[1] for result in results]
@@ -1074,21 +1026,20 @@ def pyfai_static_exitangles(experiment, hf, scan, num_threads, pyfaiponi, ivqbin
         hf, "exit_angles",savemaps, np.ones(np.shape(savemaps)),\
         all_mapaxisinfo[0][0],\
         start_time)
+    save_config_variables(hf, cfg)
+    hf.close()
 
 def pyfai_static_qmap(experiment, hf, scan, process_config: SimpleNamespace):
     """
     calculate 2d q_para vs q_perp mape for a static detector scan
     """
     cfg=process_config
-    # pylint: disable=unused-argument
-    # pylint: disable=unused-variable
     cfg.qlimits, cfg.scanlength, cfg.scanlistnew = pyfai_setup_limits(experiment,\
         scan, experiment.calcqlim, cfg.slitdistratios)
-
+    
     # calculate map bins if not specified using resolution of 0.01 degrees
     if cfg.qmapbins == 0:
         cfg.qmapbins = get_qmapbins(cfg.qlimits,experiment)
-
     cfg.scalegamma = 1
 
     print(f'starting process pool with num_threads={cfg.num_threads}')
@@ -1097,7 +1048,6 @@ def pyfai_static_qmap(experiment, hf, scan, process_config: SimpleNamespace):
     all_ylabels = []
     cfg.multi=False
     with Pool(processes=cfg.num_threads) as pool:
-        # fullargs needs to start with scan and end with slitdistratios
         input_args = get_input_args(experiment, scan, cfg)
         results = pool.starmap(pyfai_stat_qmap_worker, input_args)
         maps = [result[0] for result in results]
@@ -1116,35 +1066,8 @@ def pyfai_static_qmap(experiment, hf, scan, process_config: SimpleNamespace):
             reshape_to_signalshape(
                 arr, signal_shape) for arr in outlist]
 
-    binset = hf.create_group("binoculars")
-    binset.create_dataset("counts", data=outlist[0])
-    binset.create_dataset(
-        "contributions",
-        data=np.ones(
-            np.shape(
-                outlist[0])))
-    axgroup = binset.create_group("axes", track_order=True)
-
-    zlen = np.shape(outlist[0])[0]
-    if zlen > 1:
-        axgroup.create_dataset(
-            "1_index", data=experiment.get_bin_axvals(
-                np.arange(zlen), 0), track_order=True)
-    else:
-        axgroup.create_dataset(
-            "1_index",
-            data=[0.0,1.0,1.0,1.0,1.0,1.0],
-            track_order=True)
-
-    axgroup.create_dataset(
-        "2_q_perp", data=experiment.get_bin_axvals(
-            outlist[1][0], 1), track_order=True)
-    axgroup.create_dataset(
-        "3_q_para", data=experiment.get_bin_axvals(
-            outlist[2][0], 2), track_order=True)
-
     dset = hf.create_group("qpara_qperp")
-    dset["qpara_qperp_map"] = h5py.SoftLink('/binoculars/counts')
+    dset.create_dataset("qpara_qperp_map", data=outlist[0])
     dset.create_dataset("map_para", data=outlist[1])
     dset.create_dataset("map_perp", data=outlist[2])
     dset.create_dataset("map_perp_indices", data=[0, 1, 2])
@@ -1152,45 +1075,33 @@ def pyfai_static_qmap(experiment, hf, scan, process_config: SimpleNamespace):
 
     if "scanfields" not in hf.keys():
         save_scan_field_values(hf, scan)
-    if experiment.savetiffs:
+    if cfg.savetiffs:
         experiment.do_savetiffs(hf, outlist[0], outlist[1], outlist[2])
     save_config_variables(hf, cfg)
     hf.close()
 
-def pyfai_static_ivsq(experiment, hf, scan, num_threads, output_file_path,
-                        pyfaiponi, ivqbins, qmapbins=0, slitdistratios=None):
+def pyfai_static_ivsq(experiment, hf, scan, process_config):
     """
     calculate Intensity Vs Q 1d profile from static detector scan
     """
     # pylint: disable=unused-argument
     # pylint: disable=unused-variable
-    qlimits, scanlength, scanlistnew = pyfai_setup_limits(experiment,\
-        scan, experiment.calcqlim, slitdistratios)
+    cfg=process_config
+    cfg.qlimits, cfg.scanlength, cfg.scanlistnew = pyfai_setup_limits(experiment,\
+        scan, experiment.calcqlim, cfg.slitdistratios)
 
     # calculate map bins if not specified using resolution of 0.01 degrees
     if qmapbins == 0:
-        qmapbins = get_qmapbins(qlimits,experiment)
+        qmapbins = get_qmapbins(cfg.qlimits,experiment)
+    cfg.scalegamma = 1
 
-    scalegamma = 1
-
-    print(f'starting process pool with num_threads={num_threads}')
+    print(f'starting process pool with num_threads={cfg.num_threads}')
     all_ints = []
     all_two_ths = []
     all_qs = []
-
-    with Pool(processes=num_threads) as pool:
-
-        # fullargs needs to start with scan and end with slitdistratios
-        fullargs = [
-            scan,
-            experiment.two_theta_start,
-            pyfaiponi,
-            qmapbins,
-            ivqbins,
-            slitdistratios]
-        input_args = get_input_args(experiment,\
-            scanlength, scalegamma, False, num_threads, fullargs)
-
+    cfg.multi=False
+    with Pool(processes=cfg.num_threads) as pool:
+        input_args = get_input_args(experiment, scan,cfg)
         results = pool.starmap(pyfai_stat_ivsq_worker, input_args)
         intensities = [result[0] for result in results]
         two_th_vals = [result[1] for result in results]
@@ -1214,5 +1125,7 @@ def pyfai_static_ivsq(experiment, hf, scan, num_threads, output_file_path,
     dset.create_dataset("2thetas", data=outlist[2])
     if "scanfields" not in hf.keys():
         save_scan_field_values(hf, scan)
-    if experiment.savedats is True:
+    if cfg.savedats is True:
         experiment.do_savedats(hf, outlist[0], outlist[1], outlist[2])
+    save_config_variables(hf, cfg)
+    hf.close()
