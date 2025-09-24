@@ -260,8 +260,12 @@ def run_process_list(experiment,process_config):
     for output in cfg.process_outputs:
         print(deprecation_msg(output))
 
-    static_functions={'pyfai_qmap':[pyfai_static_qmap,"Qmap","2d Qmap"]}
-    moving_functions={'pyfai_qmap':[pyfai_moving_qmap_smm,"Qmap","2d Qmap"]}
+    static_functions={'pyfai_qmap':[pyfai_static_qmap,"Qmap","2d Qmap"],\
+                      'pyfai_exitangles':[pyfai_static_exitangles,"exitmap", "2d exit angle map"]}
+    
+    moving_functions={'pyfai_qmap':[pyfai_moving_qmap_smm,"Qmap","2d Qmap"],\
+                      'pyfai_exitangles':[pyfai_moving_exitangles_smm,"exitmap", "2d exit angle map"]}
+
     
     if cfg.map_per_image:
         functions_dict=static_functions
@@ -271,6 +275,7 @@ def run_process_list(experiment,process_config):
         scanlist_function=run_scanlist_combined
 
     for output in cfg.process_outputs:
+        if output != "full_reciprocal_"
         runoptions=functions_dict[output]
         scanlist_function(cfg,experiment,runoptions)
 
@@ -294,23 +299,23 @@ def run_process_list(experiment,process_config):
     #     total_time = (time() - cfg.process_start_time)/60
     #     print(f"\n 2d Q map calculation took {total_time} minutes")
 
-    if ('pyfai_exitangles' in cfg.process_outputs) & (cfg.map_per_image == True):
-        for i, scan in enumerate(experiment.scans):
-            hf = make_new_hdf5(cfg,i,'exitmap',experiment)
-            pyfai_static_exitangles(experiment,hf, scan, cfg)
-            print(f"saved 2d exit angle map  data to\
-                   {cfg.local_output_path}/{cfg.projected_name}.hdf5")
-            total_time = (time() - cfg.process_start_time)/60
-            print(f"\n 2d exit angle map calculations took {total_time} minutes")
+    # if ('pyfai_exitangles' in cfg.process_outputs) & (cfg.map_per_image == True):
+    #     for i, scan in enumerate(experiment.scans):
+    #         hf = make_new_hdf5(cfg,i,'exitmap',experiment)
+    #         pyfai_static_exitangles(experiment,hf, scan, cfg)
+    #         print(f"saved 2d exit angle map  data to\
+    #                {cfg.local_output_path}/{cfg.projected_name}.hdf5")
+    #         total_time = (time() - cfg.process_start_time)/60
+    #         print(f"\n 2d exit angle map calculations took {total_time} minutes")
 
-    if ('pyfai_exitangles' in cfg.process_outputs) & (cfg.map_per_image == False):
-        scanlist = experiment.scans
-        hf = make_new_hdf5(cfg,0,"exitmap",experiment)
-        pyfai_moving_exitangles_smm(experiment,hf, scanlist, cfg)
-        print(f"saved 2d exit angle map  data to\
-               {cfg.local_output_path}/{cfg.projected_name}.hdf5")
-        total_time = (time() - cfg.process_start_time)/60
-        print(f"\n 2d exit angle map calculations took {total_time} minutes")
+    # if ('pyfai_exitangles' in cfg.process_outputs) & (cfg.map_per_image == False):
+    #     scanlist = experiment.scans
+    #     hf = make_new_hdf5(cfg,0,"exitmap",experiment)
+    #     pyfai_moving_exitangles_smm(experiment,hf, scanlist, cfg)
+    #     print(f"saved 2d exit angle map  data to\
+    #            {cfg.local_output_path}/{cfg.projected_name}.hdf5")
+    #     total_time = (time() - cfg.process_start_time)/60
+    #     print(f"\n 2d exit angle map calculations took {total_time} minutes")
 
     if ('pyfai_ivsq' in cfg.process_outputs) & (cfg.map_per_image == True):
         for i, scan in enumerate(experiment.scans):
