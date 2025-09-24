@@ -371,7 +371,7 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray,
     with h5py.File(output_path, "w") as hf:
         
         # Add metadata to the root group
-        hf.attrs['file_time'] = datetime.datetime.now().isoformat()
+        hf.attrs['file_time'] = datetime.now().isoformat()
         hf.attrs['h5py_version'] = h5py.version.version
         hf.attrs['HDF5_version'] = h5py.version.hdf5_version
 
