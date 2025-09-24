@@ -755,21 +755,19 @@ def pyfai_move_qmap_worker(experiment, choiceims, scan, process_config) -> None:
         COUNT_ARRAY += totalqpqpcounts.astype(dtype=np.int32)
     return mapaxisinfo
 
-def pyfai_move_ivsq_worker(experiment, imageindices, scan, shapeqi,
-                           pyfaiponi, radrange, slithdistratio=None, slitvdistratio=None) -> None:
+def pyfai_move_ivsq_worker(experiment, imageindices, scan, process_config) -> None:
     """
     calculate 1d intensity vs q profile for moving detector scan using pyFAI
     
     """
-    # pylint: disable=global-variable-not-assigned
-    # pylint: disable=unused-variable
+    cfg = process_config
     global INTENSITY_ARRAY, COUNT_ARRAY
 
     # , type_="pyFAI.integrator.fiber.FiberIntegrator")
-    aistart = pyFAI.load(pyfaiponi)
+    aistart = pyFAI.load(cfg.pyfaiponi)
     # 15-07-2025  fiber integrator not currently working with multigeomtery
-    totaloutqi = np.zeros(shapeqi)
-    totaloutcounts = np.zeros(shapeqi)
+    totaloutqi = np.zeros(cfg.shapeqi)
+    totaloutcounts = np.zeros(cfg.shapeqi)
 
     unit_qip_name = "2th_deg"  # "qtot_A^-1"# "qip_A^-1"
     unit_qoop_name = "qoop_A^-1"
@@ -786,16 +784,16 @@ def pyfai_move_ivsq_worker(experiment, imageindices, scan, shapeqi,
         for i in group:
             unit_tth_ip, unit_qoop, img_data, my_ai, ai_limits = get_pyfai_components(
                 experiment, i, sample_orientation, unit_qip_name, \
-                unit_qoop_name, aistart, slitvdistratio, slithdistratio, scan, [0, 1, 0, 1])
+                unit_qoop_name, aistart, cfg.slitratios, cfg.alphacritical, scan, [0, 1, 0, 1])
 
             img_data_list.append(img_data)
             ais.append(my_ai)
 
-        ivqbins = shapeqi[1]
+        ivqbins = cfg.shapeqi[1]
         mg = MultiGeometry(ais, unit=unit_tth_ip,\
                      wavelength=experiment.incident_wavelength,\
                         radial_range=(
-            radrange[0], radrange[1]))
+            cfg.radrange[0], cfg.radrange[1]))
         result1d = mg.integrate1d(img_data_list, ivqbins)
         q_from_theta = [experiment.calcq(
             val, experiment.incident_wavelength) for val in result1d.radial]
