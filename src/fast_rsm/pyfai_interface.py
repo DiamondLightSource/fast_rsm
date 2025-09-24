@@ -989,7 +989,7 @@ def pyfai_static_exitangles(experiment, hf, scan,  process_config: SimpleNamespa
     cfg = process_config
     start_time = time()
     cfg.anglimits,  cfg.scanlength,  cfg.scanlistnew = pyfai_setup_limits(experiment,\
-        scan, experiment.calcanglim,  cfg.slitdistratios)
+        scan, experiment.calcanglim,  cfg.slitratios)
     # calculate map bins if not specified using resolution of 0.01 degrees
     if cfg.qmapbins == 0:
         cfg.qmapbins = get_qmapbins(cfg.qlimits,experiment)
