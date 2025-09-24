@@ -8,7 +8,7 @@ for key,val in default_config.items():
     if key in globals():
         default_config[key]=globals()[key]
 #create experiment object
-experiment,process_config=create_standard_experiment(default_config)
+experiment,process_config,logger=create_standard_experiment(default_config)
 
 
 ####============SPECIAL ADJUSTMENTS ==================================================
