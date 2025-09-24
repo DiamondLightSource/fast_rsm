@@ -333,7 +333,8 @@ def save_binoviewer_hdf5(path_to_npy: np.ndarray,
 
     cfg = process_config
     # Load the volume and the bounds.
-    volume, start, stop, step = cfg.mapped_data
+    volume, start, stop, step = get_volume_and_bounds(path_to_npy)
+    #cfg.mapped_data
 
     # binoviewer expects float64s with no NaNs.
     volume = volume.astype(np.float64)
