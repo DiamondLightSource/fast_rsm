@@ -292,7 +292,7 @@ def run_full_map_process(experiment,cfg):
     save_file_name = f"mapped_scan_{cfg.scan_numbers[0]}_{i}"
     save_path = processing_dir / save_file_name
     # Make sure that this name hasn't been used in the past.
-    extensions = [".npy", ".vtk", "_l.txt", "_tth.txt", "_Q.txt", ""]
+    extensions = [".hdf5",".npy", ".vtk", "_l.txt", "_tth.txt", "_Q.txt", ""]
     while any(os.path.exists(str(save_path) + ext) for ext in extensions):
         i += 1
         save_file_name = f"mapped_scan_{cfg.scan_numbers[0]}_{i}"
