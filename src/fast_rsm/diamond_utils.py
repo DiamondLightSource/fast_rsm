@@ -305,7 +305,7 @@ def run_full_map_process(experiment,cfg):
     map_frame = Frame(frame_name=cfg.frame_name, coordinates=cfg.coordinates)
     start_time = time()
     # Calculate and save a binned reciprocal space map, if requested.
-    experiment.binned_reciprocal_space_map_smm(
+    cfg.mapped_data=experiment.binned_reciprocal_space_map_smm(
         cfg.num_threads, map_frame, cfg,
         output_file_size=cfg.output_file_size, oop=cfg.oop,
         min_intensity_mask=cfg.min_intensity,
@@ -314,10 +314,10 @@ def run_full_map_process(experiment,cfg):
         volume_step=cfg.volume_step,
         map_each_image=cfg.map_per_image)
 
-    if cfg.save_binoculars_h5 == True:
-        save_binoculars_hdf5(str(save_path) + ".npy", str(save_path) +
-                            '.hdf5', cfg)
-        print(f"\nSaved BINoculars file to {save_path}.hdf5.\n")
+    
+    save_binoviewer_hdf5(str(save_path) + ".npy", str(save_path) +
+                        '.hdf5', cfg)
+    print(f"\nSaved binoviewer file to {save_path}.hdf5.\n")
 
     # Finally, print that it's finished We'll use this to work out when the
     # processing is done.
@@ -325,20 +325,20 @@ def run_full_map_process(experiment,cfg):
     print(f"\nProcessing took {total_time}s")
     print(f"This corresponds to {total_time*1000/cfg.total_images}ms per image.\n")
 
-def save_binoculars_hdf5(path_to_npy: np.ndarray,
+def save_binoviewer_hdf5(path_to_npy: np.ndarray,
                          output_path: str, process_config: SimpleNamespace):
     """
-    Saves the .npy file as a binoculars-readable hdf5 file.
+    Saves the .npy file as a binoviewer-readable hdf5 file.
     """
 
     cfg = process_config
     # Load the volume and the bounds.
     volume, start, stop, step = get_volume_and_bounds(path_to_npy)
 
-    # Binoculars expects float64s with no NaNs.
+    # binoviewer expects float64s with no NaNs.
     volume = volume.astype(np.float64)
 
-    # Allow binoculars to generate the NaNs naturally.
+    # Allow binoviewer to generate the NaNs naturally.
     contributions = np.empty_like(volume)
     contributions[np.isnan(volume)] = 0
     contributions[~np.isnan(volume)] = 1
@@ -348,23 +348,23 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray,
     # internally, the used grid is defined by np.arange(start, stop, step)
     # which may be missing the last element!
     true_grid = finite_diff_grid(start, stop, step)
-    binoculars_step = step
-    binoculars_start = [interval[0] for interval in true_grid]
-    binoculars_start_int = [int(np.floor(start[i] / step[i]))
+    binoviewer_step = step
+    binoviewer_start = [interval[0] for interval in true_grid]
+    binoviewer_start_int = [int(np.floor(start[i] / step[i]))
                             for i in range(3)]
-    binoculars_stop_int = [
-        int(binoculars_start_int[i] + volume.shape[i] - 1)
+    binoviewer_stop_int = [
+        int(binoviewer_start_int[i] + volume.shape[i] - 1)
         for i in range(3)
     ]
-    binoculars_stop = [binoculars_stop_int[i] * binoculars_step[i]
+    binoviewer_stop = [binoviewer_stop_int[i] * binoviewer_step[i]
                        for i in range(3)]
 
     # Make h, k and l arrays in the expected format.
     h_arr, k_arr, l_arr = (
-        tuple(np.array([i, binoculars_start[i], binoculars_stop[i],
-                        binoculars_step[i],
-                        float(binoculars_start_int[i]),  # binoculars
-                        float(binoculars_stop_int[i])])  # uses int()
+        tuple(np.array([i, binoviewer_start[i], binoviewer_stop[i],
+                        binoviewer_step[i],
+                        float(binoviewer_start_int[i]),  # binoviewer
+                        float(binoviewer_stop_int[i])])  # uses int()
               for i in range(3))
     )
 
@@ -375,15 +375,15 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray,
         hf.attrs['h5py_version'] = h5py.version.version
         hf.attrs['HDF5_version'] = h5py.version.hdf5_version
 
-        binoculars_group=hf.create_group("binoculars")
-        binoculars_group.attrs['type'] = 'Space'
-        axes_group=binoculars_group.create_group("axes")
+        binoviewer_group=hf.create_group("binoviewer")
+        binoviewer_group.attrs['type'] = 'Space'
+        axes_group=binoviewer_group.create_group("axes")
         axes_datasets={"h": h_arr, "k": k_arr, "l": l_arr}
         for name,data in axes_datasets.items():
             axes_group.create_dataset(name,data=data)
         
-        hf.create_dataset("contributions",data=contributions)
-        hf.create_dataset("counts",data=volume)
+        binoviewer_group.create_dataset("contributions",data=contributions)
+        binoviewer_group.create_dataset("counts",data=volume)
         save_config_variables(hf,cfg)
 
     # # Turn those into an axes group.
@@ -393,7 +393,7 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray,
     # configlist = ['setup', 'experimental_hutch', 'using_dps', 'beam_centre', \
     #               'detector_distance', 'dpsx_central_pixel', 'dpsy_central_pixel',\
     #             'dpsz_central_pixel','local_data_path', 'local_output_path',\
-    #             'output_file_size', 'save_binoculars_h5', 'map_per_image',\
+    #             'output_file_size', 'save_binoviewer_h5', 'map_per_image',\
     #             'volume_start', 'volume_step', 'volume_stop',\
     #             'load_from_dat', 'edfmaskfile', 'specific_pixels', \
     #             'mask_regions', 'process_outputs', 'scan_numbers']
@@ -418,14 +418,14 @@ def save_binoculars_hdf5(path_to_npy: np.ndarray,
     #             config_group[f'ubinfo_{i+1}'][f'ub_{i+1}'] = coll['diffcalc_ub']
     # config_group['python_version'] = pythonlocation
     # config_group['joblines'] = joblines
-    # # Make a corresponding (mandatory) "binoculars" group.
-    # binoculars_group = nx.NXgroup(
+    # # Make a corresponding (mandatory) "binoviewer" group.
+    # binoviewer_group = nx.NXgroup(
     #     axes=axes_group, contributions=contributions,\
     #           counts=(volume), i07configuration=config_group)
-    # binoculars_group.attrs['type'] = 'Space'
+    # binoviewer_group.attrs['type'] = 'Space'
 
-    # # Make a root which contains the binoculars group.
-    # bin_hdf = nx.NXroot(binoculars=binoculars_group)
+    # # Make a root which contains the binoviewer group.
+    # bin_hdf = nx.NXroot(binoviewer=binoviewer_group)
 
     # # Save it!
     # bin_hdf.save(output_path)

@@ -58,9 +58,11 @@ dpsz_central_pixel = 0
 # Max file size is 2GB (2048MB).
 output_file_size = 50
 
-# This is for loading into binoculars. If set to false, .npy and .vtr files
-# will be saved, for manual analysis and paraview, respectively.
-save_binoculars_h5 = True
+#Choose if you want a .vtk volume saved as well the hdf5, which can be used for loading into paraview
+save_vtk = False
+
+#Choose if you want a .npy file saved as well as the hdf5, for manual analysis
+save_npy = False
 
 # choose map co-ordinates for special mappings e.g. polar co-ordinates, if commented out defaults to co-ordinates='cartesian'
 # coordinates='sphericalpolar'

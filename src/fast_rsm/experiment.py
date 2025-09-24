@@ -928,7 +928,7 @@ class Experiment:
         if map_frame.coordinates == Frame.sphericalpolar:
             step = np.array([0.02, np.pi / 180, np.pi / 180])
 
-        # Make sure start and stop match the step as required by binoculars.
+        # Make sure start and stop match the step as required by binoviewer.
         start, stop = _match_start_stop_to_step(
             step=step,
             user_bounds=(volume_start, volume_stop),
@@ -993,7 +993,7 @@ class Experiment:
             where=counts_arr != 0.0)
 
         # Only save the vtk/npy files if we've been asked to.
-        if save_vtk:
+        if cfg.save_vtk:
             print("\n**READ THIS**")
             print(f"Saving vtk to {output_file_name}.vtk")
             print(
@@ -1008,7 +1008,7 @@ class Experiment:
                 "be enough to at least get you playing with it.\n")
             linear_bin_to_vtk(
                 normalised_map, output_file_name, start, stop, step)
-        if save_npy:
+        if cfg.save_npy:
             print(f"Saving numpy array to {output_file_name}.npy")
             np.save(output_file_name, normalised_map)
             # Also save the finite differences parameters.

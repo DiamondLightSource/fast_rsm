@@ -12,7 +12,8 @@ dpsx_central_pixel: 0
 dpsy_central_pixel: 0
 dpsz_central_pixel: 0
 output_file_size: 50
-save_binoculars_h5: True
+save_vtk: False
+save_npy: False
 volume_start: None
 volume_stop: None
 volume_step: None
