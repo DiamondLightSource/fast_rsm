@@ -249,8 +249,8 @@ def run_process_list(experiment,process_config):
             pyfai_static_qmap(experiment,hf, scan, cfg)
             print(f"saved 2d map  data to\
                    {cfg.local_output_path}/{cfg.projected_name}.hdf5")
-            total_time = time() - cfg.process_start_time
-            print(f"\n 2d Q map calculations took {total_time}s")
+            total_time = (time() - cfg.process_start_time)/60
+            print(f"\n 2d Q map calculations took {total_time} minutes")
 
     if ('pyfai_qmap' in cfg.process_outputs) & (cfg.map_per_image == False):
         scanlist = experiment.scans
@@ -259,8 +259,8 @@ def run_process_list(experiment,process_config):
         print(f"saved 2d map data to \
               {cfg.local_output_path}/{cfg.projected_name}.hdf5")
 
-        total_time = time() - cfg.process_start_time
-        print(f"\n 2d Q map calculation took {total_time}s")
+        total_time = (time() - cfg.process_start_time)/60
+        print(f"\n 2d Q map calculation took {total_time} minutes")
 
     if ('pyfai_exitangles' in cfg.process_outputs) & (cfg.map_per_image == True):
         for i, scan in enumerate(experiment.scans):
@@ -268,8 +268,8 @@ def run_process_list(experiment,process_config):
             pyfai_static_exitangles(experiment,hf, scan, cfg)
             print(f"saved 2d exit angle map  data to\
                    {cfg.local_output_path}/{cfg.projected_name}.hdf5")
-            total_time = time() - cfg.process_start_time
-            print(f"\n 2d exit angle map calculations took {total_time}s")
+            total_time = (time() - cfg.process_start_time)/60
+            print(f"\n 2d exit angle map calculations took {total_time} minutes")
 
     if ('pyfai_exitangles' in cfg.process_outputs) & (cfg.map_per_image == False):
         scanlist = experiment.scans
@@ -277,8 +277,8 @@ def run_process_list(experiment,process_config):
         pyfai_moving_exitangles_smm(experiment,hf, scanlist, cfg)
         print(f"saved 2d exit angle map  data to\
                {cfg.local_output_path}/{cfg.projected_name}.hdf5")
-        total_time = time() - cfg.process_start_time
-        print(f"\n 2d exit angle map calculations took {total_time}s")
+        total_time = (time() - cfg.process_start_time)/60
+        print(f"\n 2d exit angle map calculations took {total_time} minutes")
 
 
 
@@ -286,34 +286,19 @@ def run_process_list(experiment,process_config):
         for i, scan in enumerate(experiment.scans):
             hf = make_new_hdf5(cfg,i,'IvsQ',experiment)
             pyfai_static_ivsq(experiment,  hf, scan, cfg)
-            save_config_variables(hf, cfg)
-            hf.close()
-            print(
-                f"saved 1d integration data to {cfg.local_output_path}/{projected_name}.hdf5")
-            total_time = time() - process_start_time
+            print(f"saved 1d integration data toz
+                   {cfg.local_output_path}/{cfg.projected_name}.hdf5")
+            total_time = time() - cfg.process_start_time
             print(f"\n Azimuthal integrations took {total_time}s")
 
     if ('pyfai_ivsq' in cfg.process_outputs) & (cfg.map_per_image == False):
         scanlist = experiment.scans
-        name_end = cfg.scan_numbers[0]
-        datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
-        projected_name = f'IvsQ_{name_end}_{datetime_str}'
-        hf = h5py.File(f'{cfg.local_output_path}/{projected_name}.hdf5', "w")
-        process_start_time = time()
-        experiment.load_curve_values(scanlist[0])
-        PYFAI_PONI =createponi( experiment,cfg.local_output_path)
-        pyfai_moving_ivsq_smm(experiment, hf, scanlist, cfg.num_threads,\
-            cfg.local_output_path, PYFAI_PONI, cfg.radialrange, cfg.radialstepval,\
-            cfg.qmapbins, slitratios=cfg.slitratios)
-        save_config_variables(hf, cfg)
-        hf.close()
+        hf = make_new_hdf5(cfg,0,'IvsQ',experiment)
+        pyfai_moving_ivsq_smm(experiment, hf, scanlist, cfg)
         print(f"saved 1d integration data to\
-               {cfg.local_output_path}/{projected_name}.hdf5")
-        total_time = time() - process_start_time
-        print(f"\n Azimuthal integration took {total_time}s")
-
-
-
+              {cfg.local_output_path}/{cfg.projected_name}.hdf5")
+        total_time = (time() - cfg.process_start_time)/60
+        print(f"\n Azimuthal integration took {total_time} minutes")
 
 
     if 'full_reciprocal_map' in cfg.process_outputs:
