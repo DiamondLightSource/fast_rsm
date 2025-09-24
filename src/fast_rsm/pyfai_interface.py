@@ -697,7 +697,7 @@ def pyfai_moving_ivsq_smm(experiment, hf, scanlist, process_config):
     hf.close()
 
 
-def pyfai_move_qmap_worker(experiment, choiceims, scan, process_config) -> None:
+def pyfai_move_qmap_worker(experiment, imageindices, scan, process_config) -> None:
     """
     calculate 2d q_para Vs q_perp map for moving detector scan using pyFAI
     
@@ -724,8 +724,8 @@ def pyfai_move_qmap_worker(experiment, choiceims, scan, process_config) -> None:
 
     groupnum = 15
 
-    groups = [choiceims[i:i + groupnum]
-              for i in range(0, len(choiceims), groupnum)]
+    groups = [imageindices[i:i + groupnum]
+              for i in range(0, len(imageindices), groupnum)]
     for group in groups:
         ais = []
         img_data_list = []
@@ -774,10 +774,8 @@ def pyfai_move_ivsq_worker(experiment, imageindices, scan, process_config) -> No
 
     sample_orientation = 1
     groupnum = 15
-    choiceims = imageindices
-
-    groups = [choiceims[i:i + groupnum]
-              for i in range(0, len(choiceims), groupnum)]
+    groups = [imageindices[i:i + groupnum]
+              for i in range(0, len(imageindices), groupnum)]
     for group in groups:
         ais = []
         img_data_list = []
@@ -830,10 +828,8 @@ def pyfai_move_exitangles_worker(experiment, imageindices, scan,process_config) 
     sample_orientation = 1
 
     groupnum = 15
-    choiceims = imageindices
-
-    groups = [choiceims[i:i + groupnum]
-              for i in range(0, len(choiceims), groupnum)]
+    groups = [imageindices[i:i + groupnum]
+              for i in range(0, len(imageindices), groupnum)]
     for group in groups:
         ais = []
         img_data_list = []
