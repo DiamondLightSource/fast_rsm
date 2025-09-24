@@ -256,10 +256,31 @@ def run_process_list(experiment,process_config):
         scanlist = experiment.scans
         hf = make_new_hdf5(cfg,0,'Qmap',experiment)
         pyfai_moving_qmap_smm(experiment,hf, scanlist, cfg)
-        print(f"saved 2d map data to {cfg.local_output_path}/{cfg.projected_name}.hdf5")
+        print(f"saved 2d map data to \
+              {cfg.local_output_path}/{cfg.projected_name}.hdf5")
 
         total_time = time() - cfg.process_start_time
         print(f"\n 2d Q map calculation took {total_time}s")
+
+    if ('pyfai_exitangles' in cfg.process_outputs) & (cfg.map_per_image == True):
+        for i, scan in enumerate(experiment.scans):
+            hf = make_new_hdf5(cfg,i,'exitmap',experiment)
+            pyfai_static_exitangles(experiment,hf, scan, cfg)
+            print(f"saved 2d exit angle map  data to\
+                   {cfg.local_output_path}/{cfg.projected_name}.hdf5")
+            total_time = time() - cfg.process_start_time
+            print(f"\n 2d exit angle map calculations took {total_time}s")
+
+    if ('pyfai_exitangles' in cfg.process_outputs) & (cfg.map_per_image == False):
+        scanlist = experiment.scans
+        hf = make_new_hdf5(cfg,0,"exitmap",experiment)
+        pyfai_moving_exitangles_smm(experiment,hf, scanlist, cfg)
+        print(f"saved 2d exit angle map  data to\
+               {cfg.local_output_path}/{cfg.projected_name}.hdf5")
+        total_time = time() - cfg.process_start_time
+        print(f"\n 2d exit angle map calculations took {total_time}s")
+
+
 
     if ('pyfai_ivsq' in cfg.process_outputs) & (cfg.map_per_image == True):
         for i, scan in enumerate(experiment.scans):
@@ -286,45 +307,14 @@ def run_process_list(experiment,process_config):
             cfg.qmapbins, slitratios=cfg.slitratios)
         save_config_variables(hf, cfg)
         hf.close()
-        print(
-            f"saved 1d integration data to {cfg.local_output_path}/{projected_name}.hdf5")
+        print(f"saved 1d integration data to\
+               {cfg.local_output_path}/{projected_name}.hdf5")
         total_time = time() - process_start_time
         print(f"\n Azimuthal integration took {total_time}s")
 
-    if ('pyfai_exitangles' in cfg.process_outputs) & (cfg.map_per_image == True):
-        for i, scan in enumerate(experiment.scans):
-            name_end = cfg.scan_numbers[i]
-            datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
-            projected_name = f'exitmap_{name_end}_{datetime_str}'
-            hf = h5py.File(f'{cfg.local_output_path}/{projected_name}.hdf5', "w")
-            process_start_time = time()
-            experiment.load_curve_values(scan)
-            PYFAI_PONI =createponi( experiment,cfg.local_output_path)
-            pyfai_static_exitangles(experiment,hf, scan, cfg.num_threads,\
-                                    PYFAI_PONI, cfg.ivqbins, cfg.qmapbins)
-            save_config_variables(hf, cfg)
-            hf.close()
-            print(
-                f"saved 2d exit angle map  data to {cfg.local_output_path}/{projected_name}.hdf5")
-            total_time = time() - process_start_time
-            print(f"\n 2d exit angle map calculations took {total_time}s")
 
-    if ('pyfai_exitangles' in cfg.process_outputs) & (cfg.map_per_image == False):
-        scanlist = experiment.scans
-        name_end = cfg.scan_numbers[0]
-        datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
-        projected_name = f'exitmap_{name_end}_{datetime_str}'
-        hf = h5py.File(f'{cfg.local_output_path}/{projected_name}.hdf5', "w")
-        process_start_time = time()
-        experiment.load_curve_values(scanlist[0])
-        PYFAI_PONI =createponi( experiment,cfg.local_output_path)   
-        pyfai_moving_exitangles_smm(experiment,hf, scanlist, cfg)
-        save_config_variables(hf, cfg)
-        hf.close()
-        print(
-            f"saved 2d exit angle map  data to {cfg.local_output_path}/{projected_name}.hdf5")
-        total_time = time() - process_start_time
-        print(f"\n 2d exit angle map calculations took {total_time}s")
+
+
 
     if 'full_reciprocal_map' in cfg.process_outputs:
         
