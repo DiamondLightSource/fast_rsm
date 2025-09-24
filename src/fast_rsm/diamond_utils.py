@@ -385,7 +385,7 @@ def save_binoviewer_hdf5(path_to_npy: np.ndarray,
             axes_group.create_dataset(name,data=data)
         
         binoculars_group.create_dataset("contributions",data=contributions)
-        binoculars_group.create_dataset("counts",data=volume)
+        binoculars_group.create_dataset("counts",data=(volume))
         save_config_variables(hf,cfg)
 
     # # Turn those into an axes group.
