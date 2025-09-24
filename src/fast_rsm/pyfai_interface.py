@@ -653,7 +653,7 @@ def pyfai_moving_ivsq_smm(experiment, hf, scanlist, process_config):
         cfg.radrange = (np.max([absranges[0], absranges[2]]),
                     np.max([absranges[1], absranges[3]]))
 
-    cfg.nqbins = int(np.ceil((radrange[1] - radrange[0]) / cfg.radstepval))
+    cfg.nqbins = int(np.ceil((radrange[1] - radrange[0]) / cfg.radialstepval))
 
     with SharedMemoryManager() as smm:
 
