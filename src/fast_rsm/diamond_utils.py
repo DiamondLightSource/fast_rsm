@@ -375,15 +375,17 @@ def save_binoviewer_hdf5(path_to_npy: np.ndarray,
         hf.attrs['h5py_version'] = h5py.version.version
         hf.attrs['HDF5_version'] = h5py.version.hdf5_version
 
-        binoviewer_group=hf.create_group("binoviewer")
-        binoviewer_group.attrs['type'] = 'Space'
-        axes_group=binoviewer_group.create_group("axes")
+        #needs to still be called binoculars for compatibility
+        #make edits in binoviewer so it accepts binoviewer moving forward
+        binoculars_group=hf.create_group("binoculars")
+        binoculars_group.attrs['type'] = 'Space'
+        axes_group=binoculars_group.create_group("axes")
         axes_datasets={"h": h_arr, "k": k_arr, "l": l_arr}
         for name,data in axes_datasets.items():
             axes_group.create_dataset(name,data=data)
         
-        binoviewer_group.create_dataset("contributions",data=contributions)
-        binoviewer_group.create_dataset("counts",data=volume)
+        binoculars_group.create_dataset("contributions",data=contributions)
+        binoculars_group.create_dataset("counts",data=volume)
         save_config_variables(hf,cfg)
 
     # # Turn those into an axes group.
