@@ -232,6 +232,23 @@ def make_new_hdf5(cfg: SimpleNamespace ,scan_index: int, name_start: str,\
     cfg.pyfaiponi =createponi( experiment,cfg.local_output_path)
     return h5py.File(f'{cfg.local_output_path}/{cfg.projected_name}.hdf5', "w")
 
+def run_one_scan_process(cfg,i,experiment,inputscan,runoptions):
+    runfunction,namestart,infostring=runoptions
+    hf = make_new_hdf5(cfg,i,namestart,experiment)
+    runfunction(experiment,hf, inputscan, cfg)
+    print(f"saved {infostring} data to\
+            {cfg.local_output_path}/{cfg.projected_name}.hdf5")
+    total_time = (time() - cfg.process_start_time)/60
+    print(f"\n {infostring} calculations took {total_time} minutes")
+
+def run_scanlist_loop(cfg,experiment,runoptions):
+    for i, scan in enumerate(experiment.scans):
+        run_one_scan_process(cfg,i,experiment,scan,runoptions)
+
+def run_scanlist_combined(cfg,experiment,runoptions):
+    scanlist=experiment.scans
+    run_one_scan_process(cfg,0,experiment,scanlist,runoptions)
+
 
 def run_process_list(experiment,process_config):
     """
@@ -242,25 +259,40 @@ def run_process_list(experiment,process_config):
     # check for deprecated GIWAXS functions and print message if needed
     for output in cfg.process_outputs:
         print(deprecation_msg(output))
+
+    static_functions={'pyfai_qmap':[pyfai_static_qmap,"Qmap","2d Qmap"]}
+    moving_functions={'pyfai_qmap':[pyfai_moving_qmap_smm,"Qmap","2d Qmap"]}
     
-    if ('pyfai_qmap' in cfg.process_outputs) & (cfg.map_per_image == True):
-        for i, scan in enumerate(experiment.scans):
-            hf = make_new_hdf5(cfg,i,'Qmap',experiment)
-            pyfai_static_qmap(experiment,hf, scan, cfg)
-            print(f"saved 2d map  data to\
-                   {cfg.local_output_path}/{cfg.projected_name}.hdf5")
-            total_time = (time() - cfg.process_start_time)/60
-            print(f"\n 2d Q map calculations took {total_time} minutes")
+    if cfg.map_per_image:
+        functions_dict=static_functions
+        scanlist_function=run_scanlist_loop
+    else:
+        functions_dict=moving_functions
+        scanlist_function=run_scanlist_combined
 
-    if ('pyfai_qmap' in cfg.process_outputs) & (cfg.map_per_image == False):
-        scanlist = experiment.scans
-        hf = make_new_hdf5(cfg,0,'Qmap',experiment)
-        pyfai_moving_qmap_smm(experiment,hf, scanlist, cfg)
-        print(f"saved 2d map data to \
-              {cfg.local_output_path}/{cfg.projected_name}.hdf5")
+    for output in cfg.process_outputs:
+        runoptions=functions_dict[output]
+        scanlist_function(cfg,experiment,runoptions)
 
-        total_time = (time() - cfg.process_start_time)/60
-        print(f"\n 2d Q map calculation took {total_time} minutes")
+    # if ('pyfai_qmap' in cfg.process_outputs) & (cfg.map_per_image == True):
+    #     for i, scan in enumerate(experiment.scans):
+
+    #         hf = make_new_hdf5(cfg,i,'Qmap',experiment)
+    #         pyfai_static_qmap(experiment,hf, scan, cfg)
+    #         print(f"saved 2d map  data to\
+    #                {cfg.local_output_path}/{cfg.projected_name}.hdf5")
+    #         total_time = (time() - cfg.process_start_time)/60
+    #         print(f"\n 2d Q map calculations took {total_time} minutes")
+
+    # if ('pyfai_qmap' in cfg.process_outputs) & (cfg.map_per_image == False):
+    #     scanlist = experiment.scans
+    #     hf = make_new_hdf5(cfg,0,'Qmap',experiment)
+    #     pyfai_moving_qmap_smm(experiment,hf, scanlist, cfg)
+    #     print(f"saved 2d map data to \
+    #           {cfg.local_output_path}/{cfg.projected_name}.hdf5")
+
+    #     total_time = (time() - cfg.process_start_time)/60
+    #     print(f"\n 2d Q map calculation took {total_time} minutes")
 
     if ('pyfai_exitangles' in cfg.process_outputs) & (cfg.map_per_image == True):
         for i, scan in enumerate(experiment.scans):
@@ -279,8 +311,6 @@ def run_process_list(experiment,process_config):
                {cfg.local_output_path}/{cfg.projected_name}.hdf5")
         total_time = (time() - cfg.process_start_time)/60
         print(f"\n 2d exit angle map calculations took {total_time} minutes")
-
-
 
     if ('pyfai_ivsq' in cfg.process_outputs) & (cfg.map_per_image == True):
         for i, scan in enumerate(experiment.scans):
