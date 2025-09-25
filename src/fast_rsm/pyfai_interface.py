@@ -185,7 +185,6 @@ def save_config_variables(hf, process_config): ##oblines, pythonlocation, global
                 ubgroup.create_dataset(f'ub_{i+1}', data=coll['diffcalc_ub'])
             continue
         val=outdict[key]
-        logger.debug(f"key ={key},val={val},type={type(val)}")
         if val is None:
             val = 'None'
         config_group.create_dataset(f"{key}", data=val)

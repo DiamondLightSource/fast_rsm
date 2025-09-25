@@ -976,7 +976,6 @@ class Experiment:
                             range(
                                 scan.metadata.data_file.scan_length)),
                         num_threads)]
-                logger.debug(f"bin_args ={bin_args}")
 
                 with Pool(num_threads, initializer=rsm_init_worker, \
             initargs=(l, shm_rsm.name, shm_counts.name, shapersm, scan.metadata,\
