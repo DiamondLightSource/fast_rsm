@@ -10,3 +10,4 @@ yaml
 pandas
 tifffile
 fabio
+pyFAI
