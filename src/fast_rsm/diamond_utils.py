@@ -78,7 +78,6 @@ def create_standard_experiment(input_config: dict):
     
     configure_logging(cfg.DEBUG_LOG)
     logger=get_frsm_logger()
-    logger.debug("creating standard experiment object")
     f = open(cfg.full_path)
     cfg.joblines = f.readlines()
     f.close()
@@ -108,7 +107,6 @@ def create_standard_experiment(input_config: dict):
     experiment,cfg.total_images,cfg.slitratios=standard_adjustments(experiment,adjustment_args)
     # grab ub information
     cfg.ubinfo = [scan.metadata.data_file.nx_instrument.diffcalchdr for scan in experiment.scans]
-    logger.debug(f"oop value inside create_standard_experiment {cfg.oop}")
 
     return experiment, cfg, logger
 
@@ -122,7 +120,6 @@ def initial_value_checks(dps_centres,cylinder_axis,setup,output_file_size):
     
     # Which synchrotron axis should become the out-of-plane (001) direction.
     # Defaults to 'y'; can be 'x', 'y' or 'z'.
-    logger.debug(f"setup value into intial checks {setup}")
     setup_oops = {'vertical': 'x', 'horizontal': 'y', 'DCD': 'y'}
     if setup in setup_oops:
         oop = setup_oops[setup]
@@ -132,7 +129,6 @@ def initial_value_checks(dps_centres,cylinder_axis,setup,output_file_size):
     if output_file_size > 2000:
         raise ValueError("output_file_size must not exceed 2000. "
                         f"Value received was {output_file_size}.")
-    logger.debug(f"oop value found  {oop}")
         
     # Overwrite the above oop value depending on requested cylinder axis for polar
     # coords.
@@ -258,7 +254,6 @@ def run_process_list(experiment,process_config):
     separate function for sending of jobs defined by process output list and input arguments
     """
     cfg=process_config
-    logger.debug(f"oop value inside run_process_list {cfg.oop}")
     # check for deprecated GIWAXS functions and print message if needed
     for output in cfg.process_outputs:
         print(deprecation_msg(output))
@@ -307,9 +302,6 @@ def run_full_map_process(experiment,cfg):
                 "went wrong. I'm going with the latter, but exiting out anyway.")
     map_frame = Frame(frame_name=cfg.frame_name, coordinates=cfg.coordinates)
     start_time = time()
-    cfg_dict=vars(cfg)
-    # for key,val in cfg_dict.items():
-    #     logger.debug(f"{key} = {val}")
     # Calculate and save a binned reciprocal space map, if requested.
     cfg.mapped_data=experiment.binned_reciprocal_space_map_smm(
         cfg.num_threads, map_frame, cfg,

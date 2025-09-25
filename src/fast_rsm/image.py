@@ -343,7 +343,6 @@ class Image:
                 [0, 1, 0],
                 [0, 0, 1]
             ])
-        logger.debug(f"oop value passed to qvectors ={oop}")
         # Finally, we make it so that (001) will end up OOP.
         if oop == 'y':
             coord_change_mat = np.array([
@@ -396,7 +395,6 @@ class Image:
         # If the user asked for polars then change to those coords.
 
         if frame.coordinates == Frame.sphericalpolar:
-            logger.debug("requested spherical coordinates")
             k_out_array[i, j, 0] -= spherical_bragg_vec[0]
             k_out_array[i, j, 1] -= spherical_bragg_vec[1]
             k_out_array[i, j, 2] -= spherical_bragg_vec[2]
