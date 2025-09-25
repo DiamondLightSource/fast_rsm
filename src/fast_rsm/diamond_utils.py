@@ -304,6 +304,9 @@ def run_full_map_process(experiment,cfg):
                 "went wrong. I'm going with the latter, but exiting out anyway.")
     map_frame = Frame(frame_name=cfg.frame_name, coordinates=cfg.coordinates)
     start_time = time()
+    cfg_dict=vars(cfg)
+    for key,val in cfg_dict.items():
+        logger.debug(f"{key} = {val}")
     # Calculate and save a binned reciprocal space map, if requested.
     cfg.mapped_data=experiment.binned_reciprocal_space_map_smm(
         cfg.num_threads, map_frame, cfg,
