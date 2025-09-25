@@ -369,77 +369,77 @@ def save_binoviewer_hdf5(path_to_npy: np.ndarray,
               for i in range(3))
     )
 
-    # with h5py.File(output_path, "w") as hf:
+    with h5py.File(output_path, "w") as hf:
         
-    #     # Add metadata to the root group
-    #     hf.attrs['file_time'] = datetime.now().isoformat()
-    #     hf.attrs['h5py_version'] = h5py.version.version
-    #     hf.attrs['HDF5_version'] = h5py.version.hdf5_version
+        # Add metadata to the root group
+        hf.attrs['file_time'] = datetime.now().isoformat()
+        hf.attrs['h5py_version'] = h5py.version.version
+        hf.attrs['HDF5_version'] = h5py.version.hdf5_version
 
-    #     #needs to still be called binoculars for compatibility
-    #     #make edits in binoviewer so it accepts binoviewer moving forward
-    #     binoculars_group=hf.create_group("binoculars")
-    #     binoculars_group.attrs['type'] = 'Space'
-    #     axes_group=binoculars_group.create_group("axes")
-    #     axes_datasets={"h": h_arr, "k": k_arr, "l": l_arr}
-    #     for name,data in axes_datasets.items():
-    #         axes_group.create_dataset(name,data=data)
+        #needs to still be called binoculars for compatibility
+        #make edits in binoviewer so it accepts binoviewer moving forward
+        binoculars_group=hf.create_group("binoculars")
+        binoculars_group.attrs['type'] = 'Space'
+        axes_group=binoculars_group.create_group("axes")
+        axes_datasets={"h": h_arr, "k": k_arr, "l": l_arr}
+        for name,data in axes_datasets.items():
+            axes_group.create_dataset(name,data=data)
         
-    #     binoculars_group.create_dataset("contributions",data=contributions)
-    #     binoculars_group.create_dataset("counts",data=(volume))
-    #     save_config_variables(hf,cfg)
+        binoculars_group.create_dataset("contributions",data=contributions)
+        binoculars_group.create_dataset("counts",data=(volume))
+        save_config_variables(hf,cfg)
 
-    # Turn those into an axes group.
-    axes_group = nx.NXgroup(h=h_arr, k=k_arr, l=l_arr)
+    # # Turn those into an axes group.
+    # axes_group = nx.NXgroup(h=h_arr, k=k_arr, l=l_arr)
 
-    config_group = nx.NXgroup()
-    configlist = ['setup', 'experimental_hutch', 'using_dps', 'beam_centre', \
-                  'detector_distance', 'dpsx_central_pixel', 'dpsy_central_pixel',\
-                'dpsz_central_pixel','local_data_path', 'local_output_path',\
-                'output_file_size', 'save_binoviewer_h5', 'map_per_image',\
-                'volume_start', 'volume_step', 'volume_stop',\
-                'load_from_dat', 'edfmaskfile', 'specific_pixels', \
-                'mask_regions', 'process_outputs', 'scan_numbers']
+    # config_group = nx.NXgroup()
+    # configlist = ['setup', 'experimental_hutch', 'using_dps', 'beam_centre', \
+    #               'detector_distance', 'dpsx_central_pixel', 'dpsy_central_pixel',\
+    #             'dpsz_central_pixel','local_data_path', 'local_output_path',\
+    #             'output_file_size', 'save_binoviewer_h5', 'map_per_image',\
+    #             'volume_start', 'volume_step', 'volume_stop',\
+    #             'load_from_dat', 'edfmaskfile', 'specific_pixels', \
+    #             'mask_regions', 'process_outputs', 'scan_numbers']
     
-    with open(cfg.default_config_path, "r") as f:
-        default_config_dict = yaml.safe_load(f)
-    #add in extra to defaults that arent set by user, so that parsing defaults finds it
-    default_config_dict['ubinfo']=0
-    default_config_dict['pythonlocation']=0 
-    default_config_dict['joblines']=0
-    outvars=vars(cfg)
-    # Get a list of all available variables
-    if outvars is not None:
-        variables = list(default_config_dict.keys())
+    # with open(cfg.default_config_path, "r") as f:
+    #     default_config_dict = yaml.safe_load(f)
+    # #add in extra to defaults that arent set by user, so that parsing defaults finds it
+    # default_config_dict['ubinfo']=0
+    # default_config_dict['pythonlocation']=0 
+    # default_config_dict['joblines']=0
+    # outvars=vars(cfg)
+    # # Get a list of all available variables
+    # if outvars is not None:
+    #     variables = list(default_config_dict.keys())
 
-        # Iterate through the variables
-        for var_name in variables:
-            # Check if the variable name is in configlist
-            if var_name in outvars:
-                # Get the variable value
-                var_value = outvars[var_name]
+    #     # Iterate through the variables
+    #     for var_name in variables:
+    #         # Check if the variable name is in configlist
+    #         if var_name in outvars:
+    #             # Get the variable value
+    #             var_value = outvars[var_name]
 
-                # Add the variable to config_group
-                config_group[var_name] = str(var_value)
-        if 'ubinfo' in outvars:
-            for i, coll in enumerate(outvars['ubinfo']):
-                config_group[f'ubinfo_{i+1}'] = nx.NXgroup()
-                config_group[f'ubinfo_{i+1}'][f'lattice_{i+1}'] = coll['diffcalc_lattice']
-                config_group[f'ubinfo_{i+1}'][f'u_{i+1}'] = coll['diffcalc_u']
-                config_group[f'ubinfo_{i+1}'][f'ub_{i+1}'] = coll['diffcalc_ub']
-    config_group['python_version'] = cfg.pythonlocation
-    config_group['joblines'] = cfg.joblines
-    # Make a corresponding (mandatory) "binoviewer" group.
-    binoviewer_group = nx.NXgroup(
-        axes=axes_group, contributions=contributions,\
-              counts=(volume), i07configuration=config_group)
-    binoviewer_group.attrs['type'] = 'Space'
+    #             # Add the variable to config_group
+    #             config_group[var_name] = str(var_value)
+    #     if 'ubinfo' in outvars:
+    #         for i, coll in enumerate(outvars['ubinfo']):
+    #             config_group[f'ubinfo_{i+1}'] = nx.NXgroup()
+    #             config_group[f'ubinfo_{i+1}'][f'lattice_{i+1}'] = coll['diffcalc_lattice']
+    #             config_group[f'ubinfo_{i+1}'][f'u_{i+1}'] = coll['diffcalc_u']
+    #             config_group[f'ubinfo_{i+1}'][f'ub_{i+1}'] = coll['diffcalc_ub']
+    # config_group['python_version'] = cfg.pythonlocation
+    # config_group['joblines'] = cfg.joblines
+    # # Make a corresponding (mandatory) "binoviewer" group.
+    # binoviewer_group = nx.NXgroup(
+    #     axes=axes_group, contributions=contributions,\
+    #           counts=(volume), i07configuration=config_group)
+    # binoviewer_group.attrs['type'] = 'Space'
 
-    # Make a root which contains the binoviewer group.
-    bin_hdf = nx.NXroot(binoculars=binoviewer_group)
+    # # Make a root which contains the binoviewer group.
+    # bin_hdf = nx.NXroot(binoculars=binoviewer_group)
 
-    # Save it!
-    bin_hdf.save(output_path)
+    # # Save it!
+    # bin_hdf.save(output_path)
 
 def get_volume_and_bounds(path_to_npy: str) -> Tuple[np.ndarray]:
     """
