@@ -34,6 +34,6 @@ savetiffs: False
 savedats: False
 frame_name: 'hkl'
 coordinates: 'cartesian'
-cylinder_axis: None 
+cylinder_axis: False 
 DEBUG_LOG: 0 
 spherical_bragg_vec: [0,0,0]
