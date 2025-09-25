@@ -409,7 +409,7 @@ def save_binoviewer_hdf5(path_to_npy: np.ndarray,
     default_config_dict['joblines']=0
     outvars=vars(cfg)
     # Get a list of all available variables
-    if cfg.outvars is not None:
+    if outvars is not None:
         variables = list(default_config_dict.keys())
 
         # Iterate through the variables
