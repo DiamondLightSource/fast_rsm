@@ -343,7 +343,7 @@ class Image:
                 [0, 1, 0],
                 [0, 0, 1]
             ])
-
+        logger.debug(f"oop value passed to qvectors ={oop}")
         # Finally, we make it so that (001) will end up OOP.
         if oop == 'y':
             coord_change_mat = np.array([
