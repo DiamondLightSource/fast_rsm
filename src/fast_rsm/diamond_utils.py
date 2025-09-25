@@ -436,7 +436,7 @@ def save_binoviewer_hdf5(path_to_npy: np.ndarray,
     binoviewer_group.attrs['type'] = 'Space'
 
     # Make a root which contains the binoviewer group.
-    bin_hdf = nx.NXroot(binoviewer=binoviewer_group)
+    bin_hdf = nx.NXroot(binoculars=binoviewer_group)
 
     # Save it!
     bin_hdf.save(output_path)
