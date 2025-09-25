@@ -121,6 +121,7 @@ def initial_value_checks(dps_centres,cylinder_axis,setup,output_file_size):
     
     # Which synchrotron axis should become the out-of-plane (001) direction.
     # Defaults to 'y'; can be 'x', 'y' or 'z'.
+    logger.debug(f"setup value into intial checks {setup}")
     setup_oops = {'vertical': 'x', 'horizontal': 'y', 'DCD': 'y'}
     if setup in setup_oops:
         oop = setup_oops[setup]
@@ -130,6 +131,7 @@ def initial_value_checks(dps_centres,cylinder_axis,setup,output_file_size):
     if output_file_size > 2000:
         raise ValueError("output_file_size must not exceed 2000. "
                         f"Value received was {output_file_size}.")
+    logger.debug(f"oop value found  {oop}")
         
     # Overwrite the above oop value depending on requested cylinder axis for polar
     # coords.

@@ -357,14 +357,13 @@ class Image:
                 [0, 0, 1],
                 [1, 0, 0]
             ])
-        else:   #oop == 'z'
+        elif oop == 'z':
             coord_change_mat = np.array([
                 [1, 0, 0],
                 [0, 1, 0],
                 [0, 0, 1]
             ])
 
-        logger.debug(f"coord_chage_mat={coord_change_mat}")
         ub_mat = np.matmul(ub_mat, coord_change_mat)
 
         # #ADD IN HERE INVERSE OF OMEGA AND ALPHA ROTATIONS, WHICH ARE NOT INCLUDED \
