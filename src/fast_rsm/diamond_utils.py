@@ -136,7 +136,7 @@ def initial_value_checks(dps_centres,cylinder_axis,setup,output_file_size):
         
     # Overwrite the above oop value depending on requested cylinder axis for polar
     # coords.
-    if cylinder_axis is not None:
+    if cylinder_axis is not False:
         oop = cylinder_axis
     
     return oop
