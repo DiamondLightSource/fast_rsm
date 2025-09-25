@@ -218,6 +218,7 @@ def bin_maps_with_indices_smm(indices: List[int],
     serialization that the interpreter has to do.
     """
 
+
     # We need to catch all exceptions and explicitly print them in worker
     # threads.
     # pylint: disable=broad-except.
@@ -227,7 +228,10 @@ def bin_maps_with_indices_smm(indices: List[int],
             # Skip this if we've been asked to.
             if idx in skip_images:
                 continue
-
+            inputlist=[start, stop, step, min_intensity, idx,\
+                       processing_steps, oop, spherical_bragg_vec, map_each_image, previous_images]
+            for i,val in enumerate(inputlist):
+                logger.debug(f"inputs {i} for one map {val}")
             # print(f"Processing image {idx}. ", end='')
             _bin_one_map_smm(start, stop, step, min_intensity, idx,
                 processing_steps, oop, spherical_bragg_vec, map_each_image, previous_images)
