@@ -84,7 +84,7 @@ def create_standard_experiment(input_config: dict):
     f.close()
     dps_centres= [cfg.dpsx_central_pixel,cfg.dpsy_central_pixel,cfg.dpsz_central_pixel]
     cfg.oop= initial_value_checks(dps_centres,cfg.cylinder_axis,cfg.setup,cfg.output_file_size)
-
+    
     # Max number of cores available for processing.
     cfg.num_threads = multiprocessing.cpu_count()
     cfg.pythonlocation = sys.executable
@@ -108,6 +108,7 @@ def create_standard_experiment(input_config: dict):
     experiment,cfg.total_images,cfg.slitratios=standard_adjustments(experiment,adjustment_args)
     # grab ub information
     cfg.ubinfo = [scan.metadata.data_file.nx_instrument.diffcalchdr for scan in experiment.scans]
+    logger.debug(f"oop value inside create_standard_experiment {cfg.oop}")
 
     return experiment, cfg, logger
 
@@ -257,6 +258,7 @@ def run_process_list(experiment,process_config):
     separate function for sending of jobs defined by process output list and input arguments
     """
     cfg=process_config
+    logger.debug(f"oop value inside run_process_list {cfg.oop}")
     # check for deprecated GIWAXS functions and print message if needed
     for output in cfg.process_outputs:
         print(deprecation_msg(output))
@@ -306,8 +308,8 @@ def run_full_map_process(experiment,cfg):
     map_frame = Frame(frame_name=cfg.frame_name, coordinates=cfg.coordinates)
     start_time = time()
     cfg_dict=vars(cfg)
-    for key,val in cfg_dict.items():
-        logger.debug(f"{key} = {val}")
+    # for key,val in cfg_dict.items():
+    #     logger.debug(f"{key} = {val}")
     # Calculate and save a binned reciprocal space map, if requested.
     cfg.mapped_data=experiment.binned_reciprocal_space_map_smm(
         cfg.num_threads, map_frame, cfg,
