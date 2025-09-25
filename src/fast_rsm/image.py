@@ -364,6 +364,7 @@ class Image:
                 [0, 0, 1]
             ])
 
+        logger.debug(f"coord_chage_mat={coord_change_mat}")
         ub_mat = np.matmul(ub_mat, coord_change_mat)
 
         # #ADD IN HERE INVERSE OF OMEGA AND ALPHA ROTATIONS, WHICH ARE NOT INCLUDED \
@@ -396,7 +397,7 @@ class Image:
         # If the user asked for polars then change to those coords.
 
         if frame.coordinates == Frame.sphericalpolar:
-
+            logger.debug("requested spherical coordinates")
             k_out_array[i, j, 0] -= spherical_bragg_vec[0]
             k_out_array[i, j, 1] -= spherical_bragg_vec[1]
             k_out_array[i, j, 2] -= spherical_bragg_vec[2]

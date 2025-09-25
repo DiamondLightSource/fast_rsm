@@ -255,7 +255,6 @@ def run_process_list(experiment,process_config):
     separate function for sending of jobs defined by process output list and input arguments
     """
     cfg=process_config
-    logger.debug("entered run_process_list")
     # check for deprecated GIWAXS functions and print message if needed
     for output in cfg.process_outputs:
         print(deprecation_msg(output))

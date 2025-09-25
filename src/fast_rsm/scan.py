@@ -231,7 +231,6 @@ def bin_maps_with_indices_smm(indices: List[int],
             inputlist=[start, stop, step, min_intensity, idx,\
                        processing_steps, oop, spherical_bragg_vec, map_each_image, previous_images]
             for i,val in enumerate(inputlist):
-                logger.debug(f"inputs {i} for one map {val}")
             # print(f"Processing image {idx}. ", end='')
             _bin_one_map_smm(start, stop, step, min_intensity, idx,
                 processing_steps, oop, spherical_bragg_vec, map_each_image, previous_images)
