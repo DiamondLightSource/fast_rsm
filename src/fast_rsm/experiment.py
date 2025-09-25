@@ -906,12 +906,7 @@ class Experiment:
         cfg=process_config
         if map_frame.frame_name == Frame.qpar_qperp:
             map_frame.frame_name = Frame.lab
-          # Compute the optimal finite differences volume.
-        
-        logger.debug(f"starting binned_reciprocal_space_map_smm")
-        logger.debug(f"volume start = {volume_start}")
-        logger.debug(f"volume stop = {volume_stop}")
-        logger.debug(f"volume step = {volume_step}")                
+          # Compute the optimal finite differences volume.            
 
         if volume_step is None:
             # Overwrite whichever of these we were given explicitly.
@@ -938,13 +933,9 @@ class Experiment:
             step=step,
             user_bounds=(volume_start, volume_stop),
             auto_bounds=(_start, _stop))
-        
-        logger.debug(f"start = {start}")
-        logger.debug(f"stop = {stop}")
-        logger.debug(f"step = {step}")
+
         # locks = [Lock() for _ in range(num_threads)]
         shapersm = finite_diff_shape(start, stop, step)
-        logger.debug(f"shapersm= {shapersm}")
 
         images_so_far = 0
 
