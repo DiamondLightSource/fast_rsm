@@ -172,5 +172,16 @@ savetiffs = False
 # to True
 savedats = False
 
+# # Options for coordinates argument are:
+# #     'cartesian'   (normal cartesian coords: hkl, Qx Qy Qz, etc.)
+# #     'cylindricalpolar'       (cylindrical polar with cylinder axis set by the
+# #                        cylinder_axis variable)
+# #     'sphericalpolarr     (spherical polar with centre set by the
+# #                        spherical_bragg_vec variable)
+coordinates='cartesian' 
+cylinder_axis=False
+#use this vector to shift centre point of mapped volume to a specific bragg peak
+spherical_bragg_vec=[0,0,0] 
+
 # The scan numbers of the scans that you want to use to produce this reciprocal
 # space map.
