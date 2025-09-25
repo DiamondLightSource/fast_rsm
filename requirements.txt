@@ -2,10 +2,11 @@ numpy
 scipy>=1.8.0
 pytest>=7.1.1
 nexusformat>=0.7.4
-pillow>=9.1.0
-plotly>=5.8.0
 fast-histogram>=0.10
 pyevtk>=1.5.0
 transformations
-spyder-kernels
-sphinxcontrib-images
+h5py
+yaml
+pandas
+tifffile
+fabio
