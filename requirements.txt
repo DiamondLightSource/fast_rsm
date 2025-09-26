@@ -6,7 +6,7 @@ fast-histogram>=0.10
 pyevtk>=1.5.0
 transformations
 h5py
-yaml
+pyyaml
 pandas
 tifffile
 fabio
