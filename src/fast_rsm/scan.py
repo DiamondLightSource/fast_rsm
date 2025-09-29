@@ -22,8 +22,8 @@ from pyFAI import units
 
 import numpy as np
 
-from diffraction_utils import  Frame #I10Nexus, Vector3,
-#from diffraction_utils.diffractometers import I10RasorDiffractometer
+from diffraction_utils import  Frame, I10Nexus, Vector3
+from diffraction_utils.diffractometers import I10RasorDiffractometer
 
 import fast_rsm.io as io
 from fast_rsm.binning import weighted_bin_3d
@@ -467,45 +467,45 @@ class Scan:
         stop += padding
         return start, stop
 
-    # def from_i10(cls,
-    #              path_to_nx: Union[str, Path],
-    #              beam_centre: Tuple[int],
-    #              detector_distance: float,
-    #              sample_oop: Vector3,
-    #              path_to_data: str = ''):
-    #     """
-    #     Instantiates a Scan from the path to an I10 nexus file, a beam centre
-    #     coordinate, a detector distance (this isn't stored in i10 nexus files)
-    #     and a sample out-of-plane vector.
+    def from_i10(cls,
+                 path_to_nx: Union[str, Path],
+                 beam_centre: Tuple[int],
+                 detector_distance: float,
+                 sample_oop: Vector3,
+                 path_to_data: str = ''):
+        """
+        Instantiates a Scan from the path to an I10 nexus file, a beam centre
+        coordinate, a detector distance (this isn't stored in i10 nexus files)
+        and a sample out-of-plane vector.
 
-    #     Args:
-    #         path_to_nx:
-    #             Path to the nexus file containing the scan metadata.
-    #         beam_centre:
-    #             A (y, x) tuple of the beam centre, measured in the usual image
-    #             coordinate system, in units of pixels.
-    #         detector_distance:
-    #             The distance between the sample and the detector, which cant
-    #             be stored in i10 nexus files so needs to be given by the user.
-    #         sample_oop:
-    #             An instance of a diffraction_utils Vector3 which descrbes the
-    #             sample out of plane vector.
-    #         path_to_data:
-    #             Path to the directory in which the images are stored. Defaults
-    #             to '', in which case a bunch of reasonable directories will be
-    #             searched for the images.
-    #     """
-    #     # Load the nexus file.
-    #     i10_nexus = I10Nexus(path_to_nx, path_to_data, detector_distance)
+        Args:
+            path_to_nx:
+                Path to the nexus file containing the scan metadata.
+            beam_centre:
+                A (y, x) tuple of the beam centre, measured in the usual image
+                coordinate system, in units of pixels.
+            detector_distance:
+                The distance between the sample and the detector, which cant
+                be stored in i10 nexus files so needs to be given by the user.
+            sample_oop:
+                An instance of a diffraction_utils Vector3 which descrbes the
+                sample out of plane vector.
+            path_to_data:
+                Path to the directory in which the images are stored. Defaults
+                to '', in which case a bunch of reasonable directories will be
+                searched for the images.
+        """
+        # Load the nexus file.
+        i10_nexus = I10Nexus(path_to_nx, path_to_data, detector_distance)
 
-    #     # Load the state of the RASOR diffractometer; prepare the metadata.
-    #     diff = I10RasorDiffractometer(i10_nexus, sample_oop, 'area')
-    #     meta = RSMMetadata(diff, beam_centre)
+        # Load the state of the RASOR diffractometer; prepare the metadata.
+        diff = I10RasorDiffractometer(i10_nexus, sample_oop, 'area')
+        meta = RSMMetadata(diff, beam_centre)
 
-    #     # Make sure the sample_oop vector's frame's diffractometer is correct.
-    #     sample_oop.frame.diffractometer = diff
+        # Make sure the sample_oop vector's frame's diffractometer is correct.
+        sample_oop.frame.diffractometer = diff
 
-    #     return cls(meta)
+        return cls(meta)
 
     @staticmethod
     def from_i07(path_to_nx: Union[str, Path],
