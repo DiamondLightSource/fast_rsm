@@ -2,22 +2,20 @@
 from fast_rsm.diamond_utils import run_process_list,\
         create_standard_experiment
 from fast_rsm.config_loader import experiment_config
+from types import SimpleNamespace
 
-default_config=experiment_config(scan_numbers)
-default_config['full_path']=__file__
-for key,val in default_config.items():
-    if key in globals():
-        default_config[key]=globals()[key]
-#create experiment object
-experiment,process_config,logger=create_standard_experiment(default_config)
+#get path to this job file
+job_file_path=__file__
 
+#create experiment object, process configuration and logger
+experiment,process_config,logger=\
+create_standard_experiment(SimpleNamespace(**global()))
 
-####============SPECIAL ADJUSTMENTS ==================================================
-# This section is for changing metadata that is stored in, or inferred from, the
-# nexus file. This is generally for more nonstandard stuff.
-# uncomment loop over scans to adjust metadata within each scan
-
-
+#=================================================================================
+####============SPECIAL ADJUSTMENTS ==============================================
+# #This section is for changing metadata that is stored in, or inferred from, the
+# #nexus file. This is generally for more nonstandard stuff.
+# #uncomment loop over scans to adjust metadata within each scan
 # for i, scan in enumerate(experiment.scans):
 #     """
 #     area for making special adjustments to metadata information
@@ -32,8 +30,10 @@ experiment,process_config,logger=create_standard_experiment(default_config)
 #         [0, 1, 0],
 #         [0, 0, 1]
 #     ])
-####=============================================================
+#=================================================================================
+#=================================================================================
 
+#run processing jobs with process configuration settings requested
 run_process_list(experiment,process_config)
 print("PROCESSING FINISHED.")
  
