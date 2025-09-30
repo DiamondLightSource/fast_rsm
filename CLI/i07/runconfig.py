@@ -65,12 +65,11 @@ if __name__ == "__main__":
 
     # Extract the arguments from the parser.
     args = parser.parse_args()
-    f=open(args.exp_path)
-    lines1=f.readlines()
-    f.close()
-    f=open(args.calc_path)
-    lines2=f.readlines()
-    f.close()
+    with open(args.exp_path) as f1:
+        lines1=f1.readlines()
+
+    with open(args.calc_path) as f2:
+        lines2=f2.readlines()
 
     outline=[line for line in lines1 if 'local_output' in line]
     if len(outline)==0:

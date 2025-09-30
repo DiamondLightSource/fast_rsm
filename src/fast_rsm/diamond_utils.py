@@ -22,44 +22,19 @@ from fast_rsm.pyfai_interface import pyfai_static_qmap ,pyfai_static_exitangles,
 pyfai_static_ivsq,pyfai_moving_qmap_smm,pyfai_moving_exitangles_smm,\
 pyfai_moving_ivsq_smm,save_config_variables,createponi
 
-# # The frame/coordinate system you want the map to be carried out in.
-# # Options for frame_name argument are:
-# #     Frame.hkl     (map into hkl space - requires UB matrix in nexus file)
-# #     Frame.sample_holder   (standard map into 1/Å)
-# #     Frame.lab     (map into frame attached to lab.)
-# #
-# # Options for coordinates argument are:
-# #     Frame.cartesian   (normal cartesian coords: hkl, Qx Qy Qz, etc.)
-# #     Frame.polar       (cylindrical polar with cylinder axis set by the
-# #                        cylinder_axis variable)
-# #
-# # Frame.polar will give an output like a more general version of PyFAI.
-# # Frame.cartesian is for hkl maps and Qx/Qy/Qz. Any combination of frame_name
-# # and coordinates will work, so try them out; get a feel for them.
-# # Note that if you want something like a q_parallel, q_perpendicular projection,
-# # you should choose Frame.lab with cartesian coordinates. From this data, your
-# # projection can be easily computed.
-# frame_name = Frame.hkl
-# coordinates = Frame.cartesian
 
-# # Ignore this unless you selected Frame.polar.
-# # This sets the axis about which your polar coordinates will be generated.
-# # Options are 'x', 'y' and 'z'. These are the synchrotron coordinates, rotated
-# # according to your requested frame_name. For instance, if you select
-# # Frame.lab, then 'x', 'y' and 'z' will correspond exactly to the synchrotron
-# # coordinate system (z along beam, y up). If you select frame.sample_holder and
-# # rotate your sample by an azimuthal angle µ, then 'y' will still be vertically
-# # up, but 'x' and 'z' will have been rotated about 'y' by the angle µ.
-# # Leave this as "None" if you aren't using cylindrical coordinates.
-# cylinder_axis = None
-
-
-def create_standard_experiment(input_config: dict):
+def create_standard_experiment(global_vals: SimpleNamespace):
     """
     uses process configuration to create an experiment object 
     and setup a logger if requested
     returns :  Experiment, config, logger
     """
+    default_config=experiment_config(global_vals.scan_numbers)
+    default_config['full_path']=global_vals.job_file_path
+    for key,val in default_config.items():
+        if hasattr(globals_vals,key):
+            default_config[key]=getattr(globals_vals,key)
+    
     check_config_schema(input_config)
 
     cfg = SimpleNamespace(**input_config)
