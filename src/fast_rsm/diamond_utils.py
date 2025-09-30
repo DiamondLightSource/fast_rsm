@@ -32,8 +32,8 @@ def create_standard_experiment(global_vals: SimpleNamespace):
     default_config=experiment_config(global_vals.scan_numbers)
     default_config['full_path']=global_vals.job_file_path
     for key,val in default_config.items():
-        if hasattr(globals_vals,key):
-            default_config[key]=getattr(globals_vals,key)
+        if hasattr(global_vals,key):
+            default_config[key]=getattr(global_vals,key)
     
     check_config_schema(input_config)
 
