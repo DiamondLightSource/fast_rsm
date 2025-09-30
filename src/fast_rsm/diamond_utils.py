@@ -31,17 +31,16 @@ def create_standard_experiment(global_vals: SimpleNamespace):
     """
     default_config=experiment_config(global_vals.scan_numbers)
     default_config['full_path']=global_vals.job_file_path
-    for key,val in default_config.items():
+    for key in default_config:
         if hasattr(global_vals,key):
             default_config[key]=getattr(global_vals,key)
-    
-    check_config_schema(input_config)
+    check_config_schema(default_config)
 
-    cfg = SimpleNamespace(**input_config)
+    cfg = SimpleNamespace(**default_config)
 
     configure_logging(cfg.DEBUG_LOG)
     logger = get_frsm_logger()
-    with open(cfg.full_path) as f:
+    with open(cfg.full_path,encoding='utf-8') as f:
         cfg.joblines = f.readlines()
 
     dps_centres = [cfg.dpsx_central_pixel,
