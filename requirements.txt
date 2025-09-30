@@ -11,3 +11,4 @@ pandas
 tifffile
 fabio
 pyFAI
+schema

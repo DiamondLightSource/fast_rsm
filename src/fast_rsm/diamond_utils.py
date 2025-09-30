@@ -17,7 +17,7 @@ from diffraction_utils import Frame, Region
 from fast_rsm.binning import finite_diff_grid
 from fast_rsm.experiment import Experiment
 from fast_rsm.logging_config import configure_logging, get_frsm_logger
-from fast_rsm.config_loader import check_config_schema
+from fast_rsm.config_loader import check_config_schema,experiment_config
 from fast_rsm.pyfai_interface import pyfai_static_qmap ,pyfai_static_exitangles,\
 pyfai_static_ivsq,pyfai_moving_qmap_smm,pyfai_moving_exitangles_smm,\
 pyfai_moving_ivsq_smm,save_config_variables,createponi
