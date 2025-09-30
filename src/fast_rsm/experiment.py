@@ -30,16 +30,15 @@ import fast_rsm.io as io
 from fast_rsm.binning import finite_diff_shape
 from fast_rsm.meta_analysis import get_step_from_filesize
 from fast_rsm.scan import Scan, chunk, \
-      rsm_init_worker, bin_maps_with_indices_smm
+    rsm_init_worker, bin_maps_with_indices_smm
 from fast_rsm.writing import linear_bin_to_vtk
 from fast_rsm.pyfai_interface import createponi as new_createponi, \
-    pyfai_moving_exitangles_smm as new_pyfai_moving_exitangles_smm,\
+    pyfai_moving_exitangles_smm as new_pyfai_moving_exitangles_smm, \
     pyfai_moving_qmap_smm as new_pyfai_moving_qmap_smm
 
 logger = logging.getLogger("fastrsm")
 
 # from memory_profiler import profile
-
 
 
 def _remove_file(path: Union[str, Path]):
@@ -121,7 +120,6 @@ class Experiment:
         self.setup = setup
         self._data_file_names = []
         self._normalisation_file_names = []
-
 
         none_exp = ['pixel_size', 'entry', 'detector_distance',
                     'incident_wavelength', 'gammadata', 'deltadata', 'dcdrad']
@@ -224,8 +222,8 @@ class Experiment:
         for scan in self.scans:
             scan.metadata.edfmask = mask
 
-    def q_bounds(self, frame: Frame, spherical_bragg_vec: np.ndarray,\
-                  oop: str = 'y') -> Tuple[np.ndarray]:
+    def q_bounds(self, frame: Frame, spherical_bragg_vec: np.ndarray,
+                 oop: str = 'y') -> Tuple[np.ndarray]:
         """
         Works out the region of reciprocal space sampled by every scan in this
         experiment. This is reasonably performant, but should really be
@@ -388,28 +386,27 @@ class Experiment:
             'delvert': [
                 self.deltadata,
                 self.two_theta_start]}
-        
-        if self.scans[0].metadata.data_file.is_rotated:
-            rot_option='rot'
-        else:
-            rot_option='norot'
 
-        chosen_setup=f'{self.setup}_{rot_option}'
-        
-        index_scales={'vertical_rot': ['hor0','thvert',-1,1],\
-                      'vertical_norot':['hor0','thvert',-1,-1],\
-                      'DCD_rot':['vert0','delvert',-1,-1],\
-                      'DCD_norot':['vert0','delvert',-1,-1],\
-                      'horizontal_rot':['vert0','delvert',-1,1],\
-                      'horizontal_norot':['vert0','delvert',-1,-1],\
-                      }
-        
-        chosen_ind_scales=index_scales[chosen_setup]
+        if self.scans[0].metadata.data_file.is_rotated:
+            rot_option = 'rot'
+        else:
+            rot_option = 'norot'
+
+        chosen_setup = f'{self.setup}_{rot_option}'
+
+        index_scales = {'vertical_rot': ['hor0', 'thvert', -1, 1],
+                        'vertical_norot': ['hor0', 'thvert', -1, -1],
+                        'DCD_rot': ['vert0', 'delvert', -1, -1],
+                        'DCD_norot': ['vert0', 'delvert', -1, -1],
+                        'horizontal_rot': ['vert0', 'delvert', -1, 1],
+                        'horizontal_norot': ['vert0', 'delvert', -1, -1],
+                        }
+
+        chosen_ind_scales = index_scales[chosen_setup]
         [horindex, vertindex] = horvert_indices[chosen_ind_scales[0]]
         [vertangles, horangles] = horvert_angles[chosen_ind_scales[1]]
         verscale = chosen_ind_scales[2]
         horscale = chosen_ind_scales[3]
-
 
         # if (vertsetup is True) & (self.scans[0].metadata.data_file.is_rotated):
         #     # GOOD
@@ -450,7 +447,6 @@ class Experiment:
         #     verscale = -1
         #     horscale = -1
 
-
         # pylint: disable=unused-variable
         outscale = 1
         if axis == 'vert':
@@ -476,9 +472,9 @@ class Experiment:
             pixscale = self.pixel_size
         [highsign, lowsign] = [1 if np.round(val, 5) == 0 else np.sign(
             val) for val in [highsection, lowsection]]
-        outlist = ['horindex', 'vertindex', 'vertangles', 'horangles',\
-                   'verscale', 'horscale', 'pixhigh', 'pixlow', 'outscale',\
-                    'pixscale', 'highsign', 'lowsign', 'highsection', 'lowsection']
+        outlist = ['horindex', 'vertindex', 'vertangles', 'horangles',
+                   'verscale', 'horscale', 'pixhigh', 'pixlow', 'outscale',
+                   'pixscale', 'highsign', 'lowsign', 'highsection', 'lowsection']
         outdict = {}
         for name in outlist:
             outdict[name] = locals().get(name, None)
@@ -765,7 +761,6 @@ class Experiment:
         return [ind, startval, stopval, stepval,
                 float(startind), float(stopind)]
 
-
     def gamdel2rots(self, gamma, delta):
         """
 
@@ -859,6 +854,7 @@ class Experiment:
 
 # ==============full reciprocal space mapping process
 
+
     def binned_reciprocal_space_map_smm(self,
                                         num_threads: int,
                                         map_frame: Frame,
@@ -903,10 +899,10 @@ class Experiment:
         # For simplicity, if qpar_qperp is asked for, we swap to the lab frame.
         # They're the same, but qpar_qperp is an average.
         # original_frame_name = map_frame.frame_name
-        cfg=process_config
+        cfg = process_config
         if map_frame.frame_name == Frame.qpar_qperp:
             map_frame.frame_name = Frame.lab
-          # Compute the optimal finite differences volume.            
+          # Compute the optimal finite differences volume.
 
         if volume_step is None:
             # Overwrite whichever of these we were given explicitly.
@@ -915,15 +911,15 @@ class Experiment:
                 _stop = np.array(volume_stop)
             else:
 
-                _start, _stop = self.q_bounds(map_frame,np.ndarray(cfg.spherical_bragg_vec),\
-                                               oop)
+                _start, _stop = self.q_bounds(map_frame, np.ndarray(cfg.spherical_bragg_vec),
+                                              oop)
 
             step = get_step_from_filesize(_start, _stop, output_file_size)
 
         else:
             step = np.array(volume_step)
-            _start, _stop = self.q_bounds(map_frame,np.ndarray(cfg.spherical_bragg_vec),\
-                                           oop)
+            _start, _stop = self.q_bounds(map_frame, np.ndarray(cfg.spherical_bragg_vec),
+                                          oop)
 
         if map_frame.coordinates == Frame.sphericalpolar:
             step = np.array([0.02, np.pi / 180, np.pi / 180])
@@ -976,9 +972,9 @@ class Experiment:
                                 scan.metadata.data_file.scan_length)),
                         num_threads)]
 
-                with Pool(num_threads, initializer=rsm_init_worker, \
-            initargs=(l, shm_rsm.name, shm_counts.name, shapersm, scan.metadata,\
-            new_metadata, new_motors, num_threads, map_frame, output_file_name)) as pool:
+                with Pool(num_threads, initializer=rsm_init_worker,
+                          initargs=(l, shm_rsm.name, shm_counts.name, shapersm, scan.metadata,
+                                    new_metadata, new_motors, num_threads, map_frame, output_file_name)) as pool:
                     print(f'started pool with num_threads={num_threads}')
                     pool.starmap(bin_maps_with_indices_smm, bin_args)
 
@@ -1023,14 +1019,14 @@ class Experiment:
         return normalised_map, start, stop, step
 
 # =======refactored functions now in fast_rsm.pyfai_interface
-    def createponi(self,outpath,image2dshape,beam_centre=0,offset=0):
-        return new_createponi(self,outpath)
+    def createponi(self, outpath, image2dshape, beam_centre=0, offset=0):
+        return new_createponi(self, outpath)
 
-    def pyfai_moving_exitangles_SMM(self,hf,scanlist,num_threads,output_file_path,\
-                                    pyfaiponi,radrange,radstepval,qmapbins=[800,800],slitratios=None):
-        
-        return new_pyfai_moving_exitangles_smm(self,hf,scanlist,num_threads,output_file_path,\
-                                    pyfaiponi,radrange,radstepval,qmapbins=[800,800],slitratios=None)
+    def pyfai_moving_exitangles_SMM(self, hf, scanlist, num_threads, output_file_path,
+                                    pyfaiponi, radrange, radstepval, qmapbins=[800, 800], slitratios=None):
+
+        return new_pyfai_moving_exitangles_smm(self, hf, scanlist, num_threads, output_file_path,
+                                               pyfaiponi, radrange, radstepval, qmapbins=[800, 800], slitratios=None)
 
     @classmethod
     def from_i07_nxs(cls,
@@ -1115,7 +1111,7 @@ def _match_start_stop_to_step(
         return start, np.ceil(auto_bounds[1] / step) * step
 
     start, stop = (np.floor(user_bounds[0] / step) * step,
-                    np.ceil(user_bounds[1] / step) * step)
+                   np.ceil(user_bounds[1] / step) * step)
     checkstart = np.sum(abs(user_bounds[0] - start) > eps)
     checkstop = np.sum(np.any(abs(stop - user_bounds[1]) > eps))
     checkboth = checkstart + checkstop

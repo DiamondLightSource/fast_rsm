@@ -155,7 +155,7 @@ skipimages = [[],
 # 'pyfai_exitangles' - calculates a map of vertical exit angle Vs horizontal exit angle
 
 # 'pyfai_ivsq'  , 'pyfai_qmap','pyfai_exitangles' ,'full_reciprocal_map'
-process_outputs = []
+process_outputs = ['pyfai_qmap']
 
 
 # Set this to True if you would like each image to be mapped independently.

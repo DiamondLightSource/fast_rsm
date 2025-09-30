@@ -13,6 +13,8 @@ from fast_rsm.rsm_metadata import RSMMetadata
 import fast_rsm.corrections as corrections
 
 logger = logging.getLogger("fastrsm")
+
+
 class Image:
     """
     The class used to store raw image data. Internally, this data is stored as

@@ -1,6 +1,7 @@
 
 from fast_rsm.diamond_utils import run_process_list,\
-        create_standard_experiment,experiment_config
+        create_standard_experiment
+from fast_rsm.config_loader import experiment_config
 
 default_config=experiment_config(scan_numbers)
 default_config['full_path']=__file__

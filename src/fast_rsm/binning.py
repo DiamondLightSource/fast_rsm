@@ -7,6 +7,7 @@ import numpy as np
 
 import mapper_c_utils
 
+
 def _fix_delta_q_geometry(arr: np.ndarray) -> np.ndarray:
     """
     If arr.shape is 3D, make it 2D.

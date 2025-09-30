@@ -2,26 +2,25 @@
 This file contains a suite of utility functions for processing data acquired
 specifically at Diamond.
 """
-
+from types import SimpleNamespace
+from typing import Tuple
+from datetime import datetime
+from time import time
 import os
 import sys
 import multiprocessing
 from pathlib import Path
 import numpy as np
-import yaml
-from types import SimpleNamespace
-from typing import Tuple
 import h5py
-import fast_histogram
-from scipy.constants import physical_constants
-from datetime import datetime
-import nexusformat.nexus as nx
-from diffraction_utils import Frame, Region
-from fast_rsm.binning import weighted_bin_1d, finite_diff_grid
-from fast_rsm.pyfai_interface import *
-from fast_rsm.experiment import Experiment
-from fast_rsm.logging_config import configure_logging,get_frsm_logger
 
+from diffraction_utils import Frame, Region
+from fast_rsm.binning import finite_diff_grid
+from fast_rsm.experiment import Experiment
+from fast_rsm.logging_config import configure_logging, get_frsm_logger
+from fast_rsm.config_loader import check_config_schema
+from fast_rsm.pyfai_interface import pyfai_static_qmap ,pyfai_static_exitangles,\
+pyfai_static_ivsq,pyfai_moving_qmap_smm,pyfai_moving_exitangles_smm,\
+pyfai_moving_ivsq_smm,save_config_variables,createponi
 
 # # The frame/coordinate system you want the map to be carried out in.
 # # Options for frame_name argument are:
@@ -52,46 +51,39 @@ from fast_rsm.logging_config import configure_logging,get_frsm_logger
 # # rotate your sample by an azimuthal angle µ, then 'y' will still be vertically
 # # up, but 'x' and 'z' will have been rotated about 'y' by the angle µ.
 # # Leave this as "None" if you aren't using cylindrical coordinates.
-##cylinder_axis = None
+# cylinder_axis = None
 
 
-
-def experiment_config(scans):
-    # Get the directory where this script is located
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    
-    # Construct the full path to the YAML file
-    config_path = os.path.join(base_dir, "default_config.yaml")
-    
-    # Load the YAML file
-    with open(config_path, "r") as f:
-            config_dict = yaml.safe_load(f)
-    config_dict['scan_numbers']=scans
-    config_dict['default_config_path']=config_path
-
-    return config_dict
-
-    
 def create_standard_experiment(input_config: dict):
+    """
+    uses process configuration to create an experiment object 
+    and setup a logger if requested
+    returns :  Experiment, config, logger
+    """
+    check_config_schema(input_config)
 
-    cfg=SimpleNamespace(**input_config)
-    
+    cfg = SimpleNamespace(**input_config)
+
     configure_logging(cfg.DEBUG_LOG)
-    logger=get_frsm_logger()
-    f = open(cfg.full_path)
-    cfg.joblines = f.readlines()
-    f.close()
-    dps_centres= [cfg.dpsx_central_pixel,cfg.dpsy_central_pixel,cfg.dpsz_central_pixel]
-    cfg.oop= initial_value_checks(dps_centres,cfg.cylinder_axis,cfg.setup,cfg.output_file_size)
-    
+    logger = get_frsm_logger()
+    with open(cfg.full_path) as f:
+        cfg.joblines = f.readlines()
+
+    dps_centres = [cfg.dpsx_central_pixel,
+                   cfg.dpsy_central_pixel, cfg.dpsz_central_pixel]
+    cfg.oop = initial_value_checks(
+        dps_centres, cfg.cylinder_axis, cfg.setup, cfg.output_file_size)
+
     # Max number of cores available for processing.
     cfg.num_threads = multiprocessing.cpu_count()
     cfg.pythonlocation = sys.executable
     data_dir = Path(cfg.local_data_path)
-    # Work out the paths to each of the nexus files. Store as pathlib.Path objects.
+    # Work out the paths to each of the nexus files. Store as pathlib.Path
+    # objects.
     nxs_paths = [data_dir / f"i07-{x}.nxs" for x in cfg.scan_numbers]
 
-    mask_regions_list,specific_pixels =  make_mask_lists(cfg.specific_pixels,cfg.mask_regions)
+    mask_regions_list, specific_pixels = make_mask_lists(
+        cfg.specific_pixels, cfg.mask_regions)
 
     # Finally, instantiate the Experiment object.
     experiment = Experiment.from_i07_nxs(
@@ -102,22 +94,31 @@ def create_standard_experiment(input_config: dict):
     experiment.mask_edf(cfg.edfmaskfile)
     experiment.mask_regions(mask_regions_list)
 
-    adjustment_args=[cfg.detector_distance,dps_centres,cfg.load_from_dat,cfg.scan_numbers,cfg.skipscans,cfg.skipimages,\
-                    cfg.slithorratio,cfg.slitvertratio,data_dir]
-    experiment,cfg.total_images,cfg.slitratios=standard_adjustments(experiment,adjustment_args)
+    adjustment_args = [cfg.detector_distance, dps_centres, cfg.load_from_dat,\
+    cfg.scan_numbers, cfg.skipscans, cfg.skipimages,
+                       cfg.slithorratio, cfg.slitvertratio, data_dir]
+    experiment, cfg.total_images, cfg.slitratios = standard_adjustments(
+        experiment, adjustment_args)
     # grab ub information
-    cfg.ubinfo = [scan.metadata.data_file.nx_instrument.diffcalchdr for scan in experiment.scans]
+    cfg.ubinfo = [
+        scan.metadata.data_file.nx_instrument.diffcalchdr for scan in experiment.scans]
 
     return experiment, cfg, logger
 
-def initial_value_checks(dps_centres,cylinder_axis,setup,output_file_size):
-    dpsx_central_pixel,dpsy_central_pixel,dpsz_central_pixel=dps_centres
+
+def initial_value_checks(dps_centres, cylinder_axis, setup, output_file_size):
+    """
+    does initial checks on dps_centres, cylinder_axis, setup, output_file_size
+    sets oop value
+    returns: oop
+    """
+    dpsx_central_pixel, dpsy_central_pixel, dpsz_central_pixel = dps_centres
     # Warn if dps offsets are silly.
     if ((dpsx_central_pixel > 10) or (dpsy_central_pixel > 10) or
             (dpsz_central_pixel > 10)):
         raise ValueError("DPS central pixel units should be meters. Detected "
-                        "values greater than 10m")
-    
+                         "values greater than 10m")
+
     # Which synchrotron axis should become the out-of-plane (001) direction.
     # Defaults to 'y'; can be 'x', 'y' or 'z'.
     setup_oops = {'vertical': 'x', 'horizontal': 'y', 'DCD': 'y'}
@@ -128,19 +129,25 @@ def initial_value_checks(dps_centres,cylinder_axis,setup,output_file_size):
             "Setup not recognised. Must be 'vertical', 'horizontal' or 'DCD.")
     if output_file_size > 2000:
         raise ValueError("output_file_size must not exceed 2000. "
-                        f"Value received was {output_file_size}.")
-        
+                         f"Value received was {output_file_size}.")
+
     # Overwrite the above oop value depending on requested cylinder axis for polar
     # coords.
     if cylinder_axis is not False:
         oop = cylinder_axis
-    
+
     return oop
 
-def standard_adjustments(experiment,adjustment_args):
-    detector_distance,dps_centres,load_from_dat,scan_numbers,skipscans,skipimages,\
-         slithorratio,slitvertratio,data_dir=adjustment_args
-    dpsx_central_pixel,dpsy_central_pixel,dpsz_central_pixel=dps_centres
+
+def standard_adjustments(experiment, adjustment_args):
+    """
+    carries out standard adjustments to the Experiment object 
+    keeping track of total images,  calculating dps offsets, 
+    setting skipscans and skipimages, setting up slitratio values
+    """
+    detector_distance, dps_centres, load_from_dat, scan_numbers, skipscans, skipimages, \
+        slithorratio, slitvertratio, data_dir = adjustment_args
+    dpsx_central_pixel, dpsy_central_pixel, dpsz_central_pixel = dps_centres
 
     total_images = 0
     for i, scan in enumerate(experiment.scans):
@@ -149,17 +156,18 @@ def standard_adjustments(experiment,adjustment_args):
         if scan.metadata.data_file.using_dps:
             if scan.metadata.data_file.setup == 'DCD':
                 # If we're using the DCD and the DPS, our offset calculation is
-                # somewhat involved. 
+                # somewhat involved.
                 # Work out the in-plane and out-of-plane incident light angles.
                 # To do this, first grab a unit vector pointing along the beam.
                 lab_frame = Frame(Frame.lab, scan.metadata.diffractometer,
-                                coordinates=Frame.cartesian)
+                                  coordinates=Frame.cartesian)
                 beam_direction = scan.metadata.diffractometer.get_incident_beam(
                     lab_frame).array
 
                 # Now do some basic handling of spherical polar coordinates.
                 out_of_plane_theta = np.sin(beam_direction[1])
-                cos_theta_in_plane = beam_direction[2] / np.cos(out_of_plane_theta)
+                cos_theta_in_plane = beam_direction[2] / \
+                    np.cos(out_of_plane_theta)
                 in_plane_theta = np.arccos(cos_theta_in_plane)
 
                 # Work out the total displacement from the undeflected beam of the
@@ -186,21 +194,28 @@ def standard_adjustments(experiment,adjustment_args):
             if load_from_dat:
                 dat_path = data_dir / f"{scan_numbers[i]}.dat"
                 scan.metadata.data_file.populate_data_from_dat(dat_path)
-        # reads in skip information and skips specified images in specified files
+        # reads in skip information and skips specified images in specified
+        # files
 
         if skipscans is not None:
-            if (int(scan_numbers[i]) in skipscans):
+            if int(scan_numbers[i]) in skipscans:
                 scan.skip_images += skipimages[np.where(
                     np.array(skipscans) == int(scan_numbers[i]))[0][0]]
-                
+
     if experiment.scans[0].metadata.data_file.is_rotated:
         slitratios = [slithorratio, slitvertratio]
     else:
         slitratios = [slitvertratio, slithorratio]
 
-    return experiment,total_images,slitratios
+    return experiment, total_images, slitratios
 
-def make_mask_lists(specific_pixels,mask_regions):
+
+def make_mask_lists(specific_pixels, mask_regions):
+    """
+    takes in specific pixels and mask regions
+    makes sure specific pixels x,y is correct way round for analysis
+    sets up mask Region objects, and corrects region x,y
+    """
     # Prepare the pixel mask. First, deal with any specific pixels that we have.
     # Note that these are defined (x, y) and we need (y, x) which are the
     # (slow, fast) axes. So: first we need to deal with that!
@@ -218,71 +233,102 @@ def make_mask_lists(specific_pixels,mask_regions):
         for region in mask_regions_list:
             region.x_start, region.y_start = region.y_start, region.x_start
             region.x_end, region.y_end = region.y_end, region.x_end
-    
-    return mask_regions_list,specific_pixels
 
-def make_new_hdf5(cfg: SimpleNamespace ,scan_index: int, name_start: str,\
+    return mask_regions_list, specific_pixels
+
+
+def make_new_hdf5(cfg: SimpleNamespace, scan_index: int, name_start: str,
                   experiment: Experiment):
+    """
+    makes a new hdf5 file using a process_config, scan_index, 
+    name  and Experiment 
+    """
     name_end = cfg.scan_numbers[scan_index]
     datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
     cfg.projected_name = f'{name_start}_{name_end}_{datetime_str}'
-    cfg.process_start_time= time()
+    cfg.process_start_time = time()
     experiment.load_curve_values(experiment.scans[scan_index])
-    cfg.pyfaiponi =createponi( experiment,cfg.local_output_path)
+    cfg.pyfaiponi = createponi(experiment, cfg.local_output_path)
     return h5py.File(f'{cfg.local_output_path}/{cfg.projected_name}.hdf5', "w")
 
-def run_one_scan_process(cfg,i,experiment,inputscan,runoptions):
-    runfunction,namestart,infostring=runoptions
-    hf = make_new_hdf5(cfg,i,namestart,experiment)
-    runfunction(experiment,hf, inputscan, cfg)
+
+def run_one_scan_process(cfg, i, experiment, inputscan, runoptions):
+    """
+    creates a hdf5 file and then sends off a process option to run
+    """
+    runfunction, namestart, infostring = runoptions
+    hf = make_new_hdf5(cfg, i, namestart, experiment)
+    runfunction(experiment, hf, inputscan, cfg)
     print(f"saved {infostring} data to\
             {cfg.local_output_path}/{cfg.projected_name}.hdf5")
-    total_time = (time() - cfg.process_start_time)/60
+    total_time = (time() - cfg.process_start_time) / 60
     print(f"\n {infostring} calculations took {total_time} minutes")
 
-def run_scanlist_loop(cfg,experiment,runoptions):
+
+def run_scanlist_loop(cfg, experiment, runoptions):
+    """
+    iterates through list of scans and runs requested process
+    options
+    """
     for i, scan in enumerate(experiment.scans):
-        run_one_scan_process(cfg,i,experiment,scan,runoptions)
-
-def run_scanlist_combined(cfg,experiment,runoptions):
-    scanlist=experiment.scans
-    run_one_scan_process(cfg,0,experiment,scanlist,runoptions)
+        run_one_scan_process(cfg, i, experiment, scan, runoptions)
 
 
-def run_process_list(experiment,process_config):
+def run_scanlist_combined(cfg, experiment, runoptions):
+    """
+    sends whole list of scans to run requested process together
+    """
+    scanlist = experiment.scans
+    run_one_scan_process(cfg, 0, experiment, scanlist, runoptions)
+
+
+def get_run_functions(process_config):
+    """
+    returns a dict of functions for mapping either static or moving, depending
+    on configuration requested
+    """
+    cfg = process_config
+    static_functions = {'pyfai_qmap': [pyfai_static_qmap, "Qmap", "2d Qmap"],
+                        'pyfai_exitangles': \
+                        [pyfai_static_exitangles, "exitmap", "2d exit angle map"],
+                        'pyfai_ivsq': [pyfai_static_ivsq, "IvsQ", "1d integration "]}
+
+    moving_functions = {'pyfai_qmap': [pyfai_moving_qmap_smm, "Qmap", "2d Qmap"],
+                        'pyfai_exitangles':\
+                         [pyfai_moving_exitangles_smm, "exitmap", "2d exit angle map"],
+                        'pyfai_ivsq': [pyfai_moving_ivsq_smm, "IvsQ", "1d integration "]}
+
+    if cfg.map_per_image:
+        functions_dict = static_functions
+        scanlist_function = run_scanlist_loop
+    else:
+        functions_dict = moving_functions
+        scanlist_function = run_scanlist_combined
+
+    return functions_dict, scanlist_function
+
+
+def run_process_list(experiment, process_config):
     """
     separate function for sending of jobs defined by process output list and input arguments
     """
-    cfg=process_config
-    # check for deprecated GIWAXS functions and print message if needed
-    for output in cfg.process_outputs:
-        print(deprecation_msg(output))
+    cfg = process_config
 
-    static_functions={'pyfai_qmap':[pyfai_static_qmap,"Qmap","2d Qmap"],\
-                      'pyfai_exitangles':[pyfai_static_exitangles,"exitmap", "2d exit angle map"],\
-                        'pyfai_ivsq':[pyfai_static_ivsq,"IvsQ","1d integration "]}
-    
-    moving_functions={'pyfai_qmap':[pyfai_moving_qmap_smm,"Qmap","2d Qmap"],\
-                      'pyfai_exitangles':[pyfai_moving_exitangles_smm,"exitmap", "2d exit angle map"],\
-                        'pyfai_ivsq':[pyfai_moving_ivsq_smm,"IvsQ","1d integration "]}
-
-    
-    if cfg.map_per_image:
-        functions_dict=static_functions
-        scanlist_function=run_scanlist_loop
-    else:
-        functions_dict=moving_functions
-        scanlist_function=run_scanlist_combined
-    pyfai_options=['pyfai_qmap','pyfai_exitangles','pyfai_ivsq']
+    functions_dict, scanlist_function = get_run_functions(cfg)
+    pyfai_options = ['pyfai_qmap', 'pyfai_exitangles', 'pyfai_ivsq']
     for output in cfg.process_outputs:
         if output in pyfai_options:
-            runoptions=functions_dict[output]
-            scanlist_function(cfg,experiment,runoptions)
+            runoptions = functions_dict[output]
+            scanlist_function(cfg, experiment, runoptions)
 
     if 'full_reciprocal_map' in cfg.process_outputs:
-        run_full_map_process(experiment,cfg)
+        run_full_map_process(experiment, cfg)
 
-def run_full_map_process(experiment,cfg):
+
+def run_full_map_process(experiment, cfg):
+    """
+    runs full reciprocal map processing using a process configuration
+    """
     processing_dir = Path(cfg.local_output_path)
 
     # Here we calculate a sensible file name that hasn't been taken.
@@ -290,7 +336,7 @@ def run_full_map_process(experiment,cfg):
     save_file_name = f"mapped_scan_{cfg.scan_numbers[0]}_{i}"
     save_path = processing_dir / save_file_name
     # Make sure that this name hasn't been used in the past.
-    extensions = [".hdf5",".npy", ".vtk", "_l.txt", "_tth.txt", "_Q.txt", ""]
+    extensions = [".hdf5", ".npy", ".vtk", "_l.txt", "_tth.txt", "_Q.txt", ""]
     while any(os.path.exists(str(save_path) + ext) for ext in extensions):
         i += 1
         save_file_name = f"mapped_scan_{cfg.scan_numbers[0]}_{i}"
@@ -303,7 +349,7 @@ def run_full_map_process(experiment,cfg):
     map_frame = Frame(frame_name=cfg.frame_name, coordinates=cfg.coordinates)
     start_time = time()
     # Calculate and save a binned reciprocal space map, if requested.
-    cfg.mapped_data=experiment.binned_reciprocal_space_map_smm(
+    cfg.mapped_data = experiment.binned_reciprocal_space_map_smm(
         cfg.num_threads, map_frame, cfg,
         output_file_size=cfg.output_file_size, oop=cfg.oop,
         min_intensity_mask=cfg.min_intensity,
@@ -312,16 +358,17 @@ def run_full_map_process(experiment,cfg):
         volume_step=cfg.volume_step,
         map_each_image=cfg.map_per_image)
 
-    
     save_binoviewer_hdf5(str(save_path) + ".npy", str(save_path) +
-                        '.hdf5', cfg)
+                         '.hdf5', cfg)
     print(f"\nSaved binoviewer file to {save_path}.hdf5.\n")
 
     # Finally, print that it's finished We'll use this to work out when the
     # processing is done.
     total_time = time() - start_time
     print(f"\nProcessing took {total_time}s")
-    print(f"This corresponds to {total_time*1000/cfg.total_images}ms per image.\n")
+    print(
+        f"This corresponds to {total_time*1000/cfg.total_images}ms per image.\n")
+
 
 def save_binoviewer_hdf5(path_to_npy: np.ndarray,
                          output_path: str, process_config: SimpleNamespace):
@@ -332,7 +379,7 @@ def save_binoviewer_hdf5(path_to_npy: np.ndarray,
     cfg = process_config
     # Load the volume and the bounds.
     volume, start, stop, step = get_volume_and_bounds(path_to_npy)
-    #cfg.mapped_data
+    # cfg.mapped_data
 
     # binoviewer expects float64s with no NaNs.
     volume = volume.astype(np.float64)
@@ -368,24 +415,24 @@ def save_binoviewer_hdf5(path_to_npy: np.ndarray,
     )
 
     with h5py.File(output_path, "w") as hf:
-        
+
         # Add metadata to the root group
         hf.attrs['file_time'] = datetime.now().isoformat()
         hf.attrs['h5py_version'] = h5py.version.version
         hf.attrs['HDF5_version'] = h5py.version.hdf5_version
 
-        #needs to still be called binoculars for compatibility
-        #make edits in binoviewer so it accepts binoviewer moving forward
-        binoculars_group=hf.create_group("binoculars")
+        # needs to still be called binoculars for compatibility
+        # make edits in binoviewer so it accepts binoviewer moving forward
+        binoculars_group = hf.create_group("binoculars")
         binoculars_group.attrs['type'] = 'Space'
-        axes_group=binoculars_group.create_group("axes")
-        axes_datasets={"h": h_arr, "k": k_arr, "l": l_arr}
-        for name,data in axes_datasets.items():
-            axes_group.create_dataset(name,data=data)
-        
-        binoculars_group.create_dataset("contributions",data=contributions)
-        binoculars_group.create_dataset("counts",data=(volume))
-        save_config_variables(hf,cfg)
+        axes_group = binoculars_group.create_group("axes")
+        axes_datasets = {"h": h_arr, "k": k_arr, "l": l_arr}
+        for name, data in axes_datasets.items():
+            axes_group.create_dataset(name, data=data)
+
+        binoculars_group.create_dataset("contributions", data=contributions)
+        binoculars_group.create_dataset("counts", data=volume)
+        save_config_variables(hf, cfg)
 
     # # Turn those into an axes group.
     # axes_group = nx.NXgroup(h=h_arr, k=k_arr, l=l_arr)
@@ -398,12 +445,12 @@ def save_binoviewer_hdf5(path_to_npy: np.ndarray,
     #             'volume_start', 'volume_step', 'volume_stop',\
     #             'load_from_dat', 'edfmaskfile', 'specific_pixels', \
     #             'mask_regions', 'process_outputs', 'scan_numbers']
-    
+
     # with open(cfg.default_config_path, "r") as f:
     #     default_config_dict = yaml.safe_load(f)
     # #add in extra to defaults that arent set by user, so that parsing defaults finds it
     # default_config_dict['ubinfo']=0
-    # default_config_dict['pythonlocation']=0 
+    # default_config_dict['pythonlocation']=0
     # default_config_dict['joblines']=0
     # outvars=vars(cfg)
     # # Get a list of all available variables
@@ -439,6 +486,7 @@ def save_binoviewer_hdf5(path_to_npy: np.ndarray,
     # # Save it!
     # bin_hdf.save(output_path)
 
+
 def get_volume_and_bounds(path_to_npy: str) -> Tuple[np.ndarray]:
     """
     Takes the path to a .npy file. Loads the volume stored in the .npy file, and
@@ -468,4 +516,3 @@ def get_volume_and_bounds(path_to_npy: str) -> Tuple[np.ndarray]:
 
     # And return what we were asked for!
     return volume, start, stop, step
-

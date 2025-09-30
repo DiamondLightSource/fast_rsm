@@ -2,11 +2,11 @@ setup: 'horizontal'
 experimental_hutch: 1
 local_data_path: 'path' 
 local_output_path: 'path'  
-beam_centre: (119, 1564)
+beam_centre: !!python/tuple [119, 1564]
 detector_distance: 0.18
-slitvertratio: 1
-slithorratio: 1
-alphacritical: 0
+slitvertratio: 1.0
+slithorratio: 1.0
+alphacritical: 0.0
 using_dps: False
 dpsx_central_pixel: 0
 dpsy_central_pixel: 0
@@ -14,17 +14,17 @@ dpsz_central_pixel: 0
 output_file_size: 50
 save_vtk: False
 save_npy: False
-volume_start: None
-volume_stop: None
-volume_step: None
+volume_start: null
+volume_stop: null
+volume_step: null
 load_from_dat: False
-radialrange: (0, 60)
+radialrange: !!python/tuple [0, 60]
 radialstepval: 0.01
-qmapbins: (1200, 1200)
+qmapbins: !!python/tuple [1200, 1200]
 ivqbins: 1000
-edfmaskfile: None
-specific_pixels: None 
-mask_regions: None
+edfmaskfile: null
+specific_pixels: null 
+mask_regions: null
 min_intensity: 0.
 skipscans: []
 skipimages: [[],[]]
