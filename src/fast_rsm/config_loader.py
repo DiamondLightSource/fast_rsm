@@ -112,7 +112,7 @@ def check_config_schema(input_config: dict):
         raise se
 
 
-def experiment_config(scans):
+def experiment_config(scans, global_vals: SimpleNamespace):
     """
     create an Experiment instance using the default settings
     """
@@ -124,7 +124,7 @@ def experiment_config(scans):
 
     # Load the YAML file
     with open(config_path, "r",encoding='utf-8') as f:
-        config_dict = yaml.load(f, Loader=yaml.FullLoader)
+        config_dict = yaml.load(f, Loader=yaml.UnsafeLoader)
     config_dict['scan_numbers'] = scans
     config_dict['default_config_path'] = config_path
 
