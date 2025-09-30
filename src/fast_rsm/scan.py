@@ -6,9 +6,6 @@ information relating to a reciprocal space scan.
 # pylint: disable=protected-access
 # pylint: disable=global-statement
 
-
-
-import copy
 import traceback
 from multiprocessing import current_process
 from multiprocessing.shared_memory import SharedMemory
@@ -16,16 +13,13 @@ from multiprocessing import Lock
 from pathlib import Path
 from typing import Union, Tuple, List, Dict
 import logging
-from pyFAI.multi_geometry import MultiGeometry
-import pyFAI
-from pyFAI import units
+
 
 import numpy as np
 
-from diffraction_utils import  Frame, I10Nexus, Vector3
-from diffraction_utils.diffractometers import I10RasorDiffractometer
+from diffraction_utils import  Frame
 
-import fast_rsm.io as io
+from fast_rsm import io
 from fast_rsm.binning import weighted_bin_3d
 from fast_rsm.image import Image
 from fast_rsm.rsm_metadata import RSMMetadata
@@ -467,16 +461,14 @@ class Scan:
         stop += padding
         return start, stop
 
-    def from_i10(cls,
-                 path_to_nx: Union[str, Path],
+    @staticmethod
+    def from_i10(path_to_nx: Union[str, Path],
                  beam_centre: Tuple[int],
                  detector_distance: float,
-                 sample_oop: Vector3,
+                 setup: str,
                  path_to_data: str = ''):
         """
-        Instantiates a Scan from the path to an I10 nexus file, a beam centre
-        coordinate, a detector distance (this isn't stored in i10 nexus files)
-        and a sample out-of-plane vector.
+        Aliases to io.from_i10.
 
         Args:
             path_to_nx:
@@ -485,27 +477,22 @@ class Scan:
                 A (y, x) tuple of the beam centre, measured in the usual image
                 coordinate system, in units of pixels.
             detector_distance:
-                The distance between the sample and the detector, which cant
-                be stored in i10 nexus files so needs to be given by the user.
-            sample_oop:
-                An instance of a diffraction_utils Vector3 which descrbes the
-                sample out of plane vector.
+                The distance between the sample and the detector.
+            setup:
+                What was the experimental setup? Can be "vertical", "horizontal"
+                or "DCD".
             path_to_data:
                 Path to the directory in which the images are stored. Defaults
                 to '', in which case a bunch of reasonable directories will be
                 searched for the images.
+
+        Returns:
+            Corresponding instance of Scan.
         """
-        # Load the nexus file.
-        i10_nexus = I10Nexus(path_to_nx, path_to_data, detector_distance)
+        return io.from_i10(path_to_nx, beam_centre, detector_distance,
+                           setup, path_to_data)
+        
 
-        # Load the state of the RASOR diffractometer; prepare the metadata.
-        diff = I10RasorDiffractometer(i10_nexus, sample_oop, 'area')
-        meta = RSMMetadata(diff, beam_centre)
-
-        # Make sure the sample_oop vector's frame's diffractometer is correct.
-        sample_oop.frame.diffractometer = diff
-
-        return cls(meta)
 
     @staticmethod
     def from_i07(path_to_nx: Union[str, Path],
