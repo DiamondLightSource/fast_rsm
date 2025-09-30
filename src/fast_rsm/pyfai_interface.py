@@ -183,7 +183,7 @@ def save_config_variables(hf, process_config):
     config_group = hf.create_group('i07configuration')
     outdict = vars(cfg)
     with open(cfg.default_config_path, "r") as f:
-        default_config_dict = yaml.safe_load(f)
+        default_config_dict = yaml.safe_load(f,Loader=yaml.FullLoader)
     # add in extra to defaults that arent set by user, so that parsing
     # defaults finds it
     default_config_dict['ubinfo'] = 0

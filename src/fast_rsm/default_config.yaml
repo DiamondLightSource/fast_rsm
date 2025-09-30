@@ -1,7 +1,7 @@
 setup: 'horizontal'
 experimental_hutch: 1
-local_data_path: 'path' 
-local_output_path: 'path'  
+local_data_path: 'path'
+local_output_path: 'path'
 beam_centre: !!python/tuple [119, 1564]
 detector_distance: 0.18
 slitvertratio: 1.0
