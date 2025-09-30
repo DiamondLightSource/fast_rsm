@@ -1,7 +1,6 @@
 
 from fast_rsm.diamond_utils import run_process_list,\
         create_standard_experiment
-from fast_rsm.config_loader import experiment_config
 from types import SimpleNamespace
 
 #get path to this job file
@@ -9,7 +8,7 @@ job_file_path=__file__
 
 #create experiment object, process configuration and logger
 experiment,process_config,logger=\
-create_standard_experiment(SimpleNamespace(**global()))
+create_standard_experiment(SimpleNamespace(**globals()))
 
 #=================================================================================
 ####============SPECIAL ADJUSTMENTS ==============================================
