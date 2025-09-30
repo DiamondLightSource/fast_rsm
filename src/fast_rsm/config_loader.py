@@ -112,7 +112,7 @@ def check_config_schema(input_config: dict):
         raise se
 
 
-def experiment_config(scans, global_vals: SimpleNamespace):
+def experiment_config(scans):
     """
     create an Experiment instance using the default settings
     """
