@@ -14,7 +14,16 @@ from diffraction_utils.diffractometers import I10RasorDiffractometer
 
 from fast_rsm.rsm_metadata import RSMMetadata
 from fast_rsm.scan import Scan
+from fast_rsm.config_loader import check_config_schema,experiment_config
 
+@fixture
+def test_default_config():
+    """
+    returns a default_config dict with scan_numbers=[1234]    
+    """
+    defaultconfig=experiment_config([1234])
+    defaultconfig['full_path']=__file__
+    return defaultconfig
 
 @fixture
 def path_to_frsm_example_data():
