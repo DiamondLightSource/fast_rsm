@@ -147,7 +147,7 @@ if __name__ == "__main__":
     count=0
     limit=0
     #call subprocess to submit job using wilson
-    subprocess.run(["ssh","wilson","cd fast_rsm \nsbatch mapscript.sh"])
+    subprocess.run(["ssh","wilson",f"\nsbatch {script_path}"])
 
     #have check loop to find a new slurm out file
     while endslurms[-1]==startslurms[-1]:
