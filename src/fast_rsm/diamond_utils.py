@@ -201,7 +201,7 @@ def make_mask_lists(specific_pixels, mask_regions):
     if mask_regions is not None:
         mask_regions_list = [maskval if isinstance(
             maskval, Region) else Region(*maskval) for maskval in mask_regions]
-    mask_regions=[[val.x_start,val.x_end,val.y_start,val.y_end] if isinstance(val,Region) else val for val in mask_regions]
+        mask_regions=[[val.x_start,val.x_end,val.y_start,val.y_end] if isinstance(val,Region) else val for val in mask_regions]
     # Now swap (x, y) for each of the regions.
     if mask_regions_list is not None:
         for region in mask_regions_list:
