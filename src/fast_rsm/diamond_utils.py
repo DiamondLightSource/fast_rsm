@@ -332,8 +332,7 @@ def run_full_map_process(experiment, cfg):
         volume_step=cfg.volume_step,
         map_each_image=cfg.map_per_image)
 
-    save_binoviewer_hdf5(str(save_path) + ".npy", str(save_path) +
-                         '.hdf5', cfg)
+    save_binoviewer_hdf5(str(save_path)+'.hdf5', cfg)
     print(f"\nSaved binoviewer file to {save_path}.hdf5.\n")
 
     # Finally, print that it's finished We'll use this to work out when the
@@ -344,15 +343,14 @@ def run_full_map_process(experiment, cfg):
         f"This corresponds to {total_time*1000/cfg.total_images}ms per image.\n")
 
 
-def save_binoviewer_hdf5(path_to_npy: np.ndarray,
-                         output_path: str, process_config: SimpleNamespace):
+def save_binoviewer_hdf5(output_path: str, process_config: SimpleNamespace):
     """
     Saves the .npy file as a binoviewer-readable hdf5 file.
     """
 
     cfg = process_config
     # Load the volume and the bounds.
-    volume, start, stop, step = get_volume_and_bounds(path_to_npy)
+    volume, start, stop, step = cfg.mapped_data
     # cfg.mapped_data
 
     # binoviewer expects float64s with no NaNs.
