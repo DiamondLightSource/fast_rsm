@@ -80,7 +80,7 @@ config_schema = Schema({
     "ivqbins": int,
     "edfmaskfile": Or(None, str),
     "specific_pixels": Or(None, list),
-    "mask_regions": Or(None, list),
+    "mask_regions": Or(None, list, tuple),
     "min_intensity": float,
     "skipscans": list,
     "skipimages": list,
