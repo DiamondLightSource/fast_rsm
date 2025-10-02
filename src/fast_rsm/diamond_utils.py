@@ -56,7 +56,7 @@ def create_standard_experiment(global_vals: SimpleNamespace):
     # objects.
     nxs_paths = [data_dir / f"i07-{x}.nxs" for x in cfg.scan_numbers]
 
-    mask_regions_list, specific_pixels = make_mask_lists(
+    mask_regions_list, specific_pixels,cfg.mask_regions = make_mask_lists(
         cfg.specific_pixels, cfg.mask_regions)
 
     # Finally, instantiate the Experiment object.
@@ -201,14 +201,14 @@ def make_mask_lists(specific_pixels, mask_regions):
     if mask_regions is not None:
         mask_regions_list = [maskval if isinstance(
             maskval, Region) else Region(*maskval) for maskval in mask_regions]
-
+    mask_regions=[[val.x_start,val.x_end,val.y_start,val.y_end] if isinstance(val,Region) else val for val in mask_regions]
     # Now swap (x, y) for each of the regions.
     if mask_regions_list is not None:
         for region in mask_regions_list:
             region.x_start, region.y_start = region.y_start, region.x_start
             region.x_end, region.y_end = region.y_end, region.x_end
 
-    return mask_regions_list, specific_pixels
+    return mask_regions_list, specific_pixels,mask_regions
 
 
 def make_new_hdf5(cfg: SimpleNamespace, scan_index: int, name_start: str,
