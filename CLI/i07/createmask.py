@@ -55,7 +55,7 @@ if __name__ == "__main__":
     HELP_STR = (
         "Image from chosen scan to create a mask for, defaults to 0 "
     )
-    parser.add_argument("-s", "--image_number", help=HELP_STR,default=0)
+    parser.add_argument("-im", "--image_number", help=HELP_STR,default=0)
     args = parser.parse_args()
 
     impath = get_im_path(args.dir_path, args.scan_number,args.image_number)
