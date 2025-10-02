@@ -22,7 +22,7 @@ def get_im_path(directorypath, scan_number,image_number):
     found_nexus = I07Nexus(filepath, directorypath)
     if found_nexus.has_hdf5_data == True:
         hf = h5py.File(found_nexus.local_hdf5_path)
-        imdata = hf[found_nexus.hdf5_internal_path][image_number]
+        imdata = hf[found_nexus.hdf5_internal_path][int(image_number)]
         imout = Image.fromarray(imdata, mode='I')
         fname = found_nexus.local_hdf5_path.split('/')[-1].strip('.h5')
         home_dir = os.path.expanduser('~')
