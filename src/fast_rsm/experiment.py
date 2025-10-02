@@ -910,7 +910,6 @@ class Experiment:
                 _start = np.array(volume_start)
                 _stop = np.array(volume_stop)
             else:
-
                 _start, _stop = self.q_bounds(map_frame, np.ndarray(cfg.spherical_bragg_vec),
                                               oop)
 
