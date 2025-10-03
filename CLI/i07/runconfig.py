@@ -171,13 +171,14 @@ if __name__ == "__main__":
         process = subprocess.Popen(["tail","-f",f"{Path.home()}/fast_rsm//{endslurms[-1]}"], stdout=subprocess.PIPE, text=True)
         target_phrase="PROCESSING FINISHED"
         err_msgs=["Errno","error", "Error" ]
+        sparse_msg=["Sparse matrix"]
         try:
             for line in process.stdout:
                 print(line.strip())  # Print each line of output
                 if re.search(target_phrase, line):
                     print(f"Target phrase '{target_phrase}' found. Closing tail.")
                     break
-                if any(s in line for s in err_msgs) & ('ForkPoolWorker' not in line):
+                if any(s in line for s in err_msgs) and ('ForkPoolWorker' not in line) and not any(s in line for s in sparse_msg):
                     print("error found. closing tail")
                     break
         finally:
