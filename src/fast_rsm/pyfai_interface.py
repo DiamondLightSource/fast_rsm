@@ -100,7 +100,7 @@ def get_input_args(experiment, scan, process_config: SimpleNamespace):
     cfg = process_config
     fullrange = np.arange(0, cfg.scanlength, cfg.scalegamma)
     selectedindices = [
-        n for n in fullrange if n not in cfg.skipimages]
+        n for n in fullrange if n not in cfg.skipimages[cfg.scan_ind]]
     if cfg.multi:
         inputindices = chunk(selectedindices, cfg.num_threads)
     else:
@@ -568,6 +568,7 @@ def pyfai_moving_exitangles_smm(experiment, hf, scanlist, process_config):
             cfg.anglimits, cfg.scanlength, cfg.scanlistnew = \
             pyfai_setup_limits(experiment,scan, experiment.calcanglim, cfg.slitratios)
             cfg.scalegamma = 1
+            cfg.scan_ind=scanind
             input_args = get_input_args(experiment, scan, cfg)
             print(f'starting process pool with num_threads=\
                   {cfg.num_threads} for scan {scanind+1}/{len(cfg.scanlistnew)}')
@@ -614,6 +615,7 @@ def pyfai_moving_qmap_smm(experiment, hf, scanlist, process_config):
             cfg.qlimits, cfg.scanlength, cfg.scanlistnew = \
             pyfai_setup_limits(experiment,scan, experiment.calcqlim, cfg.slitratios)
             cfg.scalegamma = 1
+            cfg.scan_ind=scanind
             input_args = get_input_args(experiment, scan, cfg)
             print(
                 f'starting process pool with num_threads=\
@@ -687,6 +689,7 @@ def pyfai_moving_ivsq_smm(experiment, hf, scanlist, process_config):
             pyfai_setup_limits(experiment,scan, experiment.calcqlim, cfg.slitratios)
             start_time = time()
             cfg.scalegamma = 1
+            cfg.scan_ind=scanind
             input_args = get_input_args(experiment, scan, cfg)
             print(
                 f'starting process pool with num_threads=\
@@ -1026,6 +1029,7 @@ def pyfai_static_exitangles(experiment, hf, scan,
     all_ylabels = []
     all_mapaxisinfo = []
     cfg.multi = False
+    cfg.scan_ind=0
     with Pool(processes=cfg.num_threads) as pool:
         input_args = get_input_args(experiment, scan, cfg)
         results = pool.starmap(pyfai_stat_exitangles_worker, input_args)
@@ -1073,6 +1077,7 @@ def pyfai_static_qmap(experiment, hf, scan, process_config: SimpleNamespace):
     all_xlabels = []
     all_ylabels = []
     cfg.multi = False
+    cfg.scan_ind=0
     with Pool(processes=cfg.num_threads) as pool:
         input_args = get_input_args(experiment, scan, cfg)
         results = pool.starmap(pyfai_stat_qmap_worker, input_args)
@@ -1127,6 +1132,7 @@ def pyfai_static_ivsq(experiment, hf, scan, process_config: SimpleNamespace):
     all_two_ths = []
     all_qs = []
     cfg.multi = False
+    cfg.scan_ind=0
     with Pool(processes=cfg.num_threads) as pool:
         input_args = get_input_args(experiment, scan, cfg)
         results = pool.starmap(pyfai_stat_ivsq_worker, input_args)
