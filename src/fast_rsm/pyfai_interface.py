@@ -100,7 +100,7 @@ def get_input_args(experiment, scan, process_config: SimpleNamespace):
     cfg = process_config
     fullrange = np.arange(0, cfg.scanlength, cfg.scalegamma)
     selectedindices = [
-        n for n in fullrange if n not in cfg.skipimages[cfg.scan_ind]]
+            n for n in fullrange if n not in scan.skip_images]
     if cfg.multi:
         inputindices = chunk(selectedindices, cfg.num_threads)
     else:
@@ -568,7 +568,6 @@ def pyfai_moving_exitangles_smm(experiment, hf, scanlist, process_config):
             cfg.anglimits, cfg.scanlength, cfg.scanlistnew = \
             pyfai_setup_limits(experiment,scan, experiment.calcanglim, cfg.slitratios)
             cfg.scalegamma = 1
-            cfg.scan_ind=scanind
             input_args = get_input_args(experiment, scan, cfg)
             print(f'starting process pool with num_threads=\
                   {cfg.num_threads} for scan {scanind+1}/{len(cfg.scanlistnew)}')
