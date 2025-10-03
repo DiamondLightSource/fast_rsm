@@ -361,8 +361,8 @@ def pyfai_setup_limits(experiment, scanlist, limitfunction, slitratios):
     limver = None
     for scan in scanlistnew:
         experiment.load_curve_values(scan)
-        dcd_sample_dist = 1e-3 * scan.metadata.diffractometer._dcd_sample_distance
         if experiment.setup == 'DCD':
+            dcd_sample_dist = 1e-3 * scan.metadata.diffractometer._dcd_sample_distance
             tthdirect = -1 * \
                 np.degrees(np.arctan(experiment.projectionx / dcd_sample_dist))
         else:

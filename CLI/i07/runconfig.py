@@ -120,7 +120,7 @@ if __name__ == "__main__":
     f.close()
 
     #update mapscript in the /home/fast_rsm  directory using template, and filling in variables
-    script_path=f'{Path(OUTDIR)}/mapscript.sh'
+    script_path=f'{Path.home()}/mapscript.sh'
     print(script_path)
     f=open(script_path,'w')
     for line in lines:
