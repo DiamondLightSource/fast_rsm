@@ -651,35 +651,36 @@ def pyfai_moving_ivsq_smm(experiment, hf, scanlist, process_config):
      pyfai_setup_limits(experiment,scanlist, experiment.calcanglim, cfg.slitratios)
     absranges = np.abs(cfg.fullranges)
     radmax = np.max(absranges)
-    con1 = np.abs(
-        cfg.fullranges[0]) < np.abs(
-        cfg.fullranges[0] -
-        cfg.fullranges[1])
-    con2 = np.abs(
-        cfg.fullranges[2]) < np.abs(
-        cfg.fullranges[2] -
-        cfg.fullranges[3])
 
-    if (con1) & (con2):
-        cfg.radrange = (0, radmax)
+    if cfg.radialrange is None:
+        con1 = np.abs(cfg.fullranges[0]) < \
+            np.abs(cfg.fullranges[0] -
+            cfg.fullranges[1])
+        con2 = np.abs(
+            cfg.fullranges[2]) < np.abs(
+            cfg.fullranges[2] -
+            cfg.fullranges[3])
 
-    elif con1:
-        cfg.radrange = np.sort([absranges[2], absranges[3]])
-    elif con2:
-        cfg.radrange = np.sort([absranges[0], absranges[1]])
-    else:
-        cfg.radrange = (np.max([absranges[0], absranges[2]]),
-                        np.max([absranges[1], absranges[3]]))
+        if (con1) & (con2):
+            cfg.radialrange = (0, radmax)
 
-    cfg.nqbins = int(
-        np.ceil(
-            (cfg.radrange[1] -
-             cfg.radrange[0]) /
-            cfg.radialstepval))
+        elif con1:
+            cfg.radialrange = np.sort([absranges[2], absranges[3]])
+        elif con2:
+            cfg.radialrange = np.sort([absranges[0], absranges[1]])
+        else:
+            cfg.radialrange = (np.max([absranges[0], absranges[2]]),
+                            np.max([absranges[1], absranges[3]]))
+    if cfg.ivqbins is None:
+        cfg.ivqbins = int(
+            np.ceil(
+                (cfg.radialrange[1] -
+                cfg.radialrange[0]) /
+                cfg.radialstepval))
     cfg.multi = True
     with SharedMemoryManager() as smm:
 
-        cfg.shapeqi = (3, np.abs(cfg.nqbins))
+        cfg.shapeqi = (3, np.abs(cfg.ivqbins))
         shm_intensities, shm_counts, arrays_arr, counts_arr, lock = start_smm(
             smm, cfg.shapeqi)
 
@@ -821,12 +822,11 @@ def pyfai_move_ivsq_worker(experiment, imageindices,
             img_data_list.append(img_data)
             ais.append(my_ai)
 
-        ivqbins = cfg.shapeqi[1]
         mg = MultiGeometry(ais, unit=unit_tth_ip,
                            wavelength=experiment.incident_wavelength,
                            radial_range=(
-                               cfg.radrange[0], cfg.radrange[1]))
-        result1d = mg.integrate1d(img_data_list, ivqbins)
+                               cfg.radialrange[0], cfg.radialrange[1]))
+        result1d = mg.integrate1d(img_data_list, cfg.ivqbins)
         q_from_theta = [experiment.calcq(
             val, experiment.incident_wavelength) for val in result1d.radial]
         # theta_from_q= [experiment.calctheta(val, experiment.incident_wavelength) \

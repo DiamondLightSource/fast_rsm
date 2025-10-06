@@ -2,7 +2,7 @@ setup: 'horizontal'
 experimental_hutch: 1
 local_data_path: 'path'
 local_output_path: 'path'
-beam_centre: !!python/tuple [119, 1564]
+beam_centre: null
 detector_distance: 0.18
 slitvertratio: 1.0
 slithorratio: 1.0
@@ -18,10 +18,10 @@ volume_start: null
 volume_stop: null
 volume_step: null
 load_from_dat: False
-radialrange: !!python/tuple [0, 60]
-radialstepval: 0.01
+radialrange: null
+radialstepval: null
 qmapbins: !!python/tuple [1200, 1200]
-ivqbins: 1000
+ivqbins: null
 edfmaskfile: null
 specific_pixels: null 
 mask_regions: null
