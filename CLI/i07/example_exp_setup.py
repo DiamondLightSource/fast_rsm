@@ -33,7 +33,7 @@ detector_distance = 0.18
 
 # if not using sample slits leave both as None, if using slits set to
 # slit-detector/sample-detector  e.g. 0.55/0.89
-slitvertratio = 0.55 / 0.89  # None
+slitvertratio =  None #0.55 / 0.89 
 slithorratio = None
 
 # critical edge of sample in degrees
@@ -86,18 +86,25 @@ load_from_dat = False
 
 
 # ********GIWAXS WITH MOVING DETECTOR AND LARGE NUMBER OF IMAGES TO BE COMBINED INTO ONE INTEGRATION
-# if calculating pyfai integration on scan with moving detector and large number of images, need to
-# specify range of q or 2th so that number of bins can be calculated
-radialrange = (0, 60)
-radialstepval = 0.01
+# if calculating pyfai integration on scan with moving detector and large number of images, there is the option to
+# specify range of q or theta so that number of bins can be calculated. If commented out this will automatically calculate 
+# the limits of the dataset #e.g.
+#radialrange = (0, 60)
+
+#specify steps in theta to calculate the number of bins - if commented out this will default to 0.01
+#radialstepval =None
+###==OR
+# ## specify directly the number of bins for I Vs Q profile - which will mean radialstepval will have no effect. 
+# ivqbins = None # e.g. 1000
+
+
+# *******calculating azimuthal integrations from single images to give I Vs Q plots
 
 # *********calculating qpara Vs qperp maps,
 # set number of bins in the form (q_parallel, q_perpendicular)
 qmapbins = (1200, 1200)
 
-# *******calculating azimuthal integrations from single images to give I Vs Q plots
-# number of bins in Q
-ivqbins = 1000
+
 
 # ===========MASKING=============
 # add path to edfmaskfile created with pyFAI gui accessed via 'makemask'

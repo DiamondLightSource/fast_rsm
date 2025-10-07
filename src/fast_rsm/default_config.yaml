@@ -19,7 +19,7 @@ volume_stop: null
 volume_step: null
 load_from_dat: False
 radialrange: null
-radialstepval: null
+radialstepval: 0.01
 qmapbins: !!python/tuple [1200, 1200]
 ivqbins: null
 edfmaskfile: null
