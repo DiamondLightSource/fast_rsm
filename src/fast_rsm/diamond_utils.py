@@ -16,7 +16,7 @@ import h5py
 from diffraction_utils import Frame, Region
 from fast_rsm.binning import finite_diff_grid
 from fast_rsm.experiment import Experiment
-from fast_rsm.logging_config import configure_logging, get_frsm_logger
+from fast_rsm.logging_config import configure_logging, get_debug_logger
 from fast_rsm.config_loader import check_config_schema,experiment_config
 from fast_rsm.pyfai_interface import pyfai_static_qmap ,pyfai_static_exitangles,\
 pyfai_static_ivsq,pyfai_moving_qmap_smm,pyfai_moving_exitangles_smm,\
@@ -39,7 +39,7 @@ def create_standard_experiment(global_vals: SimpleNamespace):
     cfg = SimpleNamespace(**default_config)
 
     configure_logging(cfg.DEBUG_LOG)
-    logger = get_frsm_logger()
+    debug_logger= get_debug_logger()
     with open(cfg.full_path,encoding='utf-8') as f:
         cfg.joblines = f.readlines()
 
@@ -77,7 +77,7 @@ def create_standard_experiment(global_vals: SimpleNamespace):
     cfg.ubinfo = [
         scan.metadata.data_file.nx_instrument.diffcalchdr for scan in experiment.scans]
 
-    return experiment, cfg, logger
+    return experiment, cfg, debug_logger
 
 
 def initial_value_checks(dps_centres, cylinder_axis, setup, output_file_size):

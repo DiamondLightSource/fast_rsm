@@ -2,39 +2,42 @@
 custom module to contain methods for creating custom a custom logger
 """
 import logging
-import logging.handlers
-import os
+import logging.config
+import getpass
 
-# Centralized logging flag
-_logging_enabled = False
-_logger_name="fastrsm"
-_log_path = os.path.join('/dls/science/groups/das/ExampleData/i07/fast_rsm_example_data', 'debug.log')
+_LOGGING_ENABLED = False
+
 
 def configure_logging(enabled: bool):
-    global _logging_enabled
+    """
+    set logger either enabled or disabled
+    """
+    global _LOGGING_ENABLED
     print(f"change logging to {enabled}")
-    _logging_enabled = enabled
+    _LOGGING_ENABLED = enabled
 
-def get_frsm_logger():
+
+def start_frsm_loggers(version_path):
     """
-    Create or retrieve a logger for fast_rsm with consistent file logging.
+    initiate loggers for fast_rsm - debug and error loggers
     """
-    logger = logging.getLogger(_logger_name)
+    logging.config.fileConfig(\
+        f'{version_path}/fast_rsm/src/fast_rsm/logging.ini',\
+              disable_existing_loggers=False)
+    debug_logger=logging.getLogger('fastsm_debug')
+    error_logger=logging.getLogger('fastsm_error')
+    if not _LOGGING_ENABLED:
+        debug_logger.setLevel(logging.CRITICAL)
+    return debug_logger,error_logger
 
-    if not any(isinstance(h, logging.handlers.RotatingFileHandler) for h in logger.handlers):
-        logger.setLevel(logging.DEBUG if _logging_enabled else logging.CRITICAL)
-        file_handler = logging.handlers.RotatingFileHandler(
-            _log_path, maxBytes=500000, backupCount=1
-        )
-        file_handler.setLevel(logging.DEBUG)
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
+def get_debug_logger():
+    """
+    return already initialised debug logger
+    """
+    return logging.getLogger('fastsm_debug')
 
-    if _logging_enabled:
-        print(f'Logging enabled at {_log_path}')
-        logger.info("Logger initialized")
-    else:
-        print("Logging disabled")
-
-    return logger
+def log_error_info(jobfile,slurmfile,error_logger):
+    """
+    pass error info to logger
+    """
+    error_logger.error(f"{getpass.getuser()}\t{jobfile}\t{slurmfile}")

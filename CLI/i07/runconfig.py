@@ -10,19 +10,33 @@ import argparse
 import os
 from datetime import datetime
 
+import sys
 import numpy as np
 
 from diffraction_utils import I07Nexus, Frame
 from fast_rsm.scan import Scan
+from fast_rsm.logging_config import start_frsm_loggers,log_error_info
 import argparse
 import os
-from yaml import load, dump, Loader
 from pathlib import Path
 import subprocess
 import time
 import re
 
-import sys
+
+
+
+
+def exp_lines_generator(filepath):
+    """
+    parse exp setup file and ignore previous version which has import section at top
+    """
+    module_keywords=['import','""','First we need',"If you're interested",]
+    with open(filepath, 'r',encoding='utf-8') as file:
+        for fline in file:
+            if any(s in fline for s in module_keywords):
+                continue
+            yield fline
 
 
 
@@ -65,13 +79,11 @@ if __name__ == "__main__":
 
     # Extract the arguments from the parser.
     args = parser.parse_args()
-    with open(args.exp_path) as f1:
-        lines1=f1.readlines()
-
-    with open(args.calc_path) as f2:
+    with open(args.calc_path,encoding='utf-8') as f2:
         lines2=f2.readlines()
 
-    outline=[line for line in lines1 if 'local_output' in line]
+    debug_logger,error_logger=start_frsm_loggers(version_path)
+    outline=[line for line in exp_lines_generator(args.exp_path) if 'local_output' in line]
     if len(outline)==0:
         OUTDIR=args.out_path
     else:
@@ -107,32 +119,35 @@ if __name__ == "__main__":
                 "naming counter hit limit therefore exiting ")   
     
     #save variables to job file using job template
-    f=open(save_path,'x')
-    f.write(''.join(lines1))
-    f.write(f'scan_numbers= {SCANS}\n')
-    f.write(''.join(lines2))
-    f.close()
+    with open(save_path,'x',encoding='utf-8') as jobf:
+        for line in exp_lines_generator(args.exp_path):
+            jobf.write(line)
+        
+        jobf.write(f'scan_numbers= {SCANS}\n')
+        jobf.write(f'DEBUG_LOG={args.debuglogging}\n')
+        jobf.write(''.join(lines2))
+    os.chmod(save_path,0o777)
     
     
     #load in template mapscript, new paths
-    f=open(f'{version_path}fast_rsm/CLI/i07/mapscript_template.sh')
-    lines=f.readlines()
-    f.close()
-
+    with open(f'{version_path}fast_rsm/CLI/i07/mapscript_template.sh',\
+              'r',encoding='utf-8') as maptemplate:
+        maplines=maptemplate.readlines()
+    datetime_str=datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
     #update mapscript in the /home/fast_rsm  directory using template, and filling in variables
-    script_path=f'{Path.home()}/mapscript.sh'
+    script_path=f'{Path.home()}/mapscript_{datetime_str}.sh'
     print(script_path)
-    f=open(script_path,'w')
-    for line in lines:
-        phrase_matches=list(re.finditer(r'\${[^}]+\}',line))
-        phrase_positions=[(match.start(),match.end()) for match in phrase_matches]
-        outline=line
-        for pos in phrase_positions:
-            phrase=line[pos[0]:pos[1]]
-            outphrase=phrase.strip('$').strip('{').strip('}')
-            outline=outline.replace(phrase,str(locals()[f'{outphrase}']))
-        f.write(outline)
-    f.close()
+    with open(script_path,'w',encoding='utf-8') as mf:
+        for line in maplines:
+            phrase_matches=list(re.finditer(r'\${[^}]+\}',line))
+            phrase_positions=[(match.start(),match.end()) for match in phrase_matches]
+            outline=line
+            for pos in phrase_positions:
+                phrase=line[pos[0]:pos[1]]
+                outphrase=phrase.strip('$').strip('{').strip('}')
+                outline=outline.replace(phrase,str(locals()[f'{outphrase}']))
+            mf.write(outline)
+
     #get list of slurm out files in home directory
     startfiles=os.listdir(f'{Path.home()}/fast_rsm')
     startslurms=[x for x in startfiles if '.out' in x]
@@ -147,7 +162,8 @@ if __name__ == "__main__":
     count=0
     limit=0
     #call subprocess to submit job using wilson
-    subprocess.run(["ssh","wilson",f"cd fast_rsm\nsbatch {script_path}"])
+    subprocess.run(["ssh","wilson",f"cd fast_rsm\nsbatch {script_path}"], check=False)
+
 
     #have check loop to find a new slurm out file
     while endslurms[-1]==startslurms[-1]:
@@ -164,7 +180,9 @@ if __name__ == "__main__":
     if limit==1:
         print('Timer limit reached before new slurm ouput file found')
     else:
-        print(f'Slurm output file: {Path.home()}/fast_rsm//{endslurms[-1]}\n')
+        foundslurm=f"{Path.home()}/fast_rsm//{endslurms[-1]}"
+        print(f'Slurm output file: {foundslurm} \n')
+        
         breakerline='*'*35
         monitoring_line=f"\n{breakerline}\n ***STARTING TO MONITOR TAIL END OF FILE, TO EXIT THIS VIEW PRESS ANY LETTER FOLLOWED BY ENTER**** \n{breakerline} \n"
         print(monitoring_line)
@@ -180,6 +198,7 @@ if __name__ == "__main__":
                     break
                 if any(s in line for s in err_msgs) and ('ForkPoolWorker' not in line) and not any(s in line for s in sparse_msg):
                     print("error found. closing tail")
+                    log_error_info(save_path,foundslurm,error_logger)
                     break
         finally:
             process.terminate()
