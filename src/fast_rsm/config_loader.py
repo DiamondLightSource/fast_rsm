@@ -50,6 +50,23 @@ def validate_outputs(outputs):
             raise SchemaError(invalid_msg(output))
     return True
 
+def validate_beam_centre(bc):
+    """
+    validate beamcentre is correct shape
+    """
+    if np.shape(bc)!=(2,):
+        raise ValueError (f"beam_centre not correct shape. \
+                          Got shape {np.shape(bc)} instead of (2,)")
+    return True
+
+def validate_spherical_bragg(bragg):
+    """
+    validate spherical bragg is correct shape
+    """
+    if np.shape(bragg)!=(3,):
+        raise ValueError(f"bragg vector not correct shape. \
+                         Got shape {np.shape(bragg)} instead of (3,)")
+    return True
 
 config_schema = Schema({
     "setup": str,
@@ -57,8 +74,7 @@ config_schema = Schema({
                               error="experimental hutch number needs to be 1 or 2"),
     "local_data_path": str,
     "local_output_path": str,
-    "beam_centre": And(tuple, lambda n: np.shape(n) == (2,),
-                       error="beam_centre not correct shape"),
+    "beam_centre": And(tuple, validate_beam_centre),
     "detector_distance": float,
     "slitvertratio": Or(None, float),
     "slithorratio": Or(None, float),
@@ -84,7 +100,7 @@ config_schema = Schema({
     "min_intensity": float,
     "skipscans": list,
     "skipimages": list,
-    "process_outputs": And(list, lambda n: validate_outputs(n)),
+    "process_outputs": And(list, validate_outputs),
     "map_per_image": bool,
     "savetiffs": bool,
     "savedats": bool,
@@ -92,8 +108,7 @@ config_schema = Schema({
     "coordinates": str,
     "cylinder_axis": bool,
     "DEBUG_LOG": int,
-    "spherical_bragg_vec": And(list, lambda n: np.shape(n) == (3,),
-                               error="bragg vector needs to be size 3 in the for [h,k,l]"),
+    "spherical_bragg_vec": And(list, validate_spherical_bragg),
     "default_config_path": str,
     "scan_numbers": list,
     "full_path": str,
