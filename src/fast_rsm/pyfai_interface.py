@@ -136,6 +136,20 @@ def get_qmapbins(qlimits, experiment):
     binsver = abs(round(((qlimits[3] - qlimits[2]) / qstep) * 1.05))
     return (binshor, binsver)
 
+def get_corner_thetas(process_config: SimpleNamespace):
+    """
+    calculate theta angles given inplane and out-of-plane angles to the detector
+    corners. 
+    """
+    cfg = process_config
+    corner_indexes=[[0,2],[0,3],[1,2],[1,3]]
+    corner_values=[np.radians(np.array(cfg.fullranges)[inds]) for inds in corner_indexes]
+    corner_diagonal_angles=np.degrees([np.sqrt(np.square(np.tan(cv[0]))+np.square(np.tan(cv[1]))) \
+                            for cv in corner_values])
+    absranges = np.abs(corner_diagonal_angles)
+    radmax = np.max(corner_diagonal_angles)
+    return absranges,radmax
+
 # ====save functions
 
 
@@ -371,23 +385,20 @@ def pyfai_setup_limits(experiment, scanlist, limitfunction, slitratios):
         experiment.two_theta_start = experiment.gammadata - tthdirect
 
         if slitratios is not None:
-            scanlimhor = limitfunction(
-                'hor',
-                vertsetup=(
-                    experiment.setup == 'vertical'),
-                slithorratio=slitratios[1])
-            scanlimver = limitfunction(
-                'vert',
-                vertsetup=(
-                    experiment.setup == 'vertical'),
-                slitvertratio=slitratios[0])
+            slitvertratio,slithorratio=slitratios
         else:
-            scanlimhor = limitfunction(
-                'hor', vertsetup=(
-                    experiment.setup == 'vertical'))
-            scanlimver = limitfunction(
-                'vert', vertsetup=(
-                    experiment.setup == 'vertical'))
+            slitvertratio=slithorratio=None
+        
+        scanlimhor = limitfunction(
+            'hor',
+            vertsetup=(
+                experiment.setup == 'vertical'),
+            slithorratio=slithorratio)
+        scanlimver = limitfunction(
+            'vert',
+            vertsetup=(
+                experiment.setup == 'vertical'),
+            slitvertratio=slitvertratio)
 
         scanlimits = [
             scanlimhor[0],
@@ -649,8 +660,7 @@ def pyfai_moving_ivsq_smm(experiment, hf, scanlist, process_config):
     cfg = process_config
     cfg.fullranges, cfg.scanlength, cfg.scanlistnew =\
      pyfai_setup_limits(experiment,scanlist, experiment.calcanglim, cfg.slitratios)
-    absranges = np.abs(cfg.fullranges)
-    radmax = np.max(absranges)
+    absranges,radmax=get_corner_thetas(cfg)
 
     if cfg.radialrange is None:
         con1 = np.abs(cfg.fullranges[0]) < \
@@ -673,9 +683,7 @@ def pyfai_moving_ivsq_smm(experiment, hf, scanlist, process_config):
                             np.max([absranges[1], absranges[3]]))
     if cfg.ivqbins is None:
         cfg.ivqbins = int(
-            np.ceil(
-                (cfg.radialrange[1] -
-                cfg.radialrange[0]) /
+            np.ceil((cfg.radialrange[1] - cfg.radialrange[0]) /
                 cfg.radialstepval))
     cfg.multi = True
     with SharedMemoryManager() as smm:
@@ -981,7 +989,9 @@ def pyfai_stat_ivsq_worker(experiment, imageindex, scan,
 
     tth, intensity = my_ai.integrate1d_ng(img_data,
                                           cfg.ivqbins,
-                                          unit="2th_deg", polarization_factor=1)
+                                          unit="2th_deg", polarization_factor=1,\
+                                            radial_range=(
+                               cfg.radialrange[0], cfg.radialrange[1]))
     qvals = [experiment.calcq(tthval, experiment.incident_wavelength)
              for tthval in tth]
 
@@ -1118,14 +1128,37 @@ def pyfai_static_ivsq(experiment, hf, scan, process_config: SimpleNamespace):
     # pylint: disable=unused-argument
     # pylint: disable=unused-variable
     cfg = process_config
-    cfg.qlimits, cfg.scanlength, cfg.scanlistnew = \
-     pyfai_setup_limits(experiment, scan, experiment.calcqlim, cfg.slitratios)
-
+    cfg.fullranges, cfg.scanlength, cfg.scanlistnew = \
+     pyfai_setup_limits(experiment, scan, experiment.calcanglim, cfg.slitratios)
+    
+    absranges,radmax=get_corner_thetas(cfg)
     # calculate map bins if not specified using resolution of 0.01 degrees
     if cfg.qmapbins == 0:
         cfg.qmapbins = get_qmapbins(cfg.qlimits, experiment)
     cfg.scalegamma = 1
+    if cfg.radialrange is None:
+        con1 = np.abs(cfg.fullranges[0]) < \
+            np.abs(cfg.fullranges[0] -
+            cfg.fullranges[1])
+        con2 = np.abs(
+            cfg.fullranges[2]) < np.abs(
+            cfg.fullranges[2] -
+            cfg.fullranges[3])
 
+        if (con1) & (con2):
+            cfg.radialrange = (0, radmax)
+
+        elif con1:
+            cfg.radialrange = np.sort([absranges[2], absranges[3]])
+        elif con2:
+            cfg.radialrange = np.sort([absranges[0], absranges[1]])
+        else:
+            cfg.radialrange = (np.max([absranges[0], absranges[2]]),
+                            np.max([absranges[1], absranges[3]]))
+    if cfg.ivqbins is None:
+        cfg.ivqbins = int(
+            np.ceil((cfg.radialrange[1] - cfg.radialrange[0]) /
+                cfg.radialstepval))
     print(f'starting process pool with num_threads={cfg.num_threads}')
     all_ints = []
     all_two_ths = []
