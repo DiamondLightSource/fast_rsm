@@ -12,11 +12,12 @@ import multiprocessing
 from pathlib import Path
 import numpy as np
 import h5py
+import logging
 
 from diffraction_utils import Frame, Region
 from fast_rsm.binning import finite_diff_grid
 from fast_rsm.experiment import Experiment
-from fast_rsm.logging_config import configure_logging, get_debug_logger
+from fast_rsm.logging_config import start_frsm_loggers
 from fast_rsm.config_loader import check_config_schema,experiment_config
 from fast_rsm.pyfai_interface import pyfai_static_qmap ,pyfai_static_exitangles,\
 pyfai_static_ivsq,pyfai_moving_qmap_smm,pyfai_moving_exitangles_smm,\
@@ -38,8 +39,7 @@ def create_standard_experiment(global_vals: SimpleNamespace):
 
     cfg = SimpleNamespace(**default_config)
 
-    configure_logging(cfg.DEBUG_LOG)
-    debug_logger= get_debug_logger()
+    debug_logger=logging.getLogger('fastrsm_debug')
     with open(cfg.full_path,encoding='utf-8') as f:
         cfg.joblines = f.readlines()
 
