@@ -910,14 +910,14 @@ class Experiment:
                 _start = np.array(volume_start)
                 _stop = np.array(volume_stop)
             else:
-                _start, _stop = self.q_bounds(map_frame, np.ndarray(cfg.spherical_bragg_vec),
+                _start, _stop = self.q_bounds(map_frame, np.array(cfg.spherical_bragg_vec),\
                                               oop)
 
             step = get_step_from_filesize(_start, _stop, output_file_size)
 
         else:
             step = np.array(volume_step)
-            _start, _stop = self.q_bounds(map_frame, np.ndarray(cfg.spherical_bragg_vec),
+            _start, _stop = self.q_bounds(map_frame, np.array(cfg.spherical_bragg_vec),\
                                           oop)
 
         if map_frame.coordinates == Frame.sphericalpolar:
@@ -963,7 +963,7 @@ class Experiment:
                      scan.processing_steps,
                      scan.skip_images,
                      oop,
-                     np.ndarray(cfg.spherical_bragg_vec),
+                     np.array(cfg.spherical_bragg_vec),
                      map_each_image,
                      images_so_far) for indices in chunk(
                         list(
