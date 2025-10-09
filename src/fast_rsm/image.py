@@ -279,7 +279,7 @@ class Image:
             norms = (k_out_squares[:, 0] +
                      k_out_squares[:, 1] +
                      k_out_squares[:, 2])
-        elif len(k_out_squares.shape) == 3:
+        else:
             norms = (k_out_squares[:, :, 0] +
                      k_out_squares[:, :, 1] +
                      k_out_squares[:, :, 2])
