@@ -734,13 +734,6 @@ def pyfai_move_qmap_worker(experiment, imageindices,
     unit_qip_name = "qip_A^-1"
     unit_qoop_name = "qoop_A^-1"
 
-    # if cfg.qlimits is None:
-    #     qlimhor = experiment.calcqlim('hor', vertsetup=(
-    #         experiment.setup == 'vertical'), slithorratio=cfg.slitratios[0])
-    #     qlimver = experiment.calcqlim('vert', vertsetup=(
-    #         experiment.setup == 'vertical'), slitvertratio=cfg.slitratios[1])
-    #     cfg.qlimits = [qlimhor[0], qlimhor[1], qlimver[0], qlimver[1]]
-
     sample_orientation = 1
 
     groupnum = 15
@@ -814,12 +807,12 @@ def pyfai_move_ivsq_worker(experiment, imageindices,
 
             img_data_list.append(img_data)
             ais.append(my_ai)
-        method = pyFAI.method_registry.IntegrationMethod.parse("full", dim=1)
+
         mg = MultiGeometry(ais, unit=unit_tth_ip,
                            wavelength=experiment.incident_wavelength,
                            radial_range=(
                                cfg.radialrange[0], cfg.radialrange[1]))
-        result1d = mg.integrate1d(img_data_list, cfg.ivqbins,method=method)
+        result1d = mg.integrate1d(img_data_list, cfg.ivqbins)
         q_from_theta = [experiment.calcq(
             val, experiment.incident_wavelength) for val in result1d.radial]
         # theta_from_q= [experiment.calctheta(val, experiment.incident_wavelength) \
