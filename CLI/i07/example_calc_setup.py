@@ -1,13 +1,17 @@
-
 from fast_rsm.diamond_utils import run_process_list,\
         create_standard_experiment
 from types import SimpleNamespace
+from fast_rsm.logging_config import start_frsm_loggers
+import logging
 
 #get path to this job file
 job_file_path=__file__
 
+start_frsm_loggers('/dls/science/users/rpy65944/I07_work/dev_fast_rsm/',1)
+debug_logger=logging.getLogger("fastrsm_debug")
+
 #create experiment object, process configuration and logger
-experiment,process_config,logger=\
+experiment,process_config,debug_logger=\
 create_standard_experiment(SimpleNamespace(**globals()))
 
 #=================================================================================
