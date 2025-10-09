@@ -16,14 +16,11 @@ import pyFAI
 from pyFAI import units
 import numpy as np
 
-from diffraction_utils import Frame  # I10Nexus, Vector3,
-# from diffraction_utils.diffractometers import I10RasorDiffractometer
-
 from fast_rsm.rsm_metadata import RSMMetadata
 from fast_rsm.scan import Scan, chunk, check_shared_memory
 
 
-logger = logging.getLogger("fastrsm")
+debug_logger = logging.getLogger('fastrsm_debug')
 
 # ====general functions
 
@@ -144,8 +141,8 @@ def get_corner_thetas(process_config: SimpleNamespace):
     cfg = process_config
     corner_indexes=[[0,2],[0,3],[1,2],[1,3]]
     corner_values=[np.radians(np.array(cfg.fullranges)[inds]) for inds in corner_indexes]
-    corner_diagonal_angles=np.degrees([np.sqrt(np.square(np.tan(cv[0]))+np.square(np.tan(cv[1]))) \
-                            for cv in corner_values])
+    corner_diagonal_angles=np.degrees(np.arctan([np.sqrt(np.tan(cv[0])**2+ np.tan(cv[1])**2) \
+                            for cv in corner_values]))
     absranges = np.abs(corner_diagonal_angles)
     radmax = np.max(corner_diagonal_angles)
     return absranges,radmax
@@ -196,7 +193,7 @@ def save_config_variables(hf, process_config):
     cfg = process_config
     config_group = hf.create_group('i07configuration')
     outdict = vars(cfg)
-    with open(cfg.default_config_path, "r") as f:
+    with open(cfg.default_config_path, "r",encoding='utf-8') as f:
         default_config_dict = yaml.load(f,Loader=yaml.FullLoader)
     # add in extra to defaults that arent set by user, so that parsing
     # defaults finds it
@@ -576,7 +573,7 @@ def pyfai_moving_exitangles_smm(experiment, hf, scanlist, process_config):
         start_time = time()
         for scanind, scan in enumerate(cfg.scanlistnew):
 
-            cfg.anglimits, cfg.scanlength, cfg.scanlistnew = \
+            cfg.anglimits, cfg.scanlength, scanlistnew = \
             pyfai_setup_limits(experiment,scan, experiment.calcanglim, cfg.slitratios)
             cfg.scalegamma = 1
             input_args = get_input_args(experiment, scan, cfg)
@@ -622,7 +619,7 @@ def pyfai_moving_qmap_smm(experiment, hf, scanlist, process_config):
             smm, cfg.shapeqpqp)
         start_time = time()
         for scanind, scan in enumerate(cfg.scanlistnew):
-            cfg.qlimits, cfg.scanlength, cfg.scanlistnew = \
+            cfg.qlimits, cfg.scanlength, scanlistnew = \
             pyfai_setup_limits(experiment,scan, experiment.calcqlim, cfg.slitratios)
             cfg.scalegamma = 1
             cfg.scan_ind=scanind
@@ -644,11 +641,12 @@ def pyfai_moving_qmap_smm(experiment, hf, scanlist, process_config):
     qpqp_counts_total = counts_arr
     end_time = time()
     minutes = (end_time - start_time) / 60
-    print(f'total calculation took {minutes}  minutes')
+    
     save_hf_map(experiment, hf, "qpara_qperp", qpqp_array_total, qpqp_counts_total,
                 mapaxisinfo, start_time, cfg)
     save_config_variables(hf, cfg)
     hf.close()
+    print(f'total calculation took {minutes}  minutes')
     return mapaxisinfo
 
 
@@ -661,26 +659,13 @@ def pyfai_moving_ivsq_smm(experiment, hf, scanlist, process_config):
     cfg.fullranges, cfg.scanlength, cfg.scanlistnew =\
      pyfai_setup_limits(experiment,scanlist, experiment.calcanglim, cfg.slitratios)
     absranges,radmax=get_corner_thetas(cfg)
+    count_hor_positive=np.sum([(val<0) for val in cfg.fullranges[0:2]])
+    count_ver_positive=np.sum([(val<0) for val in cfg.fullranges[2:]])
+    if count_hor_positive==count_ver_positive==2:
+        cfg.radialrange = (0, radmax)
+    else:
+        cfg.radialrange = (min(absranges),radmax)
 
-    if cfg.radialrange is None:
-        con1 = np.abs(cfg.fullranges[0]) < \
-            np.abs(cfg.fullranges[0] -
-            cfg.fullranges[1])
-        con2 = np.abs(
-            cfg.fullranges[2]) < np.abs(
-            cfg.fullranges[2] -
-            cfg.fullranges[3])
-
-        if (con1) & (con2):
-            cfg.radialrange = (0, radmax)
-
-        elif con1:
-            cfg.radialrange = np.sort([absranges[2], absranges[3]])
-        elif con2:
-            cfg.radialrange = np.sort([absranges[0], absranges[1]])
-        else:
-            cfg.radialrange = (np.max([absranges[0], absranges[2]]),
-                            np.max([absranges[1], absranges[3]]))
     if cfg.ivqbins is None:
         cfg.ivqbins = int(
             np.ceil((cfg.radialrange[1] - cfg.radialrange[0]) /
@@ -749,12 +734,12 @@ def pyfai_move_qmap_worker(experiment, imageindices,
     unit_qip_name = "qip_A^-1"
     unit_qoop_name = "qoop_A^-1"
 
-    if cfg.qlimits is None:
-        qlimhor = experiment.calcqlim('hor', vertsetup=(
-            experiment.setup == 'vertical'), slithorratio=cfg.slitratios[0])
-        qlimver = experiment.calcqlim('vert', vertsetup=(
-            experiment.setup == 'vertical'), slitvertratio=cfg.slitratios[1])
-        cfg.qlimits = [qlimhor[0], qlimhor[1], qlimver[0], qlimver[1]]
+    # if cfg.qlimits is None:
+    #     qlimhor = experiment.calcqlim('hor', vertsetup=(
+    #         experiment.setup == 'vertical'), slithorratio=cfg.slitratios[0])
+    #     qlimver = experiment.calcqlim('vert', vertsetup=(
+    #         experiment.setup == 'vertical'), slitvertratio=cfg.slitratios[1])
+    #     cfg.qlimits = [qlimhor[0], qlimhor[1], qlimver[0], qlimver[1]]
 
     sample_orientation = 1
 
@@ -769,7 +754,7 @@ def pyfai_move_qmap_worker(experiment, imageindices,
             unit_qip, unit_qoop, img_data, my_ai, ai_limits = \
                 get_pyfai_components(experiment, i, sample_orientation,\
                 unit_qip_name, unit_qoop_name, aistart, cfg.slitratios,\
-                cfg.alphacritical, scan, cfg.qlimits)
+                cfg.alphacritical, scan, cfg.qlimitsout)
 
             img_data_list.append(img_data)
             ais.append(my_ai)
@@ -829,12 +814,12 @@ def pyfai_move_ivsq_worker(experiment, imageindices,
 
             img_data_list.append(img_data)
             ais.append(my_ai)
-
+        method = pyFAI.method_registry.IntegrationMethod.parse("full", dim=1)
         mg = MultiGeometry(ais, unit=unit_tth_ip,
                            wavelength=experiment.incident_wavelength,
                            radial_range=(
                                cfg.radialrange[0], cfg.radialrange[1]))
-        result1d = mg.integrate1d(img_data_list, cfg.ivqbins)
+        result1d = mg.integrate1d(img_data_list, cfg.ivqbins,method=method)
         q_from_theta = [experiment.calcq(
             val, experiment.incident_wavelength) for val in result1d.radial]
         # theta_from_q= [experiment.calctheta(val, experiment.incident_wavelength) \
@@ -884,7 +869,7 @@ def pyfai_move_exitangles_worker(
              get_pyfai_components(
                 experiment, i, sample_orientation, unit_qip_name,\
                 unit_qoop_name, aistart, cfg.slitratios, cfg.alphacritical, \
-                scan, cfg.anglimits)
+                scan, cfg.anglimitsout)
 
             img_data_list.append(img_data)
             ais.append(my_ai)
@@ -1133,32 +1118,18 @@ def pyfai_static_ivsq(experiment, hf, scan, process_config: SimpleNamespace):
     
     absranges,radmax=get_corner_thetas(cfg)
     # calculate map bins if not specified using resolution of 0.01 degrees
-    if cfg.qmapbins == 0:
-        cfg.qmapbins = get_qmapbins(cfg.qlimits, experiment)
-    cfg.scalegamma = 1
-    if cfg.radialrange is None:
-        con1 = np.abs(cfg.fullranges[0]) < \
-            np.abs(cfg.fullranges[0] -
-            cfg.fullranges[1])
-        con2 = np.abs(
-            cfg.fullranges[2]) < np.abs(
-            cfg.fullranges[2] -
-            cfg.fullranges[3])
+    count_hor_positive=np.sum([(val<0) for val in cfg.fullranges[0:2]])
+    count_ver_positive=np.sum([(val<0) for val in cfg.fullranges[2:]])
+    if count_hor_positive==count_ver_positive==2:
+        cfg.radialrange = (0, radmax)
+    else:
+        cfg.radialrange = (min(absranges),radmax)
 
-        if (con1) & (con2):
-            cfg.radialrange = (0, radmax)
-
-        elif con1:
-            cfg.radialrange = np.sort([absranges[2], absranges[3]])
-        elif con2:
-            cfg.radialrange = np.sort([absranges[0], absranges[1]])
-        else:
-            cfg.radialrange = (np.max([absranges[0], absranges[2]]),
-                            np.max([absranges[1], absranges[3]]))
     if cfg.ivqbins is None:
         cfg.ivqbins = int(
             np.ceil((cfg.radialrange[1] - cfg.radialrange[0]) /
                 cfg.radialstepval))
+    cfg.scalegamma = 1
     print(f'starting process pool with num_threads={cfg.num_threads}')
     all_ints = []
     all_two_ths = []
