@@ -32,9 +32,6 @@ from fast_rsm.meta_analysis import get_step_from_filesize
 from fast_rsm.scan import Scan, chunk, \
     rsm_init_worker, bin_maps_with_indices_smm
 from fast_rsm.writing import linear_bin_to_vtk
-from fast_rsm.pyfai_interface import createponi as new_createponi, \
-    pyfai_moving_exitangles_smm as new_pyfai_moving_exitangles_smm, \
-    pyfai_moving_qmap_smm as new_pyfai_moving_qmap_smm
 
 logger = logging.getLogger("fastrsm")
 
@@ -191,11 +188,11 @@ class Experiment:
         if isinstance(regions, Region):
             regions = [regions]
 
-        if self.scans[0].metadata.data_file.is_rotated is True:
+        if self.scans[0].metadata.data_file.is_rotated:
             imshape = self.scans[0].metadata.data_file.image_shape
             for region in regions:
                 newxend = imshape[0] - region.y_start
-                newxstart = max(0, imshape[0] - region.y_end)
+                newxstart = np.max([0,imshape[0] - region.y_end])
                 newystart = region.x_start
                 newyend = region.x_end
                 region.x_start = newxstart
@@ -1017,15 +1014,7 @@ class Experiment:
         # Return the normalised RSM.
         return normalised_map, start, stop, step
 
-# =======refactored functions now in fast_rsm.pyfai_interface
-    def createponi(self, outpath, image2dshape, beam_centre=0, offset=0):
-        return new_createponi(self, outpath)
 
-    def pyfai_moving_exitangles_SMM(self, hf, scanlist, num_threads, output_file_path,
-                                    pyfaiponi, radrange, radstepval, qmapbins=[800, 800], slitratios=None):
-
-        return new_pyfai_moving_exitangles_smm(self, hf, scanlist, num_threads, output_file_path,
-                                               pyfaiponi, radrange, radstepval, qmapbins=[800, 800], slitratios=None)
 
     @classmethod
     def from_i07_nxs(cls,

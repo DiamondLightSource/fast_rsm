@@ -56,7 +56,7 @@ def create_standard_experiment(global_vals: SimpleNamespace):
     # objects.
     nxs_paths = [data_dir / f"i07-{x}.nxs" for x in cfg.scan_numbers]
 
-    mask_regions_list, specific_pixels,cfg.mask_regions = make_mask_lists(
+    cfg.mask_regions_list, specific_pixels,cfg.mask_regions = make_mask_lists(
         cfg.specific_pixels, cfg.mask_regions)
 
     # Finally, instantiate the Experiment object.
@@ -66,7 +66,7 @@ def create_standard_experiment(global_vals: SimpleNamespace):
 
     experiment.mask_pixels(specific_pixels)
     experiment.mask_edf(cfg.edfmaskfile)
-    experiment.mask_regions(mask_regions_list)
+    experiment.mask_regions(cfg.mask_regions_list)
 
     adjustment_args = [cfg.detector_distance, dps_centres, cfg.load_from_dat,\
     cfg.scan_numbers, cfg.skipscans, cfg.skipimages,
