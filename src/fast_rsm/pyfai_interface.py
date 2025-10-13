@@ -18,6 +18,7 @@ import numpy as np
 
 from fast_rsm.rsm_metadata import RSMMetadata
 from fast_rsm.scan import Scan, chunk, check_shared_memory
+from fast_rsm.experiment import Experiment
 
 
 debug_logger = logging.getLogger('fastrsm_debug')
@@ -32,7 +33,7 @@ def combine_ranges(range1, range2):
     return (min(range1[0], range2[0]), max(range1[1], range2[1]))
 
 
-def createponi(experiment, outpath, offset=0):
+def createponi(experiment: Experiment, outpath, offset=0):
     """
     creates a poni file from experiment settings to use in pyFAI functions
 
@@ -151,7 +152,7 @@ def get_corner_thetas(process_config: SimpleNamespace):
 
 
 def save_integration(experiment, hf, twothetas, q_angs,
-                     intensities, configs, scan=0):
+                     intensities, configs, counts_arr,arrays_arr,scan=0):
     """
     save 1d Intensity Vs Q profile to hdf5 file
     """
@@ -160,6 +161,10 @@ def save_integration(experiment, hf, twothetas, q_angs,
     dset.create_dataset("2thetas", data=twothetas)
     dset.create_dataset("Q_angstrom^-1", data=q_angs)
     dset.create_dataset("Intensity", data=intensities)
+    dset.create_dataset("counts",data=counts_arr)
+    dset.create_dataset("sum_signal",data=arrays_arr)
+
+ 
     if "scanfields" not in hf.keys():
         save_scan_field_values(hf, scan)
     if experiment.savedats is True:
@@ -241,7 +246,7 @@ def save_scan_field_values(hf, scan):
                     f"dim{i}_{field}", data=scannedvaluesout[i])
 
 
-def save_hf_map(experiment, hf, mapname, sum_array,
+def save_hf_map(experiment: Experiment, hf, mapname, sum_array,
                 counts_array, mapaxisinfo, start_time, process_config):
     cfg = process_config
     norm_array = np.divide(
@@ -287,7 +292,7 @@ def pyfai_init_worker(l, shm_intensities_name, shm_counts_name, shmshape):
     lock = l
 
 
-def get_pyfai_components(experiment, i, sample_orientation, unit_ip_name,
+def get_pyfai_components(experiment: Experiment, i, sample_orientation, unit_ip_name,
                          unit_oop_name, aistart, slitratios, alphacritical, scan, limits_in):
     """
     get components need for mapping with pyFAI
@@ -358,7 +363,7 @@ def get_pyfai_components(experiment, i, sample_orientation, unit_ip_name,
     return unit_ip, unit_oop, img_data, my_ai, limits_out
 
 
-def pyfai_setup_limits(experiment, scanlist, limitfunction, slitratios):
+def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, slitratios):
     """
     calculate setup values needed for pyfai calculations
     """
@@ -554,7 +559,7 @@ def start_smm(smm, memshape):
 
 
 # ====moving detector processing
-def pyfai_moving_exitangles_smm(experiment, hf, scanlist, process_config):
+def pyfai_moving_exitangles_smm(experiment: Experiment, hf, scanlist, process_config):
     """
     calculate exit angle map with moving detector
     """
@@ -596,8 +601,7 @@ def pyfai_moving_exitangles_smm(experiment, hf, scanlist, process_config):
     hf.close()
     return mapaxisinfo
 
-
-def pyfai_moving_qmap_smm(experiment, hf, scanlist, process_config):
+def pyfai_moving_qmap_smm(experiment: Experiment, hf, scanlist, process_config):
     """
     calculate q_para vs q_perp map for a moving detector scan
     """
@@ -646,11 +650,10 @@ def pyfai_moving_qmap_smm(experiment, hf, scanlist, process_config):
                 mapaxisinfo, start_time, cfg)
     save_config_variables(hf, cfg)
     hf.close()
-    print(f'total calculation took {minutes}  minutes')
     return mapaxisinfo
 
 
-def pyfai_moving_ivsq_smm(experiment, hf, scanlist, process_config):
+def pyfai_moving_ivsq_smm(experiment: Experiment, hf, scanlist, process_config):
     """
     calculate 1d Intensity Vs Q profile for a moving detector scan
     """
@@ -659,12 +662,21 @@ def pyfai_moving_ivsq_smm(experiment, hf, scanlist, process_config):
     cfg.fullranges, cfg.scanlength, cfg.scanlistnew =\
      pyfai_setup_limits(experiment,scanlist, experiment.calcanglim, cfg.slitratios)
     absranges,radmax=get_corner_thetas(cfg)
-    count_hor_positive=np.sum([(val<0) for val in cfg.fullranges[0:2]])
-    count_ver_positive=np.sum([(val<0) for val in cfg.fullranges[2:]])
-    if count_hor_positive==count_ver_positive==2:
-        cfg.radialrange = (0, radmax)
-    else:
-        cfg.radialrange = (min(absranges),radmax)
+
+
+    if cfg.radialrange is None:
+        centre_check={1:True,0:False,2:False}
+        hor_centre=centre_check[np.sum([(val>0) for val in cfg.fullranges[0:2]])]
+        ver_centre=centre_check[np.sum([(val>0) for val in cfg.fullranges[2:]])]
+        if hor_centre and ver_centre:
+            cfg.radialrange = (0, radmax)
+        elif hor_centre:
+            cfg.radialrange = (min(abs(np.array(cfg.fullranges[2:]))), radmax)
+        elif ver_centre:
+            cfg.radialrange = (min(abs(np.array(cfg.fullranges[0:2]))), radmax)
+        else:
+            cfg.radialrange = (min(absranges),radmax)
+        
 
     if cfg.ivqbins is None:
         cfg.ivqbins = int(
@@ -699,7 +711,7 @@ def pyfai_moving_ivsq_smm(experiment, hf, scanlist, process_config):
         counts_arr[0],
         out=np.copy(
             arrays_arr[0]),
-        where=counts_arr[0] != 0)
+        where=counts_arr[0].astype(float) != 0.0)
     end_time = time()
     minutes = (end_time - start_time) / 60
     print(f'total calculation took {minutes}  minutes')
@@ -708,6 +720,8 @@ def pyfai_moving_ivsq_smm(experiment, hf, scanlist, process_config):
     dset.create_dataset("Intensity", data=qi_array)
     dset.create_dataset("Q_angstrom^-1", data=arrays_arr[1])
     dset.create_dataset("2thetas", data=arrays_arr[2])
+    dset.create_dataset("counts",data=counts_arr[0])
+    dset.create_dataset("sum_signal",data=arrays_arr[0])
 
     if cfg.savedats:
         experiment.do_savedats(hf, qi_array, arrays_arr[1], arrays_arr[2])
@@ -715,7 +729,7 @@ def pyfai_moving_ivsq_smm(experiment, hf, scanlist, process_config):
     hf.close()
 
 
-def pyfai_move_qmap_worker(experiment, imageindices,
+def pyfai_move_qmap_worker(experiment: Experiment, imageindices,
                            scan, process_config) -> None:
     """
     calculate 2d q_para Vs q_perp map for moving detector scan using pyFAI
@@ -774,7 +788,7 @@ def pyfai_move_qmap_worker(experiment, imageindices,
     return mapaxisinfo
 
 
-def pyfai_move_ivsq_worker(experiment, imageindices,
+def pyfai_move_ivsq_worker(experiment: Experiment, imageindices,
                            scan, process_config) -> None:
     """
     calculate 1d intensity vs q profile for moving detector scan using pyFAI
@@ -812,7 +826,9 @@ def pyfai_move_ivsq_worker(experiment, imageindices,
                            wavelength=experiment.incident_wavelength,
                            radial_range=(
                                cfg.radialrange[0], cfg.radialrange[1]))
-        result1d = mg.integrate1d(img_data_list, cfg.ivqbins)
+        #method=("full", "histogram", "cython") - still issue of tails
+        #method = pyFAI.method_registry.IntegrationMethod.parse("full", dim=1)
+        result1d = mg.integrate1d(img_data_list, cfg.ivqbins)#,method=method)
         q_from_theta = [experiment.calcq(
             val, experiment.incident_wavelength) for val in result1d.radial]
         # theta_from_q= [experiment.calctheta(val, experiment.incident_wavelength) \
@@ -832,8 +848,7 @@ def pyfai_move_ivsq_worker(experiment, imageindices,
         COUNT_ARRAY[1:] = totaloutcounts[1:]
 
 
-def pyfai_move_exitangles_worker(
-        experiment, imageindices, scan, process_config) -> None:
+def pyfai_move_exitangles_worker(experiment: Experiment, imageindices, scan, process_config) -> None:
     """
     calculate exit angle map for moving detector scan using pyFAI
 
@@ -888,8 +903,8 @@ def pyfai_move_exitangles_worker(
 
 
 # ====static detector processing
-def pyfai_stat_exitangles_worker(
-        experiment, imageindex, scan, process_config: SimpleNamespace) -> None:
+def pyfai_stat_exitangles_worker(experiment: Experiment, imageindex, scan,\
+                                  process_config: SimpleNamespace) -> None:
     """
     calculate exit angle map for static detector scan data using pyFAI Fiber integrator
     """
@@ -948,7 +963,7 @@ def pyfai_stat_qmap_worker(experiment, imageindex, scan,
     return map2d[0], map2d[1], map2d[2], mapaxisinfo
 
 
-def pyfai_stat_ivsq_worker(experiment, imageindex, scan,
+def pyfai_stat_ivsq_worker(experiment: Experiment, imageindex, scan,
                            process_config: SimpleNamespace) -> None:
     """
     calculate Intensity Vs Q profile for static detector scan data using pyFAI Fiber integrator
@@ -976,7 +991,7 @@ def pyfai_stat_ivsq_worker(experiment, imageindex, scan,
     return intensity, tth, qvals
 
 
-def pyfai_static_exitangles(experiment, hf, scan,
+def pyfai_static_exitangles(experiment: Experiment, hf, scan,
                             process_config: SimpleNamespace):
     """
     calculate the map of vertical exit angle Vs horizontal exit angle using pyFAI
@@ -1046,7 +1061,7 @@ def pyfai_static_exitangles(experiment, hf, scan,
     hf.close()
 
 
-def pyfai_static_qmap(experiment, hf, scan, process_config: SimpleNamespace):
+def pyfai_static_qmap(experiment: Experiment, hf, scan, process_config: SimpleNamespace):
     """
     calculate 2d q_para vs q_perp mape for a static detector scan
     """
@@ -1099,7 +1114,7 @@ def pyfai_static_qmap(experiment, hf, scan, process_config: SimpleNamespace):
     hf.close()
 
 
-def pyfai_static_ivsq(experiment, hf, scan, process_config: SimpleNamespace):
+def pyfai_static_ivsq(experiment: Experiment, hf, scan, process_config: SimpleNamespace):
     """
     calculate Intensity Vs Q 1d profile from static detector scan
     """
@@ -1110,11 +1125,16 @@ def pyfai_static_ivsq(experiment, hf, scan, process_config: SimpleNamespace):
      pyfai_setup_limits(experiment, scan, experiment.calcanglim, cfg.slitratios)
     
     absranges,radmax=get_corner_thetas(cfg)
-    # calculate map bins if not specified using resolution of 0.01 degrees
-    count_hor_positive=np.sum([(val<0) for val in cfg.fullranges[0:2]])
-    count_ver_positive=np.sum([(val<0) for val in cfg.fullranges[2:]])
-    if count_hor_positive==count_ver_positive==2:
+
+    centre_check={1:True,0:False,2:False}
+    hor_centre=centre_check[np.sum([(val>0) for val in cfg.fullranges[0:2]])]
+    ver_centre=centre_check[np.sum([(val>0) for val in cfg.fullranges[2:]])]
+    if hor_centre and ver_centre:
         cfg.radialrange = (0, radmax)
+    elif hor_centre:
+        cfg.radialrange = (min(abs(np.array(cfg.fullranges[2:]))), radmax)
+    elif ver_centre:
+        cfg.radialrange = (min(abs(np.array(cfg.fullranges[0:2]))), radmax)
     else:
         cfg.radialrange = (min(absranges),radmax)
 
