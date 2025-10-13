@@ -13,3 +13,4 @@ tifffile
 fabio
 pyFAI
 schema
+concurrent-log-handler
