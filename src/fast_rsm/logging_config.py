@@ -12,14 +12,15 @@ def start_frsm_loggers(version_path,debugflag: bool):
     """
     initiate loggers for fast_rsm - debug and error loggers
     """
+    config_fname=f'{version_path}/fast_rsm/src/fast_rsm/logging.ini'
     logging.config.fileConfig(\
-        f'{version_path}/fast_rsm/src/fast_rsm/logging.ini',\
+        config_fname,\
               disable_existing_loggers=False)
     if not debugflag:
         logging.getLogger('fastrsm_debug').setLevel(logging.CRITICAL)
     else:
         logging.getLogger('fastrsm_debug').setLevel(logging.DEBUG)
-
+    return logging.getLogger('fastrsm_debug'),logging.getLogger('fastrsm_error')
 
 def get_debug_logger():
     """
