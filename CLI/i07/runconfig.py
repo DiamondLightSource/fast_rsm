@@ -75,6 +75,10 @@ if __name__ == "__main__":
         "Path to the directory for saving output files to. "
     )
     parser.add_argument("-o", "--out_path", help=HELP_STR,default=None)
+    HELP_STR = (
+        "Use this flag to active the debug logger"
+    )
+    parser.add_argument("-dblog", "--debuglogging", help=HELP_STR, default=0)
 
 
     # Extract the arguments from the parser.
@@ -82,7 +86,7 @@ if __name__ == "__main__":
     with open(args.calc_path,encoding='utf-8') as f2:
         lines2=f2.readlines()
 
-    debug_logger,error_logger=start_frsm_loggers(version_path)
+    debug_logger,error_logger=start_frsm_loggers(version_path,args.debuglogging)
     outline=[line for line in exp_lines_generator(args.exp_path) if 'local_output' in line]
     if len(outline)==0:
         OUTDIR=args.out_path
@@ -124,7 +128,6 @@ if __name__ == "__main__":
             jobf.write(line)
         
         jobf.write(f'scan_numbers= {SCANS}\n')
-        jobf.write(f'DEBUG_LOG={args.debuglogging}\n')
         jobf.write(''.join(lines2))
     os.chmod(save_path,0o777)
     
