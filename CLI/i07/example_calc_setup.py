@@ -7,7 +7,7 @@ import logging
 #get path to this job file
 job_file_path=__file__
 
-start_frsm_loggers('/dls/science/users/rpy65944/I07_work/dev_fast_rsm/',1)
+start_frsm_loggers(version_path,debuglogging)
 debug_logger=logging.getLogger("fastrsm_debug")
 
 #create experiment object, process configuration and logger

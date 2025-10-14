@@ -128,6 +128,8 @@ if __name__ == "__main__":
             jobf.write(line)
         
         jobf.write(f'scan_numbers= {SCANS}\n')
+        jobf.write(f"version_path='{version_path}'\n")
+        jobf.write(f'debuglogging={args.debuglogging}\n')
         jobf.write(''.join(lines2))
     os.chmod(save_path,0o777)
     
