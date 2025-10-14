@@ -649,7 +649,7 @@ class Experiment:
         outdir = hf.filename.strip('.hdf5')
         if not os.path.exists(outdir):
             os.mkdir(outdir)
-        outname = outdir.split('\\')[-1]
+        outname = outdir.split('/')[-1]
         if extradims == 0:
             imdata = data
             parainfo = axespara
