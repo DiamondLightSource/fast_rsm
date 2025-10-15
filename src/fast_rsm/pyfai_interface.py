@@ -141,11 +141,12 @@ def get_corner_thetas(process_config: SimpleNamespace):
     """
     cfg = process_config
     corner_indexes=[[0,2],[0,3],[1,2],[1,3]]
-    corner_values=[np.radians(np.array(cfg.fullranges)[inds]) for inds in corner_indexes]
+    cfg.fullranges90=[(val,0) if val <=90 else (val-90,90) for val in np.abs(cfg.fullranges)]
+    corner_values=[np.radians(np.array(cfg.fullranges90)[inds][0]) for inds in corner_indexes]
     corner_diagonal_angles=np.degrees(np.arctan([np.sqrt(np.tan(cv[0])**2+ np.tan(cv[1])**2) \
                             for cv in corner_values]))
-    absranges = np.abs(corner_diagonal_angles)
-    radmax = np.max(corner_diagonal_angles)
+    absranges = [np.abs(dval)+cfg.fullranges90[i][1] for i,dval in enumerate(corner_diagonal_angles)]
+    radmax = np.max(absranges)
     return absranges,radmax
 
 # ====save functions
@@ -722,6 +723,8 @@ def pyfai_moving_ivsq_smm(experiment: Experiment, hf, scanlist, process_config):
     dset.create_dataset("2thetas", data=arrays_arr[2])
     dset.create_dataset("counts",data=counts_arr[0])
     dset.create_dataset("sum_signal",data=arrays_arr[0])
+    dset.create_dataset("solid_intensity",data=counts_arr[1])
+    dset.create_dataset("solid_sum_signal",data=counts_arr[2])
 
     if cfg.savedats:
         experiment.do_savedats(hf, qi_array, arrays_arr[1], arrays_arr[2])
@@ -805,20 +808,21 @@ def pyfai_move_ivsq_worker(experiment: Experiment, imageindices,
 
     unit_qip_name = "2th_deg"  # "qtot_A^-1"# "qip_A^-1"
     unit_qoop_name = "qoop_A^-1"
-
+    d5i_full=np.array(scan.metadata.data_file.nx_entry.d5i.data)
     sample_orientation = 1
-    groupnum = 15
+    groupnum = 25
     groups = [imageindices[i:i + groupnum]
               for i in range(0, len(imageindices), groupnum)]
     for group in groups:
         ais = []
         img_data_list = []
+        d5i_data=[]
         for i in group:
             unit_tth_ip, unit_qoop, img_data, my_ai, ai_limits =\
              get_pyfai_components(experiment, i, sample_orientation, unit_qip_name,\
              unit_qoop_name, aistart, cfg.slitratios, cfg.alphacritical,\
               scan, [0, 1, 0, 1])
-
+            d5i_data.append(d5i_full[i])
             img_data_list.append(img_data)
             ais.append(my_ai)
 
@@ -828,24 +832,29 @@ def pyfai_move_ivsq_worker(experiment: Experiment, imageindices,
                                cfg.radialrange[0], cfg.radialrange[1]))
         #method=("full", "histogram", "cython") - still issue of tails
         #method = pyFAI.method_registry.IntegrationMethod.parse("full", dim=1)
-        result1d = mg.integrate1d(img_data_list, cfg.ivqbins)#,method=method)
+        blankdata=np.zeros(np.shape(img_data_list))
+        for n,img in enumerate(img_data_list):
+            blankdata[n]=np.ones(np.shape(img))*ais[n].solidAngleArray()
+        #result1d = mg.integrate1d(blankdata, cfg.ivqbins,normalization_factor=d5i_data)
+        result1d = mg.integrate1d(img_data_list, cfg.ivqbins,normalization_factor=d5i_data)
+        result_solid=mg.integrate1d([ai.solidAngleArray() for ai in ais], cfg.ivqbins,normalization_factor=d5i_data,correctSolidAngle=False)#,method=method)
         q_from_theta = [experiment.calcq(
             val, experiment.incident_wavelength) for val in result1d.radial]
         # theta_from_q= [experiment.calctheta(val, experiment.incident_wavelength) \
         # for val in result1d.radial]
-
+        #np.divide(result1d.sum_signal,result_solid.intensity,where=result_solid.intensity.astype(float)!=0.0)
         totaloutqi[0] += result1d.sum_signal
         totaloutqi[1] = q_from_theta
         totaloutqi[2] = result1d.radial
 
-        totaloutcounts[0] += result1d.count  # [int(val) for val in I>0]
-        totaloutcounts[1] = q_from_theta
-        totaloutcounts[2] = result1d.radial  # theta_from_q#
+        totaloutcounts[0] += result1d.count#[1 if val>0 else 0 for val in result1d.count]  # [int(val) for val in I>0]
+        totaloutcounts[1] += result_solid.intensity
+        totaloutcounts[2] += result_solid.sum_signal  # theta_from_q#
     with lock:
         INTENSITY_ARRAY[0] += totaloutqi[0]
         INTENSITY_ARRAY[1:] = totaloutqi[1:]
         COUNT_ARRAY[0] += totaloutcounts[0]
-        COUNT_ARRAY[1:] = totaloutcounts[1:]
+        COUNT_ARRAY[1:] += totaloutcounts[1:]
 
 
 def pyfai_move_exitangles_worker(experiment: Experiment, imageindices, scan, process_config) -> None:
