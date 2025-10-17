@@ -142,7 +142,9 @@ def get_corner_thetas(process_config: SimpleNamespace):
     cfg = process_config
     corner_indexes=[[0,2],[0,3],[1,2],[1,3]]
     cfg.fullranges90=[(val,0) if val <=90 else (val-90,90) for val in np.abs(cfg.fullranges)]
-    corner_values=[np.radians(np.array(cfg.fullranges90)[inds][0]) for inds in corner_indexes]
+
+    corner_items=[[cfg.fullranges90[ind][0] for ind in pair] for pair in corner_indexes]
+    corner_values=np.radians(corner_items)
     corner_diagonal_angles=np.degrees(np.arctan([np.sqrt(np.tan(cv[0])**2+ np.tan(cv[1])**2) \
                             for cv in corner_values]))
     absranges = [np.abs(dval)+cfg.fullranges90[i][1] for i,dval in enumerate(corner_diagonal_angles)]
@@ -833,13 +835,9 @@ def pyfai_move_ivsq_worker(experiment: Experiment, imageindices,
                            wavelength=experiment.incident_wavelength,
                            radial_range=(
                                cfg.radialrange[0], cfg.radialrange[1]))
-        #method=("full", "histogram", "cython") - still issue of tails
+        method=("no", "histogram", "cython") #- still issue of tails
         #method = pyFAI.method_registry.IntegrationMethod.parse("full", dim=1)
-        blankdata=np.zeros(np.shape(img_data_list))
-        for n,img in enumerate(img_data_list):
-            blankdata[n]=np.ones(np.shape(img))*ais[n].solidAngleArray()
-        #result1d = mg.integrate1d(blankdata, cfg.ivqbins,normalization_factor=d5i_data)
-        result1d = mg.integrate1d(img_data_list, cfg.ivqbins,normalization_factor=d5i_data)
+        result1d = mg.integrate1d(img_data_list, cfg.ivqbins,method=method,normalization_factor=d5i_data)
         result_solid=mg.integrate1d([ai.solidAngleArray() for ai in ais], cfg.ivqbins,normalization_factor=d5i_data,correctSolidAngle=False)#,method=method)
         q_from_theta = [experiment.calcq(
             val, experiment.incident_wavelength) for val in result1d.radial]
