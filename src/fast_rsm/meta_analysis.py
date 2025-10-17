@@ -33,11 +33,11 @@ def get_step_from_filesize(start: np.ndarray,
     Returns:
         A numpy array of [step step step] (since step_x=step_y=step_z).
     """
-    side_lengths = stop-start
-    volume = side_lengths[0]*side_lengths[1]*side_lengths[2]
+    side_lengths = stop - start
+    volume = side_lengths[0] * side_lengths[1] * side_lengths[2]
 
     # Note that there are 2^20 bytes in a megabyte.
-    return np.array([np.cbrt(4*volume/(file_size*(2**20)))]*3)
+    return np.array([np.cbrt(4 * volume / (file_size * (2**20)))] * 3)
 
 
 def _find_exc_broken_frames(scan: Scan):
@@ -67,7 +67,7 @@ def _find_exc_broken_frames(scan: Scan):
     for i in range(scan.metadata.data_file.scan_length):
         current_mean = np.mean(scan.load_image(i)._raw_data)
 
-        if current_mean < previous_mean*big_intensity_jump:
+        if current_mean < previous_mean * big_intensity_jump:
             # This is not a suspicious jump in counts.
             previous_mean = current_mean
         else:

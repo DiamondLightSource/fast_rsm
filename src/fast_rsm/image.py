@@ -2,9 +2,8 @@
 This module contains the class that is used to store images.
 """
 
-
 from typing import Union
-
+import logging
 import numpy as np
 from diffraction_utils import Frame, I07Nexus, Polarisation
 
@@ -12,6 +11,8 @@ import mapper_c_utils
 from fast_rsm.rsm_metadata import RSMMetadata
 
 import fast_rsm.corrections as corrections
+
+logger = logging.getLogger("fastrsm")
 
 
 class Image:
@@ -42,22 +43,20 @@ class Image:
         else:
             # Allocate, but don't initialize.
             self._raw_data = np.ndarray(metadata.data_file.image_shape)
-
         self.metadata = metadata
         self.diffractometer = self.metadata.diffractometer
         self.index = index
 
-        self._delta_q = None#
+        self._delta_q = None
 
         # Carry out transposes etc. if necessary:
         # We want self.data[0, 0] to be the top left pixel.
         # We want self.data[-1, 0] to be th top right pixel.
         # self.metadata should contain enough information for us to do this.
-        #need to make this conditional on loading an image, as the predefined imageshapes
-        #already have account for rotation. 
+        # need to make this conditional on loading an image, as the predefined imageshapes
+        # already have account for rotation.
         if load_image:
             self._correct_img_axes()
-
         # Storage for all of the processing steps to be applied to the _raw_data
         # prior to mapping.
         self._processing_steps = []
@@ -72,13 +71,12 @@ class Image:
         necessary at this point.
         """
         if isinstance(self.metadata.data_file, I07Nexus):
-            if (self.metadata.data_file.is_rotated):
+            if self.metadata.data_file.is_rotated:
                 # The detector has been rotated in the experiment!
                 # NOTE: this is slow. If you flip your detector and run fscans,
                 # f#!@ you.
                 self._raw_data = self._raw_data.transpose()
                 self._raw_data = np.flip(self._raw_data, axis=0)
-                
 
     def generate_mask(self, min_intensity: Union[float, int]) -> np.ndarray:
         """
@@ -135,26 +133,27 @@ class Image:
         # This is not optional!
         try:
             if isinstance(self.metadata.data_file.transmission, np.ndarray):
-                transmissionlist=self.metadata.data_file.transmission.flatten()
+                transmissionlist = self.metadata.data_file.transmission.flatten()
                 arr /= transmissionlist[self.index]
             else:
                 arr /= self.metadata.data_file.transmission
         except AttributeError:
             pass
-        
-        #normalise image data to count time
-        scan_entry=self.metadata.diffractometer.data_file.nxfile
+
+        # normalise image data to count time
+        scan_entry = self.metadata.diffractometer.data_file.nxfile
         try:
-            if isinstance(scan_entry.entry.attenuation.count_time.nxdata,np.ndarray):
+            if isinstance(
+                    scan_entry.entry.attenuation.count_time.nxdata, np.ndarray):
                 arr /= scan_entry.entry.attenuation.count_time.nxdata[self.index]
             else:
                 arr /= scan_entry.entry.attenuation.count_time.nxdata
         except AttributeError:
             pass
-        #if there is an edf mask file loaded, apply mask
+        # if there is an edf mask file loaded, apply mask
         if self.metadata.edfmask is not None:
-            arr[self.metadata.edfmask.astype(bool)]=np.nan
-        
+            arr[self.metadata.edfmask.astype(bool)] = np.nan
+
         # If there are pixels to mask, mask them.
         if self.metadata.mask_pixels is not None:
             arr[self.metadata.mask_pixels] = np.nan
@@ -168,10 +167,12 @@ class Image:
 
     def q_vectors(self,
                   frame: Frame,
-                  indices: tuple = None,
+                  spherical_bragg_vec: np.array,
                   oop='y',
+                  indices: tuple = None,
                   lorentz_correction: bool = False,
-                  pol_correction: bool = True) -> np.ndarray:
+                  pol_correction: bool = True,
+                  ) -> np.ndarray:
         """
         Calculates the wavevector through which light had to scatter to reach
         every pixel on the detector in a given frame of reference.
@@ -183,6 +184,9 @@ class Image:
             frame:
                 The frame of reference in which we want to calculate the
                 q_vectors.
+            spherical_bragg_vec:
+                XYZ vector for shifting centre of volume when interested in plotting
+                spherical polar plots. defaults to [0,0,0] when unspecified.
             indices:
                 The indices that we want to carry out the map for. Defaults to
                 None, in which case the entire image is mapped. E.g. passing
@@ -195,6 +199,7 @@ class Image:
             you specify an index, then your output will have shape (1, 1, 3).
             Probably.
         """
+
         if indices is None:
             i = slice(None)
             j = slice(None)
@@ -205,7 +210,7 @@ class Image:
             # if self.metadata.data_file.is_rotated:
             #     i=indices[1]
             #     j=indices[0]
- 
+
         # Make sure that our frame of reference has the correct index and
         # diffractometer.
         frame.scan_index = self.index
@@ -248,17 +253,17 @@ class Image:
         horizontal = self.metadata.get_horizontal_pixel_distances(self.index)
 
         k_out_array[i, j, 0] = (
-            det_displacement.array[0]*detector_distance +
-            det_vertical.array[0]*vertical[i, j] +
-            det_horizontal.array[0]*horizontal[i, j])
+            det_displacement.array[0] * detector_distance +
+            det_vertical.array[0] * vertical[i, j] +
+            det_horizontal.array[0] * horizontal[i, j])
         k_out_array[i, j, 1] = (
-            det_displacement.array[1]*detector_distance +
-            det_vertical.array[1]*vertical[i, j] +
-            det_horizontal.array[1]*horizontal[i, j])
+            det_displacement.array[1] * detector_distance +
+            det_vertical.array[1] * vertical[i, j] +
+            det_horizontal.array[1] * horizontal[i, j])
         k_out_array[i, j, 2] = (
-            det_displacement.array[2]*detector_distance +
-            det_vertical.array[2]*vertical[i, j] +
-            det_horizontal.array[2]*horizontal[i, j])
+            det_displacement.array[2] * detector_distance +
+            det_vertical.array[2] * vertical[i, j] +
+            det_horizontal.array[2] * horizontal[i, j])
 
         # We're going to need to normalize; this function bottlenecks if not
         # done exactly like this!
@@ -274,7 +279,7 @@ class Image:
             norms = (k_out_squares[:, 0] +
                      k_out_squares[:, 1] +
                      k_out_squares[:, 2])
-        elif len(k_out_squares.shape) == 3:
+        else:
             norms = (k_out_squares[:, :, 0] +
                      k_out_squares[:, :, 1] +
                      k_out_squares[:, :, 2])
@@ -322,7 +327,7 @@ class Image:
         # Richard:  It turns out that diffcalc assumes that k has an extra factor of
         # 2π. I would never in my life have realised this had it not been
         # for an offhand comment by my colleague Dean. Thanks, Dean.
-        k_out_array[i, j, :] *= k_incident_len * 2*np.pi
+        k_out_array[i, j, :] *= k_incident_len * 2 * np.pi
 
         # If a user has specified that they want their results output
         # in hkl-space, multiply each of these vectors by the inverse of UB.
@@ -340,7 +345,6 @@ class Image:
                 [0, 1, 0],
                 [0, 0, 1]
             ])
-
         # Finally, we make it so that (001) will end up OOP.
         if oop == 'y':
             coord_change_mat = np.array([
@@ -363,11 +367,14 @@ class Image:
 
         ub_mat = np.matmul(ub_mat, coord_change_mat)
 
-        # #ADD IN HERE INVERSE OF OMEGA AND ALPHA ROTATIONS, WHICH ARE NOT INCLUDED IN THE UB MATRIX. Currently only have kout-kin which is Hlab. For hkl in vertical mode we need 
+        # #ADD IN HERE INVERSE OF OMEGA AND ALPHA ROTATIONS, WHICH ARE NOT INCLUDED \
+        #  IN THE UB MATRIX. Currently only have kout-kin which is Hlab. \
+        # For hkl in vertical mode we need
         # # B^(-1)  U^(-1) (Ω^(-1)  A^(-1)  H_lab)
-        # #or for horizontal 
+        # #or for horizontal
         # #B^(-1)  U^(-1) (Θ^(-1)  χ^(-1)  H_lab)
-        # #incorrectly labelled U matrix, is actually the necessary omega+alpha or theta-chi- rotations
+        # #incorrectly labelled U matrix, is actually the necessary \
+        # omega+alpha or theta-chi- rotations
         # samplerotations=self.diffractometer.get_u_matrix(frame.scan_index)
         # invSampRot=np.linalg.inv(samplerotations)
         # ub_mat=np.matmul(ub_mat,invSampRot)
@@ -381,23 +388,28 @@ class Image:
             k_out_array[i, j, :] = to_map
         else:
             k_out_array = k_out_array.reshape(
-                (desired_shape[0]*desired_shape[1], 3))
+                (desired_shape[0] * desired_shape[1], 3))
             # This takes CPU time: mapping every vector.
             mapper_c_utils.linear_map(k_out_array, ub_mat)
             # Reshape the k_out_array to have the same shape as the image.
             k_out_array = k_out_array.reshape(desired_shape)
 
-        # If the user asked for cylindrical polars then change to those coords.
-        if frame.coordinates == Frame.polar:
+        # If the user asked for polars then change to those coords.
+
+        if frame.coordinates == Frame.sphericalpolar:
+            k_out_array[i, j, 0] -= spherical_bragg_vec[0]
+            k_out_array[i, j, 1] -= spherical_bragg_vec[1]
+            k_out_array[i, j, 2] -= spherical_bragg_vec[2]
             # pylint: disable=c-extension-no-member
             if indices is not None:
                 to_polar = np.ascontiguousarray(k_out_array[i, j, :])
-                mapper_c_utils.cylindrical_polar(to_polar)
+                # mapper_c_utils.cylindrical_polar(to_polar)
+                mapper_c_utils.spherical_polar(to_polar)
                 k_out_array[i, j, :] = to_polar
             else:
                 k_out_array = k_out_array.reshape(
-                    (desired_shape[0]*desired_shape[1], 3))
-                mapper_c_utils.cylindrical_polar(k_out_array)
+                    (desired_shape[0] * desired_shape[1], 3))
+                mapper_c_utils.spherical_polar(k_out_array)
                 k_out_array = k_out_array.reshape(desired_shape)
 
         # Only return the indices that we worked on.
@@ -405,6 +417,7 @@ class Image:
 
     def q_vector_array(self,
                        frame: Frame,
+                       spherical_bragg_vec: np.array,
                        oop='y',
                        lorentz_correction: bool = False,
                        pol_correction: bool = True) -> np.ndarray:
@@ -413,8 +426,9 @@ class Image:
         """
         q_vectors = self.q_vectors(
             frame,
+            spherical_bragg_vec,
             oop=oop,
             lorentz_correction=lorentz_correction,
             pol_correction=pol_correction).reshape()
-        num_q_vectors = q_vectors.shape[0]*q_vectors.shape[1]
+        num_q_vectors = q_vectors.shape[0] * q_vectors.shape[1]
         return q_vectors.reshape((num_q_vectors, 3))

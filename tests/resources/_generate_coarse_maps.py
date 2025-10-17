@@ -34,7 +34,7 @@ def generate_i10_693862_coarse_map() -> None:
     time_taken = time2 - time1
 
     num_images = i10_scan.metadata.data_file.scan_length
-    time_per_image = time_taken/num_images
+    time_per_image = time_taken / num_images
     print(f"Time taken to generate map per image: {time_per_image} s.")
 
     # The file we'll need for the tests.
@@ -74,7 +74,7 @@ def generate_i07_421595_coarse_map() -> None:
     time2 = time()
     time_taken = time2 - time1
     num_images = scan.metadata.data_file.scan_length
-    time_per_image = time_taken/num_images
+    time_per_image = time_taken / num_images
     print(f"Time taken to generate map per image: {time_per_image} s.")
 
     # Do what we came here to do.

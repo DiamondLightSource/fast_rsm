@@ -12,7 +12,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='fast_rsm',
-    version='1.3.0',
+    version='1.3.1',
     license='MIT License',
     packages=find_packages('src'),
     description=(
@@ -21,6 +21,9 @@ setup(
     author='Philip Mousley',
     author_email='philip.mousley@diamond.ac.uk',
     package_dir={'': 'src'},
+    package_data={
+        'fast_rsm': ['*.yaml'], 
+    },
     include_package_data=True,
     classifiers=[
         'Intended Audience :: Science/Research',

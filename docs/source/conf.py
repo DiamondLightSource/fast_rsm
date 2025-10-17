@@ -21,11 +21,11 @@
 
 project = 'fast_rsm'
 copyright = '2020-2025, Diamond Light Source Ltd'
-author = 'Richard Brearton'
+author = 'Philip Mousley'
 
-version = '1.0.0'
+version = '1.3.0'
 # The full version, including alpha/beta/rc tags
-release = '1.0.0'
+release = '1.3.0'
 
 
 # -- General configuration ---------------------------------------------------
@@ -45,7 +45,8 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
-    'sphinx.ext.imgmath',
+    'sphinx.ext.mathjax',
+    # 'sphinx.ext.imgmath',
     'nbsphinx',
     'jupyter_sphinx',
     'sphinx_collapse',
@@ -64,7 +65,7 @@ autodoc2_packages = [
     "../../src/fast_rsm/scan.py",
     "../../src/fast_rsm/writing.py",
 ]
-    
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -74,6 +75,7 @@ templates_path = ['_templates']
 # source_suffix = ['.rst', '.md']
 source_suffix = '.rst'
 
+imgmath_latex = r'c:\users\rpy65944\documents\guienv\lib\site-packages\latex'
 # The master toctree document.
 master_doc = 'index'
 
@@ -98,7 +100,7 @@ pygments_style = None
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme ='sphinx_rtd_theme'# 'alabaster'
+html_theme = 'sphinx_rtd_theme'  # 'alabaster'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -155,10 +157,10 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
-latex_documents = [
-    (master_doc, 'fastrsm.tex', 'fastrsm Documentation',
-     'Philip Mousley', 'manual'),
-]
+# latex_documents = [
+#     (master_doc, 'fastrsm.tex', 'fastrsm Documentation',
+#      'Philip Mousley', 'manual'),
+# ]
 
 
 # -- Options for manual page output ------------------------------------------
@@ -209,8 +211,8 @@ epub_exclude_files = ['search.html']
 todo_include_todos = True
 
 # Some logo things
-#html_logo = "logo/islatu_logo.png"
-#html_theme_options = {"logo_only": True}
+# html_logo = "logo/islatu_logo.png"
+# html_theme_options = {"logo_only": True}
 
 
 def setup(app):

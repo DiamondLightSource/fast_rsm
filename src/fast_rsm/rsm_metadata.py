@@ -187,7 +187,8 @@ class RSMMetadata:
         # If the DPS system is being used, account for it.
         try:
             if self.data_file.using_dps:
-                return self._vertical_pixel_distances + self.data_file.dpsy[idx]
+                return self._vertical_pixel_distances + \
+                    self.data_file.dpsy[idx]
         except AttributeError:
             # If there's no using_dps attribute on our data file, just return
             # the pre-calculated _vertical_pixel_distances.
@@ -261,7 +262,7 @@ class RSMMetadata:
         """
         Returns the wavevector of the incident beam in Å^-1.
         """
-        return 1/self.incident_wavelength
+        return 1 / self.incident_wavelength
 
     def _init_solid_angles(self):
         """
@@ -275,14 +276,14 @@ class RSMMetadata:
         TODO: This implementation is approximate and should be replaced by an
             exact treatment.
         """
-        
+
         # We're going to need to inc the data shape to hack this.
         data_shape = self.data_file.image_shape
-        self._init_relative_polar((data_shape[0]+1, data_shape[1]))
+        self._init_relative_polar((data_shape[0] + 1, data_shape[1]))
         theta_diffs = np.copy(self.relative_polar)
         theta_diffs = -np.diff(theta_diffs, axis=0)  # Remember the minus sign!
 
-        self._init_relative_azimuth((data_shape[0], data_shape[1]+1))
+        self._init_relative_azimuth((data_shape[0], data_shape[1] + 1))
         phi_diffs = np.copy(self._relative_azimuth)
         phi_diffs = -np.diff(phi_diffs, axis=1)
 
@@ -291,7 +292,7 @@ class RSMMetadata:
         self._init_relative_azimuth()
 
         # And finally, do what we came here to do: a scuffed calculation.
-        self._solid_angles = -phi_diffs*theta_diffs
+        self._solid_angles = -phi_diffs * theta_diffs
 
         # To prevent numbers from getting too silly, normalise this.
         self._solid_angles /= np.max(self._solid_angles)
@@ -309,18 +310,18 @@ class RSMMetadata:
         num_y_pixels = image_shape[0]
         # Imagine num_y_pixels = 11.
         # pixel_offsets = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
-        pixel_offsets = np.arange(num_y_pixels-1, -1, -1)
+        pixel_offsets = np.arange(num_y_pixels - 1, -1, -1)
         # Imagine y_beam_centre = 2
         y_beam_centre = self.beam_centre[0]
 
         # Now pixel_offsets -= ((11-1) - 2)
         # => pixel_offsets = [2, 1, 0, -1, -2, -3, -4, -5, -6, -7, -8]
         # This is good! The top of the detector is above the centre in y.
-        pixel_offsets -= ((num_y_pixels-1) - y_beam_centre)
+        pixel_offsets -= ((num_y_pixels - 1) - y_beam_centre)
 
         # Save this value to an array with the same shape as the images.
         self._vertical_pixel_offsets = np.zeros(image_shape, np.float32)
-        
+
         for i, pixel_offset in enumerate(pixel_offsets):
             self._vertical_pixel_offsets[i, :] = pixel_offset
 
@@ -336,13 +337,14 @@ class RSMMetadata:
         # Follow the recipe from above.
         # The azimuthal angle is larger towards the left of the image.
         num_x_pixels = image_shape[1]
-        pixel_offsets = np.arange(num_x_pixels-1, -1, -1)
+        pixel_offsets = np.arange(num_x_pixels - 1, -1, -1)
         x_beam_centre = self.beam_centre[1]
-        pixel_offsets -= ((num_x_pixels-1) - x_beam_centre)
+        pixel_offsets -= ((num_x_pixels - 1) - x_beam_centre)
         # Save this value to an array with the same shape as the images.
         self._horizontal_pixel_offsets = np.zeros(image_shape, np.float32)
         for i, pixel_offset in enumerate(pixel_offsets):
-            #accounting for rotation is done when loading in image, so no need for treating data differently here
+            # accounting for rotation is done when \
+            # loading in image, so no need for treating data differently here
             # if self.data_file.is_rotated:
             #     self._horizontal_pixel_offsets[i, :] = pixel_offset
             # else:
@@ -358,19 +360,19 @@ class RSMMetadata:
         num_y_pixels = image_shape[0]
         # Imagine num_y_pixels = 11.
         # pixel_offsets = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
-        pixel_offsets = np.arange(num_y_pixels-1, -1, -1)
+        pixel_offsets = np.arange(num_y_pixels - 1, -1, -1)
         # Imagine y_beam_centre = 2
         y_beam_centre = self.beam_centre[0]
 
         # Now pixel_offsets -= ((11-1) - 2)
         # => pixel_offsets = [2, 1, 0, -1, -2, -3, -4, -5, -6, -7, -8]
         # This is good! The top of the detector is above the centre in theta.
-        pixel_offsets -= ((num_y_pixels-1) - y_beam_centre)
+        pixel_offsets -= ((num_y_pixels - 1) - y_beam_centre)
 
         # Now convert pixel number to distances
         # Imagine self.pixel_size = 0.1m
         # Now distance_offsets = [0.2, 0.1, 0, -0.1, -0.2, -0.3, -0.4, -0.5...]
-        distance_offsets = pixel_offsets*self.data_file.pixel_size
+        distance_offsets = pixel_offsets * self.data_file.pixel_size
 
         # Now do a trig
         #   |
@@ -397,12 +399,12 @@ class RSMMetadata:
         # Follow the recipe from above.
         # The azimuthal angle is larger towards the left of the image.
         num_x_pixels = image_shape[1]
-        pixel_offsets = np.arange(num_x_pixels-1, -1, -1)
+        pixel_offsets = np.arange(num_x_pixels - 1, -1, -1)
         x_beam_centre = self.beam_centre[1]
-        pixel_offsets -= ((num_x_pixels-1) - x_beam_centre)
+        pixel_offsets -= ((num_x_pixels - 1) - x_beam_centre)
 
         # Now convert from pixels to distances to angles.
-        distance_offsets = pixel_offsets*self.data_file.pixel_size
+        distance_offsets = pixel_offsets * self.data_file.pixel_size
         phi_offsets = np.arctan2(distance_offsets,
                                  self.data_file.detector_distance)
 

@@ -5,8 +5,9 @@ This module contains parsers for different instruments that return Scan objects.
 from pathlib import Path
 from typing import Union, Tuple, TYPE_CHECKING
 
-from diffraction_utils import I07Nexus, Frame, Vector3
-from diffraction_utils.diffractometers import I07Diffractometer
+from diffraction_utils import I07Nexus,I10Nexus, Frame, Vector3
+from diffraction_utils.diffractometers import I07Diffractometer,I10RasorDiffractometer
+
 
 import fast_rsm.scan as scan
 from fast_rsm.rsm_metadata import RSMMetadata
@@ -50,7 +51,8 @@ def from_i07(path_to_nx: Union[str, Path],
     """
     # Load the nexus file.
     i07_nexus = I07Nexus(path_to_nx, path_to_data,
-                         detector_distance, setup, using_dps=using_dps,experimental_hutch=experimental_hutch)
+                         detector_distance, setup, using_dps=using_dps,\
+                              experimental_hutch=experimental_hutch)
 
     # Not used at the moment, but not deleted in case full UB matrix
     # calculations become important in the future (in which case we'll also
@@ -62,6 +64,48 @@ def from_i07(path_to_nx: Union[str, Path],
     metadata = RSMMetadata(diff, beam_centre)
 
     # Make sure that the sample_oop vector's frame's diffractometer is good.
+    sample_oop.frame.diffractometer = diff
+
+    return scan.Scan(metadata)
+
+def from_i10(path_to_nx: Union[str, Path],
+            beam_centre: Tuple[int],
+            detector_distance: float,
+            sample_oop: Vector3,
+            path_to_data: str = ''):
+    """
+    Instantiates a Scan from the path to an I10 nexus file, a beam centre
+    coordinate, a detector distance (this isn't stored in i10 nexus files)
+    and a sample out-of-plane vector.
+
+    Args:
+        path_to_nx:
+            Path to the nexus file containing the scan metadata.
+        beam_centre:
+            A (y, x) tuple of the beam centre, measured in the usual image
+            coordinate system, in units of pixels.
+        detector_distance:
+            The distance between the sample and the detector, which cant
+            be stored in i10 nexus files so needs to be given by the user.
+        sample_oop:
+            An instance of a diffraction_utils Vector3 which descrbes the
+            sample out of plane vector.
+        path_to_data:
+            Path to the directory in which the images are stored. Defaults
+            to '', in which case a bunch of reasonable directories will be
+            searched for the images.
+    
+    Returns:
+        Corresponding instance of fast_rsm.scan.Scan
+    """
+    # Load the nexus file.
+    i10_nexus = I10Nexus(path_to_nx, path_to_data, detector_distance)
+
+    # Load the state of the RASOR diffractometer; prepare the metadata.
+    diff = I10RasorDiffractometer(i10_nexus, sample_oop, 'area')
+    meta = RSMMetadata(diff, beam_centre)
+
+    # Make sure the sample_oop vector's frame's diffractometer is correct.
     sample_oop.frame.diffractometer = diff
 
     return scan.Scan(metadata)

@@ -42,8 +42,7 @@ def lorentz(intensities: np.ndarray, k_in: np.ndarray, k_out: np.ndarray):
     intensity_shape = intensities.shape
     k_out_shape = k_out.shape
     intensities = intensities.reshape(intensities.size)
-    k_out = k_out.reshape((int(k_out.size/3), 3))
-    
+    k_out = k_out.reshape((int(k_out.size / 3), 3))
 
     # Call the C function. This directly affects the elements of the
     # intensities array.
@@ -54,7 +53,6 @@ def lorentz(intensities: np.ndarray, k_in: np.ndarray, k_out: np.ndarray):
     # mapper_c_utils.lorentz_correction(k_in, k_out, intensitiesones)
     # intensitiesones = intensitiesones.reshape(intensity_shape)
     # np.save('/home/rpy65944/fast_rsm/lorentzcorrs',intensitiesones)
-
 
     # Return the shapes to their original values.
     intensities = intensities.reshape(intensity_shape)
@@ -93,24 +91,23 @@ def linear_polarisation(intensities: np.ndarray, k_out: np.ndarray,
     intensity_shape = intensities.shape
     k_out_shape = k_out.shape
     intensities = intensities.reshape(intensities.size)
-    k_out = k_out.reshape((int(k_out.size/3), 3))
+    k_out = k_out.reshape((int(k_out.size / 3), 3))
 
     # Call the C function. This directly affects the elements of the
     # intensities array.
-    #print('corrected version with linear polarisation correction')
-    mapper_c_utils.linear_pol_correction(polarisation_vector, k_out, intensities)
-    
-    ##add in incorrect line to replicate previous version
-    #print("previous version - incorrectly has double  'lorentz'")
-    #mapper_c_utils.lorentz_correction(polarisation_vector, k_out, intensities)
+    # print('corrected version with linear polarisation correction')
+    mapper_c_utils.linear_pol_correction(
+        polarisation_vector, k_out, intensities)
+
+    # add in incorrect line to replicate previous version
+    # print("previous version - incorrectly has double  'lorentz'")
+    # mapper_c_utils.lorentz_correction(polarisation_vector, k_out, intensities)
 
     # #hardcode debugging lines to save correction factors
     # intensitiesones=np.ones(np.shape(intensities))
     # mapper_c_utils.linear_pol_correction(polarisation_vector, k_out, intensitiesones)
     # intensitiesones = intensitiesones.reshape(intensity_shape)
     # np.save('/home/rpy65944/fast_rsm/linpolcorrs',intensitiesones)
-
-
 
     # Return the shapes to their original values.
     intensities = intensities.reshape(intensity_shape)

@@ -30,7 +30,9 @@ Creating experiment files
     c. **'pyfai_ivsq':** calculates 1d Intensity Vs Q using pyFAI. Use this options for GIWAXS measurements either with a static detector or a moving detector.
     d. **'pyfai_exitangles':** calculates a 2d map of horizontal exit angle Vs vertical exit angle
 
-    the **map_per_image** option will set whether to combine all scans into a single HKL volume (map_per_image=False) , or whether to analyse each image individually into its own HKL volume (map_per_image=True)
+    the **map_per_image** option will set whether to combine all scans into a single output:
+        - map_per_image=False --> gives a single output file (either HKL volume or mapped GIWAXS data)
+        - map_per_image=True --> analyses each image individually creating multiple output files (either HKL volumes or mapped GIWAXS)
 
     .. collapse:: Deprecated options which have been removed
 
