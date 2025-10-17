@@ -808,7 +808,10 @@ def pyfai_move_ivsq_worker(experiment: Experiment, imageindices,
 
     unit_qip_name = "2th_deg"  # "qtot_A^-1"# "qip_A^-1"
     unit_qoop_name = "qoop_A^-1"
-    d5i_full=np.array(scan.metadata.data_file.nx_entry.d5i.data)
+    if hasattr(scan.metadata.data_file.nx_entry,'d5i'):
+        d5i_full=np.array(scan.metadata.data_file.nx_entry.d5i.data)
+    else:
+        d5i_full=np.ones(len(scan))
     sample_orientation = 1
     groupnum = 25
     groups = [imageindices[i:i + groupnum]
