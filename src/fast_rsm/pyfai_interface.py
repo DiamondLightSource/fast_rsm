@@ -723,10 +723,10 @@ def pyfai_moving_ivsq_smm(experiment: Experiment, hf, scanlist, process_config):
     dset.create_dataset("Intensity", data=qi_array)
     dset.create_dataset("Q_angstrom^-1", data=arrays_arr[1])
     dset.create_dataset("2thetas", data=arrays_arr[2])
-    dset.create_dataset("counts",data=counts_arr[0])
-    dset.create_dataset("sum_signal",data=arrays_arr[0])
-    dset.create_dataset("solid_intensity",data=counts_arr[1])
-    dset.create_dataset("solid_sum_signal",data=counts_arr[2])
+    # dset.create_dataset("counts",data=counts_arr[0])
+    # dset.create_dataset("sum_signal",data=arrays_arr[0])
+    # dset.create_dataset("solid_intensity",data=counts_arr[1])
+    # dset.create_dataset("solid_sum_signal",data=counts_arr[2])
 
     if cfg.savedats:
         experiment.do_savedats(hf, qi_array, arrays_arr[1], arrays_arr[2])
