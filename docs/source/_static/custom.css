@@ -13,3 +13,10 @@
 /* .fa-bars{
     color: #000000;
 } */
+
+
+/* Style the collapse title */
+.blue-title .toggle-header {
+    color: blue;
+    font-weight: bold;
+}
