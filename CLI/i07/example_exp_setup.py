@@ -1,13 +1,3 @@
-"""
-First we need to import some stuff.
-"""
-
-import os
-import multiprocessing
-from pathlib import Path
-import numpy as np
-from diffraction_utils import Frame, Region
-from fast_rsm.experiment import Experiment
 
 # =====================EXPERIMENTAL DETAILS============
 # How was your sample mounted? Options are 'horizontal', 'vertical' and 'DCD'.
