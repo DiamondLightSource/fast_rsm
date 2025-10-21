@@ -1,29 +1,35 @@
 Creating experiment files
 =========================
 
-#. if you need a mask file for your data, make a mask by typing 
 
-    .. code-block:: bash
 
-        makemask -dir path/to/experiment/directory -s ##scan##number#
-    
-    This will open up the mask GUI. Save the created mask and note down the file path ###/###/#####.edf
-
-#. if you do not have an experiment file, make an experiment setup file by typing 
+To create a new experiment setup file type the following command after loading the fast_rsm module
 
     .. code-block:: bash
 
         makesetup 
-        
-    this will open up a template experimental file, edit with your experimental information. Use the information below to create your exp_setup.py file. The sections are organised as follows:
+    
+this will open up a template experimental file, edit with your experimental information. Use the information below to create your exp_setup.py file. The sections are organised as follows:
     
     * :ref:`info_for_all_scans` - These are all of the values which always need to be defined in your experimental setup file 
     * :ref:`optional_for_all` - These are the optional values which can be set for all scan types, but will default to a preset values if not included in the experimental setup file
     * :ref:`optional_GIWAXS` - These are the optional values which can be set for GIWAXS type scans, and will default to preset values if not included in the experimental setup file
     * :ref:`optional_singlecrystal`- These are the optional values which can be set for HKL reciprocal space type scans,and will default to preset values if not included in the experimental setup file
 
-#. Usually the default calc_setup.py file that contains the calculation settings will be suitable,however if a bespoke calc_setup.py is needed, copy over the calc_setup.py file in the fast_rsm/CLI/i07  folder and edit accordingly. contact beamline staff or i07 data analysis scientist for guidance on this.
+Usually the default calc_setup.py file that contains the calculation settings will be suitable,however if a bespoke calc_setup.py is needed, copy over the calc_setup.py file in the fast_rsm/CLI/i07  folder and edit accordingly. contact beamline staff or i07 data analysis scientist for guidance on this.
 
+If you need a mask file for your data, make a mask by using the makemask command from the terminal line. This requires two inputs:
+    
+    * -dir =the path to where the experiment data i stored
+    * -s =the number of the scan you want to make the mask for
+
+    e.g.
+
+    .. code-block:: bash
+
+        makemask -dir /dls/i07/data/2025/si36456-5/sample1 -s 535612
+    
+    This will open up the mask GUI. Save the created mask and note down the full file path to the .edf file.
 
 .. _info_for_all_scans:
 
@@ -100,12 +106,16 @@ Masking
 .. confval:: specific_pixels
 
     If you have a small number of hot pixels to mask, specify them one at a time in a list. Which should look like:
-    specific_pixels = [(pixel_x1, pixel_y1), (pixel_x2, pixel_y2)] e.g. to mask pixel (233, 83) and pixel (234, 83), where pixel coordinates are (x, y) use  [(233, 234),(83, 83)]
+    specific_pixels = [(pixel_x1, pixel_y1), (pixel_x2, pixel_y2)] e.g. to mask pixel (233, 83) and pixel (234, 83), where pixel coordinates are (x, y) use  
+
+    .. code-block:: python
+
+        specific_pixels=[(233, 234),(83, 83)]
 
 .. confval:: mask_regions
 
-    to set masking on specific areas, define regions with start_x,  stop_x, start_y, stop_y, and then set the mask_regions to a list of these regions.
-    e.g. 
+    to set masking on specific areas, define regions with start_x,  stop_x, start_y, stop_y, and then set the mask_regions to a list of these regions. e.g. 
+
     .. code-block:: python
             
         mask_1 = (0, 75, 0, 194)
@@ -121,11 +131,19 @@ If there are also some corrupted images within a scan you can define which image
 
 .. confval::  skipscans
 
-    set which scans have images to skip - giving the scan numbers in a list e.g. [535612,535643]   
+    set which scans have images to skip - giving the scan numbers in a list e.g. 
+    
+    .. code-block:: python
+
+        skipscans=[535612,535643]   
 
 .. confval:: skipimages
 
-    specify which images within the skipscans need to be skipped, given as a list of lists e.g. [[1,3,5],[4,7,9]]
+    specify which images within the skipscans need to be skipped, given as a list of lists e.g. 
+    
+    .. code-block:: python
+        
+        skipimages=[[1,3,5],[4,7,9]]
 
 
 Detector Positioning System settings
@@ -236,7 +254,7 @@ To define the resolution of the HKL map you can specify one of the two values:
 
 
 
-.. confval:: loadload_from_dat_from_dat
+.. confval:: load_from_dat
 
         Only include this if you need to load your data from a .dat file. 
 
