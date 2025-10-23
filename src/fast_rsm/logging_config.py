@@ -56,7 +56,3 @@ def close_logging():
 
     # Shutdown logging
     logging.shutdown()
-
-    lock_file=f'{ERROR_LOG_DIR}/.__errors.lock'
-    if os.path.exists(lock_file):
-        os.remove(lock_file)
