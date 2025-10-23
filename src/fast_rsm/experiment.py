@@ -405,46 +405,7 @@ class Experiment:
         verscale = chosen_ind_scales[2]
         horscale = chosen_ind_scales[3]
 
-        # if (vertsetup is True) & (self.scans[0].metadata.data_file.is_rotated):
-        #     # GOOD
-        #     [horindex, vertindex] = horvert_indices['hor0']
-        #     [vertangles, horangles] = horvert_angles['thvert']
-        #     verscale = -1
-        #     horscale = 1
-
-        # elif vertsetup is True:
-        #     # GOOD
-        #     [horindex, vertindex] = horvert_indices['hor0']
-        #     [vertangles, horangles] = horvert_angles['thvert']
-        #     verscale = -1
-        #     horscale = -1
-
-        # elif (self.setup == 'DCD') & (self.scans[0].metadata.data_file.is_rotated):
-        #     [horindex, vertindex] = horvert_indices['vert0']
-        #     [vertangles, horangles] = horvert_angles['delvert']
-        #     verscale = -1
-        #     horscale = -1
-
-        # elif self.setup == 'DCD':
-        #     [horindex, vertindex] = horvert_indices['vert0']
-        #     [vertangles, horangles] = horvert_angles['delvert']
-        #     verscale = -1
-        #     horscale = -1
-
-        # elif (vertsetup is False) & (self.scans[0].metadata.data_file.is_rotated):
-        #     [horindex, vertindex] = horvert_indices['vert0']
-        #     [vertangles, horangles] = horvert_angles['delvert']
-        #     verscale = -1
-        #     horscale = 1
-
-        # else:
-        #     # GOOD
-        #     [horindex, vertindex] = horvert_indices['vert0']
-        #     [vertangles, horangles] = horvert_angles['delvert']
-        #     verscale = -1
-        #     horscale = -1
-
-        # pylint: disable=unused-variable
+        
         outscale = 1
         if axis == 'vert':
             pixlow = self.imshape[vertindex] - self.beam_centre[vertindex]
@@ -478,6 +439,20 @@ class Experiment:
         return outdict
     # horindex, vertindex, vertangles, horangles, verscale, horscale, pixhigh, \
    # pixlow,outscale,pixscale, highsign, lowsign, highsection, lowsection #
+    def get_correction_scales(self,setup,rotated):
+        if (setup=='vertical') & (rotated):
+            correctionscales = {'vert': 1, 'hor': -1}
+        elif setup=='vertical':
+            correctionscales = {'vert': 1, 'hor': -1}
+        elif (setup == 'DCD') & (rotated):
+            correctionscales = {'vert': 1, 'hor': 1}
+        elif setup == 'DCD':
+            correctionscales = {'vert': 1, 'hor': 1}
+        elif (setup=='horizontal') & (rotated):
+            correctionscales = {'vert': 1, 'hor': -1}
+        else:
+            correctionscales = {'vert': 1, 'hor': 1}
+        return correctionscales
 
     def calcanglim(self, axis, vertsetup=False,
                    slitvertratio=None, slithorratio=None):
@@ -532,20 +507,8 @@ class Experiment:
         maxangle = highsection + (add_section)
         minangle = lowsection - (minus_section)
 
-        # add incorrection factors to match direction with pyfai calculations
-        if (vertsetup is True) & (self.scans[0].metadata.data_file.is_rotated):
-            correctionscales = {'vert': 1, 'hor': -1}
-        elif vertsetup is True:
-            correctionscales = {'vert': 1, 'hor': -1}
-        elif (self.setup == 'DCD') & (self.scans[0].metadata.data_file.is_rotated):
-            correctionscales = {'vert': 1, 'hor': 1}
-        elif self.setup == 'DCD':
-            correctionscales = {'vert': 1, 'hor': 1}
-        elif (vertsetup is False) & (self.scans[0].metadata.data_file.is_rotated):
-            correctionscales = {'vert': 1, 'hor': 1}
-        else:
-            correctionscales = {'vert': 1, 'hor': 1}
-
+        # add in correction factors to match direction with pyfai calculations
+        correctionscales=self.get_correction_scales(self.setup,self.scans[0].metadata.data_file.is_rotated)
         outscale *= correctionscales[axis]
         outvals = np.sort([minangle * outscale, maxangle * outscale])
         return outvals[0], outvals[1]
@@ -636,7 +599,9 @@ class Experiment:
 
             if abs(qlow_withvert) > abs(qlow):
                 qlow = qlow_withvert
-
+        # add in correction factors to match direction with pyfai calculations
+        correctionscales=self.get_correction_scales(self.setup,self.scans[0].metadata.data_file.is_rotated)
+        outscale *= correctionscales[axis]
         outvals = np.sort([qupp * outscale, qlow * outscale])
         return outvals[0], outvals[1]
 
