@@ -5,9 +5,10 @@ import logging
 import logging.config
 import getpass
 import concurrent_log_handler
+import shutil
 
 
-
+ERROR_LOG_DIR='/dls/science/groups/das/ExampleData/i07/fast_rsm_error_logs'
 def start_frsm_loggers(version_path,debugflag: bool):
     """
     initiate loggers for fast_rsm - debug and error loggers
@@ -32,4 +33,6 @@ def log_error_info(jobfile,slurmfile,error_logger):
     """
     pass error info to logger
     """
+    shutil.copy2(slurmfile,ERROR_LOG_DIR)
+
     error_logger.error(f"{getpass.getuser()}\t{jobfile}\t{slurmfile}")
