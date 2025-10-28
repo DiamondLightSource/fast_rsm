@@ -43,7 +43,7 @@ def log_error_info(jobfile,slurmfile,error_logger):
     """
     copy_path=shutil.copy2(slurmfile,ERROR_LOG_DIR)
     os.chmod(copy_path, 0o777)
-    error_logger.error(f"{getpass.getuser()}\t{jobfile}\t{slurmfile}")
+    error_logger.debug(f"{getpass.getuser()}\t{jobfile}\t{slurmfile}")
 
 def close_logging():
     '''
