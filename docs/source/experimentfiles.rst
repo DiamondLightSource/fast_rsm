@@ -271,6 +271,12 @@ To define the resolution of the HKL map you can specify one of the two values:
 
     choose to have a manually set cylinder axis
 
+.. confval:: frame_name
+
+    choose to change frame of reference for mapping from default 'hkl' :
+
+        * **'qxqyqz'** - map data into cartesian Qx,Qy,Qz values, which is useful when lattice of material is none cubic e.g. hexagonal. 
+
 .. confval:: spherical_bragg_vec
     
     define a vector to shift the centre point of mapped volume to a specific bragg peak
