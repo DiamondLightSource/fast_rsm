@@ -1,5 +1,7 @@
+#===================================================================
+#======Information required for all scan types======
+#===================================================================
 
-# =====================EXPERIMENTAL DETAILS============
 # How was your sample mounted? Options are 'horizontal', 'vertical' and 'DCD'.
 setup = 'horizontal'
 
@@ -21,82 +23,31 @@ beam_centre = (119, 1564)
 # distance between the receiving slit and the detector). Units of meters.
 detector_distance = 0.18
 
-# if not using sample slits leave both as None, if using slits set to
-# slit-detector/sample-detector  e.g. 0.55/0.89
-slitvertratio =  None #0.55 / 0.89 
-slithorratio = None
 
-# critical edge of sample in degrees
-alphacritical = 0.08
+# define what outputs you would like form the processing here, choose from:
+# 'full_reciprocal_map' = calculates a full reciprocal space map combining all
+#                           scans listed into a single volume
+#
+# 'pyfai_qmap' = calculates 2d q_parallel Vs q_perpendicular plots using pyFAI
+#
+# 'pyfai_ivsq' = calculates 1d Intensity Vs Q using pyFAI
+#
+# 'pyfai_exitangles' - calculates a map of vertical exit angle Vs horizontal exit angle
 
-# Are you using the DPS system?
-using_dps = False
-# The DPS central pixel locations are not typically recorded in the nexus file.
-# NOTE THAT THIS SHOULD BE THE CENTRAL PIXEL FOR THE UNDEFLECTED BEAM.
-# UNITS OF METERS, PLEASE (everything is S.I., except energy in eV).
-dpsx_central_pixel = 0
-dpsy_central_pixel = 0
-dpsz_central_pixel = 0
-
-# ========CALCULATION INFORMATION==========
-
-# **************FULL RECIPROCAL VOLUME -  CRYSTAL TRUNCATION RODS, HKL MAPS etc
-# How large would you like your output file to be, in MB? 100MB normally gives
-# very good resolution without sacrificing performance. If you want something
-# higher resolution, feel free, but be aware that the performance of the map and
-# the analysis will start to suffer above around 1GB.
-# Max file size is 2GB (2048MB).
-output_file_size = 50
-
-#Choose if you want a .vtk volume saved as well the hdf5, which can be used for loading into paraview
-save_vtk = False
-
-#Choose if you want a .npy file saved as well as the hdf5, for manual analysis
-save_npy = False
-
-# choose map co-ordinates for special mappings e.g. polar co-ordinates, if commented out defaults to co-ordinates='cartesian'
-# coordinates='sphericalpolar'
-
-# choose central point to calculate spherical polars around - if commented out defaults to [0,0,0]
-# spherical_bragg_vec=[1.35,1.42,0.96] #519910 , 519528
+# 'pyfai_ivsq'  , 'pyfai_qmap','pyfai_exitangles' ,'full_reciprocal_map'
+process_outputs = ['pyfai_qmap']
 
 
-# volume_start = [h_start, k_start, l_start]
-# volume_stop = [h_stop, k_stop, l_stop]
-# volume_step = [h_step, k_step, l_step]
-# Leave as None if you don't want to specify them. You can specify whichever
-# you like (e.g. you can specify step and allow start/stop to be auto
-# calculated)
-volume_start = None
-volume_stop = None
-volume_step = None
-
-# Only use this if you need to load your data from a .dat file.
-load_from_dat = False
+# Set this to True if you would like each image to be mapped independently.
+# If this is False, all images in all scans will be combined into one large
+# reciprocal space map.
+map_per_image = False
 
 
-# ********GIWAXS WITH MOVING DETECTOR AND LARGE NUMBER OF IMAGES TO BE COMBINED INTO ONE INTEGRATION
-# if calculating pyfai integration on scan with moving detector and large number of images, there is the option to
-# specify range of q or theta so that number of bins can be calculated. If commented out this will automatically calculate 
-# the limits of the dataset #e.g.
-#radialrange = (0, 60)
-
-#specify steps in theta to calculate the number of bins - if commented out this will default to 0.01
-#radialstepval =None
-###==OR
-# ## specify directly the number of bins for I Vs Q profile - which will mean radialstepval will have no effect. 
-# ivqbins = None # e.g. 1000
-
-
-# *******calculating azimuthal integrations from single images to give I Vs Q plots
-
-# *********calculating qpara Vs qperp maps,
-# set number of bins in the form (q_parallel, q_perpendicular)
-qmapbins = (1200, 1200)
-
-
-
-# ===========MASKING=============
+#===================================================================
+#=======Optional settings applicable to all scan types
+#===================================================================
+#               ===========MASKING=============
 # add path to edfmaskfile created with pyFAI gui accessed via 'makemask'
 # option in fast_rsm
 edfmaskfile = None
@@ -132,7 +83,7 @@ mask_regions = None
 # numbers).
 min_intensity = 0.
 
-# =======OPTIONS FOR SKIPPING IMAGES IF ISSUES ARE PRESENT
+#            =======OPTIONS FOR SKIPPING IMAGES IF ISSUES ARE PRESENT
 # CHOOSE SCANS WHICH HAVE IMAGES TO SKIP, AND THEN SPECIFY WHICH IMAGES WITHIN THOSE SCANS NEED TO BE SKIPPED
 # I.E. A LIST OF IMAGES TO SKIP FOR EACH SCAN VALUE IN SKIPSCANS
 skipscans = []
@@ -140,25 +91,19 @@ skipscans = []
 skipimages = [[],
               []]
 
-# ============OUTPUTS==========
-# define what outputs you would like form the processing here, choose from:
-# 'full_reciprocal_map' = calculates a full reciprocal space map combining all
-#                           scans listed into a single volume
-#
-# 'pyfai_qmap' = calculates 2d q_parallel Vs q_perpendicular plots using pyFAI
-#
-# 'pyfai_ivsq' = calculates 1d Intensity Vs Q using pyFAI
-#
-# 'pyfai_exitangles' - calculates a map of vertical exit angle Vs horizontal exit angle
-
-# 'pyfai_ivsq'  , 'pyfai_qmap','pyfai_exitangles' ,'full_reciprocal_map'
-process_outputs = ['pyfai_qmap']
+# Are you using the DPS system?
+using_dps = False
+# The DPS central pixel locations are not typically recorded in the nexus file.
+# NOTE THAT THIS SHOULD BE THE CENTRAL PIXEL FOR THE UNDEFLECTED BEAM.
+# UNITS OF METERS, PLEASE (everything is S.I., except energy in eV).
+dpsx_central_pixel = 0
+dpsy_central_pixel = 0
+dpsz_central_pixel = 0
 
 
-# Set this to True if you would like each image to be mapped independently.
-# If this is False, all images in all scans will be combined into one large
-# reciprocal space map.
-map_per_image = False
+#===================================================================
+#=========Optional settings for GIWAXS analysis
+#===================================================================
 
 # There will always be a .hdf5 file created. You can set the option for exporting additonal files with the savetiffs and savedats options below
 # if you want to export '2d qpara Vs qperp maps' to extra .tiff images set
@@ -169,16 +114,66 @@ savetiffs = False
 # to True
 savedats = False
 
-# # Options for coordinates argument are:
-# #     'cartesian'   (normal cartesian coords: hkl, Qx Qy Qz, etc.)
-# #     'cylindricalpolar'       (cylindrical polar with cylinder axis set by the
-# #                        cylinder_axis variable)
-# #     'sphericalpolarr     (spherical polar with centre set by the
-# #                        spherical_bragg_vec variable)
-coordinates='cartesian' 
-cylinder_axis=False
-#use this vector to shift centre point of mapped volume to a specific bragg peak
-spherical_bragg_vec=[0,0,0] 
+# if not using sample slits leave both as None, if using slits set to
+# slit-detector/sample-detector  e.g. 0.55/0.89
+slitvertratio =  None #0.55 / 0.89 
+slithorratio = None
 
-# The scan numbers of the scans that you want to use to produce this reciprocal
-# space map.
+# critical edge of sample in degrees
+alphacritical = 0.08
+
+# if calculating pyfai integration on scan with moving detector and large number of images, there is the option to
+# specify range of q or theta so that number of bins can be calculated. If commented out this will automatically calculate 
+# the limits of the dataset #e.g.
+radialrange = (0, 60)
+
+#specify steps in theta to calculate the number of bins - if commented out this will default to 0.01
+radialstepval =None
+###==OR
+# ## specify directly the number of bins for I Vs Q profile - which will mean radialstepval will have no effect. 
+# ivqbins = None # e.g. 1000
+
+# *********calculating qpara Vs qperp maps,
+# set number of bins in the form (q_parallel, q_perpendicular)
+qmapbins = (1200, 1200)
+
+#===================================================================
+#=========Optional settings for full reciprocal space maps
+#===================================================================
+#  
+# volume_start = [h_start, k_start, l_start]
+# volume_stop = [h_stop, k_stop, l_stop]
+# volume_step = [h_step, k_step, l_step]
+# Leave as None if you don't want to specify them. You can specify whichever
+# you like (e.g. you can specify step and allow start/stop to be auto
+# calculated)
+volume_start = None
+volume_stop = None
+volume_step = None
+
+# How large would you like your output file to be, in MB? 100MB normally gives
+# very good resolution without sacrificing performance. If you want something
+# higher resolution, feel free, but be aware that the performance of the map and
+# the analysis will start to suffer above around 1GB.
+# Max file size is 2GB (2048MB).
+output_file_size = 50
+
+#Choose if you want a .vtk volume saved as well the hdf5, which can be used for loading into paraview
+save_vtk = False
+
+#Choose if you want a .npy file saved as well as the hdf5, for manual analysis
+save_npy = False
+
+# Only use this if you need to load your data from a .dat file.
+load_from_dat = False
+# choose map co-ordinates for special mappings e.g. polar co-ordinates, if commented out defaults to co-ordinates='cartesian'
+# coordinates='sphericalpolar'
+
+# choose central point to calculate spherical polars around - if commented out defaults to [0,0,0]
+# spherical_bragg_vec=[1.35,1.42,0.96] #519910 , 519528
+# choose to have a manually set cylinder axis to use with cylindrical co-ordinates
+#cylinder_axis=False
+
+#choose to change frame of reference for mapping from default ‘hkl’ :
+#frame_name='hkl'
+
