@@ -378,13 +378,15 @@ def save_binoviewer_hdf5(output_path: str, process_config: SimpleNamespace):
                        for i in range(3)]
 
     # Make h, k and l arrays in the expected format.
-    h_arr, k_arr, l_arr = (
+    x_arr, y_arr, z_arr = (
         tuple(np.array([i, binoviewer_start[i], binoviewer_stop[i],
                         binoviewer_step[i],
                         float(binoviewer_start_int[i]),  # binoviewer
                         float(binoviewer_stop_int[i])])  # uses int()
               for i in range(3))
     )
+
+    labels={'hkl':['h','k','l'],'qxqyqz':['Qx','Qy','Qz']}
 
     with h5py.File(output_path, "w") as hf:
 
@@ -398,7 +400,10 @@ def save_binoviewer_hdf5(output_path: str, process_config: SimpleNamespace):
         binoculars_group = hf.create_group("binoculars")
         binoculars_group.attrs['type'] = 'Space'
         axes_group = binoculars_group.create_group("axes")
-        axes_datasets = {"h": h_arr, "k": k_arr, "l": l_arr}
+        axes_labels=labels[cfg.frame_name]
+        axes_datasets = {axes_labels[0]: x_arr,\
+                         axes_labels[1]: y_arr,\
+                         axes_labels[2]: z_arr}
         for name, data in axes_datasets.items():
             axes_group.create_dataset(name, data=data)
 
