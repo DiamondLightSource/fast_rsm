@@ -337,10 +337,13 @@ class Image:
         # performance difference is pretty small. And, I mean, doing the whole
         # calculation in a non-orthogonal basis sounds gross.
         if frame.frame_name == Frame.hkl:
-            ub_mat = self.metadata.data_file.ub_matrix.astype(np.float32)
-            ub_mat = np.linalg.inv(ub_mat)
+            transform_mat = self.metadata.data_file.ub_matrix.astype(np.float32)
+            transform_mat = np.linalg.inv(transform_mat)
+        elif frame.frame_name == Frame.qxqyqz:
+            transform_mat = self.metadata.data_file.u_matrix.astype(np.float32)
+            transform_mat = np.linalg.inv(transform_mat)
         else:
-            ub_mat = np.array([
+            transform_mat = np.array([
                 [1, 0, 0],
                 [0, 1, 0],
                 [0, 0, 1]
@@ -365,7 +368,7 @@ class Image:
                 [0, 0, 1]
             ])
 
-        ub_mat = np.matmul(ub_mat, coord_change_mat)
+        transform_mat = np.matmul(transform_mat, coord_change_mat)
 
         # #ADD IN HERE INVERSE OF OMEGA AND ALPHA ROTATIONS, WHICH ARE NOT INCLUDED \
         #  IN THE UB MATRIX. Currently only have kout-kin which is Hlab. \
@@ -380,17 +383,17 @@ class Image:
         # ub_mat=np.matmul(ub_mat,invSampRot)
 
         # The custom, high performance linear_map expects float32's.
-        ub_mat = ub_mat.astype(np.float32)
+        transform_mat = transform_mat.astype(np.float32)
         # pylint: disable=c-extension-no-member
         if indices is not None:
             to_map = np.ascontiguousarray(k_out_array[i, j, :])
-            mapper_c_utils.linear_map(to_map, ub_mat)
+            mapper_c_utils.linear_map(to_map, transform_mat)
             k_out_array[i, j, :] = to_map
         else:
             k_out_array = k_out_array.reshape(
                 (desired_shape[0] * desired_shape[1], 3))
             # This takes CPU time: mapping every vector.
-            mapper_c_utils.linear_map(k_out_array, ub_mat)
+            mapper_c_utils.linear_map(k_out_array, transform_mat)
             # Reshape the k_out_array to have the same shape as the image.
             k_out_array = k_out_array.reshape(desired_shape)
 
