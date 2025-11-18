@@ -5,6 +5,7 @@ specifically at Diamond.
 from types import SimpleNamespace
 from typing import Tuple
 from datetime import datetime
+import nexusformat.nexus as nx
 from time import time
 import os
 import sys
@@ -24,12 +25,12 @@ pyfai_static_ivsq,pyfai_moving_qmap_smm,pyfai_moving_exitangles_smm,\
 pyfai_moving_ivsq_smm,save_config_variables,createponi
 
 
-def create_standard_experiment(global_vals: SimpleNamespace):
+
+def create_process_config(global_vals: SimpleNamespace):
     """
-    uses process configuration to create an experiment object 
-    and setup a logger if requested
-    returns :  Experiment, config, logger
+    creates a simplenamespace configuration settings object
     """
+
     default_config=experiment_config(global_vals.scan_numbers)
     default_config['full_path']=global_vals.job_file_path
     for key in default_config:
@@ -38,44 +39,151 @@ def create_standard_experiment(global_vals: SimpleNamespace):
     check_config_schema(default_config)
 
     cfg = SimpleNamespace(**default_config)
-
-    debug_logger=logging.getLogger('fastrsm_debug')
     with open(cfg.full_path,encoding='utf-8') as f:
         cfg.joblines = f.readlines()
 
-    dps_centres = [cfg.dpsx_central_pixel,
+    
+    cfg.dps_centres = [cfg.dpsx_central_pixel,
                    cfg.dpsy_central_pixel, cfg.dpsz_central_pixel]
-    cfg.oop = initial_value_checks(
-        dps_centres, cfg.cylinder_axis, cfg.setup, cfg.output_file_size)
-
+    cfg.oop = initial_value_checks(cfg.dps_centres,cfg.cylinder_axis,\
+                                    cfg.setup, cfg.output_file_size)
+    
     # Max number of cores available for processing.
     cfg.num_threads = multiprocessing.cpu_count()
     cfg.pythonlocation = sys.executable
-    data_dir = Path(cfg.local_data_path)
+
+    cfg.mask_regions_list, cfg.specific_pixels,cfg.mask_regions = make_mask_lists(
+        cfg.specific_pixels, cfg.mask_regions)
+    cfg.data_dir = Path(cfg.local_data_path)
+
+    return cfg
+
+
+
+
+def check_folder(folder):
+    """
+    check individual scan folders for corrupt .h5 files
+    """
+    corrupt_files=[]
+    for file in folder:
+        try:
+            f=h5py.File(file)
+            f.close()
+        except OSError:
+            corrupt_files.append(file)
+    return len(corrupt_files)
+
+
+def check_folder_corruption(folderpath: Path):
+    """
+    check any folders associated with scan
+    
+    """
+    corrupt_count=0
+
+    corrupt_files=[]
+    filepath_list=[folderpath/f"{foldfile}" for foldfile in os.listdir(folderpath)]
+    for file in filepath_list:
+        try:
+            f=h5py.File(file)
+            f.close()
+        except OSError:
+            corrupt_files.append(file)
+    corrupt_count+= len(corrupt_files)
+    return corrupt_count
+
+def get_good_paths(process_config: SimpleNamespace):
+    """
+    checks for corrupted .h5 files in scan folder
+    """
+    cfg=process_config
+    good_scan_list=[]
+    corrupt_scan_list=[]
+    for scan in cfg.scan_numbers:
+        corrupt=check_folder_corruption(cfg.data_dir / f"i07-{scan}")
+        if corrupt==0:
+            good_scan_list.append(scan)
+        else:
+            corrupt_scan_list.append(scan)
+    good_nxs_paths = [cfg.data_dir / f"i07-{x}.nxs" for x in good_scan_list]
+    bad_nxs_paths=[cfg.data_dir / f"i07-{x}.nxs" for x in corrupt_scan_list]
+    return good_nxs_paths,bad_nxs_paths
+
+def colour_text(colour,string):
+    """
+    return a colour string to print using chosen colour and string text
+    """
+    colourkeys = {
+        'blue': [
+            '\033[34m',
+            '\033[0m.'],
+        'green': [
+            '\033[32m',
+            '\033[0m'],
+        'red':[
+            '\033[31m',
+            '\033[0m']}
+    start, end = colourkeys[colour]
+    return f"{start}{string}{end}"
+
+
+def corrupt_warning(bad_paths):
+    """
+    give warning in terminal if corrupt scans found
+    """
+    if len(bad_paths)>0:
+        print(colour_text('red','='*35))
+        print(colour_text('red',"WARNING - the following files were found to be corrupt and will be ignored during processing"))
+        print(f"Directory: {str(bad_paths[0].parent)}")
+        for path in bad_paths:
+            print('\t'+path.name)
+        print(colour_text('red','='*35))
+    return
+
+def create_experiment(process_config: SimpleNamespace):
+    """
+    creates an experiment object from process configuration settings
+    """
+    cfg=process_config
+    
     # Work out the paths to each of the nexus files. Store as pathlib.Path
     # objects.
-    nxs_paths = [data_dir / f"i07-{x}.nxs" for x in cfg.scan_numbers]
-
-    cfg.mask_regions_list, specific_pixels,cfg.mask_regions = make_mask_lists(
-        cfg.specific_pixels, cfg.mask_regions)
-
+    cfg.good_nxs_paths,cfg.bad_nxs_paths = get_good_paths(cfg)
+    
+    print(corrupt_warning(cfg.bad_nxs_paths))
     # Finally, instantiate the Experiment object.
     experiment = Experiment.from_i07_nxs(
-        nxs_paths, cfg.beam_centre, cfg.detector_distance, cfg.setup,
+        cfg.good_nxs_paths, cfg.beam_centre, cfg.detector_distance, cfg.setup,
         using_dps=cfg.using_dps, experimental_hutch=cfg.experimental_hutch)
 
-    experiment.mask_pixels(specific_pixels)
+    experiment.mask_pixels(cfg.specific_pixels)
     experiment.mask_edf(cfg.edfmaskfile)
     experiment.mask_regions(cfg.mask_regions_list)
 
-    adjustment_args = [cfg.detector_distance, dps_centres, cfg.load_from_dat,\
-    cfg.scan_numbers, cfg.skipscans, cfg.skipimages,
-                       cfg.slithorratio, cfg.slitvertratio, data_dir]
-    experiment, cfg.total_images, cfg.slitratios = standard_adjustments(
-        experiment, adjustment_args)
+    # adjustment_args = [cfg.detector_distance, cfg.dps_centres, cfg.load_from_dat,\
+    # cfg.scan_numbers, cfg.skipscans, cfg.skipimages,
+    #                    cfg.slithorratio, cfg.slitvertratio, cfg.data_dir]
+    experiment, cfg = standard_adjustments(
+        experiment, cfg)
     # grab ub information
     cfg.ubinfo = [
         scan.metadata.data_file.nx_instrument.diffcalchdr for scan in experiment.scans]
+    
+    return experiment, cfg
+
+
+def setup_processing(global_vals: SimpleNamespace):
+    """
+    uses process configuration to create an experiment object 
+    and setup a logger if requested
+    returns :  Experiment, config, logger
+    """
+
+    cfg = create_process_config(global_vals)
+    debug_logger=logging.getLogger('fastrsm_debug')
+    experiment,cfg=create_experiment(cfg)
+
 
     return experiment, cfg, debug_logger
 
@@ -112,76 +220,83 @@ def initial_value_checks(dps_centres, cylinder_axis, setup, output_file_size):
 
     return oop
 
+def setup_dps(scan,process_config):
+    """
+    adjust dps settings in scan metadata
+    """
+    cfg=process_config
+    if scan.metadata.data_file.setup == 'DCD':
+        # If we're using the DCD and the DPS, our offset calculation is
+        # somewhat involved.
+        # Work out the in-plane and out-of-plane incident light angles.
+        # To do this, first grab a unit vector pointing along the beam.
+        lab_frame = Frame(Frame.lab, scan.metadata.diffractometer,
+                            coordinates=Frame.cartesian)
+        beam_direction = scan.metadata.diffractometer.get_incident_beam(
+            lab_frame).array
 
-def standard_adjustments(experiment, adjustment_args):
+        # Now do some basic handling of spherical polar coordinates.
+        out_of_plane_theta = np.sin(beam_direction[1])
+        cos_theta_in_plane = beam_direction[2] / \
+            np.cos(out_of_plane_theta)
+        in_plane_theta = np.arccos(cos_theta_in_plane)
+
+        # Work out the total displacement from the undeflected beam of the
+        # central pixel, in the x and y directions (we know z already).
+        # Note that dx, dy are being calculated with signs consistent with
+        # synchrotron coordinates.
+        total_dx = -cfg.detector_distance * np.tan(in_plane_theta)
+        total_dy = cfg.detector_distance * np.tan(out_of_plane_theta)
+
+        # From these values we can compute true DPS offsets.
+        dps_off_x = total_dx - dpsx_central_pixel
+        dps_off_y = total_dy - dpsy_central_pixel
+
+        scan.metadata.data_file.dpsx += dps_off_x
+        scan.metadata.data_file.dpsy += dps_off_y
+        scan.metadata.data_file.dpsz -= dpsz_central_pixel
+    else:
+        # If we aren't using the DCD, our life is much simpler.
+        scan.metadata.data_file.dpsx -= cfg.dpsx_central_pixel
+        scan.metadata.data_file.dpsy -= cfg.dpsy_central_pixel
+        scan.metadata.data_file.dpsz -= cfg.dpsz_central_pixel
+
+def standard_adjustments(experiment, process_config):
     """
     carries out standard adjustments to the Experiment object 
     keeping track of total images,  calculating dps offsets, 
     setting skipscans and skipimages, setting up slitratio values
     """
-    detector_distance, dps_centres, load_from_dat, scan_numbers, skipscans, skipimages, \
-        slithorratio, slitvertratio, data_dir = adjustment_args
-    dpsx_central_pixel, dpsy_central_pixel, dpsz_central_pixel = dps_centres
+    cfg=process_config
+    # detector_distance, dps_centres, load_from_dat, scan_numbers, skipscans, skipimages, \
+    #     slithorratio, slitvertratio, data_dir = adjustment_args
+    # dpsx_central_pixel, dpsy_central_pixel, dpsz_central_pixel = dps_centres
 
-    total_images = 0
+    cfg.total_images = 0
     for i, scan in enumerate(experiment.scans):
-        total_images += scan.metadata.data_file.scan_length
+        cfg.total_images += scan.metadata.data_file.scan_length
         # Deal with the dps offsets.
         if scan.metadata.data_file.using_dps:
-            if scan.metadata.data_file.setup == 'DCD':
-                # If we're using the DCD and the DPS, our offset calculation is
-                # somewhat involved.
-                # Work out the in-plane and out-of-plane incident light angles.
-                # To do this, first grab a unit vector pointing along the beam.
-                lab_frame = Frame(Frame.lab, scan.metadata.diffractometer,
-                                  coordinates=Frame.cartesian)
-                beam_direction = scan.metadata.diffractometer.get_incident_beam(
-                    lab_frame).array
+            setup_dps(scan,cfg)
 
-                # Now do some basic handling of spherical polar coordinates.
-                out_of_plane_theta = np.sin(beam_direction[1])
-                cos_theta_in_plane = beam_direction[2] / \
-                    np.cos(out_of_plane_theta)
-                in_plane_theta = np.arccos(cos_theta_in_plane)
-
-                # Work out the total displacement from the undeflected beam of the
-                # central pixel, in the x and y directions (we know z already).
-                # Note that dx, dy are being calculated with signs consistent with
-                # synchrotron coordinates.
-                total_dx = -detector_distance * np.tan(in_plane_theta)
-                total_dy = detector_distance * np.tan(out_of_plane_theta)
-
-                # From these values we can compute true DPS offsets.
-                dps_off_x = total_dx - dpsx_central_pixel
-                dps_off_y = total_dy - dpsy_central_pixel
-
-                scan.metadata.data_file.dpsx += dps_off_x
-                scan.metadata.data_file.dpsy += dps_off_y
-                scan.metadata.data_file.dpsz -= dpsz_central_pixel
-            else:
-                # If we aren't using the DCD, our life is much simpler.
-                scan.metadata.data_file.dpsx -= dpsx_central_pixel
-                scan.metadata.data_file.dpsy -= dpsy_central_pixel
-                scan.metadata.data_file.dpsz -= dpsz_central_pixel
-
-            # Load from .dat files if we've been asked.
-            if load_from_dat:
-                dat_path = data_dir / f"{scan_numbers[i]}.dat"
-                scan.metadata.data_file.populate_data_from_dat(dat_path)
+        # Load from .dat files if we've been asked.
+        if cfg.load_from_dat:
+            dat_path = cfg.data_dir / f"{cfg.scan_numbers[i]}.dat"
+            scan.metadata.data_file.populate_data_from_dat(dat_path)
         # reads in skip information and skips specified images in specified
         # files
 
-        if skipscans is not None:
-            if int(scan_numbers[i]) in skipscans:
-                scan.skip_images += skipimages[np.where(
-                    np.array(skipscans) == int(scan_numbers[i]))[0][0]]
+        if cfg.skipscans is not None:
+            if int(cfg.scan_numbers[i]) in cfg.skipscans:
+                scan.skip_images += cfg.skipimages[np.where(
+                    np.array(cfg.skipscans) == int(cfg.scan_numbers[i]))[0][0]]
 
     if experiment.scans[0].metadata.data_file.is_rotated:
-        slitratios = [slithorratio, slitvertratio]
+        cfg.slitratios = [cfg.slithorratio, cfg.slitvertratio]
     else:
-        slitratios = [slitvertratio, slithorratio]
+        cfg.slitratios = [cfg.slitvertratio, cfg.slithorratio]
 
-    return experiment, total_images, slitratios
+    return experiment, cfg
 
 
 def make_mask_lists(specific_pixels, mask_regions):

@@ -1,5 +1,5 @@
 from fast_rsm.diamond_utils import run_process_list,\
-        create_standard_experiment
+        setup_processing
 from types import SimpleNamespace
 from fast_rsm.logging_config import start_frsm_loggers
 import logging
@@ -12,7 +12,7 @@ debug_logger=logging.getLogger("fastrsm_debug")
 
 #create experiment object, process configuration and logger
 experiment,process_config,debug_logger=\
-create_standard_experiment(SimpleNamespace(**globals()))
+setup_processing(SimpleNamespace(**globals()))
 
 #=================================================================================
 ####============SPECIAL ADJUSTMENTS ==============================================
