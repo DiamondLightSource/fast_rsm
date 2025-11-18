@@ -91,7 +91,7 @@ def check_folder_corruption(folderpath: Path):
         except OSError:
             corrupt_files.append(file)
     corrupt_count+= len(corrupt_files)
-    return corrupt_count
+    return corrupt_count,corrupt_files
 
 def get_good_paths(process_config: SimpleNamespace):
     """
@@ -100,15 +100,19 @@ def get_good_paths(process_config: SimpleNamespace):
     cfg=process_config
     good_scan_list=[]
     corrupt_scan_list=[]
+    cfg.corrupted_file_list={}
     for scan in cfg.scan_numbers:
-        corrupt=check_folder_corruption(cfg.data_dir / f"i07-{scan}")
-        if corrupt==0:
+        corruption_details=check_folder_corruption(cfg.data_dir / f"i07-{scan}")
+        if corruption_details[0]==0:
             good_scan_list.append(scan)
         else:
             corrupt_scan_list.append(scan)
-    good_nxs_paths = [cfg.data_dir / f"i07-{x}.nxs" for x in good_scan_list]
-    bad_nxs_paths=[cfg.data_dir / f"i07-{x}.nxs" for x in corrupt_scan_list]
-    return good_nxs_paths,bad_nxs_paths
+        if len(corruption_details[1])>0:
+            cfg.corrupted_file_list[f"i07-{scan}.nxs"]=corruption_details[1]
+
+    cfg.good_nxs_paths = [cfg.data_dir / f"i07-{x}.nxs" for x in good_scan_list]
+    cfg.bad_nxs_paths=[cfg.data_dir / f"i07-{x}.nxs" for x in corrupt_scan_list]
+    return cfg
 
 def colour_text(colour,string):
     """
@@ -128,17 +132,21 @@ def colour_text(colour,string):
     return f"{start}{string}{end}"
 
 
-def corrupt_warning(bad_paths):
+def data_corruption_warning(cfg: SimpleNamespace):
     """
     give warning in terminal if corrupt scans found
     """
-    if len(bad_paths)>0:
-        print(colour_text('red','='*35))
-        print(colour_text('red',"WARNING - the following files were found to be corrupt and will be ignored during processing"))
-        print(f"Directory: {str(bad_paths[0].parent)}")
-        for path in bad_paths:
-            print('\t'+path.name)
-        print(colour_text('red','='*35))
+    if len(cfg.bad_nxs_paths)==0:
+        return
+    print(colour_text('red','='*35))
+    print(colour_text('red',"WARNING - the following .h5 files were found to be corrupt and will be ignored during processing"))
+    print(f"Directory: {str(cfg.bad_nxs_paths[0].parent)}")
+    for path in cfg.bad_nxs_paths:
+        print(f"\t {path.name}")
+        for file in cfg.corrupted_file_list[path.name]:
+            print(f"--    {file.name}")
+        print(colour_text('red','-'*35))
+    print(colour_text('red','='*35))
     return
 
 def create_experiment(process_config: SimpleNamespace):
@@ -149,9 +157,9 @@ def create_experiment(process_config: SimpleNamespace):
     
     # Work out the paths to each of the nexus files. Store as pathlib.Path
     # objects.
-    cfg.good_nxs_paths,cfg.bad_nxs_paths = get_good_paths(cfg)
+    cfg = get_good_paths(cfg)
     
-    print(corrupt_warning(cfg.bad_nxs_paths))
+    data_corruption_warning(cfg)
     # Finally, instantiate the Experiment object.
     experiment = Experiment.from_i07_nxs(
         cfg.good_nxs_paths, cfg.beam_centre, cfg.detector_distance, cfg.setup,
@@ -525,58 +533,6 @@ def save_binoviewer_hdf5(output_path: str, process_config: SimpleNamespace):
         binoculars_group.create_dataset("contributions", data=contributions)
         binoculars_group.create_dataset("counts", data=volume)
         save_config_variables(hf, cfg)
-
-    # # Turn those into an axes group.
-    # axes_group = nx.NXgroup(h=h_arr, k=k_arr, l=l_arr)
-
-    # config_group = nx.NXgroup()
-    # configlist = ['setup', 'experimental_hutch', 'using_dps', 'beam_centre', \
-    #               'detector_distance', 'dpsx_central_pixel', 'dpsy_central_pixel',\
-    #             'dpsz_central_pixel','local_data_path', 'local_output_path',\
-    #             'output_file_size', 'save_binoviewer_h5', 'map_per_image',\
-    #             'volume_start', 'volume_step', 'volume_stop',\
-    #             'load_from_dat', 'edfmaskfile', 'specific_pixels', \
-    #             'mask_regions', 'process_outputs', 'scan_numbers']
-
-    # with open(cfg.default_config_path, "r") as f:
-    #     default_config_dict = yaml.safe_load(f)
-    # #add in extra to defaults that arent set by user, so that parsing defaults finds it
-    # default_config_dict['ubinfo']=0
-    # default_config_dict['pythonlocation']=0
-    # default_config_dict['joblines']=0
-    # outvars=vars(cfg)
-    # # Get a list of all available variables
-    # if outvars is not None:
-    #     variables = list(default_config_dict.keys())
-
-    #     # Iterate through the variables
-    #     for var_name in variables:
-    #         # Check if the variable name is in configlist
-    #         if var_name in outvars:
-    #             # Get the variable value
-    #             var_value = outvars[var_name]
-
-    #             # Add the variable to config_group
-    #             config_group[var_name] = str(var_value)
-    #     if 'ubinfo' in outvars:
-    #         for i, coll in enumerate(outvars['ubinfo']):
-    #             config_group[f'ubinfo_{i+1}'] = nx.NXgroup()
-    #             config_group[f'ubinfo_{i+1}'][f'lattice_{i+1}'] = coll['diffcalc_lattice']
-    #             config_group[f'ubinfo_{i+1}'][f'u_{i+1}'] = coll['diffcalc_u']
-    #             config_group[f'ubinfo_{i+1}'][f'ub_{i+1}'] = coll['diffcalc_ub']
-    # config_group['python_version'] = cfg.pythonlocation
-    # config_group['joblines'] = cfg.joblines
-    # # Make a corresponding (mandatory) "binoviewer" group.
-    # binoviewer_group = nx.NXgroup(
-    #     axes=axes_group, contributions=contributions,\
-    #           counts=(volume), i07configuration=config_group)
-    # binoviewer_group.attrs['type'] = 'Space'
-
-    # # Make a root which contains the binoviewer group.
-    # bin_hdf = nx.NXroot(binoculars=binoviewer_group)
-
-    # # Save it!
-    # bin_hdf.save(output_path)
 
 
 def get_volume_and_bounds(path_to_npy: str) -> Tuple[np.ndarray]:
