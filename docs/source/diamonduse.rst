@@ -71,13 +71,4 @@ Debugging
 
 
 
-    .. code-block:: bash
-        
-        firstrun 
-
-#.  Activate the fast_rsm conda environment by entering the command
-
-    .. code-block:: bash
-
-        activate
 .. _calibration GUI: https://pyfai.readthedocs.io/en/stable/usage/cookbook/calib-gui/index.html#cookbook-calibration-gui
