@@ -83,8 +83,11 @@ def check_folder_corruption(folderpath: Path):
     corrupt_count=0
 
     corrupt_files=[]
-    filepath_list=[folderpath/f"{foldfile}" for foldfile in os.listdir(folderpath)]
-    for file in filepath_list:
+    if not folderpath.exists():
+        return corrupt_count,corrupt_files
+    subdir_list=[folderpath/f"{foldfile}" for foldfile in os.listdir(folderpath)]
+    subdir_filespaths=[path for path in subdir_list if Path(path).exists()]
+    for file in subdir_filespaths:
         try:
             f=h5py.File(file)
             f.close()
