@@ -449,7 +449,7 @@ class Experiment:
         elif setup == 'DCD':
             correctionscales = {'vert': 1, 'hor': 1}
         elif (setup=='horizontal') & (rotated):
-            correctionscales = {'vert': 1, 'hor': -1}
+            correctionscales = {'vert': 1, 'hor': 1}
         else:
             correctionscales = {'vert': 1, 'hor': 1}
         return correctionscales
@@ -600,8 +600,6 @@ class Experiment:
             if abs(qlow_withvert) > abs(qlow):
                 qlow = qlow_withvert
         # add in correction factors to match direction with pyfai calculations
-        correctionscales=self.get_correction_scales(self.setup,self.scans[0].metadata.data_file.is_rotated)
-        outscale *= correctionscales[axis]
         outvals = np.sort([qupp * outscale, qlow * outscale])
         return outvals[0], outvals[1]
 
