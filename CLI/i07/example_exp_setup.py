@@ -174,6 +174,6 @@ load_from_dat = False
 # choose to have a manually set cylinder axis to use with cylindrical co-ordinates
 #cylinder_axis=False
 
-#choose to change frame of reference for mapping from default ‘hkl’ :
+#choose to change frame of reference for mapping from default ‘hkl’ to 'qxqyqz' :
 #frame_name='hkl'
 
