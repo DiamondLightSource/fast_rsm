@@ -126,13 +126,20 @@ if __name__ == "__main__":
     
     #save variables to job file using job template
     with open(save_path,'x',encoding='utf-8') as jobf:
-        for line in exp_lines_generator(args.exp_path):
-            jobf.write(line)
-        
+       
+        jobf.write(f"exp_file = '{args.exp_path}'\n")
         jobf.write(f'scan_numbers= {SCANS}\n')
         jobf.write(f"version_path='{version_path}'\n")
         jobf.write(f'debuglogging={args.debuglogging}\n')
+        #jobf.write("process_outputs=['pyfai_qmap']\n")
         jobf.write(''.join(lines2))
+        jobf.write(f'\n"""\n')
+        jobf.write(f" {'*'*40}\n settings from  of {args.exp_path}\n {'*'*40}\n ")
+        ordered_settings={k: process_settings[k] for k in sorted(process_settings)}
+        for k,v in ordered_settings.items():
+             jobf.write(f"{k}  = {v}\n" )
+
+        jobf.write('"""')
     os.chmod(save_path,0o777)
     
     
