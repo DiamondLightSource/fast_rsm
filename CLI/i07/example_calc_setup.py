@@ -5,13 +5,12 @@ from fast_rsm.logging_config import start_frsm_loggers
 
 
 
-start_frsm_loggers(version_path,debuglogging)
+err_logger,dbg_logger=start_frsm_loggers(version_path,debuglogging)
 
 
 #create experiment object, process configuration and logger
 experiment,process_config,debug_logger=\
 setup_processing(exp_file,__file__,scan_numbers)
-
 #=================================================================================
 ####============SPECIAL ADJUSTMENTS ==============================================
 # #This section is for changing metadata that is stored in, or inferred from, the
@@ -34,7 +33,17 @@ setup_processing(exp_file,__file__,scan_numbers)
 #=================================================================================
 #=================================================================================
 
-#run processing jobs with process configuration settings requested
-run_process_list(experiment,process_config)
-print("PROCESSING FINISHED.")
+#
+def main():
+    """
+    run processing jobs with process configuration settings requested
+    """
+
+
+    run_process_list(experiment,process_config)
+    print("PROCESSING FINISHED.")
+
+
+if __name__ == "__main__":
+    main()
  
