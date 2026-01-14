@@ -150,6 +150,10 @@ class Image:
                 arr /= scan_entry.entry.attenuation.count_time.nxdata
         except AttributeError:
             pass
+        
+        # #DEBUG - mask zeros from image
+        # arr[arr.astype(float)==0.0]=np.nan
+
         # if there is an edf mask file loaded, apply mask
         if self.metadata.edfmask is not None:
             arr[self.metadata.edfmask.astype(bool)] = np.nan
