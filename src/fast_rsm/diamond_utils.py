@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from typing import Tuple
 from datetime import datetime
 from time import time
+import time as toptime
 import logging
 import os
 import sys
@@ -18,8 +19,8 @@ from fast_rsm.binning import finite_diff_grid
 from fast_rsm.experiment import Experiment
 from fast_rsm.config_loader import check_config_schema,experiment_config, parse_setup_file
 from fast_rsm.pyfai_interface import pyfai_static_qmap ,pyfai_static_exitangles,\
-pyfai_static_ivsq,pyfai_moving_qmap_smm,pyfai_moving_exitangles_smm,\
-pyfai_moving_ivsq_smm,save_config_variables,createponi
+pyfai_static_ivsq,pyfai_moving_qmap_smm_new,pyfai_moving_exitangles_smm,\
+pyfai_moving_ivsq_smm_new,save_config_variables,createponi
 
 
 def setup_processing(exp_setup_file: Path,job_file_path:str, scan_numbers: list ):
@@ -188,7 +189,30 @@ def create_experiment(process_config: SimpleNamespace):
     # grab ub information
     cfg.ubinfo = [
         scan.metadata.data_file.nx_instrument.diffcalchdr for scan in experiment.scans]
+    cfg.do_time_check=do_time_check
     return experiment, cfg
+
+def do_time_check(outstring, queue=None,logn=None):
+    
+
+    pid = os.getpid()
+    allowed = None
+    if hasattr(os, "sched_getaffinity"):
+        try:
+            allowed = sorted(os.sched_getaffinity(0))  # e.g., [0] or [0,1,...,31]
+        except BaseException:
+            allowed = None
+
+    cur = None
+    if hasattr(os, "sched_getcpu"):
+        try:
+            cur = os.sched_getcpu()  # current CPU core ID
+        except BaseException:
+            cur = None
+
+    t_wall = toptime.time()
+    t_cpu  = toptime.process_time()
+    return f"{outstring} pid={pid} allowed={allowed if allowed is not None else 'n/a'} current_cpu={cur} wall={t_wall:.6f} cpu={t_cpu:.6f}"
 
 
 
@@ -387,10 +411,10 @@ def get_run_functions(process_config):
                         [pyfai_static_exitangles, "exitmap", "2d exit angle map"],
                         'pyfai_ivsq': [pyfai_static_ivsq, "IvsQ", "1d integration "]}
 
-    moving_functions = {'pyfai_qmap': [pyfai_moving_qmap_smm, "Qmap", "2d Qmap"],
+    moving_functions = {'pyfai_qmap': [pyfai_moving_qmap_smm_new, "Qmap", "2d Qmap"],
                         'pyfai_exitangles':\
                          [pyfai_moving_exitangles_smm, "exitmap", "2d exit angle map"],
-                        'pyfai_ivsq': [pyfai_moving_ivsq_smm, "IvsQ", "1d integration "]}
+                        'pyfai_ivsq': [pyfai_moving_ivsq_smm_new, "IvsQ", "1d integration "]}
 
     if cfg.map_per_image:
         functions_dict = static_functions
@@ -561,3 +585,5 @@ def get_volume_and_bounds(path_to_npy: str) -> Tuple[np.ndarray]:
 
     # And return what we were asked for!
     return volume, start, stop, step
+
+
