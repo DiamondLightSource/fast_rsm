@@ -763,7 +763,7 @@ class Experiment:
 
         """
         # pylint: disable=attribute-defined-outside-init
-        p2mnames = ['pil2stats', 'p2r', 'pil2roi']
+        large_det_names = ['pil2stats', 'p2r', 'pil2roi','eir']
         self.pixel_size = scan.metadata.diffractometer.data_file.pixel_size
         self.entry = scan.metadata.data_file.nx_entry
 
@@ -806,7 +806,7 @@ class Experiment:
             self.incident_angle = scan.metadata.data_file.alpha
         else:
             self.incident_angle = [0]
-        if scan.metadata.data_file.detector_name in p2mnames:
+        if scan.metadata.data_file.detector_name in large_det_names:
             self.deltadata = 0
 
         self.imshape = scan.metadata.data_file.image_shape
