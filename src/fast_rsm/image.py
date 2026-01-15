@@ -123,6 +123,9 @@ class Image:
         use the add_processing_step method.
         """
         arr = self._raw_data
+        dectris_mask=None
+        if self.metadata.diffractometer.data_file.is_dectris:
+            dectris_mask=arr==4294967300.0
         for step in self._processing_steps:
             arr = step(arr)
 
@@ -150,6 +153,10 @@ class Image:
                 arr /= scan_entry.entry.attenuation.count_time.nxdata
         except AttributeError:
             pass
+        
+        if dectris_mask is not None:
+            arr[dectris_mask]=np.nan
+
         # if there is an edf mask file loaded, apply mask
         if self.metadata.edfmask is not None:
             arr[self.metadata.edfmask.astype(bool)] = np.nan
