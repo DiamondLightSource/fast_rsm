@@ -391,28 +391,23 @@ class Experiment:
 
         chosen_setup = f'{self.setup}_{rot_option}'
 
-        index_scales = {'vertical_rot': ['hor0', 'thvert', -1, 1],
-                        'vertical_norot': ['hor0', 'thvert', -1, -1],
-                        'DCD_rot': ['vert0', 'delvert', -1, -1],
-                        'DCD_norot': ['vert0', 'delvert', -1, -1],
-                        'horizontal_rot': ['vert0', 'delvert', -1, 1],
-                        'horizontal_norot': ['vert0', 'delvert', -1, -1],
+        index_scales = {'vertical_rot': ['hor0', 'thvert'],
+                        'vertical_norot': ['hor0', 'thvert'],
+                        'DCD_rot': ['vert0', 'delvert'],
+                        'DCD_norot': ['vert0', 'delvert'],
+                        'horizontal_rot': ['vert0', 'delvert'],
+                        'horizontal_norot': ['vert0', 'delvert'],
                         }
 
         chosen_ind_scales = index_scales[chosen_setup]
         [horindex, vertindex] = horvert_indices[chosen_ind_scales[0]]
         [vertangles, horangles] = horvert_angles[chosen_ind_scales[1]]
-        verscale = chosen_ind_scales[2]
-        horscale = chosen_ind_scales[3]
-
-        
-        outscale = 1
         if axis == 'vert':
             pixlow = self.imshape[vertindex] - self.beam_centre[vertindex]
             pixhigh = self.beam_centre[vertindex]
             highsection = np.max(vertangles)
             lowsection = np.min(vertangles)
-            outscale = verscale
+
         elif axis == 'hor':
             pixhigh = self.beam_centre[horindex]
             pixlow = self.imshape[horindex] - self.beam_centre[horindex]
@@ -421,7 +416,7 @@ class Experiment:
                 pixhigh, pixlow = pixlow, pixhigh
             highsection = np.max(horangles)
             lowsection = np.min(horangles)
-            outscale = horscale
+
         if (slitvertratio is not None) & (axis == 'vert'):
             pixscale = self.pixel_size * slitvertratio
         elif (slithorratio is not None) & (axis == 'hor'):
@@ -431,7 +426,7 @@ class Experiment:
         [highsign, lowsign] = [1 if np.round(val, 5) == 0 else np.sign(
             val) for val in [highsection, lowsection]]
         outlist = ['horindex', 'vertindex', 'vertangles', 'horangles',
-                   'verscale', 'horscale', 'pixhigh', 'pixlow', 'outscale',
+                    'pixhigh', 'pixlow', 
                    'pixscale', 'highsign', 'lowsign', 'highsection', 'lowsection']
         outdict = {}
         for name in outlist:
@@ -441,18 +436,19 @@ class Experiment:
    # pixlow,outscale,pixscale, highsign, lowsign, highsection, lowsection #
     def get_correction_scales(self,setup,rotated):
         if (setup=='vertical') & (rotated):
-            correctionscales = {'vert': 1, 'hor': -1}
+            correctionscales = {'vert': -1, 'hor': -1} #GOOD
         elif setup=='vertical':
-            correctionscales = {'vert': 1, 'hor': -1}
+            correctionscales = {'vert': -1, 'hor': 1} # GOOD
         elif (setup == 'DCD') & (rotated):
-            correctionscales = {'vert': 1, 'hor': 1}
+            correctionscales = {'vert': -1, 'hor': -1} #GOOD
         elif setup == 'DCD':
-            correctionscales = {'vert': 1, 'hor': 1}
+            correctionscales = {'vert': -1, 'hor': -1} #GOOD
         elif (setup=='horizontal') & (rotated):
-            correctionscales = {'vert': 1, 'hor': -1}
+            correctionscales = {'vert': -1, 'hor': -1}#GOOD
         else:
-            correctionscales = {'vert': 1, 'hor': 1}
+            correctionscales = {'vert': -1, 'hor': -1}#GOOD
         return correctionscales
+
 
     def calcanglim(self, axis, vertsetup=False,
                    slitvertratio=None, slithorratio=None):
@@ -485,9 +481,8 @@ class Experiment:
             'pixlow',
             'vertangles',
             'highsection',
-            'lowsection',
-            'outscale']
-        pixhigh, pixscale, pixlow, vertangles, highsection, lowsection, outscale = [
+            'lowsection']
+        pixhigh, pixscale, pixlow, vertangles, highsection, lowsection = [
             limitdict.get(key) for key in limitkeys]
 
         add_section = (
@@ -509,9 +504,9 @@ class Experiment:
 
         # add in correction factors to match direction with pyfai calculations
         correctionscales=self.get_correction_scales(self.setup,self.scans[0].metadata.data_file.is_rotated)
-        outscale *= correctionscales[axis]
+        outscale = correctionscales[axis]
         outvals = np.sort([minangle * outscale, maxangle * outscale])
-        return outvals[0], outvals[1]
+        return outvals[0]-0.1, outvals[1]+0.1   #add 0.1 degree buffer
         # return maxangle*outscale,minangle*outscale
 
     def calcqlim(self, axis, vertsetup=False,
@@ -544,16 +539,20 @@ class Experiment:
         limitdict = self.get_limitcalc_vars(
             vertsetup, axis, slitvertratio, slithorratio)
         limitkeys = ['vertindex', 'vertangles', 'horangles', 'pixhigh',
-                     'pixlow', 'outscale', 'pixscale', 'highsection', 'lowsection']
+                     'pixlow', 'pixscale', 'highsection', 'lowsection']#'outscale', 
         vertindex, vertangles, horangles, pixhigh, pixlow, \
-            outscale, pixscale, highsection, lowsection = [
-                limitdict.get(key) for key in limitkeys]
-        maxangle = highsection + \
-            (np.degrees(np.arctan((pixhigh * pixscale) / self.detector_distance)))
-        minangle = lowsection - \
-            (np.degrees(np.arctan((pixlow * pixscale) / self.detector_distance)))
-        maxanglerad = np.radians(np.max(maxangle))
-        minanglerad = np.radians(np.max(minangle))
+             pixscale, highsection, lowsection = [
+                limitdict.get(key) for key in limitkeys]#outscale,
+        # maxangle = highsection + \
+        #     (np.degrees(np.arctan((pixhigh * pixscale) / self.detector_distance)))
+        # minangle = lowsection - \
+        #     (np.degrees(np.arctan((pixlow * pixscale) / self.detector_distance)))
+        # maxanglerad = np.radians(np.max(maxangle))
+        # minanglerad = np.radians(np.max(minangle))
+
+        maxangle,minangle=self.calcanglim(axis,vertsetup,slitvertratio,slithorratio)
+        maxanglerad=np.radians(maxangle)
+        minanglerad=np.radians(minangle)
 
         if axis == 'vert':
             qupp = self.sohqcalc(maxangle, kmod)  # *2
@@ -592,17 +591,14 @@ class Experiment:
             s4 = kmod * (1 - np.cos(maxvertrad) * np.cos(minanglerad))
             qlow_withvert = np.sqrt(
                 np.square(s3) + np.square(s4)) * 1e-10 * np.sign(minangle)
-            if vertsetup is True:
-                outscale *= -1
+            # if vertsetup is True:
+            #     outscale *= -1
             if abs(qupp_withvert) > abs(qupp):
                 qupp = qupp_withvert
 
             if abs(qlow_withvert) > abs(qlow):
                 qlow = qlow_withvert
-        # add in correction factors to match direction with pyfai calculations
-        correctionscales=self.get_correction_scales(self.setup,self.scans[0].metadata.data_file.is_rotated)
-        outscale *= correctionscales[axis]
-        outvals = np.sort([qupp * outscale, qlow * outscale])
+        outvals = np.sort([qupp , qlow])
         return outvals[0], outvals[1]
 
     def do_savetiffs(self, hf, data, axespara, axesperp):
