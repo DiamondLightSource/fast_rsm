@@ -352,14 +352,13 @@ class Experiment:
         """
         return np.sin(np.radians(angle)) * kmod * 1e-10
 
-    def get_limitcalc_vars(self, vertsetup, axis, slitvertratio, slithorratio):
+    def get_limitcalc_vars(self,axis, slitvertratio, slithorratio):
         '''
         Calculates the pixel limits of the scan in either vertical or horizontal direction
         and returns dictionary with values relating to the limits calculated
 
         Parameter
         --------
-        vertsetup
 
         axis
 
@@ -450,7 +449,7 @@ class Experiment:
         return correctionscales
 
 
-    def calcanglim(self, axis, vertsetup=False,
+    def calcanglim(self, axis,
                    slitvertratio=None, slithorratio=None):
         """
         Calculates limits in exit angle for either vertical or horizontal axis
@@ -459,8 +458,7 @@ class Experiment:
         ----------
         axis : string
             choose axis to calculate q limits for .
-        vertsetup : TYPE, optional
-            is the experimental setup horizontal. The default is False.
+
 
         Returns
         -------
@@ -473,8 +471,7 @@ class Experiment:
 
         # horindex, vertindex, vertangles, horangles, verscale, horscale, pixhigh, \
         #      pixlow, outscale,pixscale, highsign, lowsign, highsection, lowsection
-        limitdict = self.get_limitcalc_vars(
-            vertsetup, axis, slitvertratio, slithorratio)
+        limitdict = self.get_limitcalc_vars( axis, slitvertratio, slithorratio)
         limitkeys = [
             'pixhigh',
             'pixscale',
@@ -509,8 +506,7 @@ class Experiment:
         return outvals[0]-0.1, outvals[1]+0.1   #add 0.1 degree buffer
         # return maxangle*outscale,minangle*outscale
 
-    def calcqlim(self, axis, vertsetup=False,
-                 slitvertratio=None, slithorratio=None):
+    def calcqlim(self, axis,  slitvertratio=None, slithorratio=None):
         """
         Calculates limits in q for either vertical or horizontal axis
 
@@ -518,8 +514,6 @@ class Experiment:
         ----------
         axis : string
             choose axis to calculate q limits for .
-        vertsetup : TYPE, optional
-            is the experimental setup horizontal. The default is False.
 
         Returns
         -------
@@ -531,18 +525,13 @@ class Experiment:
         """
         kmod = 2 * np.pi / (self.incident_wavelength)
 
-        # horindex, vertindex, vertangles, horangles, verscale, horscale, pixhigh, \
-        #     pixlow, outscale, pixscale, highsign, lowsign, highsection, lowsection = \
-        # self.get_limitcalc_vars(
-        #         vertsetup, axis, slitvertratio, slithorratio)
 
-        limitdict = self.get_limitcalc_vars(
-            vertsetup, axis, slitvertratio, slithorratio)
+        limitdict = self.get_limitcalc_vars( axis, slitvertratio, slithorratio)
         limitkeys = ['vertindex', 'vertangles', 'horangles', 'pixhigh',
-                     'pixlow', 'pixscale', 'highsection', 'lowsection']#'outscale', 
+                     'pixlow', 'pixscale', 'highsection', 'lowsection']
         vertindex, vertangles, horangles, pixhigh, pixlow, \
              pixscale, highsection, lowsection = [
-                limitdict.get(key) for key in limitkeys]#outscale,
+                limitdict.get(key) for key in limitkeys]
         # maxangle = highsection + \
         #     (np.degrees(np.arctan((pixhigh * pixscale) / self.detector_distance)))
         # minangle = lowsection - \
@@ -550,7 +539,7 @@ class Experiment:
         # maxanglerad = np.radians(np.max(maxangle))
         # minanglerad = np.radians(np.max(minangle))
 
-        maxangle,minangle=self.calcanglim(axis,vertsetup,slitvertratio,slithorratio)
+        maxangle,minangle=self.calcanglim(axis,slitvertratio,slithorratio)
         maxanglerad=np.radians(maxangle)
         minanglerad=np.radians(minangle)
 
@@ -591,8 +580,7 @@ class Experiment:
             s4 = kmod * (1 - np.cos(maxvertrad) * np.cos(minanglerad))
             qlow_withvert = np.sqrt(
                 np.square(s3) + np.square(s4)) * 1e-10 * np.sign(minangle)
-            # if vertsetup is True:
-            #     outscale *= -1
+
             if abs(qupp_withvert) > abs(qupp):
                 qupp = qupp_withvert
 
@@ -780,7 +768,7 @@ class Experiment:
         except BaseException:
             self.deltadata = np.array(
                 self.entry.instrument.diff1delta.value).ravel()
-
+        tthdirect = 0
         if self.setup == 'DCD':
             self.dcdrad = np.array(self.entry.instrument.dcdc2rad.value)
             self.dcdomega = np.array(self.entry.instrument.dcdomega.value)
@@ -796,6 +784,8 @@ class Experiment:
                     (np.sqrt(np.square(self.projectionx) + np.square(dcd_sample_dist)))))
             self.incident_angle = self.dcd_incdeg
             # self.deltadata+=self.dcd_incdeg
+            tthdirect = -1 * \
+                np.degrees(np.arctan(self.projectionx / dcd_sample_dist))
         elif (scan.metadata.data_file.is_eh1) & (self.setup != 'DCD'):
             self.incident_angle = scan.metadata.data_file.chi
         elif scan.metadata.data_file.is_eh2:
@@ -808,7 +798,7 @@ class Experiment:
         self.imshape = scan.metadata.data_file.image_shape
         self.beam_centre = scan.metadata.beam_centre
         self.rotval = round(scan.metadata.data_file.det_rot)
-
+        self.two_theta_start = self.gammadata - tthdirect
 
 # ==============full reciprocal space mapping process
 
