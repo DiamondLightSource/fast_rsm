@@ -87,7 +87,7 @@ if __name__ == "__main__":
     with open(args.calc_path,encoding='utf-8') as f2:
         lines2=f2.readlines()
 
-    debug_logger,error_logger,log_queue, listener=start_frsm_loggers(version_path,args.debuglogging)
+    debug_logger,error_logger=start_frsm_loggers(version_path,args.debuglogging)
     process_settings=parse_setup_file(Path(args.exp_path))
     #outline=[line for line in exp_lines_generator(args.exp_path) if 'local_output' in line]
     outline=[process_settings['local_output_path']] if 'local_output_path' in process_settings else []
