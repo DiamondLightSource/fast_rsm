@@ -12,7 +12,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='fast_rsm',
-    version='2.1.0',
+    version='2.2.0',
     license='MIT License',
     packages=find_packages('src'),
     description=(
