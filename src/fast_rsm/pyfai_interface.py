@@ -32,6 +32,12 @@ def combine_ranges(range1, range2):
     """
     return (min(range1[0], range2[0]), max(range1[1], range2[1]))
 
+def find_bad_image_paths(scan):
+    badpaths=[]
+    for num,end in enumerate(scan.metadata.data_file.raw_image_paths):
+        if not end.endswith('.tif'):
+            badpaths.append(num)
+    return badpaths
 
 def createponi(experiment: Experiment, outpath, offset=0):
     """
@@ -429,6 +435,11 @@ def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, slitrati
         scanlength = len(scan.metadata.data_file.local_image_paths)
     else:
         scanlength = scan.metadata.data_file.scan_length
+    
+    #check for scans finished early
+    badimagecheck=find_bad_image_paths(scan)
+    if len(badimagecheck)>0:
+        scanlength-=len(badimagecheck)
 
     return outlimits, scanlength, scanlistnew
 
