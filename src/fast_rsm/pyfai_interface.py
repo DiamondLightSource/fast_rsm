@@ -380,14 +380,7 @@ def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, slitrati
     limver = None
     for scan in scanlistnew:
         experiment.load_curve_values(scan)
-        if experiment.setup == 'DCD':
-            dcd_sample_dist = 1e-3 * scan.metadata.diffractometer._dcd_sample_distance
-            tthdirect = -1 * \
-                np.degrees(np.arctan(experiment.projectionx / dcd_sample_dist))
-        else:
-            tthdirect = 0
 
-        experiment.two_theta_start = experiment.gammadata - tthdirect
 
         if slitratios is not None:
             slitvertratio,slithorratio=slitratios
@@ -396,13 +389,9 @@ def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, slitrati
         
         scanlimhor = limitfunction(
             'hor',
-            vertsetup=(
-                experiment.setup == 'vertical'),
             slithorratio=slithorratio)
         scanlimver = limitfunction(
             'vert',
-            vertsetup=(
-                experiment.setup == 'vertical'),
             slitvertratio=slitvertratio)
 
         scanlimits = [

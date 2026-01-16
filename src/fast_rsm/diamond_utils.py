@@ -173,7 +173,7 @@ def create_experiment(process_config: SimpleNamespace):
     data_corruption_warning(cfg)
     # Finally, instantiate the Experiment object.
     experiment = Experiment.from_i07_nxs(
-        cfg.good_nxs_paths, cfg.beam_centre, cfg.detector_distance, cfg.setup,
+        cfg.good_nxs_paths, cfg.beam_centre, cfg.detector_distance, cfg.setup,cfg.local_data_path,
         using_dps=cfg.using_dps, experimental_hutch=cfg.experimental_hutch)
 
     experiment.mask_pixels(cfg.specific_pixels)
