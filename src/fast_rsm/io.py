@@ -103,7 +103,7 @@ def from_i10(path_to_nx: Union[str, Path],
 
     # Load the state of the RASOR diffractometer; prepare the metadata.
     diff = I10RasorDiffractometer(i10_nexus, sample_oop, 'area')
-    meta = RSMMetadata(diff, beam_centre)
+    metadata = RSMMetadata(diff, beam_centre)
 
     # Make sure the sample_oop vector's frame's diffractometer is correct.
     sample_oop.frame.diffractometer = diff

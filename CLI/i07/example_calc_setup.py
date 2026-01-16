@@ -1,18 +1,16 @@
 from fast_rsm.diamond_utils import run_process_list,\
         setup_processing
-from types import SimpleNamespace
-from fast_rsm.logging_config import start_frsm_loggers
-import logging
 
-#get path to this job file
-job_file_path=__file__
+from fast_rsm.logging_config import start_frsm_loggers
+
+
 
 start_frsm_loggers(version_path,debuglogging)
-debug_logger=logging.getLogger("fastrsm_debug")
+
 
 #create experiment object, process configuration and logger
 experiment,process_config,debug_logger=\
-setup_processing(SimpleNamespace(**globals()))
+setup_processing(exp_file,__file__,scan_numbers)
 
 #=================================================================================
 ####============SPECIAL ADJUSTMENTS ==============================================

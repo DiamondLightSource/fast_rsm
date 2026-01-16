@@ -37,3 +37,5 @@ coordinates: 'cartesian'
 cylinder_axis: False 
 DEBUG_LOG: 0 
 spherical_bragg_vec: [0,0,0]
+map_frame: null
+coordinates: null

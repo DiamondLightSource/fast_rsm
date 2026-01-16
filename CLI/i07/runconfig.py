@@ -16,6 +16,7 @@ import numpy as np
 from diffraction_utils import I07Nexus, Frame
 from fast_rsm.scan import Scan
 from fast_rsm.logging_config import start_frsm_loggers,log_error_info
+from fast_rsm.config_loader import parse_setup_file
 import argparse
 import os
 from pathlib import Path
@@ -87,12 +88,13 @@ if __name__ == "__main__":
         lines2=f2.readlines()
 
     debug_logger,error_logger=start_frsm_loggers(version_path,args.debuglogging)
-    outline=[line for line in exp_lines_generator(args.exp_path) if 'local_output' in line]
+    process_settings=parse_setup_file(Path(args.exp_path))
+    #outline=[line for line in exp_lines_generator(args.exp_path) if 'local_output' in line]
+    outline=[process_settings['local_output_path']] if 'local_output_path' in process_settings else []
     if len(outline)==0:
         OUTDIR=args.out_path
     else:
-        exec(outline[0])
-        OUTDIR=local_output_path
+        OUTDIR=outline[0]
 
 
     if args.scan_range==0:

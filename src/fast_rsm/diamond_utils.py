@@ -5,49 +5,58 @@ specifically at Diamond.
 from types import SimpleNamespace
 from typing import Tuple
 from datetime import datetime
-import nexusformat.nexus as nx
 from time import time
+import logging
 import os
 import sys
 import multiprocessing
 from pathlib import Path
 import numpy as np
 import h5py
-import logging
-
 from diffraction_utils import Frame, Region
 from fast_rsm.binning import finite_diff_grid
 from fast_rsm.experiment import Experiment
-from fast_rsm.logging_config import start_frsm_loggers
-from fast_rsm.config_loader import check_config_schema,experiment_config
+from fast_rsm.config_loader import check_config_schema,experiment_config, parse_setup_file
 from fast_rsm.pyfai_interface import pyfai_static_qmap ,pyfai_static_exitangles,\
 pyfai_static_ivsq,pyfai_moving_qmap_smm,pyfai_moving_exitangles_smm,\
 pyfai_moving_ivsq_smm,save_config_variables,createponi
 
 
+def setup_processing(exp_setup_file: Path,job_file_path:str, scan_numbers: list ):
+    """
+    uses process configuration to create an experiment object 
+    and setup a logger if requested
+    returns :  Experiment, config, logger
+    """
+    cfg = create_process_config(exp_setup_file,job_file_path,scan_numbers)
+    debug_logger=logging.getLogger('fastrsm_debug')
+    experiment,cfg=create_experiment(cfg)
 
-def create_process_config(global_vals: SimpleNamespace):
+
+    return experiment, cfg, debug_logger
+
+
+
+def create_process_config(exp_setup_file: Path,job_file_path:str ,scan_numbers: list):
     """
     creates a simplenamespace configuration settings object
     """
-
-    default_config=experiment_config(global_vals.scan_numbers)
-    default_config['full_path']=global_vals.job_file_path
-    for key in default_config:
-        if hasattr(global_vals,key):
-            default_config[key]=getattr(global_vals,key)
+    process_settings=parse_setup_file(exp_setup_file)
+    default_config=experiment_config(scan_numbers)
+    default_config['full_path']=job_file_path
+    filtered_settings={k:v for k,v in process_settings.items() if v is not None}
+    default_config.update(filtered_settings)
     check_config_schema(default_config)
 
     cfg = SimpleNamespace(**default_config)
     with open(cfg.full_path,encoding='utf-8') as f:
         cfg.joblines = f.readlines()
 
-    
     cfg.dps_centres = [cfg.dpsx_central_pixel,
                    cfg.dpsy_central_pixel, cfg.dpsz_central_pixel]
     cfg.oop = initial_value_checks(cfg.dps_centres,cfg.cylinder_axis,\
                                     cfg.setup, cfg.output_file_size)
-    
+
     # Max number of cores available for processing.
     cfg.num_threads = multiprocessing.cpu_count()
     cfg.pythonlocation = sys.executable
@@ -142,7 +151,8 @@ def data_corruption_warning(cfg: SimpleNamespace):
     if len(cfg.bad_nxs_paths)==0:
         return
     print(colour_text('red','='*35))
-    print(colour_text('red',"WARNING - the following .h5 files were found to be corrupt and will be ignored during processing"))
+    print(colour_text('red',"WARNING - the following .h5 files were found to be corrupt\
+                       and will be ignored during processing"))
     print(f"Directory: {str(cfg.bad_nxs_paths[0].parent)}")
     for path in cfg.bad_nxs_paths:
         print(f"\t {path.name}")
@@ -157,11 +167,9 @@ def create_experiment(process_config: SimpleNamespace):
     creates an experiment object from process configuration settings
     """
     cfg=process_config
-    
     # Work out the paths to each of the nexus files. Store as pathlib.Path
     # objects.
     cfg = get_good_paths(cfg)
-    
     data_corruption_warning(cfg)
     # Finally, instantiate the Experiment object.
     experiment = Experiment.from_i07_nxs(
@@ -180,23 +188,8 @@ def create_experiment(process_config: SimpleNamespace):
     # grab ub information
     cfg.ubinfo = [
         scan.metadata.data_file.nx_instrument.diffcalchdr for scan in experiment.scans]
-    
     return experiment, cfg
 
-
-def setup_processing(global_vals: SimpleNamespace):
-    """
-    uses process configuration to create an experiment object 
-    and setup a logger if requested
-    returns :  Experiment, config, logger
-    """
-
-    cfg = create_process_config(global_vals)
-    debug_logger=logging.getLogger('fastrsm_debug')
-    experiment,cfg=create_experiment(cfg)
-
-
-    return experiment, cfg, debug_logger
 
 
 def initial_value_checks(dps_centres, cylinder_axis, setup, output_file_size):
@@ -260,12 +253,12 @@ def setup_dps(scan,process_config):
         total_dy = cfg.detector_distance * np.tan(out_of_plane_theta)
 
         # From these values we can compute true DPS offsets.
-        dps_off_x = total_dx - dpsx_central_pixel
-        dps_off_y = total_dy - dpsy_central_pixel
+        dps_off_x = total_dx - cfg.dpsx_central_pixel
+        dps_off_y = total_dy - cfg.dpsy_central_pixel
 
         scan.metadata.data_file.dpsx += dps_off_x
         scan.metadata.data_file.dpsy += dps_off_y
-        scan.metadata.data_file.dpsz -= dpsz_central_pixel
+        scan.metadata.data_file.dpsz -= cfg.dpsz_central_pixel
     else:
         # If we aren't using the DCD, our life is much simpler.
         scan.metadata.data_file.dpsx -= cfg.dpsx_central_pixel
@@ -325,9 +318,10 @@ def make_mask_lists(specific_pixels, mask_regions):
     # Now deal with any regions that may have been defined.
     mask_regions_list = []
     if mask_regions is not None:
-        mask_regions_list = [maskval if isinstance(
-            maskval, Region) else Region(*maskval) for maskval in mask_regions]
-        mask_regions=[[val.x_start,val.x_end,val.y_start,val.y_end] if isinstance(val,Region) else val for val in mask_regions]
+        mask_regions_list = [maskval if isinstance(maskval, Region) \
+                             else Region(*maskval) for maskval in mask_regions]
+        mask_regions=[[val.x_start,val.x_end,val.y_start,val.y_end] \
+                      if isinstance(val,Region) else val for val in mask_regions]
     # Now swap (x, y) for each of the regions.
     if mask_regions_list is not None:
         for region in mask_regions_list:

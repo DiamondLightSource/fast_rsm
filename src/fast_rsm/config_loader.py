@@ -2,8 +2,11 @@
 module to load in process configurations and check against preset schemas
 """
 import os
-from schema import Or, And, Schema, SchemaError
-
+import ast
+import re
+from pathlib import Path
+from schema import Or, And, Schema, SchemaError, Optional
+from simpleeval import SimpleEval
 import yaml
 import numpy as np
 
@@ -105,13 +108,14 @@ config_schema = Schema({
     "savetiffs": bool,
     "savedats": bool,
     "frame_name": str,
-    "coordinates": str,
     "cylinder_axis": bool,
     "DEBUG_LOG": int,
     "spherical_bragg_vec": And(list, validate_spherical_bragg),
     "default_config_path": str,
     "scan_numbers": list,
     "full_path": str,
+    "map_frame":Or(None,str),
+    "coordinates":Or(None,str),
 })
 
 
@@ -126,6 +130,58 @@ def check_config_schema(input_config: dict):
     except SchemaError as se:
         raise se
 
+def check_node_list(nodevalue,assignments):
+    """
+    convert correctly list or tuple items read in from config
+    """
+    simp_eval=SimpleEval(names=assignments)
+    remove_strings={ast.Tuple:"()",ast.List:"[]"}
+    items=ast.unparse(nodevalue)
+    try:
+        outvals=ast.literal_eval(items)
+        return outvals
+    except ValueError:
+        stripstring=remove_strings[type(nodevalue)]
+        items_stripped=items.strip(stripstring).split(',')
+        if all([len(item.strip())==0 for item in items_stripped]):
+            return None
+        outvals=[simp_eval.eval(item.strip())  if (len(item)>0) else None for item in items_stripped]
+        if isinstance(nodevalue,ast.Tuple):
+            return tuple(outvals)
+        return outvals
+
+
+
+
+def parse_setup_file(file_path: Path):
+    """
+    parse in settings from users exp_setup file
+    """
+    with open(file_path, 'r',encoding='utf-8') as f:
+        tree = ast.parse(f.read())
+    assignments = {}
+    value_nodelist=[ast.Constant]
+    #unparse_nodelist=[ast.Tuple,ast.List]
+    deprecated_list=['save_binoculars_h5']
+
+    for node in tree.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        var_name = node.targets[0].id
+
+
+        if var_name in deprecated_list:
+            print(f'Warning: variable {var_name} is deprecated and will be ignored.\nPlease check https://fast-rsm.readthedocs.io/ for the latest exp_setup format')
+            continue
+        if any( isinstance(node.value,inst) for inst in value_nodelist):
+            out_value = node.value.value  # int, float, str preserved
+        else:
+            out_value = check_node_list(node.value,assignments)
+
+        assignments[var_name] = out_value
+    #ignoring any individual mask, because it is unknown apriori how many the user has defined, and all used ones will be in mask_regions
+    out_assignments={k:v for k,v in assignments.items() if len(re.findall(r"^mask_\d+$",k))==0}
+    return out_assignments
 
 def experiment_config(scans):
     """
