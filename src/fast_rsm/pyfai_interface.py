@@ -22,7 +22,7 @@ import pyFAI.detectors
 import pyFAI.calibrant
 from fast_rsm.rsm_metadata import RSMMetadata
 from fast_rsm.scan import Scan, chunk, check_shared_memory
-from fast_rsm.experiment import Experiment
+from fast_rsm.experiment import Experiment, gamdel2rots,calctheta,calcq,do_savedats,do_savetiffs
 from fast_rsm.logging_config import get_debug_logger,listener_process,get_logger
 
 from fast_rsm.pyfai_workers import pyfai_move_ivsq_worker_old,pyfai_move_qmap_worker_old, pyfai_move_qmap_worker_new,pyfai_move_ivsq_worker_new, pyfai_move_exitangles_worker_old,pyfai_stat_exitangles_worker,pyfai_stat_ivsq_worker,pyfai_stat_qmap_worker
@@ -59,7 +59,7 @@ for var in ["OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEX
 
 
 
-def find_bad_image_paths(scan):
+def find_bad_image_paths(scan: Scan):
     badpaths=[]
     for num,end in enumerate(scan.metadata.data_file.raw_image_paths):
         if not end.endswith('.tif'):
@@ -167,8 +167,8 @@ def get_qmapbins(qlimits, experiment):
     obtain number of map bins required for a q step of 0.01
     """
 
-    qstep = round(experiment.calcq(1.00, experiment.incident_wavelength) -
-                  experiment.calcq(1.01, experiment.incident_wavelength), 4)
+    qstep = round(calcq(1.00, experiment.incident_wavelength) -
+                  calcq(1.01, experiment.incident_wavelength), 4)
     binshor = abs(round(((qlimits[1] - qlimits[0]) / qstep) * 1.05))
     binsver = abs(round(((qlimits[3] - qlimits[2]) / qstep) * 1.05))
     return (binshor, binsver)
@@ -240,11 +240,9 @@ def get_gam_del_vals(experiment: Experiment, index):
     if (-np.degrees(inc_angle) >
             alphacritical) & (experiment.setup == 'DCD'):
         # if above critical angle, account for direct beam adding to delta
-        rots = experiment.gamdel2rots(gamval, delval + np.degrees(-inc_angle))
-    # elif (experiment.setup=='DCD'):
-    #     rots = experiment.gamdel2rots(gamval, delval)
+        rots = gamdel2rots(gamval, delval + np.degrees(-inc_angle))
     else:
-        rots = experiment.gamdel2rots(gamval, delval)
+        rots = gamdel2rots(gamval, delval)
 
     my_ai = copy.deepcopy(aistart)
     my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
@@ -531,13 +529,9 @@ def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, slitrati
         
         scanlimhor = limitfunction(
             'hor',
-            vertsetup=(
-                experiment.setup == 'vertical'),
             slithorratio=slithorratio)
         scanlimver = limitfunction(
             'vert',
-            vertsetup=(
-                experiment.setup == 'vertical'),
             slitvertratio=slitvertratio)
 
         scanlimits = [
@@ -580,8 +574,7 @@ def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, slitrati
 
 
 
-# ====save functions
-
+# ====data saving functions
 
 def save_integration(experiment, hf, twothetas, q_angs,
                      intensities, configs, counts_arr,arrays_arr,scan=0):
@@ -600,7 +593,7 @@ def save_integration(experiment, hf, twothetas, q_angs,
     if "scanfields" not in hf.keys():
         save_scan_field_values(hf, scan)
     if experiment.savedats is True:
-        experiment.do_savedats(hf, intensities, q_angs, twothetas)
+        do_savedats(hf, intensities, q_angs, twothetas)
 
 
 def save_qperp_qpara(experiment, hf, qperp_qpara_map, scan=0):
@@ -616,7 +609,7 @@ def save_qperp_qpara(experiment, hf, qperp_qpara_map, scan=0):
         save_scan_field_values(hf, scan)
 
     if experiment.savetiffs is True:
-        experiment.do_savetiffs(hf,
+        do_savetiffs(hf,
                                 qperp_qpara_map[0],
                                 qperp_qpara_map[1],
                                 qperp_qpara_map[2])
@@ -699,55 +692,13 @@ def save_hf_map(experiment: Experiment, hf, mapname, sum_array,
     dset.create_dataset("map_para_indices", data=[0, 1, 3])
 
     if cfg.savetiffs:
-        experiment.do_savetiffs(hf, norm_array, mapaxisinfo[1], mapaxisinfo[0])
+        do_savetiffs(hf, norm_array, mapaxisinfo[1], mapaxisinfo[0])
 
     minutes = (times[1] - times[0]) / 60
     print(f'total calculation took {minutes}  minutes')
 
 
 # ====moving detector processing
-def pyfai_moving_exitangles_smm(experiment: Experiment, hf, scanlist, process_config):
-    """
-    calculate exit angle map with moving detector
-    """
-    cfg = process_config
-
-    exhexv_array_total = 0
-    exhexv_counts_total = 0
-    cfg.anglimitsout, cfg.scanlength, cfg.scanlistnew = \
-    pyfai_setup_limits(experiment,scanlist, experiment.calcanglim, cfg.slitratios)
-    cfg.multi = True
-    with SharedMemoryManager() as smm:
-
-        cfg.shapeexhexv = (cfg.qmapbins[1], cfg.qmapbins[0])
-        shm_intensities, shm_counts, arrays_arr, counts_arr, lock = start_smm(
-            smm, cfg.shapeexhexv)
-        start_time = time()
-        for scanind, scan in enumerate(cfg.scanlistnew):
-
-            cfg.anglimits, cfg.scanlength, scanlistnew = \
-            pyfai_setup_limits(experiment,scan, experiment.calcanglim, cfg.slitratios)
-            cfg.scalegamma = 1
-            input_args = get_input_args(experiment, scan, cfg)
-            print(f'starting process pool with num_threads=\
-                  {cfg.num_threads} for scan {scanind+1}/{len(cfg.scanlistnew)}')
-
-            with Pool(cfg.num_threads, initializer=pyfai_init_worker, \
-            initargs=(lock, shm_intensities.name, shm_counts.name, cfg.shapeexhexv)) as pool:
-                mapaxisinfolist = pool.starmap(
-                    pyfai_move_exitangles_worker_old, input_args)
-            print(
-                f'finished process pool for scan {scanind+1}/{len(cfg.scanlistnew)}')
-
-    mapaxisinfo = mapaxisinfolist[0]
-    exhexv_array_total = arrays_arr
-    exhexv_counts_total = counts_arr
-    save_hf_map(experiment, hf, "exit_angles", exhexv_array_total, exhexv_counts_total,
-                mapaxisinfo, start_time, cfg)
-    save_config_variables(hf, cfg)
-    hf.close()
-    return mapaxisinfo
-
 def pyfai_moving_qmap_smm_old(experiment: Experiment, hf, scanlist, process_config):
     """
     calculate q_para vs q_perp map for a moving detector scan
@@ -798,7 +749,6 @@ def pyfai_moving_qmap_smm_old(experiment: Experiment, hf, scanlist, process_conf
     save_config_variables(hf, cfg)
     hf.close()
     return mapaxisinfo
-
 
 def pyfai_moving_ivsq_smm_old(experiment: Experiment, hf, scanlist, process_config):
     """
@@ -886,12 +836,52 @@ def pyfai_moving_ivsq_smm_old(experiment: Experiment, hf, scanlist, process_conf
     # dset.create_dataset("solid_sum_signal",data=counts_arr[2])
 
     if cfg.savedats:
-        experiment.do_savedats(hf, qi_array, qi_final[1], qi_final[2])
+        do_savedats(hf, qi_array, qi_final[1], qi_final[2])
     save_config_variables(hf, cfg)
     hf.close()
 
 
+def pyfai_moving_exitangles_smm(experiment: Experiment, hf, scanlist, process_config):
+    """
+    calculate exit angle map with moving detector
+    """
+    cfg = process_config
 
+    exhexv_array_total = 0
+    exhexv_counts_total = 0
+    cfg.anglimitsout, cfg.scanlength, cfg.scanlistnew = \
+    pyfai_setup_limits(experiment,scanlist, experiment.calcanglim, cfg.slitratios)
+    cfg.multi = True
+    with SharedMemoryManager() as smm:
+
+        cfg.shapeexhexv = (cfg.qmapbins[1], cfg.qmapbins[0])
+        shm_intensities, shm_counts, arrays_arr, counts_arr, lock = start_smm(
+            smm, cfg.shapeexhexv)
+        start_time = time()
+        for scanind, scan in enumerate(cfg.scanlistnew):
+
+            cfg.anglimits, cfg.scanlength, scanlistnew = \
+            pyfai_setup_limits(experiment,scan, experiment.calcanglim, cfg.slitratios)
+            cfg.scalegamma = 1
+            input_args = get_input_args(experiment, scan, cfg)
+            print(f'starting process pool with num_threads=\
+                  {cfg.num_threads} for scan {scanind+1}/{len(cfg.scanlistnew)}')
+
+            with Pool(cfg.num_threads, initializer=pyfai_init_worker, \
+            initargs=(lock, shm_intensities.name, shm_counts.name, cfg.shapeexhexv)) as pool:
+                mapaxisinfolist = pool.starmap(
+                    pyfai_move_exitangles_worker_old, input_args)
+            print(
+                f'finished process pool for scan {scanind+1}/{len(cfg.scanlistnew)}')
+
+    mapaxisinfo = mapaxisinfolist[0]
+    exhexv_array_total = arrays_arr
+    exhexv_counts_total = counts_arr
+    save_hf_map(experiment, hf, "exit_angles", exhexv_array_total, exhexv_counts_total,
+                mapaxisinfo, start_time, cfg)
+    save_config_variables(hf, cfg)
+    hf.close()
+    return mapaxisinfo
 
 
 
@@ -1018,7 +1008,7 @@ def pyfai_moving_qmap_smm_new(experiment: Experiment, hf, scanlist, process_conf
     # if "scanfields" not in hf.keys():
     #     save_scan_field_values(hf, scan)
     # if cfg.savetiffs:
-    #     experiment.do_savetiffs(hf, qmap_array, para_vals_final, perp_vals_final)
+    #     do_savetiffs(hf, qmap_array, para_vals_final, perp_vals_final)
     save_config_variables(hf, cfg)
     hf.close()
             
@@ -1073,7 +1063,7 @@ def check_full_1d_radial_range(experiment: Experiment,process_config,absranges, 
     else:
         radialrange = (min(absranges),radmax)
     if str(cfg.unit_qip_name).startswith("q"):
-        return [experiment.calcq(val,experiment.incident_wavelength) for val in radialrange]
+        return [calcq(val,experiment.incident_wavelength) for val in radialrange]
     return radialrange
 
 def get_d5i_values(scan):
@@ -1164,8 +1154,8 @@ def pyfai_moving_ivsq_smm_new(experiment: Experiment, hf, scanlist, process_conf
     qi_final = np.sum(intensity_results_per_scan,axis=0)
     counts_final = np.sum(count_results_per_scan,axis=0)
     qtot_vals_final=qtot_results_per_scan[0]
-    #qvals_final=[experiment.calcq(val, experiment.incident_wavelength) for val in theta_vals_final]
-    thetas_final=[experiment.calctheta(val,experiment.incident_wavelength) for val in qtot_vals_final]
+    #qvals_final=[calcq(val, experiment.incident_wavelength) for val in theta_vals_final]
+    thetas_final=[calctheta(val,experiment.incident_wavelength) for val in qtot_vals_final]
 
 
     qi_array = np.divide(
@@ -1189,7 +1179,7 @@ def pyfai_moving_ivsq_smm_new(experiment: Experiment, hf, scanlist, process_conf
     # dset.create_dataset("solid_sum_signal",data=counts_arr[2])
 
     if cfg.savedats:
-        experiment.do_savedats(hf, qi_array, qvals_final, theta_vals_final)
+        do_savedats(hf, qi_array, qvals_final, theta_vals_final)
     save_config_variables(hf, cfg)
     hf.close()
 
@@ -1313,7 +1303,7 @@ def pyfai_static_qmap(experiment: Experiment, hf, scan, process_config: SimpleNa
     if "scanfields" not in hf.keys():
         save_scan_field_values(hf, scan)
     if cfg.savetiffs:
-        experiment.do_savetiffs(hf, outlist[0], outlist[1], outlist[2])
+        do_savetiffs(hf, outlist[0], outlist[1], outlist[2])
     save_config_variables(hf, cfg)
     hf.close()
 
@@ -1379,6 +1369,6 @@ def pyfai_static_ivsq(experiment: Experiment, hf, scan, process_config: SimpleNa
     if "scanfields" not in hf.keys():
         save_scan_field_values(hf, scan)
     if cfg.savedats is True:
-        experiment.do_savedats(hf, outlist[0], outlist[1], outlist[2])
+        do_savedats(hf, outlist[0], outlist[1], outlist[2])
     save_config_variables(hf, cfg)
     hf.close()

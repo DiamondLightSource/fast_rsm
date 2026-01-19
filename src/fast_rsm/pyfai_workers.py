@@ -6,7 +6,7 @@ import logging
 import logging.handlers
 from logging.handlers import QueueHandler
 from pyFAI.multi_geometry import MultiGeometry
-from fast_rsm.experiment import Experiment
+from fast_rsm.experiment import Experiment,calctheta,calcq,gamdel2rots
 import pyFAI
 from pyFAI import units
 import numpy as np
@@ -43,11 +43,9 @@ def get_pyfai_ai(experiment: Experiment,aistart, slitratios, alphacritical,inc_a
     if (-np.degrees(inc_angle) >
             alphacritical) & (experiment.setup == 'DCD'):
         # if above critical angle, account for direct beam adding to delta
-        rots = experiment.gamdel2rots(gamval, delval + np.degrees(-inc_angle))
-    # elif (experiment.setup=='DCD'):
-    #     rots = experiment.gamdel2rots(gamval, delval)
+        rots = gamdel2rots(gamval, delval + np.degrees(-inc_angle))
     else:
-        rots = experiment.gamdel2rots(gamval, delval+ np.degrees(-inc_angle))
+        rots =  gamdel2rots(gamval, delval+ np.degrees(-inc_angle))
 
     out_ai = copy.deepcopy(aistart)
     out_ai.rot1, out_ai.rot2, out_ai.rot3 = rots
@@ -139,7 +137,7 @@ def pyfai_move_ivsq_worker_new(experiment: Experiment, imageindices,
 #
         #single_result=current_ai.integrate1d(img_data,cfg.ivqbins,unit = cfg.unit_qip_name ,normalization_factor=d5i_data,correctSolidAngle=True, method=method,radial_range=(cfg.radialrange[0]-0.5, cfg.radialrange[1]+0.5))
         #outrange=(cfg.radialrange[0]-0.5, cfg.radialrange[1]+0.5)
-        qranges=np.array([experiment.calcq(val,experiment.incident_wavelength) for val in cfg.fullranges])
+        qranges=np.array([calcq(val,experiment.incident_wavelength) for val in cfg.fullranges])
         range_adjust=[-0.5,0.5]
         single_result=current_ai.integrate_fiber(img_data,  npt_ip=cfg.ivqbins, unit_ip=cfg.unit_qip_name, ip_range=qranges[0:2]+range_adjust,
                         npt_oop=cfg.ivqbins, unit_oop=cfg.unit_qoop_name,oop_range=qranges[2:]+range_adjust,
@@ -268,9 +266,9 @@ def pyfai_move_ivsq_worker_old(experiment: Experiment, imageindices,
         result1d = mg.integrate1d(img_data_list, cfg.ivqbins,method=method,normalization_factor=d5i_data)
         result_solid=mg.integrate1d([ai.solidAngleArray() for ai in ais], cfg.ivqbins,normalization_factor=d5i_data,correctSolidAngle=False)#,method=method)
         #do_time_check(f'stop multigeometry calculation group {m}')
-        q_from_theta = [experiment.calcq(
+        q_from_theta = [calcq(
             val, experiment.incident_wavelength) for val in result1d.radial]
-        # theta_from_q= [experiment.calctheta(val, experiment.incident_wavelength) \
+        # theta_from_q= [calctheta(val, experiment.incident_wavelength) \
         # for val in result1d.radial]
         #np.divide(result1d.sum_signal,result_solid.intensity,where=result_solid.intensity.astype(float)!=0.0)
         totaloutqi[0] += result1d.sum_signal
@@ -485,7 +483,7 @@ def pyfai_stat_ivsq_worker(experiment: Experiment, imageindex, scan,
                                           unit="2th_deg", polarization_factor=1,\
                                             radial_range=(
                                cfg.radialrange[0], cfg.radialrange[1]))
-    qvals = [experiment.calcq(tthval, experiment.incident_wavelength)
+    qvals = [calcq(tthval, experiment.incident_wavelength)
              for tthval in tth]
 
     return intensity, tth, qvals
