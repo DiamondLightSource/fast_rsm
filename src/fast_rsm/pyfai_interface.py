@@ -59,6 +59,12 @@ for var in ["OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEX
 
 
 
+def find_bad_image_paths(scan):
+    badpaths=[]
+    for num,end in enumerate(scan.metadata.data_file.raw_image_paths):
+        if not end.endswith('.tif'):
+            badpaths.append(num)
+    return badpaths
 
 def createponi(experiment: Experiment, outpath, offset=0):
     """
@@ -231,7 +237,113 @@ def get_gam_del_vals(experiment: Experiment, index):
     elif np.size(experiment.deltadata) == 1:
         delval = np.array(experiment.deltadata).ravel()
 
-    return gamval,delval
+    if (-np.degrees(inc_angle) >
+            alphacritical) & (experiment.setup == 'DCD'):
+        # if above critical angle, account for direct beam adding to delta
+        rots = experiment.gamdel2rots(gamval, delval + np.degrees(-inc_angle))
+    # elif (experiment.setup=='DCD'):
+    #     rots = experiment.gamdel2rots(gamval, delval)
+    else:
+        rots = experiment.gamdel2rots(gamval, delval)
+
+    my_ai = copy.deepcopy(aistart)
+    my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
+
+    if experiment.setup == 'vertical':
+        my_ai.rot1 = rots[1]
+        my_ai.rot2 = -rots[0]
+
+    if slitratios[0] is not None:
+        my_ai.pixel1 *= slitratios[0]
+        my_ai.poni1 *= slitratios[0]
+
+    if slitratios[1] is not None:
+        my_ai.pixel2 *= slitratios[1]
+        my_ai.poni2 *= slitratios[1]
+    if experiment.setup == 'vertical':
+        img_data = np.rot90(scan.load_image(i).data, -1)
+    else:
+        img_data = np.array(scan.load_image(i).data)
+
+    radial_limits = (limits_in[0] * (1.0 + (0.05 * -(np.sign(limits_in[0])))),
+                     limits_in[1] * (1.0 + (0.05 * (np.sign(limits_in[1])))))
+    azimuthal_limits = (limits_in[2] * (1.0 + (0.05 * -(np.sign(limits_in[2])))),
+                        limits_in[3] * (1.0 + (0.05 * (np.sign(limits_in[3])))))
+    limits_out = [radial_limits[0], radial_limits[1],
+                  azimuthal_limits[0], azimuthal_limits[1]]
+
+    return unit_ip, unit_oop, img_data, my_ai, limits_out
+
+
+def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, slitratios):
+    """
+    calculate setup values needed for pyfai calculations
+    """
+    # pylint: disable=attribute-defined-outside-init
+    if isinstance(scanlist, Scan):
+        scanlistnew = [scanlist]
+    else:
+        scanlistnew = scanlist
+
+    limhor = None
+    limver = None
+    for scan in scanlistnew:
+        experiment.load_curve_values(scan)
+
+
+        if slitratios is not None:
+            slitvertratio,slithorratio=slitratios
+        else:
+            slitvertratio=slithorratio=None
+        
+        scanlimhor = limitfunction(
+            'hor',
+            slithorratio=slithorratio)
+        scanlimver = limitfunction(
+            'vert',
+            slitvertratio=slitvertratio)
+
+        scanlimits = [
+            scanlimhor[0],
+            scanlimhor[1],
+            scanlimver[0],
+            scanlimver[1]]
+        if limhor is None:
+            limhor = scanlimits[0:2]
+            limver = scanlimits[2:]
+        else:
+            limhor = combine_ranges(limhor, scanlimits[0:2])
+            limver = combine_ranges(limver, scanlimits[2:])
+
+    outlimits = [limhor[0], limhor[1], limver[0], limver[1]]
+    if experiment.setup == 'vertical':
+        experiment.beam_centre = [
+            experiment.beam_centre[1],
+            experiment.beam_centre[0]]
+        experiment.beam_centre[1] = experiment.imshape[0] - \
+            experiment.beam_centre[1]
+
+    datacheck = 'data' in list(scan.metadata.data_file.nx_detector)
+    localpathcheck = 'local_image_paths' in \
+        scan.metadata.data_file.__dict__.keys()
+    intcheck = isinstance(scan.metadata.data_file.scan_length, int)
+    if datacheck & intcheck:
+        scanlength = np.shape(
+            scan.metadata.data_file.nx_detector.data[:, 1, :])[0]
+        scanlength = min(scanlength, scan.metadata.data_file.scan_length)
+    elif datacheck:
+        scanlength = np.shape(
+            scan.metadata.data_file.nx_detector.data[:, 1, :])[0]
+    elif localpathcheck:
+        scanlength = len(scan.metadata.data_file.local_image_paths)
+    else:
+        scanlength = scan.metadata.data_file.scan_length
+    
+    #check for scans finished early
+    if not scan.metadata.data_file.has_hdf5_data:
+        badimagecheck=find_bad_image_paths(scan)
+        if len(badimagecheck)>0:
+            scanlength-=len(badimagecheck)
 
 
 
