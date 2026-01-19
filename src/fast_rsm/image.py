@@ -156,6 +156,8 @@ class Image:
         
         if dectris_mask is not None:
             arr[dectris_mask]=np.nan
+        # #DEBUG - mask zeros from image
+        # arr[arr.astype(float)==0.0]=np.nan
 
         # if there is an edf mask file loaded, apply mask
         if self.metadata.edfmask is not None:
