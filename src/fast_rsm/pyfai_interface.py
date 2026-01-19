@@ -437,9 +437,10 @@ def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, slitrati
         scanlength = scan.metadata.data_file.scan_length
     
     #check for scans finished early
-    badimagecheck=find_bad_image_paths(scan)
-    if len(badimagecheck)>0:
-        scanlength-=len(badimagecheck)
+    if not scan.metadata.data_file.has_hdf5_data:
+        badimagecheck=find_bad_image_paths(scan)
+        if len(badimagecheck)>0:
+            scanlength-=len(badimagecheck)
 
     return outlimits, scanlength, scanlistnew
 
