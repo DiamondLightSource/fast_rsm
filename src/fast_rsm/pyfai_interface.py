@@ -27,6 +27,8 @@ from fast_rsm.logging_config import get_debug_logger,listener_process,get_logger
 
 from fast_rsm.pyfai_workers import pyfai_move_ivsq_worker_old,pyfai_move_qmap_worker_old, pyfai_move_qmap_worker_new,pyfai_move_ivsq_worker_new, pyfai_move_exitangles_worker_old,pyfai_stat_exitangles_worker,pyfai_stat_ivsq_worker,pyfai_stat_qmap_worker
 
+from fast_rsm.angle_pixel_q import calcq,calctheta,gamdel2rots
+
 LOGGER_DEBUG = 'fastrsm_debug'
 LOGGER_ERROR = 'fastrsm_error'
 

@@ -13,7 +13,7 @@ import numpy as np
 import pyFAI.detectors
 import pyFAI.calibrant
 
-
+from fast_rsm.angle_pixel_q import calcq,gamdel2rots
 from fast_rsm.logging_config import get_debug_logger,listener_process,get_logger
 
 
