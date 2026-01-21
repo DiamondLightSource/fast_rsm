@@ -11,6 +11,7 @@ import mapper_c_utils
 from fast_rsm.rsm_metadata import RSMMetadata
 
 import fast_rsm.corrections as corrections
+from fast_rsm.angle_pixel_q import calc_kout_array
 
 logger = logging.getLogger("fastrsm")
 
@@ -38,8 +39,9 @@ class Image:
     def __init__(self, metadata: RSMMetadata, index: int, load_image=True):
         # Store intensities as 32 bit floats.
         if load_image:
-            self._raw_data = metadata.data_file.get_image(
-                index).astype(np.float32)
+            loader = getattr(metadata, "image_loader", metadata.data_file.get_image)
+            self._raw_data = loader(index).astype(np.float32)
+
         else:
             # Allocate, but don't initialize.
             self._raw_data = np.ndarray(metadata.data_file.image_shape)
@@ -114,6 +116,76 @@ class Image:
         """
         self._processing_steps.append(function)
 
+
+    def correct_transmission(self,transmission_array,data_array,index):
+        """
+        add transmission correction if transmission data available
+        """
+
+        transmission_value=self.get_norm_value(transmission_array,index)
+
+        if transmission_value in (None, 0):
+            return data_array
+
+        return data_array / transmission_value
+
+    def correct_counttime(self,count_time_array,data_array,index):
+        """
+        add count time correction if count_time available
+        """
+        count_time_value=self.get_norm_value(count_time_array,index)
+        if count_time_value in (None,0):
+            return data_array
+        return data_array / count_time_value
+    
+    def get_norm_value(self,values,index):
+
+        try:
+            if isinstance(values, np.ndarray):
+                norm_value = values.flatten()[index]
+            else:
+                norm_value = values
+
+            return norm_value
+
+        except AttributeError:
+            return None
+    
+    def do_mask_detris(self,data_arr):
+        dectris_mask=data_arr==4294967300.0
+        if dectris_mask is not None:
+            data_arr[dectris_mask]=np.nan
+
+        return data_arr
+    
+    def do_edfmask(self,edfmask,data_arr):
+        if edfmask is not None:
+            data_arr[edfmask.astype(bool)] = np.nan
+        return data_arr
+    
+
+    def do_mask_pixels(self,mask_pixels,data_arr):
+        # If there are pixels to mask, mask them.
+        if mask_pixels is not None:
+            data_arr[mask_pixels] = np.nan
+        return data_arr
+    
+
+    def do_mask_regions(self,mask_regions,data_arr):
+        # If there are regions to mask, mask them too.
+        if mask_regions is not None:
+            for region in mask_regions:
+                data_arr[region.slice] = np.nan
+        return data_arr
+
+        # #DEBUG - mask zeros from image
+        # arr[arr.astype(float)==0.0]=np.nan
+
+        # if there is an edf mask file loaded, apply mask
+
+
+
+
     @property
     def data(self):
         """
@@ -122,56 +194,30 @@ class Image:
         thresholding, masking, clustering, or any arbitrary algorithm) then
         use the add_processing_step method.
         """
-        arr = self._raw_data
-        dectris_mask=None
-        if self.metadata.diffractometer.data_file.is_dectris:
-            dectris_mask=arr==4294967300.0
+        arr = self._raw_data.copy()
+
+
         for step in self._processing_steps:
             arr = step(arr)
 
         # Solid angle corrections are not optional.
         arr /= self.metadata.solid_angles
-
-        # If our data file has transmission data, divide by it.
-        # This is not optional!
-        try:
-            if isinstance(self.metadata.data_file.transmission, np.ndarray):
-                transmissionlist = self.metadata.data_file.transmission.flatten()
-                arr /= transmissionlist[self.index]
-            else:
-                arr /= self.metadata.data_file.transmission
-        except AttributeError:
-            pass
-
-        # normalise image data to count time
-        scan_entry = self.metadata.diffractometer.data_file.nxfile
-        try:
-            if isinstance(
-                    scan_entry.entry.attenuation.count_time.nxdata, np.ndarray):
-                arr /= scan_entry.entry.attenuation.count_time.nxdata[self.index]
-            else:
-                arr /= scan_entry.entry.attenuation.count_time.nxdata
-        except AttributeError:
-            pass
         
-        if dectris_mask is not None:
-            arr[dectris_mask]=np.nan
-        # #DEBUG - mask zeros from image
-        # arr[arr.astype(float)==0.0]=np.nan
+        transmission_array=self.metadata.data_file.transmission
+        arr = self.correct_transmission(transmission_array,arr,self.index)
 
-        # if there is an edf mask file loaded, apply mask
-        if self.metadata.edfmask is not None:
-            arr[self.metadata.edfmask.astype(bool)] = np.nan
+        det_name=self.metadata.data_file.detector_name
+        scan_entry = self.metadata.diffractometer.data_file.nxfile
+        count_time_data= scan_entry.entry[det_name]['count_time'].nxdata
+        arr = self.correct_counttime(count_time_data,arr,self.index)
 
-        # If there are pixels to mask, mask them.
-        if self.metadata.mask_pixels is not None:
-            arr[self.metadata.mask_pixels] = np.nan
-
-        # If there are regions to mask, mask them too.
-        if self.metadata.mask_regions is not None:
-            for region in self.metadata.mask_regions:
-                arr[region.slice] = np.nan
-
+        if self.metadata.diffractometer.data_file.is_dectris:
+            arr=self.do_mask_detris(arr)
+        
+        arr=self.do_edfmask(self.metadata.edfmask,arr)
+        arr=self.do_mask_pixels(self.metadata.mask_pixels,arr)
+        arr=self.do_mask_regions(self.metadata.mask_regions,arr)
+        
         return arr
 
     def q_vectors(self,
@@ -260,19 +306,12 @@ class Image:
         detector_distance = np.array(detector_distance, np.float32)
         vertical = self.metadata.get_vertical_pixel_distances(self.index)
         horizontal = self.metadata.get_horizontal_pixel_distances(self.index)
+        detector_values=[det_displacement,detector_distance,\
+                                    det_vertical,det_horizontal]
+        pixel_arrays=[vertical,horizontal]
+        k_out_array=calc_kout_array(desired_shape,i,j,detector_values,pixel_arrays)
 
-        k_out_array[i, j, 0] = (
-            det_displacement.array[0] * detector_distance +
-            det_vertical.array[0] * vertical[i, j] +
-            det_horizontal.array[0] * horizontal[i, j])
-        k_out_array[i, j, 1] = (
-            det_displacement.array[1] * detector_distance +
-            det_vertical.array[1] * vertical[i, j] +
-            det_horizontal.array[1] * horizontal[i, j])
-        k_out_array[i, j, 2] = (
-            det_displacement.array[2] * detector_distance +
-            det_vertical.array[2] * vertical[i, j] +
-            det_horizontal.array[2] * horizontal[i, j])
+
 
         # We're going to need to normalize; this function bottlenecks if not
         # done exactly like this!
