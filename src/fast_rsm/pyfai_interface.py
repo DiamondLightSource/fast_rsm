@@ -2,7 +2,7 @@
 Module for the functions used to interface with pyFAI package
 """
 import os,sys
-import time as toptime
+
 from types import SimpleNamespace
 
 from datetime import datetime
@@ -23,7 +23,7 @@ import pyFAI.calibrant
 from fast_rsm.rsm_metadata import RSMMetadata
 from fast_rsm.scan import Scan, chunk, check_shared_memory
 from fast_rsm.experiment import Experiment, gamdel2rots,calctheta,calcq,do_savedats,do_savetiffs
-from fast_rsm.logging_config import get_debug_logger,listener_process,get_logger
+from fast_rsm.logging_config import get_debug_logger,listener_process,get_logger,do_time_check
 
 from fast_rsm.pyfai_workers import pyfai_move_ivsq_worker_old,pyfai_move_qmap_worker_old, pyfai_move_qmap_worker_new,pyfai_move_ivsq_worker_new, pyfai_move_exitangles_worker_old,pyfai_stat_exitangles_worker,pyfai_stat_ivsq_worker,pyfai_stat_qmap_worker
 
@@ -706,7 +706,7 @@ def pyfai_moving_ivsq_smm_old(experiment: Experiment, hf, scanlist, process_conf
             np.ceil((cfg.radialrange[1] - cfg.radialrange[0]) /
                 cfg.radialstepval))
     cfg.multi = True
-    cfg.do_time_check('start shared memory')
+    do_time_check('start shared memory')
     #with SharedMemoryManager() as smm:
 
     cfg.shapeqi = (3, np.abs(cfg.ivqbins))
@@ -715,7 +715,7 @@ def pyfai_moving_ivsq_smm_old(experiment: Experiment, hf, scanlist, process_conf
 
     all_qi = []
     all_counts = []
-    cfg.do_time_check('NEW start process pool')
+    do_time_check('NEW start process pool')
     with Pool(2) as pool: #cfg.num_threads)
         for scanind, scan in enumerate(cfg.scanlistnew):
             qlimits, scanlength, scanlistnew = \
@@ -737,7 +737,7 @@ def pyfai_moving_ivsq_smm_old(experiment: Experiment, hf, scanlist, process_conf
 
             all_qi.append(np.add.reduce([p[0] for p in partials]))
             all_counts.append(np.add.reduce([p[1] for p in partials]))
-    cfg.do_time_check('stop process pool')
+    do_time_check('stop process pool')
 
     qi_final = np.add.reduce(all_qi)
     counts_final = np.add.reduce(all_counts)
@@ -863,7 +863,7 @@ def pyfai_moving_qmap_smm_new(experiment: Experiment, hf, scanlist, process_conf
     t0 = time()
     cfg.multi = True
 
-    logger.debug(cfg.do_time_check('NEW start process pool'))
+    logger.debug(do_time_check('NEW start process pool'))
     cfg.unit_qip_name = "2th_deg"  # "qtot_A^-1"# "qip_A^-1"
     cfg.unit_qoop_name = "qoop_A^-1"
     cfg.sample_orientation = 1
@@ -908,7 +908,7 @@ def pyfai_moving_qmap_smm_new(experiment: Experiment, hf, scanlist, process_conf
     log_queue.put_nowait(None) # End the queue
     listener.join() # Stop the listener
 
-    logger.debug(cfg.do_time_check('stop process pool'))
+    logger.debug(do_time_check('stop process pool'))
 
     qmap_final=np.sum(intensity_results_per_scan,axis=0)
     counts_final = np.sum(count_results_per_scan,axis=0)
@@ -1032,7 +1032,7 @@ def pyfai_moving_ivsq_smm_new(experiment: Experiment, hf, scanlist, process_conf
     cfg.shapeqi = (1, np.abs(cfg.ivqbins))
     cfg.scalegamma = 1
 
-    logger.debug(cfg.do_time_check('NEW start process pool'))
+    logger.debug(do_time_check('NEW start process pool'))
 
     cfg.sample_orientation = 1
     batchsize=15
@@ -1075,7 +1075,7 @@ def pyfai_moving_ivsq_smm_new(experiment: Experiment, hf, scanlist, process_conf
     log_queue.put_nowait(None) # End the queue
     listener.join() # Stop the listener
 
-    logger.debug(cfg.do_time_check('stop process pool'))
+    logger.debug(do_time_check('stop process pool'))
 
     qi_final = np.sum(intensity_results_per_scan,axis=0)
     counts_final = np.sum(count_results_per_scan,axis=0)

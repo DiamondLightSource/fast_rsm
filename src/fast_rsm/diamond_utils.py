@@ -68,9 +68,6 @@ def create_process_config(exp_setup_file: Path,job_file_path:str ,scan_numbers: 
 
     return cfg
 
-
-
-
 def check_folder(folder):
     """
     check individual scan folders for corrupt .h5 files
@@ -83,7 +80,6 @@ def check_folder(folder):
         except OSError:
             corrupt_files.append(file)
     return len(corrupt_files)
-
 
 def check_folder_corruption(folderpath: Path):
     """
@@ -144,7 +140,6 @@ def colour_text(colour,string):
     start, end = colourkeys[colour]
     return f"{start}{string}{end}"
 
-
 def data_corruption_warning(cfg: SimpleNamespace):
     """
     give warning in terminal if corrupt scans found
@@ -189,30 +184,9 @@ def create_experiment(process_config: SimpleNamespace):
     # grab ub information
     cfg.ubinfo = [
         scan.metadata.data_file.nx_instrument.diffcalchdr for scan in experiment.scans]
-    cfg.do_time_check=do_time_check
     return experiment, cfg
 
-def do_time_check(outstring, queue=None,logn=None):
-    
 
-    pid = os.getpid()
-    allowed = None
-    if hasattr(os, "sched_getaffinity"):
-        try:
-            allowed = sorted(os.sched_getaffinity(0))  # e.g., [0] or [0,1,...,31]
-        except BaseException:
-            allowed = None
-
-    cur = None
-    if hasattr(os, "sched_getcpu"):
-        try:
-            cur = os.sched_getcpu()  # current CPU core ID
-        except BaseException:
-            cur = None
-
-    t_wall = toptime.time()
-    t_cpu  = toptime.process_time()
-    return f"{outstring} pid={pid} allowed={allowed if allowed is not None else 'n/a'} current_cpu={cur} wall={t_wall:.6f} cpu={t_cpu:.6f}"
 
 
 

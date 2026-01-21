@@ -10,7 +10,7 @@ import logging.config
 import getpass
 import concurrent_log_handler
 import multiprocessing
-
+import time as toptime
 from logging.handlers import QueueListener, QueueHandler
 import multiprocessing as mp
 
@@ -20,6 +20,28 @@ LOGGER_ERROR = 'fastrsm_error'
 
 
 ERROR_LOG_DIR='/dls/science/groups/das/ExampleData/i07/fast_rsm_error_logs'
+
+
+def do_time_check(outstring, queue=None,logn=None):
+    
+    pid = os.getpid()
+    allowed = None
+    if hasattr(os, "sched_getaffinity"):
+        try:
+            allowed = sorted(os.sched_getaffinity(0))  # e.g., [0] or [0,1,...,31]
+        except BaseException:
+            allowed = None
+
+    cur = None
+    if hasattr(os, "sched_getcpu"):
+        try:
+            cur = os.sched_getcpu()  # current CPU core ID
+        except BaseException:
+            cur = None
+
+    t_wall = toptime.time()
+    t_cpu  = toptime.process_time()
+    return f"{outstring} pid={pid} allowed={allowed if allowed is not None else 'n/a'} current_cpu={cur} wall={t_wall:.6f} cpu={t_cpu:.6f}"
 
 def listener_process(queue,configurer,log_name):
     """ Listener process is a target for a multiprocess process
