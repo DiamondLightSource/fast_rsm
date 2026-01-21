@@ -27,6 +27,7 @@ from fast_rsm.meta_analysis import get_step_from_filesize
 from fast_rsm.scan import Scan, chunk, \
     rsm_init_worker, bin_maps_with_indices_smm
 from fast_rsm.writing import linear_bin_to_vtk
+from fast_rsm.angle_pixel_q import calc_qupplow_hor,calc_qupplow_vert,calcq,calcqstep,calctheta,toa_ang_calc,get_bin_axvals, get_correction_scales,get_geometry_indices,get_hor_pixang_limits,get_pix_scale,get_vert_pixang_limits,gamdel2rots,pix_to_addminus
 
 logger = logging.getLogger("fastrsm")
 
@@ -68,27 +69,176 @@ def _sum_numpy_files(filenames: List[Union[Path, str]]):
     return total
 
 
-def _q_to_theta(q_values, energy) -> np.array:
+def histogram_xy(x, y, step_size):
     """
-    Calculates the diffractometer theta from scattering vector Q.
 
-    Args:
-        theta:
-            Array of theta values to be converted.
-        energy:
-            Energy of the incident probe particle, in eV.
+
+    Parameters
+    ----------
+    x : array
+        x dataset.
+    y : array
+        y dataset.
+    step_size : float
+        desired stepsize.
+
+    Returns
+    -------
+    bin_centers : array
+        value of centres for bin values.
+    hist : array
+        historgam output.
+    hist_normalized : array
+        normalised histogram output.
+    counts : array
+        counts for each bin position.
+
     """
-    # First calculate the wavevector of the incident light.
-    planck = physical_constants["Planck constant in eV s"][0]
-    speed_of_light = physical_constants["speed of light in vacuum"][0] * 1e10
-    # My q_values are angular, so my wavevector needs to be angular too.
-    ang_wavevector = 2 * np.pi * energy / (planck * speed_of_light)
 
-    # Do some basic geometry.
-    theta_values = np.arccos(1 - np.square(q_values) / (2 * ang_wavevector**2))
+    # Calculate the bin edges based on the step size
+    bin_edges = np.arange(np.min(x), np.max(x) + step_size, step_size)
 
-    # Convert from radians to degrees.
-    return theta_values * 180 / np.pi
+    # Use numpy's histogram function to bin the data
+    hist, _ = np.histogram(x, bins=bin_edges, weights=y)
+
+    # Count the number of contributions to each bin
+    counts, _ = np.histogram(x, bins=bin_edges)
+
+    # Normalize the histogram by dividing each bin by its number of contributions
+    # Use np.where to avoid division by zero
+    hist_normalized = np.where(counts > 0, hist / counts, 0)
+
+    # Calculate the bin centers for plotting
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+    return bin_centers, hist, hist_normalized, counts
+
+def _match_start_stop_to_step(
+        step,
+        user_bounds,
+        auto_bounds,
+        eps=1e-5):
+    warning_str = ("User provided bounds (volume_start, volume_stop) do not "
+                   "match the step size volume_step. Bounds will be adjusted "
+                   "automatically. If you want to avoid this warning, make "
+                   "that the bounds match the step size, i.e. volume_bound = "
+                   "volume_step * integer.")
+
+    if user_bounds == (None, None):
+        # use auto bounds and expand both ways
+        return (np.floor(auto_bounds[0] / step) * step,
+                np.ceil(auto_bounds[1] / step) * step)
+    if user_bounds[0] is None:
+        # keep user value and expand to rightdone image {i+1}/{totalimages}
+        stop = np.ceil(user_bounds[1] / step) * step
+        checkstop = np.sum(np.any(abs(stop - user_bounds[1]) > eps))
+        if checkstop > 0:
+            print(warning_str)
+        return np.floor(auto_bounds[0] / step) * step, stop
+    if user_bounds[1] is None:
+        # keep user value and expand to left
+        start = np.floor(user_bounds[0] / step) * step
+        checkstart = np.sum(abs(user_bounds[0] - start) > eps)
+        if checkstart > 0:
+            print(warning_str)
+        return start, np.ceil(auto_bounds[1] / step) * step
+
+    start, stop = (np.floor(user_bounds[0] / step) * step,
+                   np.ceil(user_bounds[1] / step) * step)
+    checkstart = np.sum(abs(user_bounds[0] - start) > eps)
+    checkstop = np.sum(np.any(abs(stop - user_bounds[1]) > eps))
+    checkboth = checkstart + checkstop
+    if checkboth > 0:
+        print(warning_str)
+    return start, stop
+
+def write_im_to_tiff(parainfo,perpinfo,hfname,out_filename,imdata):
+    metadata = {
+        'Description': f'Image data identical to data saved in {hfname}',
+        'Xlimits': f'min {parainfo.min()}, max {parainfo.max()}',
+        'Ylimits': f'min {perpinfo.min()}, max {perpinfo.max()}',
+    }
+    tifffile.imwrite(
+        out_filename,
+        imdata,
+        metadata=metadata)
+
+def do_savetiffs( hf, data, axespara, axesperp):
+    """
+    save separate tiffs for all 2d image data in data
+    """
+    datashape = np.shape(data)
+    extradims = len(datashape) - 2
+    outdir = hf.filename.strip('.hdf5')
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+    outname = outdir.split('/')[-1]
+    if extradims == 0:
+        imdata = data
+        parainfo = axespara
+        perpinfo = axesperp
+        out_filename=f'{outdir}/{outname}.tiff'
+        write_im_to_tiff(parainfo,perpinfo,hf.filename,out_filename,imdata)
+
+    if extradims == 1:
+        for i1 in np.arange(datashape[0]):
+            imdata = data[i1]
+            parainfo = axespara[i1]
+            perpinfo = axesperp[i1]
+            out_filename=f'{outdir}/{outname}_{i1}.tiff'
+            write_im_to_tiff(parainfo,perpinfo,hf.filename,out_filename,imdata)
+
+    if extradims == 2:
+        for i1 in np.arange(datashape[0]):
+            for i2 in np.arange(datashape[1]):
+                imdata = data[i1][i2]
+                parainfo = axespara[i1][i2]
+                perpinfo = axesperp[i1][i2]
+                out_filename=f'{outdir}/{outname}_{i1}_{i2}.tiff'
+                write_im_to_tiff(parainfo,perpinfo,hf.filename,out_filename,imdata)
+
+def write_qi_to_csv(qvals,intvals,tthetavals,out_filename,metadata):
+    outdf = pd.DataFrame(
+        {'Q_angstrom^-1': qvals, 'Intensity': intvals, 'two_theta': tthetavals})
+    with open(out_filename, "w", encoding='utf-8') as f:
+        f.write(metadata)
+        outdf.to_csv(f, sep='\t', index=False)
+
+def do_savedats(hf, intdata, qdata, tthdata):
+    """
+    save all 1d datasets to .dat files
+    """
+    datashape = np.shape(intdata)
+    extradims = len(datashape) - 1
+    outdir = hf.filename.strip('.hdf5')
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+    metadata = f'Intensity data identical to data saved in {hf.filename}\n'
+    outname = outdir.split('/')[-1]
+    if extradims == 0:
+
+        intvals = intdata
+        qvals = qdata
+        tthetavals = tthdata
+        out_filename=f'{outdir}/{outname}.dat'
+        write_qi_to_csv(qvals,intvals,tthetavals,out_filename,metadata)
+
+    if extradims == 1:
+        for i1 in np.arange(datashape[0]):
+            intvals = intdata[i1]
+            qvals = qdata[i1]
+            tthetavals = tthdata[i1]
+            out_filename=f'{outdir}/{outname}_{i1}.dat'
+            write_qi_to_csv(qvals,intvals,tthetavals,out_filename,metadata)
+
+    if extradims == 2:
+        for i1 in np.arange(datashape[0]):
+            for i2 in np.arange(datashape[1]):
+                intvals = intdata[i1][i2]
+                qvals = qdata[i1][i2]
+                tthetavals = tthdata[i1][i2]
+                out_filename=f'{outdir}/{outname}_{i1}_{i2}.dat'
+                write_qi_to_csv(qvals,intvals,tthetavals,out_filename,metadata)
 
 
 class Experiment:
@@ -117,6 +267,65 @@ class Experiment:
                     'incident_wavelength', 'gammadata', 'deltadata', 'dcdrad']
         for val in none_exp:  # pylint: disable=attribute-defined-outside-init
             setattr(self, val, None)
+
+    def load_curve_values(self, scan: Scan):
+        """
+        set attributes of experiment for easier access to key variables
+        """
+        # pylint: disable=attribute-defined-outside-init
+        large_det_names = ['pil2stats', 'p2r', 'pil2roi','eir']
+        self.pixel_size = scan.metadata.diffractometer.data_file.pixel_size
+        self.entry = scan.metadata.data_file.nx_entry
+
+        self.detector_distance = scan.metadata.get_detector_distance(0)
+        # else:
+        #     self.detector_distance=scan.metadata.diffractometer.data_file.detector_distance
+        self.incident_wavelength = 1e-10 * scan.metadata.incident_wavelength
+        self.kmod = 2 * np.pi / (self.incident_wavelength)
+        try:
+            self.gammadata = np.array(
+                self.entry.instrument.diff1gamma.value_set).ravel()
+        except BaseException:
+            self.gammadata = np.array(
+                self.entry.instrument.diff1gamma.value).ravel()
+        # self.deltadata=np.array( self.entry.instrument.diff1delta.value)
+        try:
+            self.deltadata = np.array(
+                self.entry.instrument.diff1delta.value_set).ravel()
+        except BaseException:
+            self.deltadata = np.array(
+                self.entry.instrument.diff1delta.value).ravel()
+        tthdirect = 0
+        if self.setup == 'DCD':
+            self.dcdrad = np.array(self.entry.instrument.dcdc2rad.value)
+            self.dcdomega = np.array(self.entry.instrument.dcdomega.value)
+            self.projectionx = 1e-3 * self.dcdrad * \
+                np.cos(np.radians(self.dcdomega))
+            self.projectiony = 1e-3 * self.dcdrad * \
+                np.sin(np.radians(self.dcdomega))
+            dcd_sample_dist = 1e-3 * \
+                scan.metadata.diffractometer._dcd_sample_distance[0]
+            self.dcd_incdeg = np.degrees(
+                np.arctan(
+                    self.projectiony /
+                    (np.sqrt(np.square(self.projectionx) + np.square(dcd_sample_dist)))))
+            self.incident_angle = self.dcd_incdeg
+            # self.deltadata+=self.dcd_incdeg
+            tthdirect = -1 * \
+                np.degrees(np.arctan(self.projectionx / dcd_sample_dist))
+        elif (scan.metadata.data_file.is_eh1) & (self.setup != 'DCD'):
+            self.incident_angle = scan.metadata.data_file.chi
+        elif scan.metadata.data_file.is_eh2:
+            self.incident_angle = scan.metadata.data_file.alpha
+        else:
+            self.incident_angle = [0]
+        if scan.metadata.data_file.detector_name in large_det_names:
+            self.deltadata = 0
+
+        self.imshape = scan.metadata.data_file.image_shape
+        self.beam_centre = scan.metadata.beam_centre
+        self.rotval = round(scan.metadata.data_file.det_rot)
+        self.two_theta_start = self.gammadata - tthdirect
 
     def _clean_temp_files(self) -> None:
         """
@@ -236,137 +445,10 @@ class Experiment:
         starts, stops = np.array(starts), np.array(stops)
         return np.min(starts, axis=0), np.max(stops, axis=0)
 
-    def calctheta(self, q, wavelength):
-        """
-        converts two theta value to q value for a given wavelength
-
-        Parameters
-        ----------
-        float
-            q value in m^-1 to be converted to angle in degrees
-        wavelength : float
-            value of wavelength for incident radiation in angstrom.
-
-        Returns
-        -------
-
-        twotheta : float
-            value of angle in degrees converted to  q.
-        """
-        return np.degrees(np.arcsin(q * (wavelength / (4 * np.pi)) * 1e10)) * 2
-
-    def calcq(self, twotheta, wavelength):
-        """
-        converts two theta value to q value for a given wavelength
-
-        Parameters
-        ----------
-        twotheta : float
-            value of angle in degrees to be converted to  q.
-        wavelength : float
-            value of wavelength for incident radiation in angstrom.
-
-        Returns
-        -------
-        float
-            q value in m^-1.
-
-        """
-        return (4 * np.pi / wavelength) * \
-            np.sin(np.radians(twotheta / 2)) * 1e-10
-
-    def calcqstep(self, gammastep, gammastart, wavelength):
-        """
-        calculates the equivalent q-step for a given 2theta step
-        """
-        qstep = self.calcq(gammastart + gammastep, wavelength) - \
-            self.calcq(gammastart, wavelength)
-        return qstep
-
-    def histogram_xy(self, x, y, step_size):
-        """
-
-
-        Parameters
-        ----------
-        x : array
-            x dataset.
-        y : array
-            y dataset.
-        step_size : float
-            desired stepsize.
-
-        Returns
-        -------
-        bin_centers : array
-            value of centres for bin values.
-        hist : array
-            historgam output.
-        hist_normalized : array
-            normalised histogram output.
-        counts : array
-            counts for each bin position.
-
-        """
-
-        # Calculate the bin edges based on the step size
-        bin_edges = np.arange(np.min(x), np.max(x) + step_size, step_size)
-
-        # Use numpy's histogram function to bin the data
-        hist, _ = np.histogram(x, bins=bin_edges, weights=y)
-
-        # Count the number of contributions to each bin
-        counts, _ = np.histogram(x, bins=bin_edges)
-
-        # Normalize the histogram by dividing each bin by its number of contributions
-        # Use np.where to avoid division by zero
-        hist_normalized = np.where(counts > 0, hist / counts, 0)
-
-        # Calculate the bin centers for plotting
-        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
-
-        return bin_centers, hist, hist_normalized, counts
-
-    def sohqcalc(self, angle, kmod):
-        """
-        calculates q value based on a opposite and hypotenuse of a
-        right-angled triangle
-
-        Parameters
-        ----------
-        angle : float
-            angle of trig triangle being analysed.
-        kmod : float
-            wavevector value.
-
-        Returns
-        -------
-        float
-            q value.
-
-        """
-        return np.sin(np.radians(angle)) * kmod * 1e-10
-
     def get_limitcalc_vars(self,axis, slitvertratio, slithorratio):
         '''
         Calculates the pixel limits of the scan in either vertical or horizontal direction
         and returns dictionary with values relating to the limits calculated
-
-        Parameter
-        --------
-
-        axis
-
-        slitvertratio
-
-        slithorration
-
-        Returns
-        -------
-
-        dict containing ['horindex', 'vertindex', 'vertangles', 'horangles',\
-              'verscale', 'horscale', 'pixhigh','pixlow','outscale',\
-                'pixscale', 'highsign', 'lowsign', 'highsection', 'lowsection'
 
         '''
         horvert_indices = {'vert0': [1, 0], 'hor0': [0, 1]}
@@ -377,46 +459,21 @@ class Experiment:
             'delvert': [
                 self.deltadata,
                 self.two_theta_start]}
-
-        if self.scans[0].metadata.data_file.is_rotated:
-            rot_option = 'rot'
-        else:
-            rot_option = 'norot'
-
-        chosen_setup = f'{self.setup}_{rot_option}'
-
-        index_scales = {'vertical_rot': ['hor0', 'thvert'],
-                        'vertical_norot': ['hor0', 'thvert'],
-                        'DCD_rot': ['vert0', 'delvert'],
-                        'DCD_norot': ['vert0', 'delvert'],
-                        'horizontal_rot': ['vert0', 'delvert'],
-                        'horizontal_norot': ['vert0', 'delvert'],
-                        }
-
-        chosen_ind_scales = index_scales[chosen_setup]
+        rotation=self.scans[0].metadata.data_file.is_rotated
+        chosen_ind_scales = get_geometry_indices(self.setup,rotation)
         [horindex, vertindex] = horvert_indices[chosen_ind_scales[0]]
         [vertangles, horangles] = horvert_angles[chosen_ind_scales[1]]
+
         if axis == 'vert':
-            pixlow = self.imshape[vertindex] - self.beam_centre[vertindex]
-            pixhigh = self.beam_centre[vertindex]
-            highsection = np.max(vertangles)
-            lowsection = np.min(vertangles)
-
+            pixlow,pixhigh,lowsection,highsection=\
+                get_vert_pixang_limits(self.imshape,self.beam_centre,vertindex,vertangles)
         elif axis == 'hor':
-            pixhigh = self.beam_centre[horindex]
-            pixlow = self.imshape[horindex] - self.beam_centre[horindex]
-            if (self.setup == 'vertical') & (
-                    self.scans[0].metadata.data_file.is_rotated):
-                pixhigh, pixlow = pixlow, pixhigh
-            highsection = np.max(horangles)
-            lowsection = np.min(horangles)
+            pixlow,pixhigh,lowsection,highsection=\
+                get_hor_pixang_limits(self.imshape,self.beam_centre,horindex,horangles,self.setup,
+                                      rotation)
 
-        if (slitvertratio is not None) & (axis == 'vert'):
-            pixscale = self.pixel_size * slitvertratio
-        elif (slithorratio is not None) & (axis == 'hor'):
-            pixscale = self.pixel_size * slithorratio
-        else:
-            pixscale = self.pixel_size
+        pixscale=get_pix_scale(self.pixel_size,slitvertratio,slithorratio,axis)
+
         [highsign, lowsign] = [1 if np.round(val, 5) == 0 else np.sign(
             val) for val in [highsection, lowsection]]
         outlist = ['horindex', 'vertindex', 'vertangles', 'horangles',
@@ -426,41 +483,11 @@ class Experiment:
         for name in outlist:
             outdict[name] = locals().get(name, None)
         return outdict
-    # horindex, vertindex, vertangles, horangles, verscale, horscale, pixhigh, \
-   # pixlow,outscale,pixscale, highsign, lowsign, highsection, lowsection #
-    def get_correction_scales(self,setup,rotated):
-        if (setup=='vertical') & (rotated):
-            correctionscales = {'vert': -1, 'hor': -1} #GOOD
-        elif setup=='vertical':
-            correctionscales = {'vert': -1, 'hor': 1} # GOOD
-        elif (setup == 'DCD') & (rotated):
-            correctionscales = {'vert': -1, 'hor': -1} #GOOD
-        elif setup == 'DCD':
-            correctionscales = {'vert': -1, 'hor': -1} #GOOD
-        elif (setup=='horizontal') & (rotated):
-            correctionscales = {'vert': -1, 'hor': -1}#GOOD
-        else:
-            correctionscales = {'vert': -1, 'hor': -1}#GOOD
-        return correctionscales
-
 
     def calcanglim(self, axis,
                    slitvertratio=None, slithorratio=None):
         """
         Calculates limits in exit angle for either vertical or horizontal axis
-
-        Parameters
-        ----------
-        axis : string
-            choose axis to calculate q limits for .
-
-
-        Returns
-        -------
-        maxangle : float
-            upper limit on exit angle in degrees.
-        minangle : float
-            lower limit on exit angle in degrees.
 
         """
 
@@ -476,26 +503,14 @@ class Experiment:
             'lowsection']
         pixhigh, pixscale, pixlow, vertangles, highsection, lowsection = [
             limitdict.get(key) for key in limitkeys]
-
-        add_section = (
-            np.degrees(
-                np.arctan(
-                    (pixhigh * pixscale) / self.detector_distance)))
-        minus_section = (
-            np.degrees(
-                np.arctan(
-                    (pixlow * pixscale) / self.detector_distance)))
-        maxvertrad = np.radians(np.max(vertangles))
-        if axis == 'hor':
-            add_section = np.degrees(
-                np.arctan(np.tan(np.radians(add_section)) / abs(np.cos(maxvertrad))))
-            minus_section = np.degrees(
-                np.arctan(np.tan(np.radians(minus_section)) / abs(np.cos(maxvertrad))))
+        
+        add_section,minus_section=pix_to_addminus(pixhigh,pixlow,pixscale,self.detector_distance,\
+                                                  vertangles,axis)
         maxangle = highsection + (add_section)
         minangle = lowsection - (minus_section)
 
         # add in correction factors to match direction with pyfai calculations
-        correctionscales=self.get_correction_scales(self.setup,self.scans[0].metadata.data_file.is_rotated)
+        correctionscales=get_correction_scales(self.setup,self.scans[0].metadata.data_file.is_rotated)
         outscale = correctionscales[axis]
         outvals = np.sort([minangle * outscale, maxangle * outscale])
         return outvals[0]-0.1, outvals[1]+0.1   #add 0.1 degree buffer
@@ -505,295 +520,24 @@ class Experiment:
         """
         Calculates limits in q for either vertical or horizontal axis
 
-        Parameters
-        ----------
-        axis : string
-            choose axis to calculate q limits for .
-
-        Returns
-        -------
-        qupp : float
-            upper limit on q range.
-        qlow : float
-            lower limit on q range.
-
         """
-        kmod = 2 * np.pi / (self.incident_wavelength)
-
-
         limitdict = self.get_limitcalc_vars( axis, slitvertratio, slithorratio)
-        limitkeys = ['vertindex', 'vertangles', 'horangles', 'pixhigh',
-                     'pixlow', 'pixscale', 'highsection', 'lowsection']
-        vertindex, vertangles, horangles, pixhigh, pixlow, \
-             pixscale, highsection, lowsection = [
+        limitkeys = ['vertindex', 'vertangles', 'horangles']
+        vertindex, vertangles, horangles, = [
                 limitdict.get(key) for key in limitkeys]
-        # maxangle = highsection + \
-        #     (np.degrees(np.arctan((pixhigh * pixscale) / self.detector_distance)))
-        # minangle = lowsection - \
-        #     (np.degrees(np.arctan((pixlow * pixscale) / self.detector_distance)))
-        # maxanglerad = np.radians(np.max(maxangle))
-        # minanglerad = np.radians(np.max(minangle))
 
         maxangle,minangle=self.calcanglim(axis,slitvertratio,slithorratio)
-        maxanglerad=np.radians(maxangle)
-        minanglerad=np.radians(minangle)
-
+        qlow,qupp=0,0
         if axis == 'vert':
-            qupp = self.sohqcalc(maxangle, kmod)  # *2
-            qlow = self.sohqcalc(minangle, kmod)  # *2
-            maxtthrad = np.radians(np.max(horangles))
-
-            maxincrad = np.radians(np.max(self.incident_angle))
-            extraincq = kmod * 1e-10 * np.sin(maxincrad)
-
-            minusexitq_x = kmod * 1e-10 * \
-                np.cos(maxanglerad) * np.cos(maxtthrad) * np.sin(maxincrad)
-            minusexitq_z = kmod * 1e-10 * \
-                np.sin(maxanglerad) * (1 - np.cos(maxincrad))
-            extravert = extraincq - minusexitq_x - minusexitq_z
-            qupp += extravert
-
-            minusexitq_x = kmod * 1e-10 * \
-                np.cos(minanglerad) * np.cos(maxtthrad) * np.sin(maxincrad)
-            minusexitq_z = kmod * 1e-10 * \
-                np.sin(minanglerad) * (1 - np.cos(maxincrad))
-            extravert = extraincq - minusexitq_x - minusexitq_z
-            qlow += extravert
-
+            qlow,qupp=calc_qupplow_vert(maxangle,minangle,self.kmod,horangles,self.incident_angle)
         elif axis == 'hor':
-            qupp = self.sohqcalc(maxangle, kmod)  # *2
-            qlow = self.sohqcalc(minangle, kmod)  # *2
-            vertsign = [1 if np.sign(np.max(vertangles)) >= 0 else -1]
-            maxvert = np.max(vertangles) + vertsign[0] * np.degrees(np.arctan(
-                (self.beam_centre[vertindex] * self.pixel_size) / self.detector_distance))
-            maxvertrad = np.radians(maxvert)
-            s1 = kmod * np.cos(maxvertrad) * np.sin(maxanglerad)
-            s2 = kmod * (1 - np.cos(maxvertrad) * np.cos(maxanglerad))
-            qupp_withvert = np.sqrt(
-                np.square(s1) + np.square(s2)) * 1e-10 * np.sign(maxangle)
-            s3 = kmod * np.cos(maxvertrad) * np.sin(minanglerad)
-            s4 = kmod * (1 - np.cos(maxvertrad) * np.cos(minanglerad))
-            qlow_withvert = np.sqrt(
-                np.square(s3) + np.square(s4)) * 1e-10 * np.sign(minangle)
+            qlow,qupp = calc_qupplow_hor(maxangle,minangle,self.kmod,vertangles,\
+                vertindex,self.beam_centre,self.pixel_size,self.detector_distance)
 
-            if abs(qupp_withvert) > abs(qupp):
-                qupp = qupp_withvert
-
-            if abs(qlow_withvert) > abs(qlow):
-                qlow = qlow_withvert
         outvals = np.sort([qupp , qlow])
         return outvals[0], outvals[1]
 
-    def do_savetiffs(self, hf, data, axespara, axesperp):
-        """
-        save separate tiffs for all 2d image data in data
-        """
-        datashape = np.shape(data)
-        extradims = len(datashape) - 2
-        outdir = hf.filename.strip('.hdf5')
-        if not os.path.exists(outdir):
-            os.mkdir(outdir)
-        outname = outdir.split('/')[-1]
-        if extradims == 0:
-            imdata = data
-            parainfo = axespara
-            perpinfo = axesperp
-            metadata = {
-                'Description': f'Image data identical to data saved in {hf.filename}',
-                'Xlimits': f'min {parainfo.min()}, max {parainfo.max()}',
-                'Ylimits': f'min {perpinfo.min()}, max {perpinfo.max()}',
-            }
-            tifffile.imwrite(
-                f'{outdir}/{outname}.tiff',
-                imdata,
-                metadata=metadata)
-        if extradims == 1:
-            for i1 in np.arange(datashape[0]):
-                imdata = data[i1]
-                parainfo = axespara[i1]
-                perpinfo = axesperp[i1]
-                metadata = {
-                    'Description': f'Image data identical to data saved in {hf.filename}',
-                    'Xlimits': f'min {parainfo.min()}, max {parainfo.max()}',
-                    'Ylimits': f'min {perpinfo.min()}, max {perpinfo.max()}',
-                }
-                tifffile.imwrite(
-                    f'{outdir}/{outname}_{i1}.tiff',
-                    imdata,
-                    metadata=metadata)
-        if extradims == 2:
-            for i1 in np.arange(datashape[0]):
-                for i2 in np.arange(datashape[1]):
-                    imdata = data[i1][i2]
-                    parainfo = axespara[i1][i2]
-                    perpinfo = axesperp[i1][i2]
-                    metadata = {
-                        'Description': f'Image data identical to data saved in {hf.filename}',
-                        'Xlimits': f'min {parainfo.min()}, max {parainfo.max()}',
-                        'Ylimits': f'min {perpinfo.min()}, max {perpinfo.max()}',
-                    }
-                    tifffile.imwrite(
-                        f'{outdir}/{outname}_{i1}_{i2}.tiff',
-                        imdata,
-                        metadata=metadata)
 
-    def do_savedats(self, hf, intdata, qdata, tthdata):
-        """
-        save all 1d datasets to .dat files
-        """
-        datashape = np.shape(intdata)
-        extradims = len(datashape) - 1
-        outdir = hf.filename.strip('.hdf5')
-        if not os.path.exists(outdir):
-            os.mkdir(outdir)
-        metadata = f'Intensity data identical to data saved in {hf.filename}\n'
-        outname = outdir.split('/')[-1]
-        if extradims == 0:
-
-            intvals = intdata
-            qvals = qdata
-            tthetavals = tthdata
-            outdf = pd.DataFrame(
-                {'Q_angstrom^-1': qvals, 'Intensity': intvals, 'two_theta': tthetavals})
-            with open(f'{outdir}/{outname}.dat', "w", encoding='utf-8') as f:
-                f.write(metadata)
-                outdf.to_csv(f, sep='\t', index=False)
-
-        if extradims == 1:
-            for i1 in np.arange(datashape[0]):
-                intvals = intdata[i1]
-                qvals = qdata[i1]
-                tthetavals = tthdata[i1]
-                outdf = pd.DataFrame(
-                    {'Q_angstrom^-1': qvals, 'Intensity': intvals, 'two_theta': tthetavals})
-                with open(f'{outdir}/{outname}_{i1}.dat', "w", encoding='utf-8') as f:
-                    f.write(metadata)
-                    outdf.to_csv(f, sep='\t', index=False)
-        if extradims == 2:
-            for i1 in np.arange(datashape[0]):
-                for i2 in np.arange(datashape[1]):
-                    intvals = intdata[i1][i2]
-                    qvals = qdata[i1][i2]
-                    tthetavals = tthdata[i1][i2]
-                    outdf = pd.DataFrame(
-                        {'Q_angstrom^-1': qvals,
-                         'Intensity': intvals,
-                         'two_theta_degree': tthetavals})
-                    with open(f'{outdir}/{outname}_{i1}_{i2}.dat', "w", encoding='utf-8') as f:
-                        f.write(metadata)
-                        outdf.to_csv(f, sep='\t', index=False)
-
-    def get_bin_axvals(self, data_in, ind):
-        """
-        create axes information for binoviewer output in the form
-        ind,start,stop,step,startind,stopind
-        """
-        # print(data_in,type(data_in[0]))
-        single_list = [np.int64, np.float64, int, float]
-        if type(data_in[0]) in single_list:
-            data = data_in
-        else:
-            data = data_in[0]
-        startval = data[0]
-        stopval = data[-1]
-        stepval = data[1] - data[0]
-        startind = int(np.floor(startval / stepval))
-        stopind = int(startind + len(data) - 1)
-        return [ind, startval, stopval, stepval,
-                float(startind), float(stopind)]
-
-    def gamdel2rots(self, gamma, delta):
-        """
-
-
-        Parameters
-        ----------
-        gamma : float
-            angle rotation of gamma diffractometer circle in degrees.
-        delta : float
-            angle rotation of delta diffractometer circle in degrees.
-
-        Returns
-        -------
-        rots : list of rotations rot1,rot2,rot3 in radians to be using by pyFAI.
-
-        """
-        rotdelta = R.from_euler('y', -delta, degrees=True)
-        rotgamma = R.from_euler('z', gamma, degrees=True)
-        totalrot = rotgamma * rotdelta
-        fullrot = np.identity(4)
-        fullrot[0:3, 0:3] = totalrot.as_matrix()
-        vals = tf.euler_from_matrix(fullrot, 'rxyz')
-        rots = vals[2], -vals[1], vals[0]
-        return rots
-
-    def load_curve_values(self, scan: Scan):
-        """
-        set attributes of experiment for easier access to key variables
-
-        Parameters
-        ----------
-        scan : scan object
-            scan to load experiment attributes from.
-
-        Returns
-        -------
-        None.
-
-        """
-        # pylint: disable=attribute-defined-outside-init
-        large_det_names = ['pil2stats', 'p2r', 'pil2roi','eir']
-        self.pixel_size = scan.metadata.diffractometer.data_file.pixel_size
-        self.entry = scan.metadata.data_file.nx_entry
-
-        self.detector_distance = scan.metadata.get_detector_distance(0)
-        # else:
-        #     self.detector_distance=scan.metadata.diffractometer.data_file.detector_distance
-        self.incident_wavelength = 1e-10 * scan.metadata.incident_wavelength
-        try:
-            self.gammadata = np.array(
-                self.entry.instrument.diff1gamma.value_set).ravel()
-        except BaseException:
-            self.gammadata = np.array(
-                self.entry.instrument.diff1gamma.value).ravel()
-        # self.deltadata=np.array( self.entry.instrument.diff1delta.value)
-        try:
-            self.deltadata = np.array(
-                self.entry.instrument.diff1delta.value_set).ravel()
-        except BaseException:
-            self.deltadata = np.array(
-                self.entry.instrument.diff1delta.value).ravel()
-        tthdirect = 0
-        if self.setup == 'DCD':
-            self.dcdrad = np.array(self.entry.instrument.dcdc2rad.value)
-            self.dcdomega = np.array(self.entry.instrument.dcdomega.value)
-            self.projectionx = 1e-3 * self.dcdrad * \
-                np.cos(np.radians(self.dcdomega))
-            self.projectiony = 1e-3 * self.dcdrad * \
-                np.sin(np.radians(self.dcdomega))
-            dcd_sample_dist = 1e-3 * \
-                scan.metadata.diffractometer._dcd_sample_distance[0]
-            self.dcd_incdeg = np.degrees(
-                np.arctan(
-                    self.projectiony /
-                    (np.sqrt(np.square(self.projectionx) + np.square(dcd_sample_dist)))))
-            self.incident_angle = self.dcd_incdeg
-            # self.deltadata+=self.dcd_incdeg
-            tthdirect = -1 * \
-                np.degrees(np.arctan(self.projectionx / dcd_sample_dist))
-        elif (scan.metadata.data_file.is_eh1) & (self.setup != 'DCD'):
-            self.incident_angle = scan.metadata.data_file.chi
-        elif scan.metadata.data_file.is_eh2:
-            self.incident_angle = scan.metadata.data_file.alpha
-        else:
-            self.incident_angle = [0]
-        if scan.metadata.data_file.detector_name in large_det_names:
-            self.deltadata = 0
-
-        self.imshape = scan.metadata.data_file.image_shape
-        self.beam_centre = scan.metadata.beam_centre
-        self.rotval = round(scan.metadata.data_file.det_rot)
-        self.two_theta_start = self.gammadata - tthdirect
 
 # ==============full reciprocal space mapping process
 
@@ -1013,42 +757,3 @@ class Experiment:
         print(f"Took {time() - t1}s to load all nexus files.")
         return cls(scans, setup)
 
-
-def _match_start_stop_to_step(
-        step,
-        user_bounds,
-        auto_bounds,
-        eps=1e-5):
-    warning_str = ("User provided bounds (volume_start, volume_stop) do not "
-                   "match the step size volume_step. Bounds will be adjusted "
-                   "automatically. If you want to avoid this warning, make "
-                   "that the bounds match the step size, i.e. volume_bound = "
-                   "volume_step * integer.")
-
-    if user_bounds == (None, None):
-        # use auto bounds and expand both ways
-        return (np.floor(auto_bounds[0] / step) * step,
-                np.ceil(auto_bounds[1] / step) * step)
-    if user_bounds[0] is None:
-        # keep user value and expand to rightdone image {i+1}/{totalimages}
-        stop = np.ceil(user_bounds[1] / step) * step
-        checkstop = np.sum(np.any(abs(stop - user_bounds[1]) > eps))
-        if checkstop > 0:
-            print(warning_str)
-        return np.floor(auto_bounds[0] / step) * step, stop
-    if user_bounds[1] is None:
-        # keep user value and expand to left
-        start = np.floor(user_bounds[0] / step) * step
-        checkstart = np.sum(abs(user_bounds[0] - start) > eps)
-        if checkstart > 0:
-            print(warning_str)
-        return start, np.ceil(auto_bounds[1] / step) * step
-
-    start, stop = (np.floor(user_bounds[0] / step) * step,
-                   np.ceil(user_bounds[1] / step) * step)
-    checkstart = np.sum(abs(user_bounds[0] - start) > eps)
-    checkstop = np.sum(np.any(abs(stop - user_bounds[1]) > eps))
-    checkboth = checkstart + checkstop
-    if checkboth > 0:
-        print(warning_str)
-    return start, stop
