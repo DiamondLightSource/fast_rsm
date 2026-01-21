@@ -10,6 +10,28 @@ from scipy.spatial.transform import Rotation as R
 import transformations as tf
 
 
+def calc_kout_array(outshape,i,j,detector_values,pixel_arrays):
+    """
+    calculates k_out values given detector position and image size
+    """
+    detector_displacement,detector_distance,detector_vertical,detector_horizontal=detector_values
+    vertical_pixels,horizontal_pixels=pixel_arrays
+    k_out_array = np.ndarray(outshape, np.float32)
+    k_out_array[i, j, 0] = (
+        detector_displacement.array[0] * detector_distance +
+        detector_vertical.array[0] * vertical_pixels[i, j] +
+        detector_horizontal.array[0] * horizontal_pixels[i, j])
+    k_out_array[i, j, 1] = (
+        detector_displacement.array[1] * detector_distance +
+        detector_vertical.array[1] * vertical_pixels[i, j] +
+        detector_horizontal.array[1] * horizontal_pixels[i, j])
+    k_out_array[i, j, 2] = (
+        detector_displacement.array[2] * detector_distance +
+        detector_vertical.array[2] * vertical_pixels[i, j] +
+        detector_horizontal.array[2] * horizontal_pixels[i, j])
+    return k_out_array
+
+
 
 def _q_to_theta(q_values, energy) -> np.array:
     """
