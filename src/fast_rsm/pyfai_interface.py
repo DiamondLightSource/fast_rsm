@@ -345,7 +345,7 @@ def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, slitrati
         if len(badimagecheck)>0:
             scanlength-=len(badimagecheck)
 
-
+    return outlimits, scanlength, scanlistnew
 
 def init_pyfai_process_pool(
         locks: List[Lock],
