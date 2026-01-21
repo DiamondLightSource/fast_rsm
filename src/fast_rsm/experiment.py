@@ -2,10 +2,8 @@
 This file contains the Experiment class, which contains all of the information
 relating to your experiment.
 """
-from datetime import datetime
 from multiprocessing.managers import SharedMemoryManager
 from multiprocessing import Pool, Lock
-from ast import literal_eval
 from types import SimpleNamespace
 import logging
 import os
@@ -22,9 +20,6 @@ import transformations as tf
 
 import pandas as pd
 import fabio
-import yaml
-# from datetime import datetime
-import h5py
 import tifffile
 import fast_rsm.io as io
 from fast_rsm.binning import finite_diff_shape

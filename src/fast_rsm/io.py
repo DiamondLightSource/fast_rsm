@@ -5,8 +5,8 @@ This module contains parsers for different instruments that return Scan objects.
 from pathlib import Path
 from typing import Union, Tuple, TYPE_CHECKING
 
-from diffraction_utils import I07Nexus,I10Nexus, Frame, Vector3
-from diffraction_utils.diffractometers import I07Diffractometer,I10RasorDiffractometer
+from diffraction_utils import I07Nexus,Frame, Vector3
+from diffraction_utils.diffractometers import I07Diffractometer
 
 
 import fast_rsm.scan as scan
