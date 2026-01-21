@@ -531,13 +531,9 @@ def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, slitrati
         
         scanlimhor = limitfunction(
             'hor',
-            vertsetup=(
-                experiment.setup == 'vertical'),
             slithorratio=slithorratio)
         scanlimver = limitfunction(
             'vert',
-            vertsetup=(
-                experiment.setup == 'vertical'),
             slitvertratio=slitvertratio)
 
         scanlimits = [
