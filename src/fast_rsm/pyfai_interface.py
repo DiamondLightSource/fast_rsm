@@ -344,6 +344,7 @@ def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, slitrati
         badimagecheck=find_bad_image_paths(scan)
         if len(badimagecheck)>0:
             scanlength-=len(badimagecheck)
+    return outlimits, scanlength, scanlistnew
 
 
 
