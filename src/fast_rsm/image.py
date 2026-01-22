@@ -16,6 +16,100 @@ from fast_rsm.angle_pixel_q import calc_kout_array
 logger = logging.getLogger("fastrsm")
 
 
+
+def get_coordchange_matrix(oop):
+    if oop == 'y':
+        return np.array([
+            [1, 0, 0],
+            [0, 0, -1],
+            [0, 1, 0]
+        ])
+    elif oop == 'x':
+        return np.array([
+            [0, 1, 0],
+            [0, 0, 1],
+            [1, 0, 0]
+        ])
+    elif oop == 'z':
+        return np.array([
+            [1, 0, 0],
+            [0, 1, 0],
+            [0, 0, 1]
+        ])
+    else:
+        return None
+
+
+
+def correct_transmission(transmission_array,data_array,index):
+    """
+    add transmission correction if transmission data available
+    """
+
+    transmission_value=get_norm_value(transmission_array,index)
+
+    if transmission_value in (None, 0):
+        return data_array
+
+    return data_array / transmission_value
+
+def correct_counttime(count_time_array,data_array,index):
+    """
+    add count time correction if count_time available
+    """
+    count_time_value=get_norm_value(count_time_array,index)
+    if count_time_value in (None,0):
+        return data_array
+    return data_array / count_time_value
+
+def get_norm_value(values,index):
+    notfound="Normalisation data for image not found, therefore setting to value 1."
+    if values is None:
+        print(notfound)
+        return None
+    if len(values)==1:
+        return values
+    if len(values)==0:
+        print(notfound)
+        return 1
+    if isinstance(values, np.ndarray):
+        return values.flatten()[index]
+    else:
+        return values[index]
+
+def do_mask_detris(data_arr):
+    dectris_mask=data_arr==4294967300.0
+    if dectris_mask is not None:
+        data_arr[dectris_mask]=np.nan
+
+    return data_arr
+
+def do_edfmask(edfmask,data_arr):
+    if edfmask is not None:
+        data_arr[edfmask.astype(bool)] = np.nan
+    return data_arr
+
+def do_mask_pixels(mask_pixels,data_arr):
+    # If there are pixels to mask, mask them.
+    if mask_pixels is not None:
+        data_arr[mask_pixels] = np.nan
+    return data_arr
+
+def do_mask_regions(mask_regions,data_arr):
+    # If there are regions to mask, mask them too.
+    if mask_regions is not None:
+        for region in mask_regions:
+            data_arr[region.slice] = np.nan
+    return data_arr
+
+        # #DEBUG - mask zeros from image
+        # arr[arr.astype(float)==0.0]=np.nan
+
+        # if there is an edf mask file loaded, apply mask
+
+
+
+
 class Image:
     """
     The class used to store raw image data. Internally, this data is stored as
@@ -38,8 +132,12 @@ class Image:
 
     def __init__(self, metadata: RSMMetadata, index: int, load_image=True):
         # Store intensities as 32 bit floats.
+
+        loader = getattr(metadata, "image_loader", None)
+        if loader is None:
+            loader=metadata.data_file.get_image
         if load_image:
-            loader = getattr(metadata, "image_loader", metadata.data_file.get_image)
+            
             self._raw_data = loader(index).astype(np.float32)
 
         else:
@@ -117,74 +215,6 @@ class Image:
         self._processing_steps.append(function)
 
 
-    def correct_transmission(self,transmission_array,data_array,index):
-        """
-        add transmission correction if transmission data available
-        """
-
-        transmission_value=self.get_norm_value(transmission_array,index)
-
-        if transmission_value in (None, 0):
-            return data_array
-
-        return data_array / transmission_value
-
-    def correct_counttime(self,count_time_array,data_array,index):
-        """
-        add count time correction if count_time available
-        """
-        count_time_value=self.get_norm_value(count_time_array,index)
-        if count_time_value in (None,0):
-            return data_array
-        return data_array / count_time_value
-    
-    def get_norm_value(self,values,index):
-
-        try:
-            if isinstance(values, np.ndarray):
-                norm_value = values.flatten()[index]
-            else:
-                norm_value = values
-
-            return norm_value
-
-        except AttributeError:
-            return None
-    
-    def do_mask_detris(self,data_arr):
-        dectris_mask=data_arr==4294967300.0
-        if dectris_mask is not None:
-            data_arr[dectris_mask]=np.nan
-
-        return data_arr
-    
-    def do_edfmask(self,edfmask,data_arr):
-        if edfmask is not None:
-            data_arr[edfmask.astype(bool)] = np.nan
-        return data_arr
-    
-
-    def do_mask_pixels(self,mask_pixels,data_arr):
-        # If there are pixels to mask, mask them.
-        if mask_pixels is not None:
-            data_arr[mask_pixels] = np.nan
-        return data_arr
-    
-
-    def do_mask_regions(self,mask_regions,data_arr):
-        # If there are regions to mask, mask them too.
-        if mask_regions is not None:
-            for region in mask_regions:
-                data_arr[region.slice] = np.nan
-        return data_arr
-
-        # #DEBUG - mask zeros from image
-        # arr[arr.astype(float)==0.0]=np.nan
-
-        # if there is an edf mask file loaded, apply mask
-
-
-
 
     @property
     def data(self):
@@ -204,21 +234,24 @@ class Image:
         arr /= self.metadata.solid_angles
         
         transmission_array=self.metadata.data_file.transmission
-        arr = self.correct_transmission(transmission_array,arr,self.index)
+        arr = correct_transmission(transmission_array,arr,self.index)
 
         det_name=self.metadata.data_file.detector_name
         scan_entry = self.metadata.diffractometer.data_file.nxfile
         count_time_data= scan_entry.entry[det_name]['count_time'].nxdata
-        arr = self.correct_counttime(count_time_data,arr,self.index)
+        arr = correct_counttime(count_time_data,arr,self.index)
 
         if self.metadata.diffractometer.data_file.is_dectris:
-            arr=self.do_mask_detris(arr)
+            arr=do_mask_detris(arr)
         
-        arr=self.do_edfmask(self.metadata.edfmask,arr)
-        arr=self.do_mask_pixels(self.metadata.mask_pixels,arr)
-        arr=self.do_mask_regions(self.metadata.mask_regions,arr)
+        arr=do_edfmask(self.metadata.edfmask,arr)
+        arr=do_mask_pixels(self.metadata.mask_pixels,arr)
+        arr=do_mask_regions(self.metadata.mask_regions,arr)
         
         return arr
+    
+
+        
 
     def q_vectors(self,
                   frame: Frame,
@@ -274,8 +307,6 @@ class Image:
         # We need num_x_pixels, num_y_pixels, 3 to be our shape.
         # Note that we need the extra "3" to store qx, qy, qz (3d vector).
         desired_shape = tuple(list(self._raw_data.shape) + [3])
-        # if self.metadata.data_file.is_rotated:
-        #     desired_shape= tuple(list([self._raw_data.shape[1],self._raw_data.shape[0]]) + [3])
 
         # Don't bother initializing this.
         k_out_array = np.ndarray(desired_shape, np.float32)
@@ -396,25 +427,10 @@ class Image:
                 [0, 1, 0],
                 [0, 0, 1]
             ])
+
+        coord_change_mat=get_coordchange_matrix(oop)
         # Finally, we make it so that (001) will end up OOP.
-        if oop == 'y':
-            coord_change_mat = np.array([
-                [1, 0, 0],
-                [0, 0, -1],
-                [0, 1, 0]
-            ])
-        elif oop == 'x':
-            coord_change_mat = np.array([
-                [0, 1, 0],
-                [0, 0, 1],
-                [1, 0, 0]
-            ])
-        elif oop == 'z':
-            coord_change_mat = np.array([
-                [1, 0, 0],
-                [0, 1, 0],
-                [0, 0, 1]
-            ])
+
 
         transform_mat = np.matmul(transform_mat, coord_change_mat)
 
