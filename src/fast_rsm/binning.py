@@ -126,8 +126,11 @@ def finite_diff_shape(start: np.ndarray, stop: np.ndarray, step: np.ndarray):
 #     dd = fast.histogramdd(coords, shape, _range, intensities)
 #     # print(f"Time spend in histogramdd: {(time() - t1)*1000} ms")
 #     return dd
-
-
+def typecheckfloats(float_dict):
+    for k,v in float_dict.items():
+        if v.dtype != np.uint32:
+            raise ValueError(f"{k} must have dtype=np.uint32")
+    return True
 def weighted_bin_3d(coords: np.ndarray, weights: np.ndarray,
                     out: np.ndarray, count: np.ndarray,
                     start: np.ndarray, stop: np.ndarray, step: np.ndarray,
@@ -179,14 +182,16 @@ def weighted_bin_3d(coords: np.ndarray, weights: np.ndarray,
         min_intensity = -np.inf
     min_intensity = np.array([min_intensity]).astype(np.float32)
 
-    if weights.dtype != np.float32:
-        raise ValueError("Weights must have dtype=np.float32")
-    if coords.dtype != np.float32:
-        raise ValueError("Coords must have dtype=np.float32")
-    if out.dtype != np.float32:
-        raise ValueError("out must have dtype=np.float32")
-    if count.dtype != np.uint32:
-        raise ValueError("Count must have dtype=np.uint32")
+    float_dict={'weights':weights,'coords':coords,'out':out,'count':count}
+    typecheckfloats(float_dict)
+    # if weights.dtype != np.float32:
+    #     raise ValueError("Weights must have dtype=np.float32")
+    # if coords.dtype != np.float32:
+    #     raise ValueError("Coords must have dtype=np.float32")
+    # if out.dtype != np.float32:
+    #     raise ValueError("out must have dtype=np.float32")
+    # if count.dtype != np.uint32:
+    #     raise ValueError("Count must have dtype=np.uint32")
 
     # Now we're ready to call the function.
     #mapper_c_utils.weighted_bin_3d(
@@ -257,15 +262,16 @@ def weighted_bin_1d(coords: np.ndarray,
 
     # Make sure that everything is a float32. We don't need double length
     # floating point precision, and this is, well, 2x faster!
-    if weights.dtype != np.float32:
-        raise ValueError("Weights must have dtype=np.float32")
-    if coords.dtype != np.float32:
-        raise ValueError("Coords must have dtype=np.float32")
-    if out.dtype != np.float32:
-        raise ValueError("out must have dtype=np.float32")
-    if count.dtype != np.uint32:
-        raise ValueError("Count must have dtype=np.uint32")
-
+    # if weights.dtype != np.float32:
+    #     raise ValueError("Weights must have dtype=np.float32")
+    # if coords.dtype != np.float32:
+    #     raise ValueError("Coords must have dtype=np.float32")
+    # if out.dtype != np.float32:
+    #     raise ValueError("out must have dtype=np.float32")
+    # if count.dtype != np.uint32:
+    #     raise ValueError("Count must have dtype=np.uint32")
+    float_dict={'weights':weights,'coords':coords,'out':out,'count':count}
+    typecheckfloats(float_dict)
     # Now we're ready to call the function.
     #mapper_c_utils.weighted_bin_1d(
        # coords, start, step, shape, weights, out, count)

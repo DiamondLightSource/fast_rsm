@@ -3,6 +3,7 @@ This module provides tests for the functions in the fast_rsm.binning module.
 """
 
 import numpy as np
+import pytest
 from numpy.testing import assert_allclose
 from fast_rsm.binning import finite_diff_shape,fix_intensity_geometry,\
     fix_delta_q_geometry,finite_diff_grid,typecheckfloats
@@ -17,6 +18,15 @@ def test_fix_intgeom():
     arr1=np.ones((2,5))
     outarr=fix_intensity_geometry(arr1)
     assert np.shape(outarr)==(10,)
+
+def test_typecheckfloats():
+    weights_int=np.array([1,2,3]).astype(np.uint32)
+    weights_fl=np.array([1.0,2.0,3.0])
+    testdict1={'weights1':weights_int}
+    testdict2={'weights1':weights_fl,'weights2':weights_int}
+    assert typecheckfloats(testdict1)
+    with pytest.raises(ValueError):
+        typecheckfloats(testdict2)
 
 def test_finite_diff_grid():
     start = np.array([1.0, 1.0, 2.0])
