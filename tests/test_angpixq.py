@@ -116,8 +116,8 @@ def test_calckout():
     detector_distance=0.89
     detector_vertical=  SimpleNamespace(array=[0,1,0])
     detector_horizontal=  SimpleNamespace(array=[1,0,0])
-    vert_pixels=array=np.tile([-1, 0, 1, 2], (5, 1))*172e-6
-    hor_pixels=array=np.arange(5).reshape(5,1).repeat(4, axis=1)*172e-6
+    vert_pixels=np.tile([-1, 0, 1, 2], (5, 1))*172e-6
+    hor_pixels=np.arange(5).reshape(5,1).repeat(4, axis=1)*172e-6
     detector_values=[detector_displacement,detector_distance,detector_vertical,detector_horizontal]
     pixel_arrays=[vert_pixels,hor_pixels]
     i,j=slice(None),slice(None)

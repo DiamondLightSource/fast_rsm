@@ -63,7 +63,25 @@ class RSMMetadata:
         self._horizontal_pixel_offsets = None
         self._vertical_pixel_distances = None
         self._horizontal_pixel_distances = None
+    
+    def swap_beam_centre(self):
+        self.beam_centre = (self.beam_centre[1], self.beam_centre[0])
 
+    def check_beam_centre_rot(self):
+        if self.data_file.is_rotated:
+            self.beam_centre = (
+                self.data_file.image_shape[0] - self.beam_centre[1],
+                self.beam_centre[0])
+    def beam_centre_range_check(self):
+        test_arr = np.ndarray(self.data_file.image_shape)
+        try:
+            test_arr[self.beam_centre[0], self.beam_centre[1]]
+        except IndexError as error:
+            print(f"beam_centre {self.beam_centre} out of bounds. Your image "
+                  f"has shape {self.data_file.image_shape} (slow_axis, "
+                  f"fast_axis).")
+            raise error
+        return True
     def _correct_beam_centre(self):
         """
         Correct the beam centre, if necessary. We can use the metadata to work
@@ -79,22 +97,13 @@ class RSMMetadata:
 
         if isinstance(self.data_file, I07Nexus):
             # I07 beam centres are given (x, y) (the wrong way around).
-            self.beam_centre = (self.beam_centre[1], self.beam_centre[0])
-
-            if self.data_file.is_rotated:
-                self.beam_centre = (
-                    self.data_file.image_shape[0] - self.beam_centre[1],
-                    self.beam_centre[0])
-
+            #self.beam_centre = (self.beam_centre[1], self.beam_centre[0])
+            self.swap_beam_centre()
+            self.check_beam_centre_rot()
+            
+        self.beam_centre_range_check()
         # Make sure that the beam_centre can lie within the image.
         test_arr = np.ndarray(self.data_file.image_shape)
-        try:
-            test_arr[self.beam_centre[0], self.beam_centre[1]]
-        except IndexError as error:
-            print(f"beam_centre {self.beam_centre} out of bounds. Your image "
-                  f"has shape {self.data_file.image_shape} (slow_axis, "
-                  f"fast_axis).")
-            raise error
 
     def update_i07_nx(self, motors: Dict[str, np.ndarray], metadata: dict):
         """
@@ -300,27 +309,28 @@ class RSMMetadata:
         # Finally, store as a single precision float.
         self._solid_angles = self._solid_angles.astype(np.float32)
 
+    def get_pixel_index_offsets(self,index, image_shape):
+        if image_shape is None:
+            image_shape = self.data_file.image_shape
+        num_pixels = image_shape[index]
+        # Imagine num_y_pixels = 11.
+        # pixel_offsets = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+        pixel_offsets = np.arange(num_pixels - 1, -1, -1)
+        # Imagine y_beam_centre = 2
+        beam_centre_val = self.beam_centre[index]
+        # Now pixel_offsets -= ((11-1) - 2)
+        # => pixel_offsets = [2, 1, 0, -1, -2, -3, -4, -5, -6, -7, -8]
+        # This is good! The top of the detector is above the centre in y.
+        pixel_offsets -= ((num_pixels - 1) - beam_centre_val)
+        return pixel_offsets,image_shape
+
     def _init_vertical_pixel_offsets(self, image_shape: int = None):
         """
         Initializes the array of relative pixel offsets.
         """
-        if image_shape is None:
-            image_shape = self.data_file.image_shape
-
-        num_y_pixels = image_shape[0]
-        # Imagine num_y_pixels = 11.
-        # pixel_offsets = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
-        pixel_offsets = np.arange(num_y_pixels - 1, -1, -1)
-        # Imagine y_beam_centre = 2
-        y_beam_centre = self.beam_centre[0]
-
-        # Now pixel_offsets -= ((11-1) - 2)
-        # => pixel_offsets = [2, 1, 0, -1, -2, -3, -4, -5, -6, -7, -8]
-        # This is good! The top of the detector is above the centre in y.
-        pixel_offsets -= ((num_y_pixels - 1) - y_beam_centre)
-
+        pixel_offsets,out_shape=self.get_pixel_index_offsets(0,image_shape)
         # Save this value to an array with the same shape as the images.
-        self._vertical_pixel_offsets = np.zeros(image_shape, np.float32)
+        self._vertical_pixel_offsets = np.zeros(out_shape, np.float32)
 
         for i, pixel_offset in enumerate(pixel_offsets):
             self._vertical_pixel_offsets[i, :] = pixel_offset
@@ -331,44 +341,18 @@ class RSMMetadata:
         distance (in units of pixels) between each pixel and the horizontal
         beam centre.
         """
-        if image_shape is None:
-            image_shape = self.data_file.image_shape
 
-        # Follow the recipe from above.
-        # The azimuthal angle is larger towards the left of the image.
-        num_x_pixels = image_shape[1]
-        pixel_offsets = np.arange(num_x_pixels - 1, -1, -1)
-        x_beam_centre = self.beam_centre[1]
-        pixel_offsets -= ((num_x_pixels - 1) - x_beam_centre)
+        pixel_offsets,out_shape=self.get_pixel_index_offsets(1,image_shape)
         # Save this value to an array with the same shape as the images.
-        self._horizontal_pixel_offsets = np.zeros(image_shape, np.float32)
+        self._horizontal_pixel_offsets = np.zeros(out_shape, np.float32)
         for i, pixel_offset in enumerate(pixel_offsets):
-            # accounting for rotation is done when \
-            # loading in image, so no need for treating data differently here
-            # if self.data_file.is_rotated:
-            #     self._horizontal_pixel_offsets[i, :] = pixel_offset
-            # else:
             self._horizontal_pixel_offsets[:, i] = pixel_offset
 
     def _init_relative_polar(self, image_shape: int = None):
         """
         Initializes the relative_polar array.
         """
-        if image_shape is None:
-            image_shape = self.data_file.image_shape
-        # First we want to calculate pixel offsets.
-        num_y_pixels = image_shape[0]
-        # Imagine num_y_pixels = 11.
-        # pixel_offsets = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
-        pixel_offsets = np.arange(num_y_pixels - 1, -1, -1)
-        # Imagine y_beam_centre = 2
-        y_beam_centre = self.beam_centre[0]
-
-        # Now pixel_offsets -= ((11-1) - 2)
-        # => pixel_offsets = [2, 1, 0, -1, -2, -3, -4, -5, -6, -7, -8]
-        # This is good! The top of the detector is above the centre in theta.
-        pixel_offsets -= ((num_y_pixels - 1) - y_beam_centre)
-
+        pixel_offsets,out_shape = self.get_pixel_index_offsets(0,image_shape)
         # Now convert pixel number to distances
         # Imagine self.pixel_size = 0.1m
         # Now distance_offsets = [0.2, 0.1, 0, -0.1, -0.2, -0.3, -0.4, -0.5...]
@@ -385,7 +369,7 @@ class RSMMetadata:
                                    self.data_file.detector_distance)
 
         # Now use these offsets to initialize the relative_polar array.
-        self._relative_polar = np.zeros(image_shape)
+        self._relative_polar = np.zeros(out_shape)
         for i, theta_offset in enumerate(theta_offsets):
             self._relative_polar[i, :] = -theta_offset
 
@@ -393,22 +377,13 @@ class RSMMetadata:
         """
         Initializes the relative_azimuth array.
         """
-        if image_shape is None:
-            image_shape = self.data_file.image_shape
-
-        # Follow the recipe from above.
-        # The azimuthal angle is larger towards the left of the image.
-        num_x_pixels = image_shape[1]
-        pixel_offsets = np.arange(num_x_pixels - 1, -1, -1)
-        x_beam_centre = self.beam_centre[1]
-        pixel_offsets -= ((num_x_pixels - 1) - x_beam_centre)
-
+        pixel_offsets,out_shape=self.get_pixel_index_offsets(1)
         # Now convert from pixels to distances to angles.
         distance_offsets = pixel_offsets * self.data_file.pixel_size
         phi_offsets = np.arctan2(distance_offsets,
                                  self.data_file.detector_distance)
 
         # Now use these offsets to initialize the relative_azimuth array
-        self._relative_azimuth = np.zeros(image_shape)
+        self._relative_azimuth = np.zeros(out_shape)
         for i, column in enumerate(phi_offsets):
             self._relative_azimuth[:, i] = column
