@@ -5,7 +5,7 @@ images.
 
 import numpy as np
 
-#import mapper_c_utils
+import mapper_c_utils
 
 # pylint: disable=c-extension-no-member
 
@@ -68,7 +68,7 @@ def lorentz(intensities: np.ndarray, k_in: np.ndarray, k_out: np.ndarray):
     intensities,k_out,start_shapes=get_corr_ints_kout(intensities,k_out)
     # Call the C function. This directly affects the elements of the
     # intensities array.
-    #mapper_c_utils.lorentz_correction(k_in, k_out, intensities)
+    mapper_c_utils.lorentz_correction(k_in, k_out, intensities)
     
     intensities,k_out = reshape_to_original(intensities,k_out,start_shapes)
 
@@ -117,7 +117,7 @@ def linear_polarisation(intensities: np.ndarray, k_out: np.ndarray,
 
     # add in incorrect line to replicate previous version
     # print("previous version - incorrectly has double  'lorentz'")
-    # mapper_c_utils.lorentz_correction(polarisation_vector, k_out, intensities)
+    mapper_c_utils.lorentz_correction(polarisation_vector, k_out, intensities)
 
     intensities,k_out = reshape_to_original(intensities,k_out,start_shapes)
 

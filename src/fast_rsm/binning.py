@@ -5,7 +5,7 @@ This module contains functions for binning 3D scalar fields.
 import fast_histogram as fast
 import numpy as np
 
-#import mapper_c_utils
+import mapper_c_utils
 
 
 def fix_delta_q_geometry(arr: np.ndarray) -> np.ndarray:
@@ -194,8 +194,8 @@ def weighted_bin_3d(coords: np.ndarray, weights: np.ndarray,
     #     raise ValueError("Count must have dtype=np.uint32")
 
     # Now we're ready to call the function.
-    #mapper_c_utils.weighted_bin_3d(
-        #coords, start, step, shape, weights, out, count, min_intensity)
+    mapper_c_utils.weighted_bin_3d(
+        coords, start, step, shape, weights, out, count, min_intensity)
 
     # time_taken = time.time() - time_1
     # print(f"Binning time: {time_taken}")
@@ -273,8 +273,8 @@ def weighted_bin_1d(coords: np.ndarray,
     float_dict={'weights':weights,'coords':coords,'out':out,'count':count}
     typecheckfloats(float_dict)
     # Now we're ready to call the function.
-    #mapper_c_utils.weighted_bin_1d(
-       # coords, start, step, shape, weights, out, count)
+    mapper_c_utils.weighted_bin_1d(
+       coords, start, step, shape, weights, out, count)
 
     return out
 
