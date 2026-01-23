@@ -5,10 +5,10 @@ This module contains functions for binning 3D scalar fields.
 import fast_histogram as fast
 import numpy as np
 
-import mapper_c_utils
+#import mapper_c_utils
 
 
-def _fix_delta_q_geometry(arr: np.ndarray) -> np.ndarray:
+def fix_delta_q_geometry(arr: np.ndarray) -> np.ndarray:
     """
     If arr.shape is 3D, make it 2D.
     """
@@ -17,7 +17,7 @@ def _fix_delta_q_geometry(arr: np.ndarray) -> np.ndarray:
     return arr
 
 
-def _fix_intensity_geometry(arr: np.ndarray) -> np.ndarray:
+def fix_intensity_geometry(arr: np.ndarray) -> np.ndarray:
     """
     If arr.shape is 2D, make it 1D.
     """
@@ -41,91 +41,91 @@ def finite_diff_shape(start: np.ndarray, stop: np.ndarray, step: np.ndarray):
     return tuple(len(arr) for arr in finite_diff_grid(start, stop, step))
 
 
-def linear_bin(coords: np.ndarray,  # Coordinates of each intensity.
-               intensities: np.ndarray,  # The corresponding intensities.
-               start: np.ndarray,  # (start_x, start_y, start_z)
-               stop: np.ndarray,  # (stop_x, stop_y, stop_z)
-               step: np.ndarray  # (delta_x, delta_y, delta_z)
-               ) -> np.ndarray:
-    """
-    Bin intensities with coordinates coords into linearly spaced finite
-    differences bins. This is bottlenecking and should be rewritten as a numpy
-    C extension to achieve perfect performance, but it's better than numpy's
-    histdd function by a *LOT*!
-    """
+# def linear_bin(coords: np.ndarray,  # Coordinates of each intensity.
+#                intensities: np.ndarray,  # The corresponding intensities.
+#                start: np.ndarray,  # (start_x, start_y, start_z)
+#                stop: np.ndarray,  # (stop_x, stop_y, stop_z)
+#                step: np.ndarray  # (delta_x, delta_y, delta_z)
+#                ) -> np.ndarray:
+#     """
+#     Bin intensities with coordinates coords into linearly spaced finite
+#     differences bins. This is bottlenecking and should be rewritten as a numpy
+#     C extension to achieve perfect performance, but it's better than numpy's
+#     histdd function by a *LOT*!
+#     """
 
-    # Fix the geometry of the input arguments.
-    coords = _fix_delta_q_geometry(coords)
-    intensities = _fix_intensity_geometry(intensities)
+#     # Fix the geometry of the input arguments.
+#     coords = fix_delta_q_geometry(coords)
+#     intensities = fix_intensity_geometry(intensities)
 
-    # Work out dimensions and shape of finite elements volume.
-    shape = finite_diff_shape(start, stop, step)
-    size = shape[0] * shape[1] * shape[2]
+#     # Work out dimensions and shape of finite elements volume.
+#     shape = finite_diff_shape(start, stop, step)
+#     size = shape[0] * shape[1] * shape[2]
 
-    # Subtract start values. As usual, subtract by scalars for speed.
-    coords[:, 0] -= start[0]
-    coords[:, 1] -= start[1]
-    coords[:, 2] -= start[2]
-    # Divide by step, component by component so as to divide by scalars.
-    coords[:, 0] /= step[0]
-    coords[:, 1] /= step[1]
-    coords[:, 2] /= step[2]
-    # Round to integers. Note that the type is still float64.
-    np.rint(coords, out=coords)
+#     # Subtract start values. As usual, subtract by scalars for speed.
+#     coords[:, 0] -= start[0]
+#     coords[:, 1] -= start[1]
+#     coords[:, 2] -= start[2]
+#     # Divide by step, component by component so as to divide by scalars.
+#     coords[:, 0] /= step[0]
+#     coords[:, 1] /= step[1]
+#     coords[:, 2] /= step[2]
+#     # Round to integers. Note that the type is still float64.
+#     np.rint(coords, out=coords)
 
-    # The following routine is bad in memory but makes numpy happy.
-    # Kill any coords that are out of bounds.
+#     # The following routine is bad in memory but makes numpy happy.
+#     # Kill any coords that are out of bounds.
 
-    coord_in_bounds = coords >= 0
-    coord_in_bounds[:, 0] *= coords[:, 0] < shape[0]
-    coord_in_bounds[:, 1] *= coords[:, 1] < shape[1]
-    coord_in_bounds[:, 2] *= coords[:, 2] < shape[2]
-    intensities *= coord_in_bounds[:, 0]
-    intensities *= coord_in_bounds[:, 1]
-    intensities *= coord_in_bounds[:, 2]
-    # And finally bin those empty intensities to the origin.
-    coords *= coord_in_bounds
+#     coord_in_bounds = coords >= 0
+#     coord_in_bounds[:, 0] *= coords[:, 0] < shape[0]
+#     coord_in_bounds[:, 1] *= coords[:, 1] < shape[1]
+#     coord_in_bounds[:, 2] *= coords[:, 2] < shape[2]
+#     intensities *= coord_in_bounds[:, 0]
+#     intensities *= coord_in_bounds[:, 1]
+#     intensities *= coord_in_bounds[:, 2]
+#     # And finally bin those empty intensities to the origin.
+#     coords *= coord_in_bounds
 
-    # Now convert to tuple of integer arrays for array indexing to work.
-    coords = (coords[:, 0].astype(np.int32),
-              coords[:, 1].astype(np.int32),
-              coords[:, 2].astype(np.int32))
-    # Flatten the coordinates; we need this for np.bincount to work.
-    flat_indices = np.ravel_multi_index(coords, shape)
+#     # Now convert to tuple of integer arrays for array indexing to work.
+#     coords = (coords[:, 0].astype(np.int32),
+#               coords[:, 1].astype(np.int32),
+#               coords[:, 2].astype(np.int32))
+#     # Flatten the coordinates; we need this for np.bincount to work.
+#     flat_indices = np.ravel_multi_index(coords, shape)
 
-    # Now we can use bincount to work out the intensities.
-    bincount = np.bincount(flat_indices, weights=intensities,
-                           minlength=size)
-    bincount = bincount.reshape(shape)
+#     # Now we can use bincount to work out the intensities.
+#     bincount = np.bincount(flat_indices, weights=intensities,
+#                            minlength=size)
+#     bincount = bincount.reshape(shape)
 
-    return bincount
+#     return bincount
 
 
-def fast_linear_bin(coords: np.ndarray,  # Coordinates of each intensity.
-                    intensities: np.ndarray,  # Corresponding intensities.
-                    start: np.ndarray,  # (start_x, start_y, start_z)
-                    stop: np.ndarray,  # (stop_x, stop_y, stop_z)
-                    step: np.ndarray  # (delta_x, delta_y, delta_z)
-                    ) -> np.ndarray:
-    """
-    Binning using the fast-histogram library.
-    """
-    # Fix the geometry of the input arguments.
-    coords = _fix_delta_q_geometry(coords)
-    intensities = _fix_intensity_geometry(intensities)
+# def fast_linear_bin(coords: np.ndarray,  # Coordinates of each intensity.
+#                     intensities: np.ndarray,  # Corresponding intensities.
+#                     start: np.ndarray,  # (start_x, start_y, start_z)
+#                     stop: np.ndarray,  # (stop_x, stop_y, stop_z)
+#                     step: np.ndarray  # (delta_x, delta_y, delta_z)
+#                     ) -> np.ndarray:
+#     """
+#     Binning using the fast-histogram library.
+#     """
+#     # Fix the geometry of the input arguments.
+#     coords = fix_delta_q_geometry(coords)
+#     intensities = fix_intensity_geometry(intensities)
 
-    # Work out dimensions and shape of finite elements volume.
-    shape = finite_diff_shape(start, stop, step)
+#     # Work out dimensions and shape of finite elements volume.
+#     shape = finite_diff_shape(start, stop, step)
 
-    _range = ([start[0], stop[0]],
-              [start[1], stop[1]],
-              [start[2], stop[2]])
+#     _range = ([start[0], stop[0]],
+#               [start[1], stop[1]],
+#               [start[2], stop[2]])
 
-    # Run the histogram.
-    # t1 = time()
-    dd = fast.histogramdd(coords, shape, _range, intensities)
-    # print(f"Time spend in histogramdd: {(time() - t1)*1000} ms")
-    return dd
+#     # Run the histogram.
+#     # t1 = time()
+#     dd = fast.histogramdd(coords, shape, _range, intensities)
+#     # print(f"Time spend in histogramdd: {(time() - t1)*1000} ms")
+#     return dd
 
 
 def weighted_bin_3d(coords: np.ndarray, weights: np.ndarray,
@@ -164,8 +164,8 @@ def weighted_bin_3d(coords: np.ndarray, weights: np.ndarray,
     """
     # Uncomment these timestamps to benchmark the binning routine.
     # time_1 = time.time()
-    coords = _fix_delta_q_geometry(coords)
-    weights = _fix_intensity_geometry(weights)
+    coords = fix_delta_q_geometry(coords)
+    weights = fix_intensity_geometry(weights)
     # Work out the shape array on the python end, as opposed to on the C end.
     # Life's easier in python, so do what we can here.
     shape = np.array(finite_diff_shape(start, stop, step)).astype(np.int32)
@@ -189,8 +189,8 @@ def weighted_bin_3d(coords: np.ndarray, weights: np.ndarray,
         raise ValueError("Count must have dtype=np.uint32")
 
     # Now we're ready to call the function.
-    mapper_c_utils.weighted_bin_3d(
-        coords, start, step, shape, weights, out, count, min_intensity)
+    #mapper_c_utils.weighted_bin_3d(
+        #coords, start, step, shape, weights, out, count, min_intensity)
 
     # time_taken = time.time() - time_1
     # print(f"Binning time: {time_taken}")
@@ -267,40 +267,40 @@ def weighted_bin_1d(coords: np.ndarray,
         raise ValueError("Count must have dtype=np.uint32")
 
     # Now we're ready to call the function.
-    mapper_c_utils.weighted_bin_1d(
-        coords, start, step, shape, weights, out, count)
+    #mapper_c_utils.weighted_bin_1d(
+       # coords, start, step, shape, weights, out, count)
 
     return out
 
 
-def hist_shape(start, stop, step):
-    """
-    Returns the shape of the histogram returned by linear_bin_histdd.
-    """
-    bins_0 = np.arange(start[0], stop[0] + step[0], step[0])
-    bins_1 = np.arange(start[1], stop[1] + step[1], step[1])
-    bins_2 = np.arange(start[2], stop[2] + step[2], step[2])
-    return (len(bins_0) - 1, len(bins_1) - 1, len(bins_2) - 1)
+# def hist_shape(start, stop, step):
+#     """
+#     Returns the shape of the histogram returned by linear_bin_histdd.
+#     """
+#     bins_0 = np.arange(start[0], stop[0] + step[0], step[0])
+#     bins_1 = np.arange(start[1], stop[1] + step[1], step[1])
+#     bins_2 = np.arange(start[2], stop[2] + step[2], step[2])
+#     return (len(bins_0) - 1, len(bins_1) - 1, len(bins_2) - 1)
 
 
-def linear_bin_histdd(coords: np.ndarray,  # Coordinates of each intensity.
-                      intensities: np.ndarray,  # Corresponding intensities.
-                      start: np.ndarray,  # (start_x, start_y, start_z)
-                      stop: np.ndarray,  # (stop_x, stop_y, stop_z)
-                      step: np.ndarray  # (delta_x, delta_y, delta_z)
-                      ) -> np.ndarray:
-    """
-    Uses numpy's histogramdd to do some binning. This is, unfortunately, a very
-    slow routine.
-    """
-    # Fix the geometry of the input arguments.
-    coords = _fix_delta_q_geometry(coords)
-    intensities = _fix_intensity_geometry(intensities)
+# def linear_bin_histdd(coords: np.ndarray,  # Coordinates of each intensity.
+#                       intensities: np.ndarray,  # Corresponding intensities.
+#                       start: np.ndarray,  # (start_x, start_y, start_z)
+#                       stop: np.ndarray,  # (stop_x, stop_y, stop_z)
+#                       step: np.ndarray  # (delta_x, delta_y, delta_z)
+#                       ) -> np.ndarray:
+#     """
+#     Uses numpy's histogramdd to do some binning. This is, unfortunately, a very
+#     slow routine.
+#     """
+#     # Fix the geometry of the input arguments.
+#     coords = fix_delta_q_geometry(coords)
+#     intensities = fix_intensity_geometry(intensities)
 
-    data, _ = np.histogramdd(coords,
-                             bins=hist_shape(start, stop, step),
-                             range=((start[0], stop[0]),
-                                    (start[1], stop[1]),
-                                    (start[2], stop[2])),
-                             weights=intensities)
-    return data
+#     data, _ = np.histogramdd(coords,
+#                              bins=hist_shape(start, stop, step),
+#                              range=((start[0], stop[0]),
+#                                     (start[1], stop[1]),
+#                                     (start[2], stop[2])),
+#                              weights=intensities)
+#     return data

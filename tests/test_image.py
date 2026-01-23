@@ -1,5 +1,5 @@
 from fast_rsm.image import get_coordchange_matrix,do_mask_pixels,do_mask_regions,\
-    correct_transmission,do_mask_detris,correct_counttime,do_edfmask
+    correct_transmission,do_mask_detris,correct_counttime,do_edfmask, get_norm_value
 from types import SimpleNamespace
 import numpy as np
 from numpy.testing import assert_allclose
@@ -103,6 +103,12 @@ def test_mask_edf():
     mask[0,3]=1
     assert_allclose(do_edfmask(mask,testarr),maskedarr)
 
-
+def test_normvalue():
+    testvals1=[1,2,3,4]
+    assert get_norm_value(testvals1,2)==3
+    testvals2=[]
+    assert get_norm_value(testvals2,2)==1
+    testvals3=None
+    assert get_norm_value(testvals3,2)==None
 
 print('DONE')

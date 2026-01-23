@@ -5,9 +5,31 @@ images.
 
 import numpy as np
 
-import mapper_c_utils
+#import mapper_c_utils
 
 # pylint: disable=c-extension-no-member
+
+
+def make_float32(data_arrays):
+    outarrays=[]
+    for values in data_arrays:
+        outvalues=values
+        if values.dtype!=np.float32:
+            outvalues=values.astype(np.float32)
+        outarrays.append(outvalues)
+    return outarrays
+
+def get_corr_ints_kout(intensities,k_out):
+    intensity_shape = intensities.shape
+    k_out_shape = k_out.shape
+    intensities = intensities.reshape(intensities.size)
+    k_out = k_out.reshape((int(k_out.size / 3), 3))
+    return intensities,k_out,[intensity_shape,k_out_shape]
+
+def reshape_to_original(intensities,k_out,start_shapes):
+    intensities = intensities.reshape(start_shapes[0])
+    k_out = k_out.reshape(start_shapes[1])
+    return intensities,k_out
 
 
 def lorentz(intensities: np.ndarray, k_in: np.ndarray, k_out: np.ndarray):
@@ -30,33 +52,26 @@ def lorentz(intensities: np.ndarray, k_in: np.ndarray, k_out: np.ndarray):
         the original intensity array will have been updated, but this way the
         function *just works* however you use it.
     """
-    # Make sure the dtype is good.
-    if intensities.dtype != np.float32:
-        intensities = intensities.astype(np.float32)
-    if k_in.dtype != np.float32:
-        k_in = k_in.astype(np.float32)
-    if k_out.dtype != np.float32:
-        k_out = k_out.astype(np.float32)
-
+    # # Make sure the dtype is good.
+    # if intensities.dtype != np.float32:
+    #     intensities = intensities.astype(np.float32)
+    # if k_in.dtype != np.float32:
+    #     k_in = k_in.astype(np.float32)
+    # if k_out.dtype != np.float32:
+    #     k_out = k_out.astype(np.float32)
+    
+    intensities,k_in,k_out=make_float32([intensities,k_in,k_out])
     # Make sure that the shapes are good.
-    intensity_shape = intensities.shape
-    k_out_shape = k_out.shape
-    intensities = intensities.reshape(intensities.size)
-    k_out = k_out.reshape((int(k_out.size / 3), 3))
 
+    # intensities = intensities.reshape(intensities.size)
+    # k_out = k_out.reshape((int(k_out.size / 3), 3))
+    intensities,k_out,start_shapes=get_corr_ints_kout(intensities,k_out)
     # Call the C function. This directly affects the elements of the
     # intensities array.
-    mapper_c_utils.lorentz_correction(k_in, k_out, intensities)
+    #mapper_c_utils.lorentz_correction(k_in, k_out, intensities)
+    
+    intensities,k_out = reshape_to_original(intensities,k_out,start_shapes)
 
-    # #hardcode debugging lines to save correction factors
-    # intensitiesones=np.ones(np.shape(intensities))
-    # mapper_c_utils.lorentz_correction(k_in, k_out, intensitiesones)
-    # intensitiesones = intensitiesones.reshape(intensity_shape)
-    # np.save('/home/rpy65944/fast_rsm/lorentzcorrs',intensitiesones)
-
-    # Return the shapes to their original values.
-    intensities = intensities.reshape(intensity_shape)
-    k_out = k_out.reshape(k_out_shape)
 
 
 def linear_polarisation(intensities: np.ndarray, k_out: np.ndarray,
@@ -79,36 +94,34 @@ def linear_polarisation(intensities: np.ndarray, k_out: np.ndarray,
         the original intensity array will have been updated, but this way the
         function *just works* however you use it.
     """
-    # Make sure the dtype is good.
-    if intensities.dtype != np.float32:
-        intensities = intensities.astype(np.float32)
-    if k_out.dtype != np.float32:
-        k_out = k_out.astype(np.float32)
-    if polarisation_vector.dtype != np.float32:
-        polarisation_vector = polarisation_vector.astype(np.float32)
-
+    # # Make sure the dtype is good.
+    # if intensities.dtype != np.float32:
+    #     intensities = intensities.astype(np.float32)
+    # if k_out.dtype != np.float32:
+    #     k_out = k_out.astype(np.float32)
+    # if polarisation_vector.dtype != np.float32:
+    #     polarisation_vector = polarisation_vector.astype(np.float32)
+    intensities,k_out,polarisation_vector=make_float32([intensities,k_out,polarisation_vector])
     # Make sure that the shapes are good.
-    intensity_shape = intensities.shape
-    k_out_shape = k_out.shape
-    intensities = intensities.reshape(intensities.size)
-    k_out = k_out.reshape((int(k_out.size / 3), 3))
+    # intensity_shape = intensities.shape
+    # k_out_shape = k_out.shape
+    # intensities = intensities.reshape(intensities.size)
+    # k_out = k_out.reshape((int(k_out.size / 3), 3))
+    intensities,k_out,start_shapes=get_corr_ints_kout(intensities,k_out)
 
     # Call the C function. This directly affects the elements of the
     # intensities array.
     # print('corrected version with linear polarisation correction')
-    mapper_c_utils.linear_pol_correction(
-        polarisation_vector, k_out, intensities)
+    # mapper_c_utils.linear_pol_correction(
+    #     polarisation_vector, k_out, intensities)
 
     # add in incorrect line to replicate previous version
     # print("previous version - incorrectly has double  'lorentz'")
     # mapper_c_utils.lorentz_correction(polarisation_vector, k_out, intensities)
 
-    # #hardcode debugging lines to save correction factors
-    # intensitiesones=np.ones(np.shape(intensities))
-    # mapper_c_utils.linear_pol_correction(polarisation_vector, k_out, intensitiesones)
-    # intensitiesones = intensitiesones.reshape(intensity_shape)
-    # np.save('/home/rpy65944/fast_rsm/linpolcorrs',intensitiesones)
+    intensities,k_out = reshape_to_original(intensities,k_out,start_shapes)
 
-    # Return the shapes to their original values.
-    intensities = intensities.reshape(intensity_shape)
-    k_out = k_out.reshape(k_out_shape)
+
+    # # Return the shapes to their original values.
+    # intensities = intensities.reshape(intensity_shape)
+    # k_out = k_out.reshape(k_out_shape)

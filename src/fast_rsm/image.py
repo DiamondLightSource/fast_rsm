@@ -499,3 +499,5 @@ class Image:
             pol_correction=pol_correction).reshape()
         num_q_vectors = q_vectors.shape[0] * q_vectors.shape[1]
         return q_vectors.reshape((num_q_vectors, 3))
+
+print('Done')
