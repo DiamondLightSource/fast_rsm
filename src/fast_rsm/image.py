@@ -226,7 +226,25 @@ class Image:
         vertical = self.metadata.get_vertical_pixel_distances(self.index)
         horizontal = self.metadata.get_horizontal_pixel_distances(self.index)
         return det_vertical,det_horizontal,vertical,horizontal
-        
+    
+    def apply_corrections(self,frame, lorentz_correction,pol_correction, incident_beam_arr, k_out_array):
+        if lorentz_correction:
+            corrections.lorentz(
+                self._raw_data, incident_beam_arr, k_out_array)
+        # The kind of polarisation correction that we want to apply of
+        # depends, rather obviously, on the polarisation of the beam!
+        polarisation = self.metadata.data_file.polarisation
+        if polarisation.kind != Polarisation.linear:
+            raise NotImplementedError(
+                "Only linear polarisation corrections have been "
+                "implemented.")
+        if polarisation.kind == Polarisation.linear:
+            pol_vec = polarisation.vector
+            pol_vec.to_frame(frame)
+            if pol_correction:
+                corrections.linear_polarisation(
+                    self._raw_data, k_out_array, pol_vec.array)  
+                
     def generate_mask(self, min_intensity: Union[float, int]) -> np.ndarray:
         """
         Generates a mask from every pixel whose intensity is below a certain
@@ -343,10 +361,6 @@ class Image:
         else:
             i = indices[0]
             j = indices[1]
-            # #may need additional swap of axis if image is rotated
-            # if self.metadata.data_file.is_rotated:
-            #     i=indices[1]
-            #     j=indices[0]
 
         # Make sure that our frame of reference has the correct index and
         # diffractometer.
@@ -360,20 +374,12 @@ class Image:
 
         det_displacement,detector_distance=self.get_detector_values(frame)
         det_vertical,det_horizontal,vertical,horizontal=self.get_vert_hor_values(frame)
-        
-
-        # Now we have an orthonormal basis: det_displacement points from the
-        # sample to the detector, det_vertical points vertically up the detector
-        # and det_horizontal points horizontally along the detector. To get a
         # vector parallel to k_out, we can just work out the displacement from
         # each pixel to the sample.
         # This calculation is done component-by-component to match array shapes.
         # This routine has been benchmarked to be ~4x faster than using an
         # outer product and reshaping it.
     
-
-
-
         detector_values=[det_displacement,detector_distance,\
                                     det_vertical,det_horizontal]
         pixel_arrays=[vertical,horizontal]
@@ -389,24 +395,10 @@ class Image:
         # At exactly this point, while k_in and k_out are normalised "for
         # free", Lorentz/polarisation corrections should be applied. Only do
         # this if we're mapping the entire image (i.e. indices is None).
-     # this if we're mapping the entire image (i.e. indices is None).
-        if indices is None:
-            if lorentz_correction:
-                corrections.lorentz(
-                    self._raw_data, incident_beam_arr, k_out_array)
-            # The kind of polarisation correction that we want to apply of
-            # depends, rather obviously, on the polarisation of the beam!
-            polarisation = self.metadata.data_file.polarisation
-            if polarisation.kind != Polarisation.linear:
-                raise NotImplementedError(
-                    "Only linear polarisation corrections have been "
-                    "implemented.")
-            if polarisation.kind == Polarisation.linear:
-                pol_vec = polarisation.vector
-                pol_vec.to_frame(frame)
-                if pol_correction:
-                    corrections.linear_polarisation(
-                        self._raw_data, k_out_array, pol_vec.array)
+        # this if we're mapping the entire image (i.e. indices is None).
+        self.apply_corrections(lorentz_correction,pol_correction, incident_beam_arr, k_out_array)
+
+
         # Note that this is an order of magnitude faster than:
         # k_out_array -= incident_beam_arr
         k_out_array[i, j, 0] -= incident_beam_arr[0]
