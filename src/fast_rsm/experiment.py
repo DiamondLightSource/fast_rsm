@@ -27,7 +27,7 @@ from fast_rsm.meta_analysis import get_step_from_filesize
 from fast_rsm.scan import Scan, chunk, \
     rsm_init_worker, bin_maps_with_indices_smm
 from fast_rsm.writing import linear_bin_to_vtk
-from fast_rsm.angle_pixel_q import calc_qupplow_hor,calc_qupplow_vert,calcq,calcqstep,calctheta,toa_ang_calc,get_bin_axvals, get_correction_scales,get_geometry_indices,get_hor_pixang_limits,get_pix_scale,get_vert_pixang_limits,gamdel2rots,pix_to_addminus
+from fast_rsm.angle_pixel_q import calc_qupplow_hor,calc_qupplow_vert,calcq,calcqstep,calctheta,toa_ang_calc, get_correction_scales,get_geometry_indices,get_hor_pixang_limits,get_pix_scale,get_vert_pixang_limits,gamdel2rots,pix_to_addminus
 
 logger = logging.getLogger("fastrsm")
 
