@@ -107,7 +107,34 @@ def do_mask_regions(mask_regions,data_arr):
 
         # if there is an edf mask file loaded, apply mask
 
+def norm_kout_array(k_out_array,i,j):
+    # We're going to need to normalize; this function bottlenecks if not
+    # done exactly like this!
+    # This weird manual norm calculation is an order of magnitude faster
+    # than using np.linalg.norm(k_out_array, axis=-1), and the manual
+    # addition is an order of magnitude faster than using sum(.., axis=-1)
+    k_out_squares = np.square(k_out_array[i, j, :])
 
+    # k_out_sqares' shape depends on what i and j are. Handle all 3 cases.
+    if len(k_out_squares.shape) == 1:
+        norms = np.sum(k_out_squares)
+    elif len(k_out_squares.shape) == 2:
+        norms = (k_out_squares[:, 0] +
+                k_out_squares[:, 1] +
+                k_out_squares[:, 2])
+    else:
+        norms = (k_out_squares[:, :, 0] +
+                k_out_squares[:, :, 1] +
+                k_out_squares[:, :, 2])
+    norms = np.sqrt(norms)
+
+    # Right now, k_out_array[a, b] has units of meters for all a, b. We want
+    # k_out_array[a, b] to be normalized (elastic scattering). This can be
+    # done now that norms has been created because it has the right shape.
+    k_out_array[i, j, 0] /= norms
+    k_out_array[i, j, 1] /= norms
+    k_out_array[i, j, 2] /= norms
+    return k_out_array
 
 
 class Image:
@@ -178,6 +205,28 @@ class Image:
                 self._raw_data = self._raw_data.transpose()
                 self._raw_data = np.flip(self._raw_data, axis=0)
 
+    def get_detector_values(self,frame):
+        # Get a unit vector pointing towards the detector.
+        det_displacement = self.diffractometer.get_detector_vector(frame)
+        det_displacement.array = det_displacement.array.astype(np.float32)
+        detector_distance = self.metadata.get_detector_distance(self.index)
+        detector_distance = np.array(detector_distance, np.float32)
+        return det_displacement,detector_distance
+    
+    def get_vert_hor_values(self,frame):
+        # Make a unit vector that points upwards along the slow axis of the
+        # detector in this frame of reference.
+        det_vertical = self.diffractometer.get_detector_vertical(frame)
+        det_vertical.array = det_vertical.array.astype(np.float32)
+
+        # Make a unit vector that points horizontally along the fast axis of the
+        # detector in this frame of reference.
+        det_horizontal = self.diffractometer.get_detector_horizontal(frame)
+        det_horizontal.array = det_horizontal.array.astype(np.float32)
+        vertical = self.metadata.get_vertical_pixel_distances(self.index)
+        horizontal = self.metadata.get_horizontal_pixel_distances(self.index)
+        return det_vertical,det_horizontal,vertical,horizontal
+        
     def generate_mask(self, min_intensity: Union[float, int]) -> np.ndarray:
         """
         Generates a mask from every pixel whose intensity is below a certain
@@ -308,22 +357,10 @@ class Image:
         # Note that we need the extra "3" to store qx, qy, qz (3d vector).
         desired_shape = tuple(list(self._raw_data.shape) + [3])
 
-        # Don't bother initializing this.
-        k_out_array = np.ndarray(desired_shape, np.float32)
 
-        # Get a unit vector pointing towards the detector.
-        det_displacement = self.diffractometer.get_detector_vector(frame)
-        det_displacement.array = det_displacement.array.astype(np.float32)
-
-        # Make a unit vector that points upwards along the slow axis of the
-        # detector in this frame of reference.
-        det_vertical = self.diffractometer.get_detector_vertical(frame)
-        det_vertical.array = det_vertical.array.astype(np.float32)
-
-        # Make a unit vector that points horizontally along the fast axis of the
-        # detector in this frame of reference.
-        det_horizontal = self.diffractometer.get_detector_horizontal(frame)
-        det_horizontal.array = det_horizontal.array.astype(np.float32)
+        det_displacement,detector_distance=self.get_detector_values(frame)
+        det_vertical,det_horizontal,vertical,horizontal=self.get_vert_hor_values(frame)
+        
 
         # Now we have an orthonormal basis: det_displacement points from the
         # sample to the detector, det_vertical points vertically up the detector
@@ -333,43 +370,16 @@ class Image:
         # This calculation is done component-by-component to match array shapes.
         # This routine has been benchmarked to be ~4x faster than using an
         # outer product and reshaping it.
-        detector_distance = self.metadata.get_detector_distance(self.index)
-        detector_distance = np.array(detector_distance, np.float32)
-        vertical = self.metadata.get_vertical_pixel_distances(self.index)
-        horizontal = self.metadata.get_horizontal_pixel_distances(self.index)
+    
+
+
+
         detector_values=[det_displacement,detector_distance,\
                                     det_vertical,det_horizontal]
         pixel_arrays=[vertical,horizontal]
-        k_out_array=calc_kout_array(desired_shape,i,j,detector_values,pixel_arrays)
+        k_out_array_unnormalised=calc_kout_array(desired_shape,i,j,detector_values,pixel_arrays)
+        k_out_array=norm_kout_array(k_out_array_unnormalised,i,j)
 
-
-
-        # We're going to need to normalize; this function bottlenecks if not
-        # done exactly like this!
-        # This weird manual norm calculation is an order of magnitude faster
-        # than using np.linalg.norm(k_out_array, axis=-1), and the manual
-        # addition is an order of magnitude faster than using sum(.., axis=-1)
-        k_out_squares = np.square(k_out_array[i, j, :])
-
-        # k_out_sqares' shape depends on what i and j are. Handle all 3 cases.
-        if len(k_out_squares.shape) == 1:
-            norms = np.sum(k_out_squares)
-        elif len(k_out_squares.shape) == 2:
-            norms = (k_out_squares[:, 0] +
-                     k_out_squares[:, 1] +
-                     k_out_squares[:, 2])
-        else:
-            norms = (k_out_squares[:, :, 0] +
-                     k_out_squares[:, :, 1] +
-                     k_out_squares[:, :, 2])
-        norms = np.sqrt(norms)
-
-        # Right now, k_out_array[a, b] has units of meters for all a, b. We want
-        # k_out_array[a, b] to be normalized (elastic scattering). This can be
-        # done now that norms has been created because it has the right shape.
-        k_out_array[i, j, 0] /= norms
-        k_out_array[i, j, 1] /= norms
-        k_out_array[i, j, 2] /= norms
 
         # For performance reasons these should also be float32.
         incident_beam_arr = self.diffractometer.get_incident_beam(frame).array
