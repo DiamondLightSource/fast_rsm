@@ -1,16 +1,6 @@
-from fast_rsm.rsm_metadata import RSMMetadata
-from types import SimpleNamespace
-from pytest import fixture
 import pytest
 import numpy as np
 from numpy.testing import assert_allclose
-@fixture
-def testRSM():
-    test_diff=SimpleNamespace(\
-        data_file=SimpleNamespace(image_shape=(100,200),\
-                                  is_rotated=True))
-    beam_centre=(20,40)
-    return RSMMetadata(test_diff,beam_centre) 
 
 def test_beamcentre_swap(testRSM):
     testRSM.swap_beam_centre()
