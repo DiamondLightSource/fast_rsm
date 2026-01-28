@@ -1,13 +1,15 @@
 from types import SimpleNamespace
-from fast_rsm.config_loader import check_config_schema,experiment_config
-from fast_rsm.pyfai_interface import *
-from fast_rsm.diamond_utils import *
+#from fast_rsm.pyfai_interface import *
+from fast_rsm.diamond_utils import initial_value_checks,colour_text
 
 def test_default_scans(test_default_config: dict):
     assert test_default_config['scan_numbers']==[1234]
 
 
-
+def test_colour_text():
+    assert colour_text('blue','hello')=='\033[34mhello\033[0m'
+    assert colour_text('green','hello')=='\033[32mhello\033[0m'
+    assert colour_text('red','hello')=='\033[31mhello\033[0m'
 
 def test_initial_checks(test_default_config: dict):
     outlist=['cylinder_axis','setup','output_file_size']

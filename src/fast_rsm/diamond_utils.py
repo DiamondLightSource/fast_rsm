@@ -130,7 +130,7 @@ def colour_text(colour,string):
     colourkeys = {
         'blue': [
             '\033[34m',
-            '\033[0m.'],
+            '\033[0m'],
         'green': [
             '\033[32m',
             '\033[0m'],
