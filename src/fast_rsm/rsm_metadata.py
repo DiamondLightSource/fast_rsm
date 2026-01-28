@@ -72,6 +72,7 @@ class RSMMetadata:
             self.beam_centre = (
                 self.data_file.image_shape[0] - self.beam_centre[1],
                 self.beam_centre[0])
+    
     def beam_centre_range_check(self):
         test_arr = np.ndarray(self.data_file.image_shape)
         try:
@@ -82,6 +83,7 @@ class RSMMetadata:
                   f"fast_axis).")
             raise error
         return True
+    
     def _correct_beam_centre(self):
         """
         Correct the beam centre, if necessary. We can use the metadata to work
