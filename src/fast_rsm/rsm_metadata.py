@@ -379,7 +379,7 @@ class RSMMetadata:
         """
         Initializes the relative_azimuth array.
         """
-        pixel_offsets,out_shape=self.get_pixel_index_offsets(1)
+        pixel_offsets,out_shape=self.get_pixel_index_offsets(1,image_shape)
         # Now convert from pixels to distances to angles.
         distance_offsets = pixel_offsets * self.data_file.pixel_size
         phi_offsets = np.arctan2(distance_offsets,
