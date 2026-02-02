@@ -111,4 +111,3 @@ def test_normvalue():
     testvals3=None
     assert get_norm_value(testvals3,2)==None
 
-print('DONE')
