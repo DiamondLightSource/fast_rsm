@@ -6,9 +6,10 @@ from typing import Union
 import logging
 import numpy as np
 from diffraction_utils import Frame, I07Nexus, Polarisation
-
+from nexusformat.nexus.tree import NeXusError
 import mapper_c_utils
 from fast_rsm.rsm_metadata import RSMMetadata
+
 
 import fast_rsm.corrections as corrections
 from fast_rsm.angle_pixel_q import calc_kout_array
@@ -67,7 +68,7 @@ def get_norm_value(values,index):
     if values is None:
         print(notfound)
         return None
-    if len(values)==1:
+    if isinstance(values,float):
         return values
     if len(values)==0:
         print(notfound)
@@ -305,7 +306,10 @@ class Image:
 
         det_name=self.metadata.data_file.detector_name
         scan_entry = self.metadata.diffractometer.data_file.nxfile
-        count_time_data= scan_entry.entry[det_name]['count_time'].nxdata
+        try:  
+            count_time_data= scan_entry.entry[det_name]['count_time'].nxdata
+        except NeXusError:
+            count_time_data=None
         arr = correct_counttime(count_time_data,arr,self.index)
 
         if self.metadata.diffractometer.data_file.is_dectris:
@@ -396,7 +400,7 @@ class Image:
         # free", Lorentz/polarisation corrections should be applied. Only do
         # this if we're mapping the entire image (i.e. indices is None).
         # this if we're mapping the entire image (i.e. indices is None).
-        self.apply_corrections(lorentz_correction,pol_correction, incident_beam_arr, k_out_array)
+        self.apply_corrections(frame,lorentz_correction,pol_correction, incident_beam_arr, k_out_array=k_out_array)
 
 
         # Note that this is an order of magnitude faster than:
