@@ -24,6 +24,7 @@ from fast_rsm.binning import weighted_bin_3d
 from fast_rsm.image import Image
 from fast_rsm.rsm_metadata import RSMMetadata
 from fast_rsm.writing import linear_bin_to_vtk
+from fast_rsm.corrections import make_float32
 
 logger = logging.getLogger("fastrsm")
 
@@ -260,11 +261,11 @@ def _bin_one_map_smm(start: np.ndarray,
 
     image = Image(METADATA, idx)
     image._processing_steps = processing_steps
-
+    binning_data=make_float32([image.data])[0]
     # Do the mapping for this image; bin the mapping.
     q_vectors = image.q_vectors(FRAME, spherical_bragg_vec, oop=oop)
     weighted_bin_3d(q_vectors,
-                    image.data,
+                    binning_data,
                     RSM_ARRAY,
                     COUNT_ARRAY,
                     start,
