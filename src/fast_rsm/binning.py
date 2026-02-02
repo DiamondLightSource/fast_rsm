@@ -126,11 +126,15 @@ def finite_diff_shape(start: np.ndarray, stop: np.ndarray, step: np.ndarray):
 #     dd = fast.histogramdd(coords, shape, _range, intensities)
 #     # print(f"Time spend in histogramdd: {(time() - t1)*1000} ms")
 #     return dd
-def typecheckfloats(float_dict):
+
+
+
+def typecheckdict(float_dict,type):
     for k,v in float_dict.items():
-        if v.dtype != np.uint32:
-            raise ValueError(f"{k} must have dtype=np.uint32")
+        if v.dtype != type:
+            raise ValueError(f"{k} must have dtype={type}")
     return True
+
 def weighted_bin_3d(coords: np.ndarray, weights: np.ndarray,
                     out: np.ndarray, count: np.ndarray,
                     start: np.ndarray, stop: np.ndarray, step: np.ndarray,
@@ -182,8 +186,11 @@ def weighted_bin_3d(coords: np.ndarray, weights: np.ndarray,
         min_intensity = -np.inf
     min_intensity = np.array([min_intensity]).astype(np.float32)
 
-    float_dict={'weights':weights,'coords':coords,'out':out,'count':count}
-    typecheckfloats(float_dict)
+    float_dict={'weights':weights,'coords':coords,'out':out}
+    typecheckdict(float_dict,np.float32)
+
+    int_dict={'count':count}
+    typecheckdict(int_dict,np.uint32)
     # if weights.dtype != np.float32:
     #     raise ValueError("Weights must have dtype=np.float32")
     # if coords.dtype != np.float32:
