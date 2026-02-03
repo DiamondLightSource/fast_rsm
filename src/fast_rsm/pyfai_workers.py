@@ -461,7 +461,49 @@ def pyfai_stat_qmap_worker(experiment, imageindex, scan,
     return map2d[0], map2d[1], map2d[2], mapaxisinfo
 
 
-def pyfai_stat_ivsq_worker(experiment: Experiment, imageindex, scan,
+
+def pyfai_stat_ivsq_worker_new(experiment: Experiment, imageindex, scan,
+                           process_config: SimpleNamespace) -> None:
+    """
+    calculate Intensity Vs Q profile for static detector scan data using pyFAI Fiber integrator
+    """
+    cfg = process_config
+    index = imageindex
+    inc_angle,inc_angle_out=cfg.all_inc_angles[index]
+    # unit_oop.set_incident_angle(inc_angle_out)
+    # unit_ip.set_incident_angle(inc_angle_out)
+    gamdelval=cfg.gamdelvals[index]
+    current_ai=get_pyfai_ai(experiment,cfg.aistart, cfg.slitratios, cfg.alphacritical,inc_angle,gamdelval)
+    d5i_data=cfg.d5i_full[index]
+    #current_ai.rot2=np.radians(34.8)
+
+    #flat_img_data,dummy_ai=load_flat_test_image()
+    # img_mask=dummy_ai.mask
+    # current_ai.mask=dummy_ai.mask
+
+    img_data,img_mask=get_pyfai_image_data(experiment,scan,index)
+
+    #DEBUG - section for creating normalise image of ones
+    #img_data[img_data.astype(float)==0.0]=1
+    #ones_img_data=np.divide(img_data,img_data,out=np.zeros(np.shape(img_data)),where=img_data.astype(float)>0.0)
+
+    current_ai.mask=img_mask
+    method=("no", "histogram", "cython")
+
+    #single_result=current_ai.integrate1d(img_data,cfg.ivqbins,unit = cfg.unit_qip_name ,normalization_factor=d5i_data,correctSolidAngle=True, method=method,radial_range=(cfg.radialrange[0]-0.5, cfg.radialrange[1]+0.5))
+    #outrange=(cfg.radialrange[0]-0.5, cfg.radialrange[1]+0.5)
+    qranges=np.array([calcq(val,experiment.incident_wavelength) for val in cfg.fullranges])
+    range_adjust=[-0.5,0.5]
+    single_result=current_ai.integrate_fiber(img_data,  npt_ip=cfg.ivqbins, unit_ip=cfg.unit_qip_name, ip_range=qranges[0:2]+range_adjust,
+                    npt_oop=cfg.ivqbins, unit_oop=cfg.unit_qoop_name,oop_range=qranges[2:]+range_adjust,
+                    sample_orientation=cfg.sample_orientation,
+                    normalization_factor=d5i_data,vertical_integration=True)
+
+    return single_result.sum_signal,single_result.radial,img_mask
+
+
+
+def pyfai_stat_ivsq_worker_old(experiment: Experiment, imageindex, scan,
                            process_config: SimpleNamespace) -> None:
     """
     calculate Intensity Vs Q profile for static detector scan data using pyFAI Fiber integrator

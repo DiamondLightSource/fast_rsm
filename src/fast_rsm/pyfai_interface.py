@@ -25,7 +25,10 @@ from fast_rsm.scan import Scan, chunk, check_shared_memory
 from fast_rsm.experiment import Experiment, gamdel2rots,calctheta,calcq,do_savedats,do_savetiffs
 from fast_rsm.logging_config import get_debug_logger,listener_process,get_logger,do_time_check
 
-from fast_rsm.pyfai_workers import pyfai_move_ivsq_worker_old,pyfai_move_qmap_worker_old, pyfai_move_qmap_worker_new,pyfai_move_ivsq_worker_new, pyfai_move_exitangles_worker_old,pyfai_stat_exitangles_worker,pyfai_stat_ivsq_worker,pyfai_stat_qmap_worker
+from fast_rsm.pyfai_workers import pyfai_move_ivsq_worker_old,pyfai_move_qmap_worker_old,pyfai_move_exitangles_worker_old, \
+    pyfai_move_qmap_worker_new,pyfai_move_ivsq_worker_new,\
+    pyfai_stat_exitangles_worker,pyfai_stat_ivsq_worker_old,pyfai_stat_qmap_worker,\
+        pyfai_stat_ivsq_worker_new
 
 from fast_rsm.angle_pixel_q import calcq,calctheta,gamdel2rots
 
@@ -488,7 +491,8 @@ def load_flat_test_image():
 
 def worker_unpack(args):
     function_map={'move_ivq':pyfai_move_ivsq_worker_new,
-                  'move_qmap': pyfai_move_qmap_worker_new}
+                  'move_qmap': pyfai_move_qmap_worker_new,
+                  'static_ivq': pyfai_stat_ivsq_worker_new}
     worker_function=function_map[args[0]]
     worker_args=args[1:]
     # top-level adapter to avoid lambda pickling issues
@@ -1053,7 +1057,7 @@ def pyfai_moving_ivsq_smm_new(experiment: Experiment, hf, scanlist, process_conf
             
             accumulator_intensity = np.zeros((1, cfg.ivqbins), dtype=np.float32)
             accumulator_count = np.zeros((1, cfg.ivqbins), dtype=np.float32)
-            accumulator_theta = np.zeros((1, cfg.ivqbins), dtype=np.float32)
+            accumulator_q = np.zeros((1, cfg.ivqbins), dtype=np.float32)
             accumulator_mask=[]
             completed = 0
             #accumulator_mask=[]
@@ -1062,7 +1066,7 @@ def pyfai_moving_ivsq_smm_new(experiment: Experiment, hf, scanlist, process_conf
                     accumulator_mask=partial[3]
                 accumulator_intensity += partial[0]
                 accumulator_count += partial[1]
-                accumulator_theta += partial[2]
+                accumulator_q += partial[2]
                 
                 completed += 1
                 if completed % 10 == 0 or completed == num_batches:
@@ -1070,7 +1074,7 @@ def pyfai_moving_ivsq_smm_new(experiment: Experiment, hf, scanlist, process_conf
                         
             intensity_results_per_scan.append(accumulator_intensity)
             count_results_per_scan.append(accumulator_count)
-            qtot_results_per_scan.append(accumulator_theta/completed)
+            qtot_results_per_scan.append(accumulator_q/completed)
             print(f"[scan {scanind+1}] finished.")
 
     log_queue.put_nowait(None) # End the queue
@@ -1235,7 +1239,7 @@ def pyfai_static_qmap(experiment: Experiment, hf, scan, process_config: SimpleNa
     hf.close()
 
 
-def pyfai_static_ivsq(experiment: Experiment, hf, scan, process_config: SimpleNamespace):
+def pyfai_static_ivsq_old(experiment: Experiment, hf, scan, process_config: SimpleNamespace):
     """
     calculate Intensity Vs Q 1d profile from static detector scan
     """
@@ -1282,6 +1286,83 @@ def pyfai_static_ivsq(experiment: Experiment, hf, scan, process_config: SimpleNa
 
     print('finished process pool')
 
+    signal_shape = np.shape(scan.metadata.data_file.default_signal)
+    outlist = [all_ints[0], all_qs[0], all_two_ths[0]]
+    if len(signal_shape) > 1:
+        outlist = [
+            reshape_to_signalshape(
+                arr, signal_shape) for arr in outlist]
+
+    dset = hf.create_group("integrations")
+    dset.create_dataset("Intensity", data=outlist[0])
+    dset.create_dataset("Q_angstrom^-1", data=outlist[1])
+    dset.create_dataset("2thetas", data=outlist[2])
+    if "scanfields" not in hf.keys():
+        save_scan_field_values(hf, scan)
+    if cfg.savedats is True:
+        do_savedats(hf, outlist[0], outlist[1], outlist[2])
+    save_config_variables(hf, cfg)
+    hf.close()
+
+
+def pyfai_static_ivsq_new(experiment: Experiment, hf, scan, process_config: SimpleNamespace):
+    """
+    calculate Intensity Vs Q 1d profile from static detector scan
+    """
+    logger=get_logger(LOGGER_DEBUG)
+    listener,log_queue=start_listener()
+    cfg = process_config
+    ctx = get_context("spawn")
+    cfg.fullranges, cfg.scanlength, cfg.scanlistnew =\
+     pyfai_setup_limits(experiment,scan, experiment.calcanglim, cfg.slitratios)
+    absranges,radmax=get_corner_thetas(cfg)
+    #num_threads = int(cfg.num_threads)  # e.g., 40
+    t0 = time()
+    cfg.unit_qip_name =  "qip_A^-1"# "qip_A^-1""2th_deg"  #
+    cfg.unit_qoop_name = "qoop_A^-1"
+    if cfg.radialrange is None:
+        cfg.radialrange=check_full_1d_radial_range(experiment,cfg,absranges,radmax)
+
+        
+    if cfg.ivqbins is None:
+        cfg.ivqbins = int(
+            np.ceil((cfg.radialrange[1] - cfg.radialrange[0]) /
+                cfg.radialstepval))
+    print(f'starting process pool with num_threads={cfg.num_threads}')
+    cfg.multi = False
+    all_ints = []
+    all_two_ths = []
+    all_qis=[]
+    scan_mask=[]
+    cfg.shapeqi = (1, np.abs(cfg.ivqbins))
+    cfg.scan_ind=0
+    ctx = get_context("spawn")
+    with ctx.Pool(processes=cfg.num_threads ) as pool:
+        cfg.aistart = pyFAI.load(cfg.pyfaiponi,type_="pyFAI.integrator.fiber.FiberIntegrator")
+        cfg.d5i_full=get_d5i_values(scan)
+        imageindices=get_full_indices(scan,cfg)
+        cfg.gamdelvals=[get_gam_del_vals(experiment,ind) for ind in imageindices]
+        cfg.all_inc_angles=[get_inc_angles_out(experiment,ind) for ind in imageindices]
+        
+        batches = imageindices
+        num_batches = len(batches)
+        args_iter = (('static_ivq',experiment, batch, scan, cfg,log_queue,logn) for logn,batch in enumerate(batches))
+        
+        scan_mask=[]
+        completed = 0
+        #accumulator_mask=[]
+        for partial in pool.imap_unordered(worker_unpack, args_iter, chunksize=1):
+            if (completed==0):
+                scan_mask.append(partial[2])
+            all_ints.append(partial[0])
+            all_qis.append(partial[1])
+            all_two_ths.append([calctheta(val,experiment.incident_wavelength) for val in partial[1]])
+            
+            completed += 1
+            if completed % 10 == 0 or completed == num_batches:
+                print(f"  completed {completed}/{num_batches} batches", flush=True)
+
+    
     signal_shape = np.shape(scan.metadata.data_file.default_signal)
     outlist = [all_ints[0], all_qs[0], all_two_ths[0]]
     if len(signal_shape) > 1:
