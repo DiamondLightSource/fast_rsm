@@ -18,9 +18,9 @@ from diffraction_utils import Frame, Region
 from fast_rsm.binning import finite_diff_grid
 from fast_rsm.experiment import Experiment
 from fast_rsm.config_loader import check_config_schema,experiment_config, parse_setup_file
-from fast_rsm.pyfai_interface import pyfai_static_qmap ,pyfai_static_exitangles,\
-pyfai_static_ivsq_old,pyfai_moving_qmap_smm_new,pyfai_moving_exitangles_smm,\
-pyfai_moving_ivsq_smm_new,save_config_variables,createponi,pyfai_static_ivsq_new
+from fast_rsm.pyfai_interface import pyfai_static_qmap_old ,pyfai_static_exitangles_old,pyfai_static_ivsq_old,\
+    pyfai_static_ivsq_new,pyfai_static_exitangles_new,pyfai_static_qmap_new,\
+        pyfai_moving_qmap_smm_new,pyfai_moving_exitangles_smm_new,pyfai_moving_ivsq_smm_new,save_config_variables,createponi
 
 def setup_processing(exp_setup_file: Path,job_file_path:str, scan_numbers: list ):
     """
@@ -379,14 +379,14 @@ def get_run_functions(process_config):
     on configuration requested
     """
     cfg = process_config
-    static_functions = {'pyfai_qmap': [pyfai_static_qmap, "Qmap", "2d Qmap"],
+    static_functions = {'pyfai_qmap': [pyfai_static_qmap_new, "Qmap", "2d Qmap"],
                         'pyfai_exitangles': \
-                        [pyfai_static_exitangles, "exitmap", "2d exit angle map"],
+                        [pyfai_static_exitangles_new, "exitmap", "2d exit angle map"],
                         'pyfai_ivsq': [pyfai_static_ivsq_new, "IvsQ", "1d integration "]}
 
     moving_functions = {'pyfai_qmap': [pyfai_moving_qmap_smm_new, "Qmap", "2d Qmap"],
                         'pyfai_exitangles':\
-                         [pyfai_moving_exitangles_smm, "exitmap", "2d exit angle map"],
+                         [pyfai_moving_exitangles_smm_new, "exitmap", "2d exit angle map"],
                         'pyfai_ivsq': [pyfai_moving_ivsq_smm_new, "IvsQ", "1d integration "]}
 
     if cfg.map_per_image:

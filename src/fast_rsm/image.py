@@ -66,12 +66,12 @@ def correct_counttime(count_time_array,data_array,index):
 def get_norm_value(values,index):
     notfound="Normalisation data for image not found, therefore setting to value 1."
     if values is None:
-        print(notfound)
+        #print(notfound)
         return None
     if isinstance(values,float):
         return values
     if len(values)==0:
-        print(notfound)
+        #print(notfound)
         return 1
     if isinstance(values, np.ndarray):
         return values.flatten()[index]
