@@ -79,7 +79,7 @@ def get_norm_value(values,index):
         return values[index]
 
 def do_mask_detris(data_arr):
-    dectris_mask=data_arr==4294967300.0
+    dectris_mask=data_arr>=4294967300.0
     if dectris_mask is not None:
         data_arr[dectris_mask]=np.nan
 
