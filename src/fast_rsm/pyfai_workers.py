@@ -195,8 +195,8 @@ def pyfai_move_qmap_worker_new(experiment: Experiment, imageindices,
         current_ai.mask=img_mask
         method=("no", "histogram", "cython")
 #)
-        outrangerad=np.array([cfg.fullranges[0]-(0.05*np.abs(cfg.fullranges[0])), cfg.fullranges[1]*1.05])
-        outrangeazi=np.array([cfg.fullranges[2]-(0.05*np.abs(cfg.fullranges[2])), cfg.fullranges[3]*1.05])
+        outrangerad=cfg.fullranges[0:2]
+        outrangeazi=cfg.fullranges[2:]
         single_result=current_ai.integrate2d(img_data, cfg.qmapbins[0],
                                            cfg.qmapbins[1], unit=(
                                                unit_ip, unit_oop),
@@ -257,8 +257,8 @@ def pyfai_move_exitangles_worker_new(experiment: Experiment, imageindices,
         current_ai.mask=img_mask
         method=("no", "histogram", "cython")
 #)
-        outrangerad=np.array([cfg.fullranges[0]-(0.05*np.abs(cfg.fullranges[0])), cfg.fullranges[1]*1.05])
-        outrangeazi=np.array([cfg.fullranges[2]-(0.05*np.abs(cfg.fullranges[2])), cfg.fullranges[3]*1.05])
+        outrangerad=cfg.fullranges[0:2]
+        outrangeazi=cfg.fullranges[2:]
         single_result=current_ai.integrate2d(img_data, cfg.qmapbins[0],
                                            cfg.qmapbins[1], unit=(
                                                unit_ip, unit_oop),
@@ -414,6 +414,10 @@ def pyfai_stat_qmap_worker_new(experiment: Experiment, imageindex, scan,\
 
 
 
+    # unit=(unit_ip, unit_oop), radial_range=(cfg.fullranges[0], cfg.fullranges[1]),\
+    #  azimuth_range=(cfg.fullranges[2], cfg.fullranges[3]), method=("no", "csr", "cython"))
+    # mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
+    #     map2d.azimuthal_unit), str(map2d.radial_unit)]
 
 #====== OLD previous workers
 
