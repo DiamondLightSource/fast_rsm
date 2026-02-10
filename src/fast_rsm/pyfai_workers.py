@@ -75,7 +75,6 @@ def get_pyfai_limits(limits_in):
     
 
 
-
 #==========moving workers
 
 
@@ -89,16 +88,16 @@ def pyfai_move_ivsq_worker_new(experiment: Experiment, imageindices,
     cfg = process_config
 
     
-    time_logger=get_logger(LOGGER_DEBUG)
-    if queue is not None:
-        #print('found queue')
-        qh = logging.handlers.QueueHandler(queue)
-        root_logger = get_logger(LOGGER_DEBUG)
-        root_logger.addHandler(qh)
-        root_logger.setLevel(logging.DEBUG)
-        time_logger=root_logger.getChild(f'child_{logn}')
-        time_logger.debug(f'created logger for child_{logn}')
-    time_logger.debug(do_time_check(f'start ivq worker {logn}'))
+    # #time_logger=get_logger(LOGGER_DEBUG)
+    # if queue is not None:
+    #     #print('found queue')
+    #     qh = logging.handlers.QueueHandler(queue)
+    #     root_logger = get_logger(LOGGER_DEBUG)
+    #     root_logger.addHandler(qh)
+    #     root_logger.setLevel(logging.DEBUG)
+    #     #time_logger=root_logger.getChild(f'child_{logn}')
+    #     #time_logger.debug(f'created logger for child_{logn}')
+    # #time_logger.debug(do_time_check(f'start ivq worker {logn}'))
     
     #ais = []
     #img_data_list = []
@@ -111,13 +110,15 @@ def pyfai_move_ivsq_worker_new(experiment: Experiment, imageindices,
    
     fullresult=np.zeros(cfg.ivqbins)
     fullcounts=np.zeros(cfg.ivqbins)#
-    time_logger.debug(do_time_check(f'start loop of image child_{logn}'))
+   # #time_logger.debug(do_time_check(f'start loop of image child_{logn}'))
     for i,ind in enumerate(imageindices):
         inc_angle,inc_angle_out=cfg.all_inc_angles[ind]
         # unit_oop.set_incident_angle(inc_angle_out)
         # unit_ip.set_incident_angle(inc_angle_out)
         gamdelval=cfg.gamdelvals[ind]
         current_ai=get_pyfai_ai(experiment,cfg.aistart, cfg.slitratios, cfg.alphacritical,inc_angle,gamdelval)
+        unit_tth.incident_angles=inc_angle_out
+        unit_oop.incident_angle=inc_angle_out
         d5i_data=cfg.d5i_full[ind]
         #current_ai.rot2=np.radians(34.8)
 
@@ -135,18 +136,18 @@ def pyfai_move_ivsq_worker_new(experiment: Experiment, imageindices,
         method=("no", "histogram", "cython")
 #) 
 #
-        #single_result=current_ai.integrate1d(img_data,cfg.ivqbins,unit = cfg.unit_qip_name ,normalization_factor=d5i_data,correctSolidAngle=True, method=method,radial_range=(cfg.radialrange[0]-0.5, cfg.radialrange[1]+0.5))
+        single_result=current_ai.integrate1d(img_data,cfg.ivqbins,unit = cfg.unit_qip_name ,normalization_factor=d5i_data,correctSolidAngle=True, method=method,radial_range=(cfg.radialrange[0]-0.5, cfg.radialrange[1]+0.5))
         #outrange=(cfg.radialrange[0]-0.5, cfg.radialrange[1]+0.5)
-        qranges=np.array([calcq(val,experiment.incident_wavelength) for val in cfg.fullranges])
-        range_adjust=[-0.5,0.5]
-        single_result=current_ai.integrate_fiber(img_data,  npt_ip=cfg.ivqbins, unit_ip=cfg.unit_qip_name, ip_range=qranges[0:2]+range_adjust,
-                        npt_oop=cfg.ivqbins, unit_oop=cfg.unit_qoop_name,oop_range=qranges[2:]+range_adjust,
-                        sample_orientation=cfg.sample_orientation,
-                        normalization_factor=d5i_data,vertical_integration=True)
+        # qranges=np.array([calcq(val,experiment.incident_wavelength) for val in cfg.fullranges])
+        # range_adjust=[-0.5,0.5]
+        # single_result=current_ai.integrate_fiber(img_data,  npt_ip=cfg.ivqbins, unit_ip=cfg.unit_qip_name, ip_range=qranges[0:2]+range_adjust,
+        #                 npt_oop=cfg.ivqbins, unit_oop=cfg.unit_qoop_name,oop_range=qranges[2:]+range_adjust,
+        #                 sample_orientation=cfg.sample_orientation,
+        #                 normalization_factor=d5i_data,vertical_integration=True)
         #single_result=current_ai.integrate1d(img_data,cfg.ivqbins,unit = cfg.unit_qip_name ,method=method,radial_range=(cfg.radialrange[0], cfg.radialrange[1]))
         fullresult+=single_result.sum_signal
         fullcounts+=single_result.count
-    time_logger.debug(do_time_check(f'stop loop of image child_{logn}'))
+    #time_logger.debug(do_time_check(f'stop loop of image child_{logn}'))
     return fullresult,fullcounts,single_result.radial,img_mask
     #return result1d.sum_signal,result1d.count,single_result.radial
 
@@ -159,29 +160,30 @@ def pyfai_move_qmap_worker_new(experiment: Experiment, imageindices,
     cfg = process_config
 
     
-    time_logger=get_logger(LOGGER_DEBUG)
+    #time_logger=get_logger(LOGGER_DEBUG)
     if queue is not None:
         #print('found queue')
         qh = logging.handlers.QueueHandler(queue)
         root_logger = get_logger(LOGGER_DEBUG)
         root_logger.addHandler(qh)
         root_logger.setLevel(logging.DEBUG)
-        time_logger=root_logger.getChild(f'child_{logn}')
-        time_logger.debug(f'created logger for child_{logn}')
-    time_logger.debug(do_time_check(f'start ivq worker {logn}'))
+        #time_logger=root_logger.getChild(f'child_{logn}')
+        #time_logger.debug(f'created logger for child_{logn}')
+    #time_logger.debug(do_time_check(f'start ivq worker {logn}'))
     
     #ais = []
     #img_data_list = []
     d5i_data=[]
-    unit_tth = units.get_unit_fiber(
+    inc_angle=np.radians(experiment.incident_angle)
+    unit_ip = units.get_unit_fiber(
         cfg.unit_qip_name, sample_orientation=cfg.sample_orientation, incident_angle=0)
     unit_oop = units.get_unit_fiber(
         cfg.unit_qoop_name, sample_orientation=cfg.sample_orientation, incident_angle=0)
     
     
-    fullresult=np.zeros(cfg.qmapbins)
-    fullcounts=np.zeros(cfg.qmapbins)#
-    time_logger.debug(do_time_check(f'start loop of image child_{logn}'))
+    fullresult=np.zeros((cfg.qmapbins[1],cfg.qmapbins[0]))
+    fullcounts=np.zeros((cfg.qmapbins[1],cfg.qmapbins[0]))#
+    #time_logger.debug(do_time_check(f'start loop of image child_{logn}'))
     for i,ind in enumerate(imageindices):
         inc_angle,inc_angle_out=cfg.all_inc_angles[ind]
         # unit_oop.set_incident_angle(inc_angle_out)
@@ -194,19 +196,235 @@ def pyfai_move_qmap_worker_new(experiment: Experiment, imageindices,
         img_data,img_mask=get_pyfai_image_data(experiment,scan,ind)
         current_ai.mask=img_mask
         method=("no", "histogram", "cython")
-#)
+        unit_ip.incident_angle=inc_angle_out
+        unit_oop.incident_angle=inc_angle_out
+        outrangerad=cfg.fullranges[0:2]
+        outrangeazi=cfg.fullranges[2:]
+        single_result=current_ai.integrate2d(img_data, cfg.qmapbins[0],
+                                           cfg.qmapbins[1], unit=(
+                                               unit_ip, unit_oop),
+                                           radial_range=outrangerad,
+                                           azimuth_range=outrangeazi,
+                                           method=("no", "csr", "cython"))
 
-        #single_result=current_ai.integrate1d(img_data,cfg.ivqbins,unit = cfg.unit_qip_name ,normalization_factor=d5i_data,correctSolidAngle=True, method=method,radial_range=(cfg.radialrange[0]-0.5, cfg.radialrange[1]+0.5))
-        outrange=(cfg.radialrange[0]-0.5, cfg.radialrange[1]+0.5)
-
-        single_result=current_ai.integrate2d_fiber(img_data,  npt_ip=cfg.qmapbins[0], unit_ip=cfg.unit_qip_name, ip_range=outrange, npt_oop=cfg.qmapbins[1], unit_oop=cfg.unit_qoop_name, oop_range=outrange,sample_orientation=cfg.sample_orientation, normalization_factor=d5i_data)
-        #single_result=current_ai.integrate1d(img_data,cfg.ivqbins,unit = cfg.unit_qip_name ,method=method,radial_range=(cfg.radialrange[0], cfg.radialrange[1]))
+        # single_result=current_ai.integrate2d_fiber(img_data,  npt_ip=cfg.qmapbins[0], unit_ip=cfg.unit_qip_name, ip_range=outrange, npt_oop=cfg.qmapbins[1], unit_oop=cfg.unit_qoop_name, oop_range=outrange,sample_orientation=cfg.sample_orientation, normalization_factor=d5i_data)
+        # #single_result=current_ai.integrate1d(img_data,cfg.ivqbins,unit = cfg.unit_qip_name ,method=method,radial_range=(cfg.radialrange[0], cfg.radialrange[1]))
         fullresult+=single_result.sum_signal
         fullcounts+=single_result.count
-    time_logger.debug(do_time_check(f'stop loop of image child_{logn}'))
+    #time_logger.debug(do_time_check(f'stop loop of image child_{logn}'))
     return fullresult,fullcounts,single_result.radial,single_result.azimuthal,img_mask
 
 
+def pyfai_move_exitangles_worker_new(experiment: Experiment, imageindices,
+                           scan, process_config,queue=None,logn=None) -> None:
+    """
+    calculate 2d q_para Vs q_perp map for moving detector scan using pyFAI
+    """
+    cfg = process_config
+
+    
+    #time_logger=get_logger(LOGGER_DEBUG)
+    if queue is not None:
+        #print('found queue')
+        qh = logging.handlers.QueueHandler(queue)
+        root_logger = get_logger(LOGGER_DEBUG)
+        root_logger.addHandler(qh)
+        root_logger.setLevel(logging.DEBUG)
+        #time_logger=root_logger.getChild(f'child_{logn}')
+        #time_logger.debug(f'created logger for child_{logn}')
+    #time_logger.debug(do_time_check(f'start ivq worker {logn}'))
+    
+    #ais = []
+    #img_data_list = []
+    d5i_data=[]
+    unit_ip = units.get_unit_fiber(
+        cfg.unit_qip_name, sample_orientation=cfg.sample_orientation, incident_angle=0)
+    unit_oop = units.get_unit_fiber(
+        cfg.unit_qoop_name, sample_orientation=cfg.sample_orientation, incident_angle=0)
+    
+    
+    fullresult=np.zeros((cfg.qmapbins[1],cfg.qmapbins[0]))
+    fullcounts=np.zeros((cfg.qmapbins[1],cfg.qmapbins[0]))#
+    #time_logger.debug(do_time_check(f'start loop of image child_{logn}'))
+    for i,ind in enumerate(imageindices):
+        inc_angle,inc_angle_out=cfg.all_inc_angles[ind]
+        # unit_oop.set_incident_angle(inc_angle_out)
+        # unit_ip.set_incident_angle(inc_angle_out)
+        gamdelval=cfg.gamdelvals[ind]
+        current_ai=get_pyfai_ai(experiment,cfg.aistart, cfg.slitratios, cfg.alphacritical,inc_angle,gamdelval)
+        d5i_data=cfg.d5i_full[ind]
+
+        unit_ip.incident_angle=inc_angle_out
+        unit_oop.incident_angle=inc_angle_out
+
+        img_data,img_mask=get_pyfai_image_data(experiment,scan,ind)
+        current_ai.mask=img_mask
+        method=("no", "histogram", "cython")
+#)
+        outrangerad=cfg.fullranges[0:2]
+        outrangeazi=cfg.fullranges[2:]
+        single_result=current_ai.integrate2d(img_data, cfg.qmapbins[0],
+                                           cfg.qmapbins[1], unit=(
+                                               unit_ip, unit_oop),
+                                           radial_range=outrangerad,
+                                           azimuth_range=outrangeazi,
+                                           method=("no", "csr", "cython"))
+
+        # single_result=current_ai.integrate2d_fiber(img_data,  npt_ip=cfg.qmapbins[0], unit_ip=cfg.unit_qip_name, ip_range=outrange, npt_oop=cfg.qmapbins[1], unit_oop=cfg.unit_qoop_name, oop_range=outrange,sample_orientation=cfg.sample_orientation, normalization_factor=d5i_data)
+        # #single_result=current_ai.integrate1d(img_data,cfg.ivqbins,unit = cfg.unit_qip_name ,method=method,radial_range=(cfg.radialrange[0], cfg.radialrange[1]))
+        fullresult+=single_result.sum_signal
+        fullcounts+=single_result.count
+    #time_logger.debug(do_time_check(f'stop loop of image child_{logn}'))
+    return fullresult,fullcounts,single_result.radial,single_result.azimuthal,img_mask
+
+
+
+#============static workers
+
+def pyfai_stat_ivsq_worker_new(experiment: Experiment, imageindex, scan,
+                           process_config: SimpleNamespace) -> None:
+    """
+    calculate Intensity Vs Q profile for static detector scan data using pyFAI Fiber integrator
+    """
+    cfg = process_config
+    index = imageindex
+    inc_angle,inc_angle_out=cfg.all_inc_angles[index]
+    # unit_oop.set_incident_angle(inc_angle_out)
+    # unit_ip.set_incident_angle(inc_angle_out)
+    gamdelval=cfg.gamdelvals[index]
+    current_ai=get_pyfai_ai(experiment,cfg.aistart, cfg.slitratios, cfg.alphacritical,inc_angle,gamdelval)
+    d5i_data=cfg.d5i_full[index]
+    #current_ai.rot2=np.radians(34.8)
+
+    #flat_img_data,dummy_ai=load_flat_test_image()
+    # img_mask=dummy_ai.mask
+    # current_ai.mask=dummy_ai.mask
+
+    img_data,img_mask=get_pyfai_image_data(experiment,scan,index)
+
+    #DEBUG - section for creating normalise image of ones
+    #img_data[img_data.astype(float)==0.0]=1
+    #ones_img_data=np.divide(img_data,img_data,out=np.zeros(np.shape(img_data)),where=img_data.astype(float)>0.0)
+
+    current_ai.mask=img_mask
+    method=("no", "histogram", "cython")
+
+    tth,intensity = current_ai.integrate1d_ng(img_data,
+                                          cfg.ivqbins,
+                                          unit="2th_deg", polarization_factor=1,\
+                                            radial_range=(
+                               cfg.radialrange[0], cfg.radialrange[1]))
+    
+
+    # single_result=current_ai.integrate1d(img_data,cfg.ivqbins,unit = cfg.unit_qip_name ,normalization_factor=d5i_data,correctSolidAngle=True, method=method,radial_range=(cfg.radialrange[0]-0.5, cfg.radialrange[1]+0.5))
+    # #outrange=(cfg.radialrange[0]-0.5, cfg.radialrange[1]+0.5)
+    # qranges=np.array([calcq(val,experiment.incident_wavelength) for val in cfg.fullranges])
+    # range_adjust=[-0.5,0.5]
+    # single_result=current_ai.integrate_fiber(img_data,  npt_ip=cfg.ivqbins, unit_ip=cfg.unit_qip_name, ip_range=qranges[0:2]+range_adjust,
+    #                 npt_oop=cfg.ivqbins, unit_oop=cfg.unit_qoop_name,oop_range=qranges[2:]+range_adjust,
+    #                 sample_orientation=cfg.sample_orientation,
+    #                 normalization_factor=d5i_data,vertical_integration=True)
+
+    # current_ai.integrate1d_grazing_incidence(img_data,sample_orientation=cfg.sample_orientation,incident_angle=inc_angle,npt_ip=np.shape(img_data[1]),npt_oop=np.shape(img_data)[0])
+
+    return intensity,tth,img_mask
+
+def pyfai_stat_exitangles_worker_new(experiment: Experiment, imageindex, scan,\
+                                  process_config: SimpleNamespace) -> None:
+    
+    """
+    calculate exit angle map for static detector scan data using pyFAI Fiber integrator
+    """
+    cfg = process_config
+    index = imageindex
+    inc_angle,inc_angle_out=cfg.all_inc_angles[index]
+    # unit_oop.set_incident_angle(inc_angle_out)
+    # unit_ip.set_incident_angle(inc_angle_out)
+    gamdelval=cfg.gamdelvals[index]
+    current_ai=get_pyfai_ai(experiment,cfg.aistart, cfg.slitratios, cfg.alphacritical,inc_angle,gamdelval)
+    d5i_data=cfg.d5i_full[index]
+    #current_ai.rot2=np.radians(34.8)
+
+    #flat_img_data,dummy_ai=load_flat_test_image()
+    # img_mask=dummy_ai.mask
+    # current_ai.mask=dummy_ai.mask
+
+    img_data,img_mask=get_pyfai_image_data(experiment,scan,index)
+
+    #DEBUG - section for creating normalise image of ones
+    #img_data[img_data.astype(float)==0.0]=1
+    #ones_img_data=np.divide(img_data,img_data,out=np.zeros(np.shape(img_data)),where=img_data.astype(float)>0.0)
+
+    current_ai.mask=img_mask
+    method=("no", "histogram", "cython")
+
+
+    unit_ip = units.get_unit_fiber(
+        cfg.unit_qip_name, sample_orientation=cfg.sample_orientation, incident_angle=inc_angle_out)
+    unit_oop = units.get_unit_fiber(
+        cfg.unit_qoop_name, sample_orientation=cfg.sample_orientation, incident_angle=inc_angle_out)
+
+    map2d = current_ai.integrate2d(img_data, cfg.qmapbins[0], cfg.qmapbins[1], \
+    unit=(unit_ip, unit_oop), radial_range=(cfg.fullranges[0], cfg.fullranges[1]),\
+     azimuth_range=(cfg.fullranges[2], cfg.fullranges[3]), method=("no", "csr", "cython"))
+    mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
+        map2d.azimuthal_unit), str(map2d.radial_unit)]
+
+    return map2d[0], map2d[1], map2d[2], mapaxisinfo,img_mask
+
+def pyfai_stat_qmap_worker_new(experiment: Experiment, imageindex, scan,\
+                                  process_config: SimpleNamespace) -> None:
+    
+    """
+    calculate exit angle map for static detector scan data using pyFAI Fiber integrator
+    """
+    cfg = process_config
+    index = imageindex
+    inc_angle,inc_angle_out=cfg.all_inc_angles[index]
+    # unit_oop.set_incident_angle(inc_angle_out)
+    # unit_ip.set_incident_angle(inc_angle_out)
+    gamdelval=cfg.gamdelvals[index]
+    current_ai=get_pyfai_ai(experiment,cfg.aistart, cfg.slitratios, cfg.alphacritical,inc_angle,gamdelval)
+    d5i_data=cfg.d5i_full[index]
+    #current_ai.rot2=np.radians(34.8)
+
+    #flat_img_data,dummy_ai=load_flat_test_image()
+    # img_mask=dummy_ai.mask
+    # current_ai.mask=dummy_ai.mask
+
+    img_data,img_mask=get_pyfai_image_data(experiment,scan,index)
+
+    #DEBUG - section for creating normalise image of ones
+    #img_data[img_data.astype(float)==0.0]=1
+    #ones_img_data=np.divide(img_data,img_data,out=np.zeros(np.shape(img_data)),where=img_data.astype(float)>0.0)
+
+    current_ai.mask=img_mask
+    method=("no", "histogram", "cython")
+
+    unit_ip = units.get_unit_fiber(
+        cfg.unit_qip_name, sample_orientation=cfg.sample_orientation, incident_angle=inc_angle_out)
+    unit_oop = units.get_unit_fiber(
+        cfg.unit_qoop_name, sample_orientation=cfg.sample_orientation, incident_angle=inc_angle_out)
+
+    map2d = current_ai.integrate2d(img_data, cfg.qmapbins[0], cfg.qmapbins[1], \
+    unit=(unit_ip, unit_oop), radial_range=(cfg.fullranges[0], cfg.fullranges[1]),\
+     azimuth_range=(cfg.fullranges[2], cfg.fullranges[3]), method=("no", "csr", "cython"))
+    mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
+        map2d.azimuthal_unit), str(map2d.radial_unit)]
+
+    return map2d[0], map2d[1], map2d[2], mapaxisinfo,img_mask
+
+
+
+
+
+
+    # unit=(unit_ip, unit_oop), radial_range=(cfg.fullranges[0], cfg.fullranges[1]),\
+    #  azimuth_range=(cfg.fullranges[2], cfg.fullranges[3]), method=("no", "csr", "cython"))
+    # mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
+    #     map2d.azimuthal_unit), str(map2d.radial_unit)]
+
+# #====== OLD previous workers
 
 def pyfai_move_ivsq_worker_old(experiment: Experiment, imageindices,
                            scan, process_config) -> None:
@@ -286,7 +504,6 @@ def pyfai_move_ivsq_worker_old(experiment: Experiment, imageindices,
     #     COUNT_ARRAY[1:] += totaloutcounts[1:]
     return totaloutqi, totaloutcounts
 
-
 def pyfai_move_qmap_worker_old(experiment: Experiment, imageindices,
                            scan, process_config) -> None:
     """
@@ -344,7 +561,6 @@ def pyfai_move_qmap_worker_old(experiment: Experiment, imageindices,
         COUNT_ARRAY += totalqpqpcounts.astype(dtype=np.int32)
     return mapaxisinfo
 
-
 def pyfai_move_exitangles_worker_old(experiment: Experiment, imageindices, scan, process_config) -> None:
     """
     calculate exit angle map for moving detector scan using pyFAI
@@ -399,39 +615,7 @@ def pyfai_move_exitangles_worker_old(experiment: Experiment, imageindices, scan,
     return mapaxisinfo
 
 
-#============static workers
-
-def pyfai_stat_exitangles_worker(experiment: Experiment, imageindex, scan,\
-                                  process_config: SimpleNamespace) -> None:
-    """
-    calculate exit angle map for static detector scan data using pyFAI Fiber integrator
-    """
-    # pylint: disable=unused-argument
-    # pylint: disable=unused-variable
-    cfg = process_config
-    index = imageindex
-    aistart = pyFAI.load(
-        cfg.pyfaiponi,
-        type_="pyFAI.integrator.fiber.FiberIntegrator")
-
-    sample_orientation = 1
-    unit_qip_name = "exit_angle_horz_deg"
-    unit_qoop_name = "exit_angle_vert_deg"
-
-    unit_qip, unit_qoop, img_data, current_ai, ai_limits = get_pyfai_components(
-        experiment, index, sample_orientation, unit_qip_name, unit_qoop_name,
-        aistart, cfg.slitratios, cfg.alphacritical, scan, cfg.anglimits)
-
-    map2d = current_ai.integrate2d(img_data, cfg.qmapbins[0], cfg.qmapbins[1], \
-    unit=(unit_qip, unit_qoop), radial_range=(ai_limits[0], ai_limits[1]),\
-     azimuth_range=(ai_limits[2], ai_limits[3]), method=("no", "csr", "cython"))
-    mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
-        map2d.azimuthal_unit), str(map2d.radial_unit)]
-
-    return map2d[0], map2d[1], map2d[2], mapaxisinfo
-
-
-def pyfai_stat_qmap_worker(experiment, imageindex, scan,
+def pyfai_stat_qmap_worker_old(experiment, imageindex, scan,
                            process_config: SimpleNamespace) -> None:
     """
     calculate q_para Vs q_perp map for static detector scan data using pyFAI Fiber integrator
@@ -460,8 +644,36 @@ def pyfai_stat_qmap_worker(experiment, imageindex, scan,
         map2d.azimuthal_unit), str(map2d.radial_unit)]
     return map2d[0], map2d[1], map2d[2], mapaxisinfo
 
+def pyfai_stat_exitangles_worker_old(experiment: Experiment, imageindex, scan,\
+                                  process_config: SimpleNamespace) -> None:
+    """
+    calculate exit angle map for static detector scan data using pyFAI Fiber integrator
+    """
+    # pylint: disable=unused-argument
+    # pylint: disable=unused-variable
+    cfg = process_config
+    index = imageindex
+    aistart = pyFAI.load(
+        cfg.pyfaiponi,
+        type_="pyFAI.integrator.fiber.FiberIntegrator")
 
-def pyfai_stat_ivsq_worker(experiment: Experiment, imageindex, scan,
+    sample_orientation = 1
+    unit_qip_name = "exit_angle_horz_deg"
+    unit_qoop_name = "exit_angle_vert_deg"
+
+    unit_qip, unit_qoop, img_data, current_ai, ai_limits = get_pyfai_components(
+        experiment, index, sample_orientation, unit_qip_name, unit_qoop_name,
+        aistart, cfg.slitratios, cfg.alphacritical, scan, cfg.anglimits)
+
+    map2d = current_ai.integrate2d(img_data, cfg.qmapbins[0], cfg.qmapbins[1], \
+    unit=(unit_qip, unit_qoop), radial_range=(ai_limits[0], ai_limits[1]),\
+     azimuth_range=(ai_limits[2], ai_limits[3]), method=("no", "csr", "cython"))
+    mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
+        map2d.azimuthal_unit), str(map2d.radial_unit)]
+
+    return map2d[0], map2d[1], map2d[2], mapaxisinfo
+
+def pyfai_stat_ivsq_worker_old(experiment: Experiment, imageindex, scan,
                            process_config: SimpleNamespace) -> None:
     """
     calculate Intensity Vs Q profile for static detector scan data using pyFAI Fiber integrator

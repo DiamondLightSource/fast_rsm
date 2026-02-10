@@ -8,30 +8,31 @@ import numpy as np
 from scipy.constants import physical_constants
 from scipy.spatial.transform import Rotation as R
 import transformations as tf
+from types import SimpleNamespace
 
 
 
-def _q_to_theta(q_values, energy) -> np.array:
+def calc_kout_array(outshape,i,j,detector_values,pixel_arrays):
     """
-    Calculates the diffractometer theta from scattering vector Q.
-
-    Args:
-        theta:
-            Array of theta values to be converted.
-        energy:
-            Energy of the incident probe particle, in eV.
+    calculates k_out values given detector position and image size
     """
-    # First calculate the wavevector of the incident light.
-    planck = physical_constants["Planck constant in eV s"][0]
-    speed_of_light = physical_constants["speed of light in vacuum"][0] * 1e10
-    # My q_values are angular, so my wavevector needs to be angular too.
-    ang_wavevector = 2 * np.pi * energy / (planck * speed_of_light)
+    detector_displacement,detector_distance,detector_vertical,detector_horizontal=detector_values
+    vertical_pixels,horizontal_pixels=pixel_arrays
+    k_out_array = np.ndarray(outshape, np.float32)
+    k_out_array[i, j, 0] = (
+        detector_displacement.array[0] * detector_distance +
+        detector_vertical.array[0] * vertical_pixels[i, j] +
+        detector_horizontal.array[0] * horizontal_pixels[i, j])
+    k_out_array[i, j, 1] = (
+        detector_displacement.array[1] * detector_distance +
+        detector_vertical.array[1] * vertical_pixels[i, j] +
+        detector_horizontal.array[1] * horizontal_pixels[i, j])
+    k_out_array[i, j, 2] = (
+        detector_displacement.array[2] * detector_distance +
+        detector_vertical.array[2] * vertical_pixels[i, j] +
+        detector_horizontal.array[2] * horizontal_pixels[i, j])
+    return k_out_array
 
-    # Do some basic geometry.
-    theta_values = np.arccos(1 - np.square(q_values) / (2 * ang_wavevector**2))
-
-    # Convert from radians to degrees.
-    return theta_values * 180 / np.pi
 
 #pull out functions that do not need to be part of Experiment class
 
@@ -145,24 +146,24 @@ def gamdel2rots(gamma, delta):
     return rots
 
 
-def get_bin_axvals(data_in, ind):
-    """
-    create axes information for binoviewer output in the form
-    ind,start,stop,step,startind,stopind
-    """
-    # print(data_in,type(data_in[0]))
-    single_list = [np.int64, np.float64, int, float]
-    if type(data_in[0]) in single_list:
-        data = data_in
-    else:
-        data = data_in[0]
-    startval = data[0]
-    stopval = data[-1]
-    stepval = data[1] - data[0]
-    startind = int(np.floor(startval / stepval))
-    stopind = int(startind + len(data) - 1)
-    return [ind, startval, stopval, stepval,
-            float(startind), float(stopind)]
+# def get_bin_axvals(data_in, ind):
+#     """
+#     create axes information for binoviewer output in the form
+#     ind,start,stop,step,startind,stopind
+#     """
+#     # print(data_in,type(data_in[0]))
+#     single_list = [np.int64, np.float64, int, float]
+#     if type(data_in[0]) in single_list:
+#         data = data_in
+#     else:
+#         data = data_in[0]
+#     startval = data[0]
+#     stopval = data[-1]
+#     stepval = data[1] - data[0]
+#     startind = int(np.floor(startval / stepval))
+#     stopind = int(startind + len(data) - 1)
+#     return [ind, startval, stopval, stepval,
+#             float(startind), float(stopind)]
 
 
 def get_geometry_indices(setup,rotation):
@@ -224,6 +225,10 @@ def get_pix_scale(pixel_size,slitvertratio,slithorratio,axis):
 
 
 def calc_qupplow_vert(maxangle,minangle,kmod,horangles,inc_angles):
+    """
+    calculates vertical extent in q based on verticle angle limits
+    """
+
     maxanglerad=np.radians(maxangle)
     minanglerad=np.radians(minangle)
     qupp = sohqcalc(maxangle, kmod)  # *2

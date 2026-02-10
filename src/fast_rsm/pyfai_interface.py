@@ -25,7 +25,10 @@ from fast_rsm.scan import Scan, chunk, check_shared_memory
 from fast_rsm.experiment import Experiment, gamdel2rots,calctheta,calcq,do_savedats,do_savetiffs
 from fast_rsm.logging_config import get_debug_logger,listener_process,get_logger,do_time_check
 
-from fast_rsm.pyfai_workers import pyfai_move_ivsq_worker_old,pyfai_move_qmap_worker_old, pyfai_move_qmap_worker_new,pyfai_move_ivsq_worker_new, pyfai_move_exitangles_worker_old,pyfai_stat_exitangles_worker,pyfai_stat_ivsq_worker,pyfai_stat_qmap_worker
+from fast_rsm.pyfai_workers import pyfai_move_ivsq_worker_old,pyfai_move_qmap_worker_old,pyfai_move_exitangles_worker_old, \
+    pyfai_move_qmap_worker_new,pyfai_move_ivsq_worker_new,pyfai_move_exitangles_worker_new,\
+    pyfai_stat_exitangles_worker_old,pyfai_stat_ivsq_worker_old,pyfai_stat_qmap_worker_old,\
+        pyfai_stat_ivsq_worker_new,pyfai_stat_exitangles_worker_new,pyfai_stat_qmap_worker_new
 
 from fast_rsm.angle_pixel_q import calcq,calctheta,gamdel2rots
 
@@ -238,48 +241,15 @@ def get_gam_del_vals(experiment: Experiment, index):
         delval = np.array(experiment.deltadata).ravel()[index]
     elif np.size(experiment.deltadata) == 1:
         delval = np.array(experiment.deltadata).ravel()
+    return [gamval,delval]
 
-    if (-np.degrees(inc_angle) >
-            alphacritical) & (experiment.setup == 'DCD'):
-        # if above critical angle, account for direct beam adding to delta
-        rots = gamdel2rots(gamval, delval + np.degrees(-inc_angle))
-    else:
-        rots = gamdel2rots(gamval, delval)
-
-    my_ai = copy.deepcopy(aistart)
-    my_ai.rot1, my_ai.rot2, my_ai.rot3 = rots
-
-    if experiment.setup == 'vertical':
-        my_ai.rot1 = rots[1]
-        my_ai.rot2 = -rots[0]
-
-    if slitratios[0] is not None:
-        my_ai.pixel1 *= slitratios[0]
-        my_ai.poni1 *= slitratios[0]
-
-    if slitratios[1] is not None:
-        my_ai.pixel2 *= slitratios[1]
-        my_ai.poni2 *= slitratios[1]
-    if experiment.setup == 'vertical':
-        img_data = np.rot90(scan.load_image(i).data, -1)
-    else:
-        img_data = np.array(scan.load_image(i).data)
-
-    radial_limits = (limits_in[0] * (1.0 + (0.05 * -(np.sign(limits_in[0])))),
-                     limits_in[1] * (1.0 + (0.05 * (np.sign(limits_in[1])))))
-    azimuthal_limits = (limits_in[2] * (1.0 + (0.05 * -(np.sign(limits_in[2])))),
-                        limits_in[3] * (1.0 + (0.05 * (np.sign(limits_in[3])))))
-    limits_out = [radial_limits[0], radial_limits[1],
-                  azimuthal_limits[0], azimuthal_limits[1]]
-
-    return unit_ip, unit_oop, img_data, my_ai, limits_out
-
-
-def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, slitratios):
+def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, process_config):
     """
     calculate setup values needed for pyfai calculations
     """
     # pylint: disable=attribute-defined-outside-init
+    cfg=process_config
+    slitratios=cfg.slitratios
     if isinstance(scanlist, Scan):
         scanlistnew = [scanlist]
     else:
@@ -315,7 +285,11 @@ def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, slitrati
             limhor = combine_ranges(limhor, scanlimits[0:2])
             limver = combine_ranges(limver, scanlimits[2:])
 
-    outlimits = [limhor[0], limhor[1], limver[0], limver[1]]
+
+    outlimits = [limhor[0], 
+                 limhor[1], 
+                 limver[0], 
+                 limver[1]]
     if experiment.setup == 'vertical':
         experiment.beam_centre = [
             experiment.beam_centre[1],
@@ -344,6 +318,7 @@ def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, slitrati
         badimagecheck=find_bad_image_paths(scan)
         if len(badimagecheck)>0:
             scanlength-=len(badimagecheck)
+    return outlimits, scanlength, scanlistnew
 
 
 
@@ -487,7 +462,11 @@ def load_flat_test_image():
 
 def worker_unpack(args):
     function_map={'move_ivq':pyfai_move_ivsq_worker_new,
-                  'move_qmap': pyfai_move_qmap_worker_new}
+                  'move_qmap': pyfai_move_qmap_worker_new,
+                  'move_exit': pyfai_move_exitangles_worker_new,
+                  'static_ivq': pyfai_stat_ivsq_worker_new,
+                  'static_exit': pyfai_stat_exitangles_worker_new,
+                  'static_qmap': pyfai_stat_qmap_worker_new}
     worker_function=function_map[args[0]]
     worker_args=args[1:]
     # top-level adapter to avoid lambda pickling issues
@@ -625,6 +604,621 @@ def save_hf_map(experiment: Experiment, hf, mapname, sum_array,
 
 
 # ====moving detector processing
+def check_full_1d_radial_range(experiment: Experiment,process_config,absranges, radmax):
+    cfg=process_config
+    centre_check={1:True,0:False,2:False}
+    hor_centre=centre_check[np.sum([(val>0) for val in cfg.fullranges[0:2]])]
+    ver_centre=centre_check[np.sum([(val>0) for val in cfg.fullranges[2:]])]
+    if hor_centre and ver_centre:
+        radialrange = (0, np.max(absranges))
+    # elif hor_centre:
+    #     radialrange = (min(abs(np.array(cfg.fullranges[2:]))), radmax)
+    # elif ver_centre:
+    #     radialrange = (min(abs(np.array(cfg.fullranges[0:2]))), radmax)
+    else:
+        radialrange = (min(absranges),radmax)
+    # if str(cfg.unit_qip_name).startswith("q"):
+    #     return [calcq(val,experiment.incident_wavelength) for val in radialrange]
+    return radialrange
+
+def get_d5i_values(scan):
+    if hasattr(scan.metadata.data_file.nx_entry,'d5i'):
+        d5i_full=np.array(scan.metadata.data_file.nx_entry.d5i.data)
+    else:
+        d5i_full=np.ones(scan.metadata.data_file.scan_length)
+    return d5i_full
+
+
+def start_listener():
+    manager = Manager()
+    log_queue = manager.Queue()
+    listener = Process(target=listener_process,
+                                        args=(log_queue, get_logger, LOGGER_DEBUG))
+    listener.start()
+    return listener,log_queue
+
+def add_buffer_to_limits(limits):
+    buffers=[np.max([0.05,0.05*np.abs(lim)]) for lim in limits]
+    limit1=limits[0]-buffers[0]
+    limit2=limits[1]+buffers[1]
+    limit3=limits[2]-buffers[2]
+    limit4=limits[3]+buffers[3]
+
+    return [limit1,limit2,limit3,limit4]
+
+def pyfai_moving_ivsq_smm_new(experiment: Experiment, hf, scanlist, process_config):
+    """
+    calculate 1d Intensity Vs Q profile for a moving detector scan
+    """
+
+    logger=get_logger(LOGGER_DEBUG)
+    listener,log_queue=start_listener()
+    cfg = copy.copy(process_config)
+    cfg.fullranges, cfg.scanlength, cfg.scanlistnew =\
+     pyfai_setup_limits(experiment,scanlist, experiment.calcanglim, cfg)
+    absranges,radmax=get_corner_thetas(cfg)
+    cfg.fullranges=add_buffer_to_limits(cfg.fullranges)
+    #num_threads = int(cfg.num_threads)  # e.g., 40
+    intensity_results_per_scan = []
+    count_results_per_scan = []
+    qtot_results_per_scan=[]
+    t0 = time()
+    cfg.unit_qip_name = "2th_deg"# "qip_A^-1"# "qip_A^-1""2th_deg"  #
+    cfg.unit_qoop_name = "2th_deg"#"qoop_A^-1"
+    if cfg.radialrange is None:
+        cfg.radialrange=check_full_1d_radial_range(experiment,cfg,absranges,radmax)
+
+        
+    if cfg.ivqbins is None:
+        cfg.ivqbins = int(
+            np.ceil((cfg.radialrange[1] - cfg.radialrange[0]) /
+                cfg.radialstepval))
+    
+    cfg.multi = True
+
+    cfg.shapeqi = (1, np.abs(cfg.ivqbins))
+    cfg.scalegamma = 1
+
+    logger.debug(do_time_check('NEW start process pool'))
+
+    cfg.sample_orientation = 1
+    batchsize=15
+    ctx = get_context("fork")
+    with ctx.Pool(processes=cfg.num_threads ) as pool:
+        for scanind, scan in enumerate(cfg.scanlistnew):
+            experiment.load_curve_values(scan)
+
+            cfg.aistart = pyFAI.load(cfg.pyfaiponi)#,type_="pyFAI.integrator.fiber.FiberIntegrator")
+            cfg.d5i_full=get_d5i_values(scan)
+            imageindices=get_full_indices(scan,cfg)
+            cfg.gamdelvals=[get_gam_del_vals(experiment,ind) for ind in imageindices]
+            cfg.all_inc_angles=[get_inc_angles_out(experiment,ind) for ind in imageindices]
+            
+            batches = list(chunked(imageindices, batchsize))
+            num_batches = len(batches)
+            args_iter = (('move_ivq',experiment, batch, scan, cfg,log_queue,logn) for logn,batch in enumerate(batches))
+            
+            accumulator_intensity = np.zeros((1, cfg.ivqbins), dtype=np.float32)
+            accumulator_count = np.zeros((1, cfg.ivqbins), dtype=np.float32)
+            accumulator_tth = np.zeros((1, cfg.ivqbins), dtype=np.float32)
+            accumulator_mask=[]
+            completed = 0
+            #accumulator_mask=[]
+            for partial in pool.imap_unordered(worker_unpack, args_iter, chunksize=1):
+                if (completed==0)&(scanind==0):
+                    accumulator_mask=partial[3]
+                accumulator_intensity += partial[0]
+                accumulator_count += partial[1]
+                accumulator_tth += partial[2]
+                
+                completed += 1
+                if completed % 10 == 0 or completed == num_batches:
+                    print(f"  completed {completed}/{num_batches} batches", flush=True)
+                        
+            intensity_results_per_scan.append(accumulator_intensity)
+            count_results_per_scan.append(accumulator_count)
+            qtot_results_per_scan.append(accumulator_tth/completed)
+            print(f"[scan {scanind+1}] finished.")
+
+    log_queue.put_nowait(None) # End the queue
+    listener.join() # Stop the listener
+
+    logger.debug(do_time_check('stop process pool'))
+
+    int_final = np.sum(intensity_results_per_scan,axis=0)
+    counts_final = np.sum(count_results_per_scan,axis=0)
+    tth_vals_final=qtot_results_per_scan[0]
+    #qvals_final=[calcq(val, experiment.incident_wavelength) for val in theta_vals_final]
+    q_final=[calcq(val,experiment.incident_wavelength) for val in tth_vals_final]
+
+
+    int_array = np.divide(
+        int_final[0],
+        counts_final[0],
+        out=np.copy(
+            int_final[0]),
+        where=counts_final[0].astype(float) > 0.0)
+    end_time = time()
+    minutes = (end_time - t0) / 60
+    print(f'total calculation took {minutes}  minutes')
+
+    dset = hf.create_group("integrations")
+    dset.create_dataset("Intensity", data=np.expand_dims(int_array,0))
+    dset.create_dataset("Q_angstrom^-1", data=q_final)
+    dset.create_dataset("2thetas", data=tth_vals_final)
+    dset.create_dataset("mask", data=accumulator_mask)
+    # dset.create_dataset("counts",data=counts_arr[0])
+    # dset.create_dataset("sum_signal",data=arrays_arr[0])
+    # dset.create_dataset("solid_intensity",data=counts_arr[1])
+    # dset.create_dataset("solid_sum_signal",data=counts_arr[2])
+
+    if cfg.savedats:
+        do_savedats(hf, qi_array, qvals_final, theta_vals_final)
+    save_config_variables(hf, cfg)
+    hf.close()
+
+
+def pyfai_moving_qmap_smm_new(experiment: Experiment, hf, scanlist, process_config):
+    """
+    calculate q_para vs q_perp map for a moving detector scan
+    """
+
+    # pylint: disable=unused-argument
+    # pylint: disable=unused-variable
+    cfg = copy.copy(process_config)
+
+    logger=get_logger(LOGGER_DEBUG)
+    listener,log_queue=start_listener()
+
+    cfg.fullranges, cfg.scanlength, cfg.scanlistnew =\
+     pyfai_setup_limits(experiment,scanlist, experiment.calcqlim, cfg)
+    absranges,radmax=get_corner_thetas(cfg)
+
+    cfg.fullranges=add_buffer_to_limits(cfg.fullranges)
+    intensity_results_per_scan = []
+    count_results_per_scan = []
+    para_results_per_scan=[]
+    perp_results_per_scan=[]    
+    t0 = time()
+    cfg.multi = True
+
+    logger.debug(do_time_check('NEW start process pool'))
+    cfg.unit_qip_name = "qip_A^-1"#"2th_deg"  # "qtot_A^-1"# "qip_A^-1"
+    cfg.unit_qoop_name = "qoop_A^-1"#"2th_deg"
+    # if cfg.unit_qip_name.startswith('q'):
+    #     cfg.fullranges[0:2]=[calcq(val,experiment.incident_wavelength) for val in cfg.fullranges[0:2]]
+    # if cfg.unit_qoop_name.startswith('q'):
+    #     cfg.fullranges[2:]=[calcq(val,experiment.incident_wavelength) for val in cfg.fullranges[2:]]
+    cfg.sample_orientation = 1
+    batchsize=15
+    cfg.scalegamma=1
+    ctx = get_context("fork")
+    with ctx.Pool(processes=cfg.num_threads ) as pool:
+         
+         for scanind, scan in enumerate(cfg.scanlistnew):# chunksize=1 makes sense here: each task is already “large” (25 images)
+            experiment.load_curve_values(scan)
+            cfg.aistart = pyFAI.load(cfg.pyfaiponi)#,type_="pyFAI.integrator.fiber.FiberIntegrator")
+            cfg.d5i_full=get_d5i_values(scan)
+            imageindices=get_full_indices(scan,cfg)
+            cfg.gamdelvals=[get_gam_del_vals(experiment,ind) for ind in imageindices]
+            cfg.all_inc_angles=[get_inc_angles_out(experiment,ind) for ind in imageindices]
+            batches = list(chunked(imageindices, batchsize))
+            num_batches = len(batches)
+            args_iter = (('move_qmap',experiment, batch, scan, cfg,log_queue,logn) for logn,batch in enumerate(batches))
+            accumulator_intensity = np.zeros((1, cfg.qmapbins[1],cfg.qmapbins[0]), dtype=np.float32)
+            accumulator_count = np.zeros((1, cfg.qmapbins[1],cfg.qmapbins[0]), dtype=np.float32)
+            accumulator_para = np.zeros(( cfg.qmapbins[0]), dtype=np.float32)
+            accumulator_perp = np.zeros((cfg.qmapbins[1]), dtype=np.float32)
+
+            accumulator_mask=[]
+            completed = 0           
+            
+            for partial in pool.imap_unordered(worker_unpack, args_iter, chunksize=1):
+                if (completed==0)&(scanind==0):
+                    accumulator_mask=partial[4]
+                accumulator_intensity += partial[0]
+                accumulator_count += partial[1]
+                accumulator_para += partial[2]
+                accumulator_perp += partial[3]
+                
+                completed += 1
+                if completed % 10 == 0 or completed == num_batches:
+                    print(f"  completed {completed}/{num_batches} batches", flush=True)
+            intensity_results_per_scan.append(accumulator_intensity)
+            count_results_per_scan.append(accumulator_count)
+            para_results_per_scan.append(accumulator_para/completed)
+            perp_results_per_scan.append(accumulator_perp/completed)
+    
+    log_queue.put_nowait(None) # End the queue
+    listener.join() # Stop the listener
+
+    logger.debug(do_time_check('stop process pool'))
+
+    qmap_final=np.sum(intensity_results_per_scan,axis=0)
+    counts_final = np.sum(count_results_per_scan,axis=0)
+    para_vals_final=para_results_per_scan[0]
+    perp_vals_final=perp_results_per_scan[0]
+    qmap_array = np.divide(
+        qmap_final[0],
+        counts_final[0],
+        out=np.copy(
+            qmap_final[0]),
+        where=counts_final[0].astype(float) > 0.0)
+    end_time = time()
+    minutes = (end_time - t0) / 60
+    print(f'total calculation took {minutes}  minutes')
+        
+    dset = hf.create_group("qpara_qperp")
+    dset.create_dataset("qpara_qperp_map", data=qmap_array)
+    dset.create_dataset("map_para", data=para_vals_final)
+    dset.create_dataset("map_perp", data=perp_vals_final)
+    dset.create_dataset("map_perp_indices", data=[0, 1, 2])
+    dset.create_dataset("map_para_indices", data=[0, 1, 3])
+
+    # if "scanfields" not in hf.keys():
+    #     save_scan_field_values(hf, scan)
+    # if cfg.savetiffs:
+    #     do_savetiffs(hf, qmap_array, para_vals_final, perp_vals_final)
+    save_config_variables(hf, cfg)
+    hf.close()
+            
+
+
+
+def pyfai_moving_exitangles_smm_new(experiment: Experiment, hf, scanlist, process_config):
+    """
+    calculate q_para vs q_perp map for a moving detector scan
+    """
+
+    # pylint: disable=unused-argument
+    # pylint: disable=unused-variable
+    cfg = copy.copy(process_config)
+    logger=get_logger(LOGGER_DEBUG)
+    listener,log_queue=start_listener()
+
+    cfg.fullranges, cfg.scanlength, cfg.scanlistnew =\
+     pyfai_setup_limits(experiment,scanlist, experiment.calcanglim, cfg)
+    absranges,radmax=get_corner_thetas(cfg)
+    cfg.fullranges=add_buffer_to_limits(cfg.fullranges)
+
+
+    intensity_results_per_scan = []
+    count_results_per_scan = []
+    para_results_per_scan=[]
+    perp_results_per_scan=[]    
+    t0 = time()
+    cfg.multi = True
+
+    logger.debug(do_time_check('NEW start process pool'))
+    cfg.unit_qip_name = "exit_angle_horz_deg"#"2th_deg"  # "qtot_A^-1"# "qip_A^-1"
+    cfg.unit_qoop_name = "exit_angle_vert_deg"#"2th_deg"
+    if cfg.unit_qip_name.startswith('q'):
+        cfg.fullranges[0:2]=[calcq(val,experiment.incident_wavelength) for val in cfg.fullranges[0:2]]
+    if cfg.unit_qoop_name.startswith('q'):
+        cfg.fullranges[2:]=[calcq(val,experiment.incident_wavelength) for val in cfg.fullranges[2:]]
+    cfg.sample_orientation = 1
+    batchsize=15
+    cfg.scalegamma=1
+    ctx = get_context("fork")
+    with ctx.Pool(processes=cfg.num_threads ) as pool:
+         
+         for scanind, scan in enumerate(cfg.scanlistnew):# chunksize=1 makes sense here: each task is already “large” (25 images)
+            experiment.load_curve_values(scan)
+            cfg.aistart = pyFAI.load(cfg.pyfaiponi)#,type_="pyFAI.integrator.fiber.FiberIntegrator")
+            cfg.d5i_full=get_d5i_values(scan)
+            imageindices=get_full_indices(scan,cfg)
+            cfg.gamdelvals=[get_gam_del_vals(experiment,ind) for ind in imageindices]
+            cfg.all_inc_angles=[get_inc_angles_out(experiment,ind) for ind in imageindices]
+            batches = list(chunked(imageindices, batchsize))
+            num_batches = len(batches)
+            args_iter = (('move_exit',experiment, batch, scan, cfg,log_queue,logn) for logn,batch in enumerate(batches))
+            accumulator_intensity = np.zeros((1, cfg.qmapbins[1],cfg.qmapbins[0]), dtype=np.float32)
+            accumulator_count = np.zeros((1, cfg.qmapbins[1],cfg.qmapbins[0]), dtype=np.float32)
+            accumulator_para = np.zeros(( cfg.qmapbins[0]), dtype=np.float32)
+            accumulator_perp = np.zeros((cfg.qmapbins[1]), dtype=np.float32)
+
+            accumulator_mask=[]
+            completed = 0           
+            
+            for partial in pool.imap_unordered(worker_unpack, args_iter, chunksize=1):
+                if (completed==0)&(scanind==0):
+                    accumulator_mask=partial[4]
+                accumulator_intensity += partial[0]
+                accumulator_count += partial[1]
+                accumulator_para += partial[2]
+                accumulator_perp += partial[3]
+                
+                completed += 1
+                if completed % 10 == 0 or completed == num_batches:
+                    print(f"  completed {completed}/{num_batches} batches", flush=True)
+            intensity_results_per_scan.append(accumulator_intensity)
+            count_results_per_scan.append(accumulator_count)
+            para_results_per_scan.append(accumulator_para/completed)
+            perp_results_per_scan.append(accumulator_perp/completed)
+    
+    log_queue.put_nowait(None) # End the queue
+    listener.join() # Stop the listener
+
+    logger.debug(do_time_check('stop process pool'))
+
+    qmap_final=np.sum(intensity_results_per_scan,axis=0)
+    counts_final = np.sum(count_results_per_scan,axis=0)
+    para_vals_final=para_results_per_scan[0]
+    perp_vals_final=perp_results_per_scan[0]
+    qmap_array = np.divide(
+        qmap_final[0],
+        counts_final[0],
+        out=np.copy(
+            qmap_final[0]),
+        where=counts_final[0].astype(float) > 0.0)
+    end_time = time()
+    minutes = (end_time - t0) / 60
+    print(f'total calculation took {minutes}  minutes')
+        
+    dset = hf.create_group("exit_angles")
+    dset.create_dataset("exit_angles_map", data=qmap_array)
+    dset.create_dataset("map_para", data=para_vals_final)
+    dset.create_dataset("map_perp", data=perp_vals_final)
+    dset.create_dataset("map_perp_indices", data=[0, 1, 2])
+    dset.create_dataset("map_para_indices", data=[0, 1, 3])
+
+    # if "scanfields" not in hf.keys():
+    #     save_scan_field_values(hf, scan)
+    # if cfg.savetiffs:
+    #     do_savetiffs(hf, qmap_array, para_vals_final, perp_vals_final)
+    save_config_variables(hf, cfg)
+    hf.close()
+
+
+# ====static detector processing
+
+
+
+def pyfai_static_ivsq_new(experiment: Experiment, hf, scan, process_config: SimpleNamespace):
+    """
+    calculate Intensity Vs Q 1d profile from static detector scan
+    """
+    logger=get_logger(LOGGER_DEBUG)
+    # listener,log_queue=start_listener()
+    cfg = copy.copy(process_config)
+    ctx = get_context("spawn")
+    cfg.fullranges, cfg.scanlength, cfg.scanlistnew =\
+     pyfai_setup_limits(experiment,scan, experiment.calcanglim, cfg)
+    absranges,radmax=get_corner_thetas(cfg)
+    cfg.fullranges=add_buffer_to_limits(cfg.fullranges)
+    #num_threads = int(cfg.num_threads)  # e.g., 40
+    t0 = time()
+    cfg.unit_qip_name = "2th_deg"# "qip_A^-1"# "qip_A^-1""2th_deg"  #
+    cfg.unit_qoop_name = "2th_deg"#"qoop_A^-1"
+    if cfg.radialrange is None:
+        cfg.radialrange=check_full_1d_radial_range(experiment,cfg,absranges,radmax)
+
+    if cfg.ivqbins is None:
+        cfg.ivqbins = int(
+            np.ceil((cfg.radialrange[1] - cfg.radialrange[0]) /
+                cfg.radialstepval))
+    print(f'starting process pool with num_threads={cfg.num_threads}')
+    cfg.multi = False
+    all_ints = []
+    all_two_ths = []
+    all_qs=[]
+    scan_mask=[]
+    cfg.scalegamma = 1
+    cfg.sample_orientation = 1
+    cfg.shapeqi = (1, np.abs(cfg.ivqbins))
+    cfg.scan_ind=0
+    imageindices=get_full_indices(scan,cfg)
+    ctx = get_context("fork")
+    process_count=cfg.num_threads
+    with ctx.Pool(processes= process_count) as pool:
+        cfg.aistart = pyFAI.load(cfg.pyfaiponi)#,type_="pyFAI.integrator.fiber.FiberIntegrator")
+        cfg.d5i_full=get_d5i_values(scan)
+        
+        cfg.all_inc_angles=[get_inc_angles_out(experiment,ind) for ind in imageindices]
+        cfg.gamdelvals=[get_gam_del_vals(experiment,ind) for ind in imageindices]
+        
+        
+        batches = imageindices
+        num_batches = len(batches)
+        args_iter = (('static_ivq',experiment, batch, scan, cfg,) for batch in batches)
+        
+        scan_mask=[]
+        completed = 0
+        #accumulator_mask=[]
+        for partial in pool.imap(worker_unpack, args_iter, chunksize=1):
+            if (completed==0):
+                scan_mask.append(partial[2])
+            all_ints.append(partial[0])
+            all_two_ths.append(partial[1])
+            all_qs.append([calcq(val,experiment.incident_wavelength) for val in partial[1]])
+            completed += 1
+            if completed % 10 == 0 or completed == num_batches:
+                print(f"  completed {completed}/{num_batches} batches", flush=True)
+
+    
+    signal_shape = np.shape(scan.metadata.data_file.default_signal)
+    outlist = [all_ints, all_qs, all_two_ths]
+    if len(signal_shape) > 1:
+        outlist = [
+            reshape_to_signalshape(
+                arr, signal_shape) for arr in outlist]
+
+    dset = hf.create_group("integrations")
+    dset.create_dataset("Intensity", data=outlist[0])
+    dset.create_dataset("Q_angstrom^-1", data=outlist[1])
+    dset.create_dataset("2thetas", data=outlist[2])
+    if "scanfields" not in hf.keys():
+        save_scan_field_values(hf, scan)
+    if cfg.savedats is True:
+        do_savedats(hf, outlist[0], outlist[1], outlist[2])
+    save_config_variables(hf, cfg)
+    hf.close()
+
+def pyfai_static_exitangles_new(experiment: Experiment, hf, scan,
+                            process_config: SimpleNamespace):
+    cfg = copy.copy(process_config)
+    ctx = get_context("spawn")
+    cfg.fullranges, cfg.scanlength, cfg.scanlistnew =\
+     pyfai_setup_limits(experiment,scan, experiment.calcanglim, cfg)
+    absranges,radmax=get_corner_thetas(cfg)
+    cfg.fullranges=add_buffer_to_limits(cfg.fullranges)
+
+    #num_threads = int(cfg.num_threads)  # e.g., 40
+    t0 = time()
+    cfg.unit_qip_name = "exit_angle_horz_deg"# "qip_A^-1"# "qip_A^-1""2th_deg"  #
+    cfg.unit_qoop_name = "exit_angle_vert_deg"#"qoop_A^-1"
+    if cfg.radialrange is None:
+        cfg.radialrange=check_full_1d_radial_range(experiment,cfg,absranges,radmax)
+
+        
+    if cfg.ivqbins is None:
+        cfg.ivqbins = int(
+            np.ceil((cfg.radialrange[1] - cfg.radialrange[0]) /
+                cfg.radialstepval))
+    print(f'starting process pool with num_threads={cfg.num_threads}')
+    cfg.multi = False
+    all_maps = []
+    all_xlabels = []
+    all_ylabels = []
+    scan_mask=[]
+
+    all_mapaxisinfo = []
+    cfg.scalegamma = 1
+    cfg.sample_orientation = 1
+    cfg.scan_ind=0
+    imageindices=get_full_indices(scan,cfg)
+    ctx = get_context("fork")
+    process_count=cfg.num_threads
+    with ctx.Pool(processes= process_count) as pool:
+        cfg.aistart = pyFAI.load(cfg.pyfaiponi)#,type_="pyFAI.integrator.fiber.FiberIntegrator")
+        cfg.d5i_full=get_d5i_values(scan)
+        
+        cfg.all_inc_angles=[get_inc_angles_out(experiment,ind) for ind in imageindices]
+        cfg.gamdelvals=[get_gam_del_vals(experiment,ind) for ind in imageindices]
+
+        batches = imageindices
+        num_batches = len(batches)
+        args_iter = (('static_exit',experiment, batch, scan, cfg) for batch in batches)
+        
+        scan_mask=[]
+        completed = 0
+        #accumulator_mask=[]
+        for partial in pool.imap(worker_unpack, args_iter, chunksize=1):
+            if (completed==0):
+                scan_mask.append(partial[4])
+            all_maps.append(partial[0])
+            all_xlabels.append(partial[1])
+            all_ylabels.append(partial[2])
+            all_mapaxisinfo.append(partial[3])
+    print('finished process pool')
+
+    signal_shape = np.shape(scan.metadata.data_file.default_signal)
+    outlist = [all_maps, all_xlabels, all_ylabels]
+    if len(signal_shape) > 1:
+        outlist = [
+            reshape_to_signalshape(
+                arr, signal_shape) for arr in outlist]
+
+    dset = hf.create_group("exit_angles")
+    dset.create_dataset("exit_angles_map", data=outlist[0])
+    dset.create_dataset("map_para", data=outlist[1])
+    dset.create_dataset("map_perp", data=outlist[2])
+    dset.create_dataset("map_perp_indices", data=[0, 1, 2])
+    dset.create_dataset("map_para_indices", data=[0, 1, 3])
+
+    if "scanfields" not in hf.keys():
+        save_scan_field_values(hf, scan)
+    if cfg.savetiffs:
+        do_savetiffs(hf, outlist[0], outlist[1], outlist[2])
+    save_config_variables(hf, cfg)
+    hf.close()
+
+def pyfai_static_qmap_new(experiment: Experiment, hf, scan,
+                            process_config: SimpleNamespace):
+    cfg = copy.copy(process_config)
+    ctx = get_context("spawn")
+    cfg.fullranges, cfg.scanlength, cfg.scanlistnew =\
+     pyfai_setup_limits(experiment,scan, experiment.calcqlim, cfg)
+    absranges,radmax=get_corner_thetas(cfg)
+    cfg.fullranges=add_buffer_to_limits(cfg.fullranges)
+
+    #num_threads = int(cfg.num_threads)  # e.g., 40
+    t0 = time()
+    cfg.unit_qip_name ="qip_A^-1"# "qip_A^-1"# "qip_A^-1""2th_deg"  #
+    cfg.unit_qoop_name ="qoop_A^-1"#"qoop_A^-1"
+
+    if cfg.radialrange is None:
+        cfg.radialrange=check_full_1d_radial_range(experiment,cfg,absranges,radmax)
+
+        
+    if cfg.ivqbins is None:
+        cfg.ivqbins = int(
+            np.ceil((cfg.radialrange[1] - cfg.radialrange[0]) /
+                cfg.radialstepval))
+    print(f'starting process pool with num_threads={cfg.num_threads}')
+    cfg.multi = False
+    all_maps = []
+    all_xlabels = []
+    all_ylabels = []
+    scan_mask=[]
+
+    all_mapaxisinfo = []
+    cfg.scalegamma = 1
+    cfg.sample_orientation = 1
+    cfg.scan_ind=0
+    imageindices=get_full_indices(scan,cfg)
+    ctx = get_context("fork")
+    process_count=cfg.num_threads
+    with ctx.Pool(processes= process_count) as pool:
+        cfg.aistart = pyFAI.load(cfg.pyfaiponi,type_="pyFAI.integrator.fiber.FiberIntegrator")
+        cfg.d5i_full=get_d5i_values(scan)
+        
+        cfg.all_inc_angles=[get_inc_angles_out(experiment,ind) for ind in imageindices]
+        cfg.gamdelvals=[get_gam_del_vals(experiment,ind) for ind in imageindices]
+
+        batches = imageindices
+        num_batches = len(batches)
+        args_iter = (('static_qmap',experiment, batch, scan, cfg) for batch in batches)
+        
+        scan_mask=[]
+        completed = 0
+        #accumulator_mask=[]
+        for partial in pool.imap(worker_unpack, args_iter, chunksize=1):
+            if (completed==0):
+                scan_mask.append(partial[4])
+            all_maps.append(partial[0])
+            all_xlabels.append(partial[1])
+            all_ylabels.append(partial[2])
+            all_mapaxisinfo.append(partial[3])
+    print('finished process pool')
+
+    signal_shape = np.shape(scan.metadata.data_file.default_signal)
+    outlist = [all_maps, all_xlabels, all_ylabels]
+    if len(signal_shape) > 1:
+        outlist = [
+            reshape_to_signalshape(
+                arr, signal_shape) for arr in outlist]
+
+    dset = hf.create_group("qpara_qperp")
+    dset.create_dataset("qpara_qperp_map", data=outlist[0])
+    dset.create_dataset("map_para", data=outlist[1])
+    dset.create_dataset("map_perp", data=outlist[2])
+    dset.create_dataset("map_perp_indices", data=[0, 1, 2])
+    dset.create_dataset("map_para_indices", data=[0, 1, 3])
+
+    if "scanfields" not in hf.keys():
+        save_scan_field_values(hf, scan)
+    if cfg.savetiffs:
+        do_savetiffs(hf, outlist[0], outlist[1], outlist[2])
+    save_config_variables(hf, cfg)
+    hf.close()
+
+
+
+
+
+#==========OLD processors
+
 def pyfai_moving_qmap_smm_old(experiment: Experiment, hf, scanlist, process_config):
     """
     calculate q_para vs q_perp map for a moving detector scan
@@ -767,7 +1361,7 @@ def pyfai_moving_ivsq_smm_old(experiment: Experiment, hf, scanlist, process_conf
     hf.close()
 
 
-def pyfai_moving_exitangles_smm(experiment: Experiment, hf, scanlist, process_config):
+def pyfai_moving_exitangles_smm_old(experiment: Experiment, hf, scanlist, process_config):
     """
     calculate exit angle map with moving detector
     """
@@ -827,291 +1421,9 @@ def pyfai_moving_exitangles_smm(experiment: Experiment, hf, scanlist, process_co
 #     listener.start()
 #     return log_queue
 
-def start_listener():
-    manager = Manager()
-    log_queue = manager.Queue()
-    listener = Process(target=listener_process,
-                                        args=(log_queue, get_logger, LOGGER_DEBUG))
-    listener.start()
-    return listener,log_queue
-
-def pyfai_moving_qmap_smm_new(experiment: Experiment, hf, scanlist, process_config):
-    """
-    calculate q_para vs q_perp map for a moving detector scan
-    """
-
-    # pylint: disable=unused-argument
-    # pylint: disable=unused-variable
-    logger=get_logger(LOGGER_DEBUG)
-    manager = Manager()
-    log_queue = manager.Queue()
-    listener = Process(target=listener_process,
-                                        args=(log_queue, get_logger, LOGGER_DEBUG))
-    listener.start()
-    cfg = process_config
-    ctx = get_context("spawn")
-    cfg = process_config
-    qpqp_array_total = 0
-    qpqp_counts_total = 0
-
-    cfg.qlimitsout, cfg.scanlength, cfg.scanlistnew = \
-    pyfai_setup_limits(experiment,scanlist, experiment.calcqlim, cfg.slitratios)
-    intensity_results_per_scan = []
-    count_results_per_scan = []
-    para_results_per_scan=[]
-    perp_results_per_scan=[]    
-    t0 = time()
-    cfg.multi = True
-
-    logger.debug(do_time_check('NEW start process pool'))
-    cfg.unit_qip_name = "2th_deg"  # "qtot_A^-1"# "qip_A^-1"
-    cfg.unit_qoop_name = "qoop_A^-1"
-    cfg.sample_orientation = 1
-    batchsize=15
-    ctx = get_context("spawn")
-    with ctx.Pool(processes=cfg.num_threads ) as pool:
-         
-         for scanind, scan in enumerate(cfg.scanlistnew):# chunksize=1 makes sense here: each task is already “large” (25 images)
-            
-            cfg.aistart = pyFAI.load(cfg.pyfaiponi,type_="pyFAI.integrator.fiber.FiberIntegrator")
-            cfg.d5i_full=get_d5i_values(scan)
-            imageindices=get_full_indices(scan,cfg)
-            cfg.gamdelvals=[get_gam_del_vals(experiment,ind) for ind in imageindices]
-            cfg.all_inc_angles=[get_inc_angles_out(experiment,ind) for ind in imageindices]
-            batches = list(chunked(imageindices, batchsize))
-            num_batches = len(batches)
-            args_iter = (('move_qmap',experiment, batch, scan, cfg,log_queue,logn) for logn,batch in enumerate(batches))
-            accumulator_intensity = np.zeros((1, cfg.qmapbins), dtype=np.float32)
-            accumulator_count = np.zeros((1, cfg.qmapbins), dtype=np.float32)
-            accumulator_para = np.zeros((1, cfg.qmapbins[0]), dtype=np.float32)
-            accumulator_perp = np.zeros((1, cfg.qmapbins[1]), dtype=np.float32)
-
-            accumulator_mask=[]
-            completed = 0           
-            
-            for partial in pool.imap_unordered(worker_unpack, args_iter, chunksize=1):
-                if (completed==0)&(scanind==0):
-                    accumulator_mask=partial[4]
-                accumulator_intensity += partial[0]
-                accumulator_count += partial[1]
-                accumulator_para += partial[2]
-                accumulator_para += partial[3]
-                
-                completed += 1
-                if completed % 10 == 0 or completed == num_batches:
-                    print(f"  completed {completed}/{num_batches} batches", flush=True)
-            intensity_results_per_scan.append(accumulator_intensity)
-            count_results_per_scan.append(accumulator_count)
-            para_results_per_scan.append(accumulator_para)
-            perp_results_per_scan.append(accumulator_perp)
-    
-    log_queue.put_nowait(None) # End the queue
-    listener.join() # Stop the listener
-
-    logger.debug(do_time_check('stop process pool'))
-
-    qmap_final=np.sum(intensity_results_per_scan,axis=0)
-    counts_final = np.sum(count_results_per_scan,axis=0)
-    para_vals_final=para_results_per_scan[0]
-    perp_vals_final=para_results_per_scan[0]
-    qmap_array = np.divide(
-        qmap_final[0],
-        counts_final[0],
-        out=np.copy(
-            qmap_final[0]),
-        where=counts_final[0].astype(float) > 0.0)
-    end_time = time()
-    minutes = (end_time - t0) / 60
-    print(f'total calculation took {minutes}  minutes')
-        
-    dset = hf.create_group("qpara_qperp")
-    dset.create_dataset("qpara_qperp_map", data=qmap_array)
-    dset.create_dataset("map_para", data=para_vals_final)
-    dset.create_dataset("map_perp", data=perp_vals_final)
-    dset.create_dataset("map_perp_indices", data=[0, 1, 2])
-    dset.create_dataset("map_para_indices", data=[0, 1, 3])
-
-    # if "scanfields" not in hf.keys():
-    #     save_scan_field_values(hf, scan)
-    # if cfg.savetiffs:
-    #     do_savetiffs(hf, qmap_array, para_vals_final, perp_vals_final)
-    save_config_variables(hf, cfg)
-    hf.close()
-            
-   
-    # with SharedMemoryManager() as smm:
-
-    #     cfg.shapeqpqp = (cfg.qmapbins[1], cfg.qmapbins[0])
-    #     shm_intensities, shm_counts, arrays_arr, counts_arr, lock = start_smm(
-    #         smm, cfg.shapeqpqp)
-    #     start_time = time()
-    #     for scanind, scan in enumerate(cfg.scanlistnew):
-    #         cfg.qlimits, cfg.scanlength, scanlistnew = \
-    #         pyfai_setup_limits(experiment,scan, experiment.calcqlim, cfg.slitratios)
-    #         cfg.scalegamma = 1
-    #         cfg.scan_ind=scanind
-    #         input_args = get_input_args(experiment, scan, cfg)
-    #         print(
-    #             f'starting process pool with num_threads=\
-    #             {cfg.num_threads} for scan {scanind+1}/{len(cfg.scanlistnew)}')
-
-    #         with Pool(cfg.num_threads,initializer=pyfai_init_worker,\
-    #             initargs=\
-    #             (lock, shm_intensities.name, shm_counts.name, cfg.shapeqpqp)) as pool:
-    #             mapaxisinfolist = pool.starmap(
-    #                 pyfai_move_qmap_worker_old, input_args)
-    #         print(
-    #             f'finished process pool for scan {scanind+1}/{len(cfg.scanlistnew)}')
-
-    # mapaxisinfo = mapaxisinfolist[0]
-    # qpqp_array_total = arrays_arr
-    # qpqp_counts_total = counts_arr
-    # end_time = time()
-    # minutes = (end_time - start_time) / 60
-    
-    # save_hf_map(experiment, hf, "qpara_qperp", qpqp_array_total, qpqp_counts_total,
-    #             mapaxisinfo, start_time, cfg)
-    # save_config_variables(hf, cfg)
-    # hf.close()
-    # return mapaxisinfo
-
-def check_full_1d_radial_range(experiment: Experiment,process_config,absranges, radmax):
-    cfg=process_config
-    centre_check={1:True,0:False,2:False}
-    hor_centre=centre_check[np.sum([(val>0) for val in cfg.fullranges[0:2]])]
-    ver_centre=centre_check[np.sum([(val>0) for val in cfg.fullranges[2:]])]
-    if hor_centre and ver_centre:
-        radialrange = (0, radmax)
-    elif hor_centre:
-        radialrange = (min(abs(np.array(cfg.fullranges[2:]))), radmax)
-    elif ver_centre:
-        radialrange = (min(abs(np.array(cfg.fullranges[0:2]))), radmax)
-    else:
-        radialrange = (min(absranges),radmax)
-    if str(cfg.unit_qip_name).startswith("q"):
-        return [calcq(val,experiment.incident_wavelength) for val in radialrange]
-    return radialrange
-
-def get_d5i_values(scan):
-    if hasattr(scan.metadata.data_file.nx_entry,'d5i'):
-        d5i_full=np.array(scan.metadata.data_file.nx_entry.d5i.data)
-    else:
-        d5i_full=np.ones(scan.metadata.data_file.scan_length)
-    return d5i_full
-
-def pyfai_moving_ivsq_smm_new(experiment: Experiment, hf, scanlist, process_config):
-    """
-    calculate 1d Intensity Vs Q profile for a moving detector scan
-    """
-
-    logger=get_logger(LOGGER_DEBUG)
-    listener,log_queue=start_listener()
-    cfg = process_config
-    ctx = get_context("spawn")
-    cfg.fullranges, cfg.scanlength, cfg.scanlistnew =\
-     pyfai_setup_limits(experiment,scanlist, experiment.calcanglim, cfg.slitratios)
-    absranges,radmax=get_corner_thetas(cfg)
-    #num_threads = int(cfg.num_threads)  # e.g., 40
-    intensity_results_per_scan = []
-    count_results_per_scan = []
-    qtot_results_per_scan=[]
-    t0 = time()
-    cfg.unit_qip_name =  "qip_A^-1"# "qip_A^-1""2th_deg"  #
-    cfg.unit_qoop_name = "qoop_A^-1"
-    if cfg.radialrange is None:
-        cfg.radialrange=check_full_1d_radial_range(experiment,cfg,absranges,radmax)
-
-        
-    if cfg.ivqbins is None:
-        cfg.ivqbins = int(
-            np.ceil((cfg.radialrange[1] - cfg.radialrange[0]) /
-                cfg.radialstepval))
-    
-    cfg.multi = True
-
-    cfg.shapeqi = (1, np.abs(cfg.ivqbins))
-    cfg.scalegamma = 1
-
-    logger.debug(do_time_check('NEW start process pool'))
-
-    cfg.sample_orientation = 1
-    batchsize=15
-    ctx = get_context("spawn")
-    with ctx.Pool(processes=cfg.num_threads ) as pool:
-        for scanind, scan in enumerate(cfg.scanlistnew):# chunksize=1 makes sense here: each task is already “large” (25 images)
-            
-            cfg.aistart = pyFAI.load(cfg.pyfaiponi,type_="pyFAI.integrator.fiber.FiberIntegrator")
-            cfg.d5i_full=get_d5i_values(scan)
-            imageindices=get_full_indices(scan,cfg)
-            cfg.gamdelvals=[get_gam_del_vals(experiment,ind) for ind in imageindices]
-            cfg.all_inc_angles=[get_inc_angles_out(experiment,ind) for ind in imageindices]
-            
-            batches = list(chunked(imageindices, batchsize))
-            num_batches = len(batches)
-            args_iter = (('move_ivq',experiment, batch, scan, cfg,log_queue,logn) for logn,batch in enumerate(batches))
-            
-            accumulator_intensity = np.zeros((1, cfg.ivqbins), dtype=np.float32)
-            accumulator_count = np.zeros((1, cfg.ivqbins), dtype=np.float32)
-            accumulator_theta = np.zeros((1, cfg.ivqbins), dtype=np.float32)
-            accumulator_mask=[]
-            completed = 0
-            #accumulator_mask=[]
-            for partial in pool.imap_unordered(worker_unpack, args_iter, chunksize=1):
-                if (completed==0)&(scanind==0):
-                    accumulator_mask=partial[3]
-                accumulator_intensity += partial[0]
-                accumulator_count += partial[1]
-                accumulator_theta += partial[2]
-                
-                completed += 1
-                if completed % 10 == 0 or completed == num_batches:
-                    print(f"  completed {completed}/{num_batches} batches", flush=True)
-                        
-            intensity_results_per_scan.append(accumulator_intensity)
-            count_results_per_scan.append(accumulator_count)
-            qtot_results_per_scan.append(accumulator_theta/completed)
-            print(f"[scan {scanind+1}] finished.")
-
-    log_queue.put_nowait(None) # End the queue
-    listener.join() # Stop the listener
-
-    logger.debug(do_time_check('stop process pool'))
-
-    qi_final = np.sum(intensity_results_per_scan,axis=0)
-    counts_final = np.sum(count_results_per_scan,axis=0)
-    qtot_vals_final=qtot_results_per_scan[0]
-    #qvals_final=[calcq(val, experiment.incident_wavelength) for val in theta_vals_final]
-    thetas_final=[calctheta(val,experiment.incident_wavelength) for val in qtot_vals_final]
 
 
-    qi_array = np.divide(
-        qi_final[0],
-        counts_final[0],
-        out=np.copy(
-            qi_final[0]),
-        where=counts_final[0].astype(float) > 0.0)
-    end_time = time()
-    minutes = (end_time - t0) / 60
-    print(f'total calculation took {minutes}  minutes')
-
-    dset = hf.create_group("integrations")
-    dset.create_dataset("Intensity", data=np.expand_dims(qi_array,0))
-    dset.create_dataset("Q_angstrom^-1", data=qtot_vals_final)
-    dset.create_dataset("2thetas", data=thetas_final)
-    dset.create_dataset("mask", data=accumulator_mask)
-    # dset.create_dataset("counts",data=counts_arr[0])
-    # dset.create_dataset("sum_signal",data=arrays_arr[0])
-    # dset.create_dataset("solid_intensity",data=counts_arr[1])
-    # dset.create_dataset("solid_sum_signal",data=counts_arr[2])
-
-    if cfg.savedats:
-        do_savedats(hf, qi_array, qvals_final, theta_vals_final)
-    save_config_variables(hf, cfg)
-    hf.close()
-
-# ====static detector processing
-
-def pyfai_static_exitangles(experiment: Experiment, hf, scan,
+def pyfai_static_exitangles_old(experiment: Experiment, hf, scan,
                             process_config: SimpleNamespace):
     """
     calculate the map of vertical exit angle Vs horizontal exit angle using pyFAI
@@ -1167,21 +1479,27 @@ def pyfai_static_exitangles(experiment: Experiment, hf, scan,
     print('finished process pool')
 
     signal_shape = np.shape(scan.metadata.data_file.default_signal)
+    outlist = [all_maps[0], all_xlabels[0], all_ylabels[0]]
     if len(signal_shape) > 1:
-        savemaps = reshape_to_signalshape(all_maps[0], signal_shape)
-    else:
-        savemaps = all_maps[0]
+        outlist = [
+            reshape_to_signalshape(
+                arr, signal_shape) for arr in outlist]
+
+    dset = hf.create_group("qpara_qperp")
+    dset.create_dataset("qpara_qperp_map", data=outlist[0])
+    dset.create_dataset("map_para", data=outlist[1])
+    dset.create_dataset("map_perp", data=outlist[2])
+    dset.create_dataset("map_perp_indices", data=[0, 1, 2])
+    dset.create_dataset("map_para_indices", data=[0, 1, 3])
+
     if "scanfields" not in hf.keys():
         save_scan_field_values(hf, scan)
-    save_hf_map(experiment,
-                hf, "exit_angles", savemaps, np.ones(np.shape(savemaps)),
-                all_mapaxisinfo[0][0],
-                start_time, cfg)
+    if cfg.savetiffs:
+        do_savetiffs(hf, outlist[0], outlist[1], outlist[2])
     save_config_variables(hf, cfg)
     hf.close()
 
-
-def pyfai_static_qmap(experiment: Experiment, hf, scan, process_config: SimpleNamespace):
+def pyfai_static_qmap_old(experiment: Experiment, hf, scan, process_config: SimpleNamespace):
     """
     calculate 2d q_para vs q_perp mape for a static detector scan
     """
@@ -1234,7 +1552,7 @@ def pyfai_static_qmap(experiment: Experiment, hf, scan, process_config: SimpleNa
     hf.close()
 
 
-def pyfai_static_ivsq(experiment: Experiment, hf, scan, process_config: SimpleNamespace):
+def pyfai_static_ivsq_old(experiment: Experiment, hf, scan, process_config: SimpleNamespace):
     """
     calculate Intensity Vs Q 1d profile from static detector scan
     """
@@ -1298,3 +1616,4 @@ def pyfai_static_ivsq(experiment: Experiment, hf, scan, process_config: SimpleNa
         do_savedats(hf, outlist[0], outlist[1], outlist[2])
     save_config_variables(hf, cfg)
     hf.close()
+
