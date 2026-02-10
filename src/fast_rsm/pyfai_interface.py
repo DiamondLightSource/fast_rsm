@@ -862,42 +862,7 @@ def pyfai_moving_qmap_smm_new(experiment: Experiment, hf, scanlist, process_conf
     save_config_variables(hf, cfg)
     hf.close()
             
-   
-    # with SharedMemoryManager() as smm:
 
-    #     cfg.shapeqpqp = (cfg.qmapbins[1], cfg.qmapbins[0])
-    #     shm_intensities, shm_counts, arrays_arr, counts_arr, lock = start_smm(
-    #         smm, cfg.shapeqpqp)
-    #     start_time = time()
-    #     for scanind, scan in enumerate(cfg.scanlistnew):
-    #         cfg.qlimits, cfg.scanlength, scanlistnew = \
-    #         pyfai_setup_limits(experiment,scan, experiment.calcqlim, cfg.slitratios)
-    #         cfg.scalegamma = 1
-    #         cfg.scan_ind=scanind
-    #         input_args = get_input_args(experiment, scan, cfg)
-    #         print(
-    #             f'starting process pool with num_threads=\
-    #             {cfg.num_threads} for scan {scanind+1}/{len(cfg.scanlistnew)}')
-
-    #         with Pool(cfg.num_threads,initializer=pyfai_init_worker,\
-    #             initargs=\
-    #             (lock, shm_intensities.name, shm_counts.name, cfg.shapeqpqp)) as pool:
-    #             mapaxisinfolist = pool.starmap(
-    #                 pyfai_move_qmap_worker_old, input_args)
-    #         print(
-    #             f'finished process pool for scan {scanind+1}/{len(cfg.scanlistnew)}')
-
-    # mapaxisinfo = mapaxisinfolist[0]
-    # qpqp_array_total = arrays_arr
-    # qpqp_counts_total = counts_arr
-    # end_time = time()
-    # minutes = (end_time - start_time) / 60
-    
-    # save_hf_map(experiment, hf, "qpara_qperp", qpqp_array_total, qpqp_counts_total,
-    #             mapaxisinfo, start_time, cfg)
-    # save_config_variables(hf, cfg)
-    # hf.close()
-    # return mapaxisinfo
 
 
 def pyfai_moving_exitangles_smm_new(experiment: Experiment, hf, scanlist, process_config):
