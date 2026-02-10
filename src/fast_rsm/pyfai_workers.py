@@ -75,7 +75,6 @@ def get_pyfai_limits(limits_in):
     
 
 
-
 #==========moving workers
 
 
@@ -89,16 +88,16 @@ def pyfai_move_ivsq_worker_new(experiment: Experiment, imageindices,
     cfg = process_config
 
     
-    time_logger=get_logger(LOGGER_DEBUG)
-    if queue is not None:
-        #print('found queue')
-        qh = logging.handlers.QueueHandler(queue)
-        root_logger = get_logger(LOGGER_DEBUG)
-        root_logger.addHandler(qh)
-        root_logger.setLevel(logging.DEBUG)
-        time_logger=root_logger.getChild(f'child_{logn}')
-        time_logger.debug(f'created logger for child_{logn}')
-    time_logger.debug(do_time_check(f'start ivq worker {logn}'))
+    # #time_logger=get_logger(LOGGER_DEBUG)
+    # if queue is not None:
+    #     #print('found queue')
+    #     qh = logging.handlers.QueueHandler(queue)
+    #     root_logger = get_logger(LOGGER_DEBUG)
+    #     root_logger.addHandler(qh)
+    #     root_logger.setLevel(logging.DEBUG)
+    #     #time_logger=root_logger.getChild(f'child_{logn}')
+    #     #time_logger.debug(f'created logger for child_{logn}')
+    # #time_logger.debug(do_time_check(f'start ivq worker {logn}'))
     
     #ais = []
     #img_data_list = []
@@ -111,13 +110,15 @@ def pyfai_move_ivsq_worker_new(experiment: Experiment, imageindices,
    
     fullresult=np.zeros(cfg.ivqbins)
     fullcounts=np.zeros(cfg.ivqbins)#
-    time_logger.debug(do_time_check(f'start loop of image child_{logn}'))
+   # #time_logger.debug(do_time_check(f'start loop of image child_{logn}'))
     for i,ind in enumerate(imageindices):
         inc_angle,inc_angle_out=cfg.all_inc_angles[ind]
         # unit_oop.set_incident_angle(inc_angle_out)
         # unit_ip.set_incident_angle(inc_angle_out)
         gamdelval=cfg.gamdelvals[ind]
         current_ai=get_pyfai_ai(experiment,cfg.aistart, cfg.slitratios, cfg.alphacritical,inc_angle,gamdelval)
+        unit_tth.incident_angles=inc_angle_out
+        unit_oop.incident_angle=inc_angle_out
         d5i_data=cfg.d5i_full[ind]
         #current_ai.rot2=np.radians(34.8)
 
@@ -136,7 +137,7 @@ def pyfai_move_ivsq_worker_new(experiment: Experiment, imageindices,
 #) 
 #
         single_result=current_ai.integrate1d(img_data,cfg.ivqbins,unit = cfg.unit_qip_name ,normalization_factor=d5i_data,correctSolidAngle=True, method=method,radial_range=(cfg.radialrange[0]-0.5, cfg.radialrange[1]+0.5))
-        outrange=(cfg.radialrange[0]-0.5, cfg.radialrange[1]+0.5)
+        #outrange=(cfg.radialrange[0]-0.5, cfg.radialrange[1]+0.5)
         # qranges=np.array([calcq(val,experiment.incident_wavelength) for val in cfg.fullranges])
         # range_adjust=[-0.5,0.5]
         # single_result=current_ai.integrate_fiber(img_data,  npt_ip=cfg.ivqbins, unit_ip=cfg.unit_qip_name, ip_range=qranges[0:2]+range_adjust,
@@ -146,7 +147,7 @@ def pyfai_move_ivsq_worker_new(experiment: Experiment, imageindices,
         #single_result=current_ai.integrate1d(img_data,cfg.ivqbins,unit = cfg.unit_qip_name ,method=method,radial_range=(cfg.radialrange[0], cfg.radialrange[1]))
         fullresult+=single_result.sum_signal
         fullcounts+=single_result.count
-    time_logger.debug(do_time_check(f'stop loop of image child_{logn}'))
+    #time_logger.debug(do_time_check(f'stop loop of image child_{logn}'))
     return fullresult,fullcounts,single_result.radial,img_mask
     #return result1d.sum_signal,result1d.count,single_result.radial
 
@@ -159,20 +160,21 @@ def pyfai_move_qmap_worker_new(experiment: Experiment, imageindices,
     cfg = process_config
 
     
-    time_logger=get_logger(LOGGER_DEBUG)
+    #time_logger=get_logger(LOGGER_DEBUG)
     if queue is not None:
         #print('found queue')
         qh = logging.handlers.QueueHandler(queue)
         root_logger = get_logger(LOGGER_DEBUG)
         root_logger.addHandler(qh)
         root_logger.setLevel(logging.DEBUG)
-        time_logger=root_logger.getChild(f'child_{logn}')
-        time_logger.debug(f'created logger for child_{logn}')
-    time_logger.debug(do_time_check(f'start ivq worker {logn}'))
+        #time_logger=root_logger.getChild(f'child_{logn}')
+        #time_logger.debug(f'created logger for child_{logn}')
+    #time_logger.debug(do_time_check(f'start ivq worker {logn}'))
     
     #ais = []
     #img_data_list = []
     d5i_data=[]
+    inc_angle=np.radians(experiment.incident_angle)
     unit_ip = units.get_unit_fiber(
         cfg.unit_qip_name, sample_orientation=cfg.sample_orientation, incident_angle=0)
     unit_oop = units.get_unit_fiber(
@@ -181,7 +183,7 @@ def pyfai_move_qmap_worker_new(experiment: Experiment, imageindices,
     
     fullresult=np.zeros((cfg.qmapbins[1],cfg.qmapbins[0]))
     fullcounts=np.zeros((cfg.qmapbins[1],cfg.qmapbins[0]))#
-    time_logger.debug(do_time_check(f'start loop of image child_{logn}'))
+    #time_logger.debug(do_time_check(f'start loop of image child_{logn}'))
     for i,ind in enumerate(imageindices):
         inc_angle,inc_angle_out=cfg.all_inc_angles[ind]
         # unit_oop.set_incident_angle(inc_angle_out)
@@ -194,7 +196,8 @@ def pyfai_move_qmap_worker_new(experiment: Experiment, imageindices,
         img_data,img_mask=get_pyfai_image_data(experiment,scan,ind)
         current_ai.mask=img_mask
         method=("no", "histogram", "cython")
-#)
+        unit_ip.incident_angle=inc_angle_out
+        unit_oop.incident_angle=inc_angle_out
         outrangerad=cfg.fullranges[0:2]
         outrangeazi=cfg.fullranges[2:]
         single_result=current_ai.integrate2d(img_data, cfg.qmapbins[0],
@@ -208,9 +211,8 @@ def pyfai_move_qmap_worker_new(experiment: Experiment, imageindices,
         # #single_result=current_ai.integrate1d(img_data,cfg.ivqbins,unit = cfg.unit_qip_name ,method=method,radial_range=(cfg.radialrange[0], cfg.radialrange[1]))
         fullresult+=single_result.sum_signal
         fullcounts+=single_result.count
-    time_logger.debug(do_time_check(f'stop loop of image child_{logn}'))
+    #time_logger.debug(do_time_check(f'stop loop of image child_{logn}'))
     return fullresult,fullcounts,single_result.radial,single_result.azimuthal,img_mask
-
 
 
 def pyfai_move_exitangles_worker_new(experiment: Experiment, imageindices,
@@ -221,16 +223,16 @@ def pyfai_move_exitangles_worker_new(experiment: Experiment, imageindices,
     cfg = process_config
 
     
-    time_logger=get_logger(LOGGER_DEBUG)
+    #time_logger=get_logger(LOGGER_DEBUG)
     if queue is not None:
         #print('found queue')
         qh = logging.handlers.QueueHandler(queue)
         root_logger = get_logger(LOGGER_DEBUG)
         root_logger.addHandler(qh)
         root_logger.setLevel(logging.DEBUG)
-        time_logger=root_logger.getChild(f'child_{logn}')
-        time_logger.debug(f'created logger for child_{logn}')
-    time_logger.debug(do_time_check(f'start ivq worker {logn}'))
+        #time_logger=root_logger.getChild(f'child_{logn}')
+        #time_logger.debug(f'created logger for child_{logn}')
+    #time_logger.debug(do_time_check(f'start ivq worker {logn}'))
     
     #ais = []
     #img_data_list = []
@@ -243,7 +245,7 @@ def pyfai_move_exitangles_worker_new(experiment: Experiment, imageindices,
     
     fullresult=np.zeros((cfg.qmapbins[1],cfg.qmapbins[0]))
     fullcounts=np.zeros((cfg.qmapbins[1],cfg.qmapbins[0]))#
-    time_logger.debug(do_time_check(f'start loop of image child_{logn}'))
+    #time_logger.debug(do_time_check(f'start loop of image child_{logn}'))
     for i,ind in enumerate(imageindices):
         inc_angle,inc_angle_out=cfg.all_inc_angles[ind]
         # unit_oop.set_incident_angle(inc_angle_out)
@@ -252,6 +254,8 @@ def pyfai_move_exitangles_worker_new(experiment: Experiment, imageindices,
         current_ai=get_pyfai_ai(experiment,cfg.aistart, cfg.slitratios, cfg.alphacritical,inc_angle,gamdelval)
         d5i_data=cfg.d5i_full[ind]
 
+        unit_ip.incident_angle=inc_angle_out
+        unit_oop.incident_angle=inc_angle_out
 
         img_data,img_mask=get_pyfai_image_data(experiment,scan,ind)
         current_ai.mask=img_mask
@@ -270,7 +274,7 @@ def pyfai_move_exitangles_worker_new(experiment: Experiment, imageindices,
         # #single_result=current_ai.integrate1d(img_data,cfg.ivqbins,unit = cfg.unit_qip_name ,method=method,radial_range=(cfg.radialrange[0], cfg.radialrange[1]))
         fullresult+=single_result.sum_signal
         fullcounts+=single_result.count
-    time_logger.debug(do_time_check(f'stop loop of image child_{logn}'))
+    #time_logger.debug(do_time_check(f'stop loop of image child_{logn}'))
     return fullresult,fullcounts,single_result.radial,single_result.azimuthal,img_mask
 
 
@@ -354,6 +358,7 @@ def pyfai_stat_exitangles_worker_new(experiment: Experiment, imageindex, scan,\
     current_ai.mask=img_mask
     method=("no", "histogram", "cython")
 
+
     unit_ip = units.get_unit_fiber(
         cfg.unit_qip_name, sample_orientation=cfg.sample_orientation, incident_angle=inc_angle_out)
     unit_oop = units.get_unit_fiber(
@@ -419,7 +424,7 @@ def pyfai_stat_qmap_worker_new(experiment: Experiment, imageindex, scan,\
     # mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
     #     map2d.azimuthal_unit), str(map2d.radial_unit)]
 
-#====== OLD previous workers
+# #====== OLD previous workers
 
 def pyfai_move_ivsq_worker_old(experiment: Experiment, imageindices,
                            scan, process_config) -> None:
@@ -610,8 +615,6 @@ def pyfai_move_exitangles_worker_old(experiment: Experiment, imageindices, scan,
     return mapaxisinfo
 
 
-
-
 def pyfai_stat_qmap_worker_old(experiment, imageindex, scan,
                            process_config: SimpleNamespace) -> None:
     """
@@ -641,7 +644,6 @@ def pyfai_stat_qmap_worker_old(experiment, imageindex, scan,
         map2d.azimuthal_unit), str(map2d.radial_unit)]
     return map2d[0], map2d[1], map2d[2], mapaxisinfo
 
-
 def pyfai_stat_exitangles_worker_old(experiment: Experiment, imageindex, scan,\
                                   process_config: SimpleNamespace) -> None:
     """
@@ -670,7 +672,6 @@ def pyfai_stat_exitangles_worker_old(experiment: Experiment, imageindex, scan,\
         map2d.azimuthal_unit), str(map2d.radial_unit)]
 
     return map2d[0], map2d[1], map2d[2], mapaxisinfo
-
 
 def pyfai_stat_ivsq_worker_old(experiment: Experiment, imageindex, scan,
                            process_config: SimpleNamespace) -> None:

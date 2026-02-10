@@ -243,11 +243,13 @@ def get_gam_del_vals(experiment: Experiment, index):
         delval = np.array(experiment.deltadata).ravel()
     return [gamval,delval]
 
-def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, slitratios):
+def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, process_config):
     """
     calculate setup values needed for pyfai calculations
     """
     # pylint: disable=attribute-defined-outside-init
+    cfg=process_config
+    slitratios=cfg.slitratios
     if isinstance(scanlist, Scan):
         scanlistnew = [scanlist]
     else:
@@ -282,6 +284,7 @@ def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, slitrati
         else:
             limhor = combine_ranges(limhor, scanlimits[0:2])
             limver = combine_ranges(limver, scanlimits[2:])
+
 
     outlimits = [limhor[0], 
                  limhor[1], 
@@ -607,15 +610,15 @@ def check_full_1d_radial_range(experiment: Experiment,process_config,absranges, 
     hor_centre=centre_check[np.sum([(val>0) for val in cfg.fullranges[0:2]])]
     ver_centre=centre_check[np.sum([(val>0) for val in cfg.fullranges[2:]])]
     if hor_centre and ver_centre:
-        radialrange = (0, radmax)
-    elif hor_centre:
-        radialrange = (min(abs(np.array(cfg.fullranges[2:]))), radmax)
-    elif ver_centre:
-        radialrange = (min(abs(np.array(cfg.fullranges[0:2]))), radmax)
+        radialrange = (0, np.max(absranges))
+    # elif hor_centre:
+    #     radialrange = (min(abs(np.array(cfg.fullranges[2:]))), radmax)
+    # elif ver_centre:
+    #     radialrange = (min(abs(np.array(cfg.fullranges[0:2]))), radmax)
     else:
         radialrange = (min(absranges),radmax)
-    if str(cfg.unit_qip_name).startswith("q"):
-        return [calcq(val,experiment.incident_wavelength) for val in radialrange]
+    # if str(cfg.unit_qip_name).startswith("q"):
+    #     return [calcq(val,experiment.incident_wavelength) for val in radialrange]
     return radialrange
 
 def get_d5i_values(scan):
@@ -635,10 +638,11 @@ def start_listener():
     return listener,log_queue
 
 def add_buffer_to_limits(limits):
-    limit1=limits[0]-(0.05*np.abs(limits[0]))
-    limit2=limits[1]*1.05
-    limit3=limits[2]-(0.05*np.abs(limits[2]))
-    limit4=limits[3]*1.05
+    buffers=[np.max([0.05,0.05*np.abs(lim)]) for lim in limits]
+    limit1=limits[0]-buffers[0]
+    limit2=limits[1]+buffers[1]
+    limit3=limits[2]-buffers[2]
+    limit4=limits[3]+buffers[3]
 
     return [limit1,limit2,limit3,limit4]
 
@@ -649,9 +653,9 @@ def pyfai_moving_ivsq_smm_new(experiment: Experiment, hf, scanlist, process_conf
 
     logger=get_logger(LOGGER_DEBUG)
     listener,log_queue=start_listener()
-    cfg = process_config
+    cfg = copy.copy(process_config)
     cfg.fullranges, cfg.scanlength, cfg.scanlistnew =\
-     pyfai_setup_limits(experiment,scanlist, experiment.calcanglim, cfg.slitratios)
+     pyfai_setup_limits(experiment,scanlist, experiment.calcanglim, cfg)
     absranges,radmax=get_corner_thetas(cfg)
     cfg.fullranges=add_buffer_to_limits(cfg.fullranges)
     #num_threads = int(cfg.num_threads)  # e.g., 40
@@ -761,18 +765,16 @@ def pyfai_moving_qmap_smm_new(experiment: Experiment, hf, scanlist, process_conf
 
     # pylint: disable=unused-argument
     # pylint: disable=unused-variable
-    cfg = process_config
+    cfg = copy.copy(process_config)
 
     logger=get_logger(LOGGER_DEBUG)
     listener,log_queue=start_listener()
 
     cfg.fullranges, cfg.scanlength, cfg.scanlistnew =\
-     pyfai_setup_limits(experiment,scanlist, experiment.calcanglim, cfg.slitratios)
+     pyfai_setup_limits(experiment,scanlist, experiment.calcqlim, cfg)
     absranges,radmax=get_corner_thetas(cfg)
 
-
-    cfg.qlimitsout, cfg.scanlength, cfg.scanlistnew = \
-    pyfai_setup_limits(experiment,scanlist, experiment.calcqlim, cfg.slitratios)
+    cfg.fullranges=add_buffer_to_limits(cfg.fullranges)
     intensity_results_per_scan = []
     count_results_per_scan = []
     para_results_per_scan=[]
@@ -783,10 +785,10 @@ def pyfai_moving_qmap_smm_new(experiment: Experiment, hf, scanlist, process_conf
     logger.debug(do_time_check('NEW start process pool'))
     cfg.unit_qip_name = "qip_A^-1"#"2th_deg"  # "qtot_A^-1"# "qip_A^-1"
     cfg.unit_qoop_name = "qoop_A^-1"#"2th_deg"
-    if cfg.unit_qip_name.startswith('q'):
-        cfg.fullranges[0:2]=[calcq(val,experiment.incident_wavelength) for val in cfg.fullranges[0:2]]
-    if cfg.unit_qoop_name.startswith('q'):
-        cfg.fullranges[2:]=[calcq(val,experiment.incident_wavelength) for val in cfg.fullranges[2:]]
+    # if cfg.unit_qip_name.startswith('q'):
+    #     cfg.fullranges[0:2]=[calcq(val,experiment.incident_wavelength) for val in cfg.fullranges[0:2]]
+    # if cfg.unit_qoop_name.startswith('q'):
+    #     cfg.fullranges[2:]=[calcq(val,experiment.incident_wavelength) for val in cfg.fullranges[2:]]
     cfg.sample_orientation = 1
     batchsize=15
     cfg.scalegamma=1
@@ -905,18 +907,16 @@ def pyfai_moving_exitangles_smm_new(experiment: Experiment, hf, scanlist, proces
 
     # pylint: disable=unused-argument
     # pylint: disable=unused-variable
-    cfg = process_config
-
+    cfg = copy.copy(process_config)
     logger=get_logger(LOGGER_DEBUG)
     listener,log_queue=start_listener()
 
     cfg.fullranges, cfg.scanlength, cfg.scanlistnew =\
-     pyfai_setup_limits(experiment,scanlist, experiment.calcanglim, cfg.slitratios)
+     pyfai_setup_limits(experiment,scanlist, experiment.calcanglim, cfg)
     absranges,radmax=get_corner_thetas(cfg)
+    cfg.fullranges=add_buffer_to_limits(cfg.fullranges)
 
 
-    cfg.qlimitsout, cfg.scanlength, cfg.scanlistnew = \
-    pyfai_setup_limits(experiment,scanlist, experiment.calcqlim, cfg.slitratios)
     intensity_results_per_scan = []
     count_results_per_scan = []
     para_results_per_scan=[]
@@ -1013,15 +1013,14 @@ def pyfai_static_ivsq_new(experiment: Experiment, hf, scan, process_config: Simp
     """
     calculate Intensity Vs Q 1d profile from static detector scan
     """
-    # logger=get_logger(LOGGER_DEBUG)
+    logger=get_logger(LOGGER_DEBUG)
     # listener,log_queue=start_listener()
-    cfg = process_config
+    cfg = copy.copy(process_config)
     ctx = get_context("spawn")
     cfg.fullranges, cfg.scanlength, cfg.scanlistnew =\
-     pyfai_setup_limits(experiment,scan, experiment.calcanglim, cfg.slitratios)
+     pyfai_setup_limits(experiment,scan, experiment.calcanglim, cfg)
     absranges,radmax=get_corner_thetas(cfg)
     cfg.fullranges=add_buffer_to_limits(cfg.fullranges)
-
     #num_threads = int(cfg.num_threads)  # e.g., 40
     t0 = time()
     cfg.unit_qip_name = "2th_deg"# "qip_A^-1"# "qip_A^-1""2th_deg"  #
@@ -1029,7 +1028,6 @@ def pyfai_static_ivsq_new(experiment: Experiment, hf, scan, process_config: Simp
     if cfg.radialrange is None:
         cfg.radialrange=check_full_1d_radial_range(experiment,cfg,absranges,radmax)
 
-        
     if cfg.ivqbins is None:
         cfg.ivqbins = int(
             np.ceil((cfg.radialrange[1] - cfg.radialrange[0]) /
@@ -1093,10 +1091,10 @@ def pyfai_static_ivsq_new(experiment: Experiment, hf, scan, process_config: Simp
 
 def pyfai_static_exitangles_new(experiment: Experiment, hf, scan,
                             process_config: SimpleNamespace):
-    cfg = process_config
+    cfg = copy.copy(process_config)
     ctx = get_context("spawn")
     cfg.fullranges, cfg.scanlength, cfg.scanlistnew =\
-     pyfai_setup_limits(experiment,scan, experiment.calcanglim, cfg.slitratios)
+     pyfai_setup_limits(experiment,scan, experiment.calcanglim, cfg)
     absranges,radmax=get_corner_thetas(cfg)
     cfg.fullranges=add_buffer_to_limits(cfg.fullranges)
 
@@ -1170,13 +1168,12 @@ def pyfai_static_exitangles_new(experiment: Experiment, hf, scan,
     save_config_variables(hf, cfg)
     hf.close()
 
-
 def pyfai_static_qmap_new(experiment: Experiment, hf, scan,
                             process_config: SimpleNamespace):
-    cfg = process_config
+    cfg = copy.copy(process_config)
     ctx = get_context("spawn")
     cfg.fullranges, cfg.scanlength, cfg.scanlistnew =\
-     pyfai_setup_limits(experiment,scan, experiment.calcqlim, cfg.slitratios)
+     pyfai_setup_limits(experiment,scan, experiment.calcqlim, cfg)
     absranges,radmax=get_corner_thetas(cfg)
     cfg.fullranges=add_buffer_to_limits(cfg.fullranges)
 
