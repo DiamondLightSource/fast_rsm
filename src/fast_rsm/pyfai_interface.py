@@ -679,7 +679,6 @@ def pyfai_moving_ivsq_smm_new(experiment: Experiment, hf, scanlist, process_conf
     cfg.shapeqi = (1, np.abs(cfg.ivqbins))
     cfg.scalegamma = 1
 
-    logger.debug(do_time_check('NEW start process pool'))
 
     cfg.sample_orientation = 1
     batchsize=15
@@ -723,7 +722,6 @@ def pyfai_moving_ivsq_smm_new(experiment: Experiment, hf, scanlist, process_conf
     log_queue.put_nowait(None) # End the queue
     listener.join() # Stop the listener
 
-    logger.debug(do_time_check('stop process pool'))
 
     int_final = np.sum(intensity_results_per_scan,axis=0)
     counts_final = np.sum(count_results_per_scan,axis=0)
@@ -782,7 +780,6 @@ def pyfai_moving_qmap_smm_new(experiment: Experiment, hf, scanlist, process_conf
     t0 = time()
     cfg.multi = True
 
-    logger.debug(do_time_check('NEW start process pool'))
     cfg.unit_qip_name = "qip_A^-1"#"2th_deg"  # "qtot_A^-1"# "qip_A^-1"
     cfg.unit_qoop_name = "qoop_A^-1"#"2th_deg"
     # if cfg.unit_qip_name.startswith('q'):
@@ -832,7 +829,6 @@ def pyfai_moving_qmap_smm_new(experiment: Experiment, hf, scanlist, process_conf
     log_queue.put_nowait(None) # End the queue
     listener.join() # Stop the listener
 
-    logger.debug(do_time_check('stop process pool'))
 
     qmap_final=np.sum(intensity_results_per_scan,axis=0)
     counts_final = np.sum(count_results_per_scan,axis=0)
@@ -889,7 +885,6 @@ def pyfai_moving_exitangles_smm_new(experiment: Experiment, hf, scanlist, proces
     t0 = time()
     cfg.multi = True
 
-    logger.debug(do_time_check('NEW start process pool'))
     cfg.unit_qip_name = "exit_angle_horz_deg"#"2th_deg"  # "qtot_A^-1"# "qip_A^-1"
     cfg.unit_qoop_name = "exit_angle_vert_deg"#"2th_deg"
     if cfg.unit_qip_name.startswith('q'):
@@ -939,7 +934,6 @@ def pyfai_moving_exitangles_smm_new(experiment: Experiment, hf, scanlist, proces
     log_queue.put_nowait(None) # End the queue
     listener.join() # Stop the listener
 
-    logger.debug(do_time_check('stop process pool'))
 
     qmap_final=np.sum(intensity_results_per_scan,axis=0)
     counts_final = np.sum(count_results_per_scan,axis=0)
