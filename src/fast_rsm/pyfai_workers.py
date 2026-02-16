@@ -136,7 +136,9 @@ def pyfai_move_ivsq_worker_new(experiment: Experiment, imageindices,
         method=("no", "histogram", "cython")
 #) 
 #
-        single_result=current_ai.integrate1d(img_data,cfg.ivqbins,unit = cfg.unit_qip_name ,normalization_factor=d5i_data,correctSolidAngle=True, method=method,radial_range=(cfg.radialrange[0]-0.5, cfg.radialrange[1]+0.5))
+        single_result=current_ai.integrate1d(img_data,cfg.ivqbins,unit = cfg.unit_qip_name ,normalization_factor=d5i_data,\
+                                             correctSolidAngle=True, method=method,radial_range=(cfg.radialrange[0]-0.5, cfg.radialrange[1]+0.5),\
+                                             polarization_factor=cfg.polarization)
         #outrange=(cfg.radialrange[0]-0.5, cfg.radialrange[1]+0.5)
         # qranges=np.array([calcq(val,experiment.incident_wavelength) for val in cfg.fullranges])
         # range_adjust=[-0.5,0.5]
@@ -205,7 +207,8 @@ def pyfai_move_qmap_worker_new(experiment: Experiment, imageindices,
                                                unit_ip, unit_oop),
                                            radial_range=outrangerad,
                                            azimuth_range=outrangeazi,
-                                           method=("no", "csr", "cython"))
+                                           method=("no", "csr", "cython"),\
+                                            polarization_factor=cfg.polarization)
 
         # single_result=current_ai.integrate2d_fiber(img_data,  npt_ip=cfg.qmapbins[0], unit_ip=cfg.unit_qip_name, ip_range=outrange, npt_oop=cfg.qmapbins[1], unit_oop=cfg.unit_qoop_name, oop_range=outrange,sample_orientation=cfg.sample_orientation, normalization_factor=d5i_data)
         # #single_result=current_ai.integrate1d(img_data,cfg.ivqbins,unit = cfg.unit_qip_name ,method=method,radial_range=(cfg.radialrange[0], cfg.radialrange[1]))
@@ -268,7 +271,8 @@ def pyfai_move_exitangles_worker_new(experiment: Experiment, imageindices,
                                                unit_ip, unit_oop),
                                            radial_range=outrangerad,
                                            azimuth_range=outrangeazi,
-                                           method=("no", "csr", "cython"))
+                                           method=("no", "csr", "cython"),\
+                                            polarization_factor=cfg.polarization)
 
         # single_result=current_ai.integrate2d_fiber(img_data,  npt_ip=cfg.qmapbins[0], unit_ip=cfg.unit_qip_name, ip_range=outrange, npt_oop=cfg.qmapbins[1], unit_oop=cfg.unit_qoop_name, oop_range=outrange,sample_orientation=cfg.sample_orientation, normalization_factor=d5i_data)
         # #single_result=current_ai.integrate1d(img_data,cfg.ivqbins,unit = cfg.unit_qip_name ,method=method,radial_range=(cfg.radialrange[0], cfg.radialrange[1]))
@@ -311,7 +315,7 @@ def pyfai_stat_ivsq_worker_new(experiment: Experiment, imageindex, scan,
 
     tth,intensity = current_ai.integrate1d_ng(img_data,
                                           cfg.ivqbins,
-                                          unit="2th_deg", polarization_factor=1,\
+                                          unit="2th_deg", polarization_factor=cfg.polarization,\
                                             radial_range=(
                                cfg.radialrange[0], cfg.radialrange[1]))
     
@@ -366,7 +370,7 @@ def pyfai_stat_exitangles_worker_new(experiment: Experiment, imageindex, scan,\
 
     map2d = current_ai.integrate2d(img_data, cfg.qmapbins[0], cfg.qmapbins[1], \
     unit=(unit_ip, unit_oop), radial_range=(cfg.fullranges[0], cfg.fullranges[1]),\
-     azimuth_range=(cfg.fullranges[2], cfg.fullranges[3]), method=("no", "csr", "cython"))
+     azimuth_range=(cfg.fullranges[2], cfg.fullranges[3]), method=("no", "csr", "cython"), polarization_factor=cfg.polarization)
     mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
         map2d.azimuthal_unit), str(map2d.radial_unit)]
 
@@ -408,7 +412,7 @@ def pyfai_stat_qmap_worker_new(experiment: Experiment, imageindex, scan,\
 
     map2d = current_ai.integrate2d(img_data, cfg.qmapbins[0], cfg.qmapbins[1], \
     unit=(unit_ip, unit_oop), radial_range=(cfg.fullranges[0], cfg.fullranges[1]),\
-     azimuth_range=(cfg.fullranges[2], cfg.fullranges[3]), method=("no", "csr", "cython"))
+     azimuth_range=(cfg.fullranges[2], cfg.fullranges[3]), method=("no", "csr", "cython"), polarization_factor=cfg.polarization)
     mapaxisinfo = [map2d.azimuthal, map2d.radial, str(
         map2d.azimuthal_unit), str(map2d.radial_unit)]
 

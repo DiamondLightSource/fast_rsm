@@ -51,7 +51,8 @@ def create_process_config(exp_setup_file: Path,job_file_path:str ,scan_numbers: 
     cfg = SimpleNamespace(**default_config)
     with open(cfg.full_path,encoding='utf-8') as f:
         cfg.joblines = f.readlines()
-
+    polarization_values={'vertical': -1, 'horizontal':1,'DCD':1}
+    cfg.polarization=polarization_values[cfg.setup]
     cfg.dps_centres = [cfg.dpsx_central_pixel,
                    cfg.dpsy_central_pixel, cfg.dpsz_central_pixel]
     cfg.oop = initial_value_checks(cfg.dps_centres,cfg.cylinder_axis,\
