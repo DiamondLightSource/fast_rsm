@@ -975,7 +975,6 @@ def pyfai_static_ivsq_new(experiment: Experiment, hf, scan, process_config: Simp
     logger=get_logger(LOGGER_DEBUG)
     # listener,log_queue=start_listener()
     cfg = copy.copy(process_config)
-    ctx = get_context("spawn")
     cfg.fullranges, cfg.scanlength, cfg.scanlistnew =\
      pyfai_setup_limits(experiment,scan, experiment.calcanglim, cfg)
     absranges,radmax=get_corner_thetas(cfg)
