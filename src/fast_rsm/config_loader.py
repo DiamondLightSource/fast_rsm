@@ -116,6 +116,7 @@ config_schema = Schema({
     "full_path": str,
     "map_frame":Or(None,str),
     "coordinates":Or(None,str),
+    "azimuthal_sector":Or(None,tuple)
 })
 
 
