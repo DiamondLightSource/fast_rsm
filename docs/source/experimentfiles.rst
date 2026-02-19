@@ -161,6 +161,17 @@ Detector Positioning System settings
     .. confval:: dpsy_central_pixel
     .. confval:: dpsz_central_pixel
 
+Incident angle
+............................
+
+
+.. confval:: use_thv
+
+    Used to specify the use of the motor 'thv' as the incident angle - which is when a combination of diffractometer and hexapod angles are used to reach larger incident angles
+    
+    .. code-block:: python
+        
+        use_thv = True
 
 
 .. _optional_GIWAXS:    
