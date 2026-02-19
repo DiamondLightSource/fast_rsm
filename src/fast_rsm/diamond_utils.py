@@ -181,6 +181,7 @@ def create_experiment(process_config: SimpleNamespace):
     #                    cfg.slithorratio, cfg.slitvertratio, cfg.data_dir]
     experiment, cfg = standard_adjustments(
         experiment, cfg)
+    experiment.use_thv = cfg.use_thv
     # grab ub information
     cfg.ubinfo = [
         scan.metadata.data_file.nx_instrument.diffcalchdr for scan in experiment.scans]
