@@ -137,6 +137,9 @@ radialstepval =None
 # set number of bins in the form (q_parallel, q_perpendicular)
 qmapbins = (1200, 1200)
 
+#define an azimuthal range over which to carry out the 1d integration for IvsQ
+azimuthal_sector=(110,80)
+
 #===================================================================
 #=========Optional settings for full reciprocal space maps
 #===================================================================
