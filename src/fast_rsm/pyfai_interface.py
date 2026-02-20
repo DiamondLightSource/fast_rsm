@@ -221,7 +221,7 @@ def get_inc_angles_out(experiment: Experiment,index):
     elif isinstance(experiment.incident_angle, np.float64):
         inc_angle = -np.radians(experiment.incident_angle)
     else:
-        inc_angle = -np.radians(experiment.incident_angle[0])
+        inc_angle = -np.radians(float(experiment.incident_angle))
 
     if experiment.setup == 'DCD':
         inc_angle_out = 0  # debug setting incident angle to 0

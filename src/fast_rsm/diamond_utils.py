@@ -54,7 +54,7 @@ def create_process_config(exp_setup_file: Path,job_file_path:str ,scan_numbers: 
     polarization_values={'vertical': -1, 'horizontal':1,'DCD':1}
     cfg.polarization=polarization_values[cfg.setup]
     cfg.dps_centres = [cfg.dpsx_central_pixel,
-                   cfg.dpsy_central_pixel, cfg.dpsz_central_pixel]
+                   cfg.dpsy_central_pixel, cfg.dpsz_central_pixel, cfg.dpsz2_central_pixel]
     cfg.oop = initial_value_checks(cfg.dps_centres,cfg.cylinder_axis,\
                                     cfg.setup, cfg.output_file_size)
 
@@ -181,6 +181,7 @@ def create_experiment(process_config: SimpleNamespace):
     #                    cfg.slithorratio, cfg.slitvertratio, cfg.data_dir]
     experiment, cfg = standard_adjustments(
         experiment, cfg)
+    experiment.use_thv = cfg.use_thv
     # grab ub information
     cfg.ubinfo = [
         scan.metadata.data_file.nx_instrument.diffcalchdr for scan in experiment.scans]
@@ -196,10 +197,10 @@ def initial_value_checks(dps_centres, cylinder_axis, setup, output_file_size):
     sets oop value
     returns: oop
     """
-    dpsx_central_pixel, dpsy_central_pixel, dpsz_central_pixel = dps_centres
+    dpsx_central_pixel, dpsy_central_pixel, dpsz_central_pixel,dpsz2_central_pixel = dps_centres
     # Warn if dps offsets are silly.
     if ((dpsx_central_pixel > 10) or (dpsy_central_pixel > 10) or
-            (dpsz_central_pixel > 10)):
+            (dpsz_central_pixel > 10) or (dpsz2_central_pixel > 10)):
         raise ValueError("DPS central pixel units should be meters. Detected "
                          "values greater than 10m")
 
@@ -257,11 +258,13 @@ def setup_dps(scan,process_config):
         scan.metadata.data_file.dpsx += dps_off_x
         scan.metadata.data_file.dpsy += dps_off_y
         scan.metadata.data_file.dpsz -= cfg.dpsz_central_pixel
+        scan.metadata.data_file.dpsz2 -= cfg.dpsz2_central_pixel
     else:
         # If we aren't using the DCD, our life is much simpler.
         scan.metadata.data_file.dpsx -= cfg.dpsx_central_pixel
         scan.metadata.data_file.dpsy -= cfg.dpsy_central_pixel
         scan.metadata.data_file.dpsz -= cfg.dpsz_central_pixel
+        scan.metadata.data_file.dpsz2 -= cfg.dpsz2_central_pixel
 
 def standard_adjustments(experiment, process_config):
     """
