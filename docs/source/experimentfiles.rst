@@ -153,7 +153,7 @@ Detector Positioning System settings
 
     When using the Detector Positioning System add this variable as True to the experimental setup file
 
-    If you are using DPS you will also need to add the dps central pixels with the three variables below. 
+    If you are using DPS you will also need to add the X,Y,Z,Z2 dps positions used when measuring the central pixels with the four variables below. 
     The DPS central pixel locations are not typically recorded in the nexus file. This should be the central pixel for the undeflected beam with units of meters. 
 
 
