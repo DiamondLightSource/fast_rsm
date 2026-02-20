@@ -11,6 +11,7 @@ using_dps: False
 dpsx_central_pixel: 0
 dpsy_central_pixel: 0
 dpsz_central_pixel: 0
+dpsz2_central_pixel: 0
 output_file_size: 50
 save_vtk: False
 save_npy: False
@@ -39,4 +40,5 @@ DEBUG_LOG: 0
 spherical_bragg_vec: [0,0,0]
 map_frame: null
 coordinates: null
+use_thv: False
 azimuthal_sector: null

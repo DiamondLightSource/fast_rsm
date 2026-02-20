@@ -99,7 +99,10 @@ using_dps = False
 dpsx_central_pixel = 0
 dpsy_central_pixel = 0
 dpsz_central_pixel = 0
+dpsz2_central_pixel = 0
 
+#for specifying the use of the new motor thv - a combination of diffractometer and hexapod to reach larger incident angles
+use_thv = False
 
 #===================================================================
 #=========Optional settings for GIWAXS analysis

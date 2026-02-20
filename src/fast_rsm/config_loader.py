@@ -83,9 +83,10 @@ config_schema = Schema({
     "slithorratio": Or(None, float),
     "alphacritical": float,
     "using_dps": bool,
-    "dpsx_central_pixel": Or(None, float),
-    "dpsy_central_pixel": Or(None, float),
-    "dpsz_central_pixel": Or(None, float),
+    "dpsx_central_pixel": Or(None, float, int),
+    "dpsy_central_pixel": Or(None, float, int),
+    "dpsz_central_pixel": Or(None, float, int),
+    "dpsz2_central_pixel": Or(None, float, int),
     "output_file_size": int,
     "save_vtk": bool,
     "save_npy": bool,
@@ -116,6 +117,7 @@ config_schema = Schema({
     "full_path": str,
     "map_frame":Or(None,str),
     "coordinates":Or(None,str),
+    "use_thv": Or(None,bool)
     "azimuthal_sector":Or(None,tuple)
 })
 

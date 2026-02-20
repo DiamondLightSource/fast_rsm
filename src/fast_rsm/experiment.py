@@ -268,6 +268,54 @@ class Experiment:
         for val in none_exp:  # pylint: disable=attribute-defined-outside-init
             setattr(self, val, None)
 
+    def load_gamma_data(self, scan: Scan):
+        try:
+            return np.array(
+                self.entry.instrument.diff1gamma.value_set).ravel()
+        except BaseException:
+            return np.array(
+                self.entry.instrument.diff1gamma.value).ravel()
+        
+    def load_delta_data(self,scan:Scan,large_det_names):
+        if scan.metadata.data_file.detector_name in large_det_names:
+            return 0
+        try:
+            return np.array(
+                self.entry.instrument.diff1delta.value_set).ravel()
+        except BaseException:
+            return np.array(
+                self.entry.instrument.diff1delta.value).ravel()
+        
+    def parse_dcd_angles(self,scan: Scan):
+        self.dcdrad = np.array(self.entry.instrument.dcdc2rad.value)
+        self.dcdomega = np.array(self.entry.instrument.dcdomega.value)
+        self.projectionx = 1e-3 * self.dcdrad * \
+            np.cos(np.radians(self.dcdomega))
+        self.projectiony = 1e-3 * self.dcdrad * \
+            np.sin(np.radians(self.dcdomega))
+        dcd_sample_dist = 1e-3 * \
+            scan.metadata.diffractometer._dcd_sample_distance[0]
+        self.dcd_incdeg = np.degrees(
+            np.arctan(
+                self.projectiony /
+                (np.sqrt(np.square(self.projectionx) + np.square(dcd_sample_dist)))))
+        #self.incident_angle = self.dcd_incdeg
+        # self.deltadata+=self.dcd_incdeg
+        tthdirect = -1 * \
+            np.degrees(np.arctan(self.projectionx / dcd_sample_dist))
+        return self.dcd_incdeg,tthdirect
+    
+    def load_incident_angle(self,scan: Scan):
+        if self.setup == 'DCD':
+            return self.parse_dcd_angles(scan)
+        if self.use_thv:
+            return np.array(self.entry.instrument.thv.value),0
+        if (scan.metadata.data_file.is_eh1) & (self.setup != 'DCD'):
+            return scan.metadata.data_file.chi, 0
+        if scan.metadata.data_file.is_eh2:
+            return scan.metadata.data_file.alpha,0
+        return [0],0
+
     def load_curve_values(self, scan: Scan):
         """
         set attributes of experiment for easier access to key variables
@@ -282,45 +330,11 @@ class Experiment:
         #     self.detector_distance=scan.metadata.diffractometer.data_file.detector_distance
         self.incident_wavelength = 1e-10 * scan.metadata.incident_wavelength
         self.kmod = 2 * np.pi / (self.incident_wavelength)
-        try:
-            self.gammadata = np.array(
-                self.entry.instrument.diff1gamma.value_set).ravel()
-        except BaseException:
-            self.gammadata = np.array(
-                self.entry.instrument.diff1gamma.value).ravel()
+        self.gammadata = self.load_gamma_data(scan)
         # self.deltadata=np.array( self.entry.instrument.diff1delta.value)
-        try:
-            self.deltadata = np.array(
-                self.entry.instrument.diff1delta.value_set).ravel()
-        except BaseException:
-            self.deltadata = np.array(
-                self.entry.instrument.diff1delta.value).ravel()
-        tthdirect = 0
-        if self.setup == 'DCD':
-            self.dcdrad = np.array(self.entry.instrument.dcdc2rad.value)
-            self.dcdomega = np.array(self.entry.instrument.dcdomega.value)
-            self.projectionx = 1e-3 * self.dcdrad * \
-                np.cos(np.radians(self.dcdomega))
-            self.projectiony = 1e-3 * self.dcdrad * \
-                np.sin(np.radians(self.dcdomega))
-            dcd_sample_dist = 1e-3 * \
-                scan.metadata.diffractometer._dcd_sample_distance[0]
-            self.dcd_incdeg = np.degrees(
-                np.arctan(
-                    self.projectiony /
-                    (np.sqrt(np.square(self.projectionx) + np.square(dcd_sample_dist)))))
-            self.incident_angle = self.dcd_incdeg
-            # self.deltadata+=self.dcd_incdeg
-            tthdirect = -1 * \
-                np.degrees(np.arctan(self.projectionx / dcd_sample_dist))
-        elif (scan.metadata.data_file.is_eh1) & (self.setup != 'DCD'):
-            self.incident_angle = scan.metadata.data_file.chi
-        elif scan.metadata.data_file.is_eh2:
-            self.incident_angle = scan.metadata.data_file.alpha
-        else:
-            self.incident_angle = [0]
-        if scan.metadata.data_file.detector_name in large_det_names:
-            self.deltadata = 0
+        self.deltadata = self.load_delta_data(scan,large_det_names)
+
+        self.incident_angle,tthdirect=self.load_incident_angle(scan)
 
         self.imshape = scan.metadata.data_file.image_shape
         self.beam_centre = scan.metadata.beam_centre

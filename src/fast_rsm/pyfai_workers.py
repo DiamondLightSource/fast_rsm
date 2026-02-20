@@ -45,7 +45,7 @@ def get_pyfai_ai(experiment: Experiment,aistart, slitratios, alphacritical,inc_a
         # if above critical angle, account for direct beam adding to delta
         rots = gamdel2rots(gamval, delval + np.degrees(-inc_angle))
     else:
-        rots =  gamdel2rots(gamval, delval+ np.degrees(-inc_angle))
+        rots =  gamdel2rots(gamval, delval) 
 
     out_ai = copy.deepcopy(aistart)
     out_ai.rot1, out_ai.rot2, out_ai.rot3 = rots

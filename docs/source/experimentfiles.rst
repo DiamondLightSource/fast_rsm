@@ -153,14 +153,26 @@ Detector Positioning System settings
 
     When using the Detector Positioning System add this variable as True to the experimental setup file
 
-    If you are using DPS you will also need to add the dps central pixels with the three variables below. 
+    If you are using DPS you will also need to add the X,Y,Z,Z2 dps positions used when measuring the central pixels with the four variables below. 
     The DPS central pixel locations are not typically recorded in the nexus file. This should be the central pixel for the undeflected beam with units of meters. 
 
 
     .. confval:: dpsx_central_pixel
     .. confval:: dpsy_central_pixel
     .. confval:: dpsz_central_pixel
+    .. confval:: dpsz2_central_pixel
 
+Incident angle
+............................
+
+
+.. confval:: use_thv
+
+    Used to specify the use of the motor 'thv' as the incident angle - which is when a combination of diffractometer and hexapod angles are used to reach larger incident angles
+    
+    .. code-block:: python
+        
+        use_thv = True
 
 
 .. _optional_GIWAXS:    
