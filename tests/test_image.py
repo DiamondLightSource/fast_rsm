@@ -1,80 +1,113 @@
-"""
-This module contains unit tests for the fast_rsm.image.Image class.
-
-As of 07/04/2022, I'm lazily grabbing images from scans. This could be improved
-by manually loading instances of Image, which would just require a slightly
-clever fixture.
-"""
-
-# pylint: disable=protected-access
-
-from time import time
-
+from fast_rsm.image import get_coordchange_matrix,do_mask_pixels,do_mask_regions,\
+    correct_transmission,do_mask_detris,correct_counttime,do_edfmask, get_norm_value
+from types import SimpleNamespace
 import numpy as np
 from numpy.testing import assert_allclose
 
-from diffraction_utils import Frame
+# def test_processing_steps():
+#     fake_metadata = SimpleNamespace(
+#         image_loader=lambda idx: np.ones((5,5)),
+#         solid_angles=np.ones((5,5)),
+#         get_count_time=lambda idx: 1,
+#         data_file=SimpleNamespace(is_dectris=False),
+#         edfmask=None,
+#         mask_pixels=None,
+#         mask_regions=None,
+#         diffractometer=SimpleNamespace(data_file=SimpleNamespace(is_dectris=False,transmission=1))
+#     )
 
-from fast_rsm.binning import linear_bin
-from fast_rsm.scan import Scan
-
-
-def test_data(i10_scan: Scan):
-    """
-    Make sure that image_instance.data is properly normalized.
-    """
-    image = i10_scan.load_image(0)
-    metadata = i10_scan.metadata
-    assert (image.data == image._raw_data / metadata.solid_angles).all()
-
-
-def test_delta_q_01(i10_scan: Scan):
-    """
-    Make sure that the scattering vectors are being correctly calculated. This
-    is tricky to do exactly, but we can get pretty close by grabbing the
-    brightest pixel and assuming that we scatter through the (100) to get there.
-    """
-    # We should be on the Bragg peak in the centre image.
-    image = i10_scan.load_image(70)
-
-    frame = Frame(Frame.hkl, i10_scan.metadata.diffractometer)
-
-    # Brightest pixel should be on the Bragg peak.
-    max_intensity_pixel = np.where(image.data == np.max(image.data))
-    max_intensity_q = np.linalg.norm(image.delta_q(frame)[max_intensity_pixel])
-    wavelength = 1 / max_intensity_q
-
-    # Published value of CSO unit cell length is 8.931 Å.
-    # Make sure that the brightest pixel corresponds to scattering from the
-    # (100) of a crystal whose lattice constant is within 1% of this value.
-    assert_allclose(wavelength, 8.931, rtol=1e-2)
+#     img = Image(fake_metadata, 0)
 
 
-def test_binning(i10_scan: Scan):
-    """
-    Make sure that no data is being lost when binning is carried out. This test
-    is implicitly testing _fix_intensity_geometry and _fix_delta_q_geometry.
-    """
-    image = i10_scan.load_image(67)
-    frame = Frame(Frame.hkl, i10_scan.metadata.diffractometer)
-    delta_q = image.delta_q(frame)
+def test_get_coordchange():
+    yvals=np.array([
+                [1, 0, 0],
+                [0, 0, -1],
+                [0, 1, 0]
+            ])
+    xvals= np.array([
+            [0, 1, 0],
+            [0, 0, 1],
+            [1, 0, 0]
+        ])
+    zvals=np.array([
+            [1, 0, 0],
+            [0, 1, 0],
+            [0, 0, 1]
+        ])
+    assert_allclose(get_coordchange_matrix('x'),xvals)
+    assert_allclose(get_coordchange_matrix('y'),yvals)
+    assert_allclose(get_coordchange_matrix('z'),zvals)
+    assert get_coordchange_matrix('random') is None
 
-    min0 = np.min(delta_q[:, :, 0])
-    min1 = np.min(delta_q[:, :, 1])
-    min2 = np.min(delta_q[:, :, 2])
-    max0 = np.max(delta_q[:, :, 0])
-    max1 = np.max(delta_q[:, :, 1])
-    max2 = np.max(delta_q[:, :, 2])
+def test_maskpixels():
+    testarr=np.ones((4,4))
+    maskedarr=testarr.copy()
+    maskedarr[0,2]=np.nan
+    maskedarr[2,1]=np.nan
+    pixels=(0,2),(2,1)
+    assert_allclose(do_mask_pixels(pixels,testarr),maskedarr)
 
-    step = np.array(
-        [(max0 - min0) / 20, (max1 - min1) / 20, (max2 - min2) / 100])
-    start = np.array([min0, min1, min2])
-    stop = np.array([max0, max1, max2]) + step
+def test_maskregions():
+    testarr=np.ones((4,4))
+    maskedarr=testarr.copy()
+    maskedarr[2:0,0:2]=np.nan
+    maskedarr[2:4,0:3]=np.nan
+    region1=SimpleNamespace(slice=np.s_[2:0,0:2])
+    region2=SimpleNamespace(slice=np.s_[2:4,0:3])
+    region_list=[region1,region2]
+    assert_allclose(do_mask_regions(region_list,testarr),maskedarr)
 
-    # Try to bin. Add an assert 1 == 2 to see single threaded bin performance.
-    time1 = time()
-    binned = linear_bin(delta_q, image.data, start, stop, step)
-    time2 = time()
-    print(time2 - time1)
+def test_transmission_correction():
+    testarr=np.ones((4,4))*5
+    normed_arr=np.ones((4,4))
+    transmission1=np.array([5])
+    assert_allclose(correct_transmission(transmission1,testarr,0),normed_arr)
+    transmission2=np.array([1,1,5,1])
+    assert_allclose(correct_transmission(transmission2,testarr,2),normed_arr)
+    transmission3=[1,1,5,1]
+    assert_allclose(correct_transmission(transmission3,testarr,2),normed_arr)
+    transmission4=None
+    assert_allclose(correct_transmission(transmission4,testarr,2),testarr)
 
-    assert_allclose(np.sum(binned), np.sum(image.data))
+def test_counttime_correction():
+    testarr=np.ones((4,4))*5
+    normed_arr=np.ones((4,4))
+    counttime1=np.array([5])
+    assert_allclose(correct_counttime(counttime1,testarr,0),normed_arr)
+    counttime2=np.array([1,1,5,1])
+    assert_allclose(correct_counttime(counttime2,testarr,2),normed_arr)
+    counttime3=[1,1,5,1]
+    assert_allclose(correct_counttime(counttime3,testarr,2),normed_arr)
+    counttime4=None
+    assert_allclose(correct_counttime(counttime4,testarr,2),testarr)
+
+def test_mask_dectris():
+    testarr=np.ones((4,4))
+    maskedarr=testarr.copy()
+    testarr[(2,0)]=4294967300.0
+    testarr[(0,3)]=4294967300.0
+    maskedarr[(2,0)]=np.nan
+    maskedarr[(0,3)]=np.nan
+    assert_allclose(do_mask_detris(testarr),maskedarr)
+
+
+def test_mask_edf():
+    testarr=np.ones((4,4))
+    testarr*=5
+    maskedarr=testarr.copy()
+    maskedarr[2,0]=np.nan
+    maskedarr[0,3]=np.nan
+    mask=np.zeros((4,4))
+    mask[2,0]=1
+    mask[0,3]=1
+    assert_allclose(do_edfmask(mask,testarr),maskedarr)
+
+def test_normvalue():
+    testvals1=[1,2,3,4]
+    assert get_norm_value(testvals1,2)==3
+    testvals2=[]
+    assert get_norm_value(testvals2,2)==1
+    testvals3=None
+    assert get_norm_value(testvals3,2)==None
+

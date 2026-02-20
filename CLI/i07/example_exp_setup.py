@@ -99,7 +99,10 @@ using_dps = False
 dpsx_central_pixel = 0
 dpsy_central_pixel = 0
 dpsz_central_pixel = 0
+dpsz2_central_pixel = 0
 
+#for specifying the use of the new motor thv - a combination of diffractometer and hexapod to reach larger incident angles
+use_thv = False
 
 #===================================================================
 #=========Optional settings for GIWAXS analysis
@@ -136,6 +139,7 @@ radialstepval =None
 # *********calculating qpara Vs qperp maps,
 # set number of bins in the form (q_parallel, q_perpendicular)
 qmapbins = (1200, 1200)
+
 
 #===================================================================
 #=========Optional settings for full reciprocal space maps
@@ -174,6 +178,6 @@ load_from_dat = False
 # choose to have a manually set cylinder axis to use with cylindrical co-ordinates
 #cylinder_axis=False
 
-#choose to change frame of reference for mapping from default ‘hkl’ :
+#choose to change frame of reference for mapping from default ‘hkl’ to 'qxqyqz' :
 #frame_name='hkl'
 

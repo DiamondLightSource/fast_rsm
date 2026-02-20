@@ -1,19 +1,16 @@
 from fast_rsm.diamond_utils import run_process_list,\
-        create_standard_experiment
-from types import SimpleNamespace
+        setup_processing
+
 from fast_rsm.logging_config import start_frsm_loggers
-import logging
 
-#get path to this job file
-job_file_path=__file__
 
-start_frsm_loggers(version_path,debuglogging)
-debug_logger=logging.getLogger("fastrsm_debug")
+
+err_logger,dbg_logger=start_frsm_loggers(version_path,debuglogging)
+
 
 #create experiment object, process configuration and logger
 experiment,process_config,debug_logger=\
-create_standard_experiment(SimpleNamespace(**globals()))
-
+setup_processing(exp_file,__file__,scan_numbers)
 #=================================================================================
 ####============SPECIAL ADJUSTMENTS ==============================================
 # #This section is for changing metadata that is stored in, or inferred from, the
@@ -36,7 +33,17 @@ create_standard_experiment(SimpleNamespace(**globals()))
 #=================================================================================
 #=================================================================================
 
-#run processing jobs with process configuration settings requested
-run_process_list(experiment,process_config)
-print("PROCESSING FINISHED.")
+#
+def main():
+    """
+    run processing jobs with process configuration settings requested
+    """
+
+
+    run_process_list(experiment,process_config)
+    print("PROCESSING FINISHED.")
+
+
+if __name__ == "__main__":
+    main()
  
