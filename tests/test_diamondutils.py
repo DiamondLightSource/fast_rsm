@@ -14,7 +14,7 @@ def test_colour_text():
 def test_initial_checks(test_default_config: dict):
     outlist=['cylinder_axis','setup','output_file_size']
     cfg=SimpleNamespace(**test_default_config)
-    dps_centres= [cfg.dpsx_central_pixel,cfg.dpsy_central_pixel,cfg.dpsz_central_pixel]
+    dps_centres= [cfg.dpsx_central_pixel,cfg.dpsy_central_pixel,cfg.dpsz_central_pixel,cfg.dpsz2_central_pixel]
     assert initial_value_checks(dps_centres,cfg.cylinder_axis,cfg.setup,cfg.output_file_size)=='y'
 
 # def test_get_functions(test_default_config: dict):

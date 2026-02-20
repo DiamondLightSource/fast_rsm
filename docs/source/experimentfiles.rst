@@ -160,6 +160,7 @@ Detector Positioning System settings
     .. confval:: dpsx_central_pixel
     .. confval:: dpsy_central_pixel
     .. confval:: dpsz_central_pixel
+    .. confval:: dpsz2_central_pixel
 
 Incident angle
 ............................

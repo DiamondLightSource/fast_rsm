@@ -86,6 +86,7 @@ config_schema = Schema({
     "dpsx_central_pixel": Or(None, float, int),
     "dpsy_central_pixel": Or(None, float, int),
     "dpsz_central_pixel": Or(None, float, int),
+    "dpsz2_central_pixel": Or(None, float, int),
     "output_file_size": int,
     "save_vtk": bool,
     "save_npy": bool,
