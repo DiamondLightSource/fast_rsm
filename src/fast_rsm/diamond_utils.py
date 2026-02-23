@@ -3,7 +3,6 @@ This file contains a suite of utility functions for processing data acquired
 specifically at Diamond.
 """
 
-import logging
 import multiprocessing
 import os
 import sys
@@ -43,13 +42,14 @@ def setup_processing(exp_setup_file: Path, job_file_path: str, scan_numbers: lis
     returns :  Experiment, config, logger
     """
     cfg = create_process_config(exp_setup_file, job_file_path, scan_numbers)
-    debug_logger = logging.getLogger("fastrsm_debug")
     experiment, cfg = create_experiment(cfg)
 
-    return experiment, cfg, debug_logger
+    return experiment, cfg
 
 
-def create_process_config(exp_setup_file: Path, job_file_path: str, scan_numbers: list):
+def create_process_config(
+    exp_setup_file: Path, job_file_path: str, scan_numbers: list, debuglogging: bool
+):
     """
     creates a simplenamespace configuration settings object
     """
@@ -61,6 +61,7 @@ def create_process_config(exp_setup_file: Path, job_file_path: str, scan_numbers
     check_config_schema(default_config)
 
     cfg = SimpleNamespace(**default_config)
+    cfg.debuglogging = debuglogging
     with open(cfg.full_path, encoding="utf-8") as f:
         cfg.joblines = f.readlines()
     polarization_values = {"vertical": -1, "horizontal": 1, "DCD": 1}
