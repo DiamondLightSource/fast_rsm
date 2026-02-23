@@ -1,5 +1,6 @@
 .vscode
 *.pyc
+*.pvsm
 *.egg-info
 .DS_Store
 693862-pimte-files
