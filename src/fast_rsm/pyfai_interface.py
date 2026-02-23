@@ -401,9 +401,13 @@ def add_buffer_to_limits(limits):
     return [limit1, limit2, limit3, limit4]
 
 
-def setup_job(process_config, experiment, scan, limit_key):
+def setup_debug_logger():
     logger = get_logger(LOGGER_DEBUG)
     listener, log_queue = start_listener()
+    return logger, listener, log_queue
+
+
+def setup_job(process_config, experiment, scan, limit_key):
     cfg = copy.copy(process_config)
 
     limit_functions = {"ang": experiment.calcanglim, "q": experiment.calcqlim}
@@ -423,7 +427,7 @@ def setup_job(process_config, experiment, scan, limit_key):
         cfg.ivqbins = int(
             np.ceil((cfg.radialrange[1] - cfg.radialrange[0]) / cfg.radialstepval)
         )
-    return cfg, logger, listener, log_queue
+    return cfg
 
 
 def setup_pool_info(cfg, experiment, scan, fiber_integrator=False):
@@ -619,9 +623,9 @@ def pyfai_moving_ivsq_smm_new(experiment: Experiment, hf, scanlist, process_conf
     calculate 1d Intensity Vs Q profile for a moving detector scan
     """
 
-    cfg, logger, listener, log_queue = setup_job(
-        process_config, experiment, scanlist, "ang"
-    )
+    cfg = setup_job(process_config, experiment, scanlist, "ang")
+    if cfg.debuglogging:
+        logger, listener, log_queue = setup_debug_logger()
     # num_threads = int(cfg.num_threads)  # e.g., 40
     intensity_results_per_scan, count_results_per_scan, tth_results_per_scan = [
         [],
@@ -666,9 +670,9 @@ def pyfai_moving_ivsq_smm_new(experiment: Experiment, hf, scanlist, process_conf
             count_results_per_scan.append(accumulator_count)
             tth_results_per_scan.append(accumulator_tth / completed)
             print(f"[scan {scanind + 1}] finished.")
-
-    log_queue.put_nowait(None)  # End the queue
-    listener.join()  # Stop the listener
+    if cfg.debuglogging:
+        log_queue.put_nowait(None)  # End the queue
+        listener.join()  # Stop the listener
 
     int_final = np.sum(intensity_results_per_scan, axis=0)
     counts_final = np.sum(count_results_per_scan, axis=0)
@@ -682,9 +686,9 @@ def pyfai_moving_qmap_smm_new(experiment: Experiment, hf, scanlist, process_conf
     calculate q_para vs q_perp map for a moving detector scan
     """
 
-    cfg, logger, listener, log_queue = setup_job(
-        process_config, experiment, scanlist, "q"
-    )
+    cfg = setup_job(process_config, experiment, scanlist, "q")
+    if cfg.debuglogging:
+        logger, listener, log_queue = setup_debug_logger()
     intensity_results_per_scan = []
     count_results_per_scan = []
     mapaxisinfo = []
@@ -728,8 +732,10 @@ def pyfai_moving_qmap_smm_new(experiment: Experiment, hf, scanlist, process_conf
             intensity_results_per_scan.append(accumulator_intensity)
             count_results_per_scan.append(accumulator_count)
 
-    log_queue.put_nowait(None)  # End the queue
-    listener.join()  # Stop the listener
+    if cfg.debuglogging:
+        log_queue.put_nowait(None)  # End the queue
+        listener.join()  # Stop the listener
+
     qmap_final = np.sum(intensity_results_per_scan, axis=0)
     counts_final = np.sum(count_results_per_scan, axis=0)
     save_hf_map(
@@ -744,9 +750,9 @@ def pyfai_moving_exitangles_smm_new(
     calculate q_para vs q_perp map for a moving detector scan
     """
 
-    cfg, logger, listener, log_queue = setup_job(
-        process_config, experiment, scanlist, "ang"
-    )
+    cfg = setup_job(process_config, experiment, scanlist, "ang")
+    if cfg.debuglogging:
+        logger, listener, log_queue = setup_debug_logger()
     intensity_results_per_scan = []
     count_results_per_scan = []
     mapaxisinfo = []
@@ -790,8 +796,9 @@ def pyfai_moving_exitangles_smm_new(
             intensity_results_per_scan.append(accumulator_intensity)
             count_results_per_scan.append(accumulator_count)
 
-    log_queue.put_nowait(None)  # End the queue
-    listener.join()  # Stop the listener
+    if cfg.debuglogging:
+        log_queue.put_nowait(None)  # End the queue
+        listener.join()  # Stop the listener
 
     qmap_final = np.sum(intensity_results_per_scan, axis=0)
     counts_final = np.sum(count_results_per_scan, axis=0)
@@ -810,10 +817,9 @@ def pyfai_static_ivsq_new(
     """
     calculate Intensity Vs Q 1d profile from static detector scan
     """
-    cfg, logger, listener, log_queue = setup_job(
-        process_config, experiment, scan, "ang"
-    )
-
+    cfg = setup_job(process_config, experiment, scan, "ang")
+    if cfg.debuglogging:
+        logger, listener, log_queue = setup_debug_logger()
     cfg.unit_qip_name = "2th_deg"  # "qip_A^-1"# "qip_A^-1""2th_deg"  #
     cfg.unit_qoop_name = "2th_deg"  # "qoop_A^-1"
     print(f"starting process pool with num_threads={cfg.num_threads}")
@@ -853,17 +859,18 @@ def pyfai_static_ivsq_new(
     save_masks(hf, scan_masks[0])
 
     save_1d_integration_static(cfg, hf, outlist, scan)
-    log_queue.put_nowait(None)
-    listener.join()
+    if cfg.debuglogging:
+        log_queue.put_nowait(None)  # End the queue
+        listener.join()  # Stop the listener
 
 
 def pyfai_static_exitangles_new(
     experiment: Experiment, hf, scan, process_config: SimpleNamespace
 ):
 
-    cfg, logger, listener, log_queue = setup_job(
-        process_config, experiment, scan, "ang"
-    )
+    cfg = setup_job(process_config, experiment, scan, "ang")
+    if cfg.debuglogging:
+        logger, listener, log_queue = setup_debug_logger()
     t0 = time()
     cfg.unit_qip_name = "exit_angle_horz_deg"  # "qip_A^-1"# "qip_A^-1""2th_deg"  #
     cfg.unit_qoop_name = "exit_angle_vert_deg"  # "qoop_A^-1"
@@ -895,16 +902,18 @@ def pyfai_static_exitangles_new(
     inlist = [all_maps, all_xlabels, all_ylabels]
     outlist = check_data_shape(inlist, scan)
     save_hf_map_static(hf, cfg, t0, "exit_angles", outlist[0], all_mapaxisinfo[0], scan)
-
-    log_queue.put_nowait(None)  # End the queue
-    listener.join()
+    if cfg.debuglogging:
+        log_queue.put_nowait(None)  # End the queue
+        listener.join()  # Stop the listener
 
 
 def pyfai_static_qmap_new(
     experiment: Experiment, hf, scan, process_config: SimpleNamespace
 ):
 
-    cfg, logger, listener, log_queue = setup_job(process_config, experiment, scan, "q")
+    cfg = setup_job(process_config, experiment, scan, "q")
+    if cfg.debuglogging:
+        logger, listener, log_queue = setup_debug_logger()
     t0 = time()
     cfg.unit_qip_name = "qip_A^-1"  # "qip_A^-1"# "qip_A^-1""2th_deg"  #
     cfg.unit_qoop_name = "qoop_A^-1"  # "qoop_A^-1"
@@ -937,9 +946,9 @@ def pyfai_static_qmap_new(
     inlist = [all_maps, all_xlabels, all_ylabels]
     outlist = check_data_shape(inlist, scan)
     save_hf_map_static(hf, cfg, t0, "qpara_qperp", outlist[0], all_mapaxisinfo[0], scan)
-
-    log_queue.put_nowait(None)  # End the queue
-    listener.join()
+    if cfg.debuglogging:
+        log_queue.put_nowait(None)  # End the queue
+        listener.join()  # Stop the listener
 
 
 # OLD shared memory
