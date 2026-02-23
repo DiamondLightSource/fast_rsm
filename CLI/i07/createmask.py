@@ -6,7 +6,6 @@ Created on Mon Feb 26 09:37:13 2024
 @author: rpy65944
 """
 import os
-import nexusformat.nexus as nx
 from diffraction_utils import I07Nexus
 import subprocess
 import argparse

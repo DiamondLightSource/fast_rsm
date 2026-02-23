@@ -10,15 +10,10 @@ import argparse
 import os
 from datetime import datetime
 
-import sys
 import numpy as np
 
-from diffraction_utils import I07Nexus, Frame
-from fast_rsm.scan import Scan
 from fast_rsm.logging_config import start_frsm_loggers,log_error_info
 from fast_rsm.config_loader import parse_setup_file
-import argparse
-import os
 from pathlib import Path
 import subprocess
 import time
@@ -133,7 +128,7 @@ if __name__ == "__main__":
         jobf.write(f'debuglogging={args.debuglogging}\n')
         #jobf.write("process_outputs=['pyfai_qmap']\n")
         jobf.write(''.join(lines2))
-        jobf.write(f'\n"""\n')
+        jobf.write('\n"""\n')
         jobf.write(f" {'*'*40}\n settings from  of {args.exp_path}\n {'*'*40}\n ")
         ordered_settings={k: process_settings[k] for k in sorted(process_settings)}
         for k,v in ordered_settings.items():

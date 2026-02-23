@@ -1,114 +1,107 @@
 """
-This module contains the class that is used to store images.
+This module contains the class  that is used to store images.
 """
 
-from typing import Union
 import logging
-import numpy as np
-from diffraction_utils import Frame, I07Nexus, Polarisation
-from nexusformat.nexus.tree import NeXusError
-import mapper_c_utils
-from fast_rsm.rsm_metadata import RSMMetadata
+from typing import Union
 
+import numpy as np
+from nexusformat.nexus.tree import NeXusError
 
 import fast_rsm.corrections as corrections
+import mapper_c_utils
+from diffraction_utils import Frame, I07Nexus, Polarisation
 from fast_rsm.angle_pixel_q import calc_kout_array
+from fast_rsm.rsm_metadata import RSMMetadata
 
 logger = logging.getLogger("fastrsm")
 
 
-
 def get_coordchange_matrix(oop):
-    if oop == 'y':
-        return np.array([
-            [1, 0, 0],
-            [0, 0, -1],
-            [0, 1, 0]
-        ])
-    elif oop == 'x':
-        return np.array([
-            [0, 1, 0],
-            [0, 0, 1],
-            [1, 0, 0]
-        ])
-    elif oop == 'z':
-        return np.array([
-            [1, 0, 0],
-            [0, 1, 0],
-            [0, 0, 1]
-        ])
+    if oop == "y":
+        return np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]])
+    elif oop == "x":
+        return np.array([[0, 1, 0], [0, 0, 1], [1, 0, 0]])
+    elif oop == "z":
+        return np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
     else:
         return None
 
 
-
-def correct_transmission(transmission_array,data_array,index):
+def correct_transmission(transmission_array, data_array, index):
     """
     add transmission correction if transmission data available
     """
 
-    transmission_value=get_norm_value(transmission_array,index)
+    transmission_value = get_norm_value(transmission_array, index)
 
     if transmission_value in (None, 0):
         return data_array
 
     return data_array / transmission_value
 
-def correct_counttime(count_time_array,data_array,index):
+
+def correct_counttime(count_time_array, data_array, index):
     """
     add count time correction if count_time available
     """
-    count_time_value=get_norm_value(count_time_array,index)
-    if count_time_value in (None,0):
+    count_time_value = get_norm_value(count_time_array, index)
+    if count_time_value in (None, 0):
         return data_array
     return data_array / count_time_value
 
-def get_norm_value(values,index):
-    notfound="Normalisation data for image not found, therefore setting to value 1."
+
+def get_norm_value(values, index):
+    # notfound = "Normalisation data for image not found, therefore setting to value 1."
     if values is None:
-        #print(notfound)
+        # print(notfound)
         return None
-    if isinstance(values,float):
+    if isinstance(values, float):
         return values
-    if len(values)==0:
-        #print(notfound)
+    if len(values) == 0:
+        # print(notfound)
         return 1
     if isinstance(values, np.ndarray):
         return values.flatten()[index]
     else:
         return values[index]
 
+
 def do_mask_detris(data_arr):
-    dectris_mask=data_arr>=4294967300.0
+    dectris_mask = data_arr >= 4294967300.0
     if dectris_mask is not None:
-        data_arr[dectris_mask]=np.nan
+        data_arr[dectris_mask] = np.nan
 
     return data_arr
 
-def do_edfmask(edfmask,data_arr):
+
+def do_edfmask(edfmask, data_arr):
     if edfmask is not None:
         data_arr[edfmask.astype(bool)] = np.nan
     return data_arr
 
-def do_mask_pixels(mask_pixels,data_arr):
+
+def do_mask_pixels(mask_pixels, data_arr):
     # If there are pixels to mask, mask them.
     if mask_pixels is not None:
         data_arr[mask_pixels] = np.nan
     return data_arr
 
-def do_mask_regions(mask_regions,data_arr):
+
+def do_mask_regions(mask_regions, data_arr):
     # If there are regions to mask, mask them too.
     if mask_regions is not None:
         for region in mask_regions:
             data_arr[region.slice] = np.nan
     return data_arr
 
-        # #DEBUG - mask zeros from image
-        # arr[arr.astype(float)==0.0]=np.nan
+    # #DEBUG - mask zeros from image
+    # arr[arr.astype(float)==0.0]=np.nan
 
-        # if there is an edf mask file loaded, apply mask
+    # if there is an edf mask file loaded, apply mask
 
-def norm_kout_array(k_out_array,i,j):
+
+def norm_kout_array(k_out_array, i, j):
     # We're going to need to normalize; this function bottlenecks if not
     # done exactly like this!
     # This weird manual norm calculation is an order of magnitude faster
@@ -120,13 +113,9 @@ def norm_kout_array(k_out_array,i,j):
     if len(k_out_squares.shape) == 1:
         norms = np.sum(k_out_squares)
     elif len(k_out_squares.shape) == 2:
-        norms = (k_out_squares[:, 0] +
-                k_out_squares[:, 1] +
-                k_out_squares[:, 2])
+        norms = k_out_squares[:, 0] + k_out_squares[:, 1] + k_out_squares[:, 2]
     else:
-        norms = (k_out_squares[:, :, 0] +
-                k_out_squares[:, :, 1] +
-                k_out_squares[:, :, 2])
+        norms = k_out_squares[:, :, 0] + k_out_squares[:, :, 1] + k_out_squares[:, :, 2]
     norms = np.sqrt(norms)
 
     # Right now, k_out_array[a, b] has units of meters for all a, b. We want
@@ -163,9 +152,8 @@ class Image:
 
         loader = getattr(metadata, "image_loader", None)
         if loader is None:
-            loader=metadata.data_file.get_image
+            loader = metadata.data_file.get_image
         if load_image:
-            
             self._raw_data = loader(index).astype(np.float32)
 
         else:
@@ -206,15 +194,15 @@ class Image:
                 self._raw_data = self._raw_data.transpose()
                 self._raw_data = np.flip(self._raw_data, axis=0)
 
-    def get_detector_values(self,frame):
+    def get_detector_values(self, frame):
         # Get a unit vector pointing towards the detector.
         det_displacement = self.diffractometer.get_detector_vector(frame)
         det_displacement.array = det_displacement.array.astype(np.float32)
         detector_distance = self.metadata.get_detector_distance(self.index)
         detector_distance = np.array(detector_distance, np.float32)
-        return det_displacement,detector_distance
-    
-    def get_vert_hor_values(self,frame):
+        return det_displacement, detector_distance
+
+    def get_vert_hor_values(self, frame):
         # Make a unit vector that points upwards along the slow axis of the
         # detector in this frame of reference.
         det_vertical = self.diffractometer.get_detector_vertical(frame)
@@ -226,26 +214,28 @@ class Image:
         det_horizontal.array = det_horizontal.array.astype(np.float32)
         vertical = self.metadata.get_vertical_pixel_distances(self.index)
         horizontal = self.metadata.get_horizontal_pixel_distances(self.index)
-        return det_vertical,det_horizontal,vertical,horizontal
-    
-    def apply_corrections(self,frame, lorentz_correction,pol_correction, incident_beam_arr, k_out_array):
+        return det_vertical, det_horizontal, vertical, horizontal
+
+    def apply_corrections(
+        self, frame, lorentz_correction, pol_correction, incident_beam_arr, k_out_array
+    ):
         if lorentz_correction:
-            corrections.lorentz(
-                self._raw_data, incident_beam_arr, k_out_array)
+            corrections.lorentz(self._raw_data, incident_beam_arr, k_out_array)
         # The kind of polarisation correction that we want to apply of
         # depends, rather obviously, on the polarisation of the beam!
         polarisation = self.metadata.data_file.polarisation
         if polarisation.kind != Polarisation.linear:
             raise NotImplementedError(
-                "Only linear polarisation corrections have been "
-                "implemented.")
+                "Only linear polarisation corrections have been implemented."
+            )
         if polarisation.kind == Polarisation.linear:
             pol_vec = polarisation.vector
             pol_vec.to_frame(frame)
             if pol_correction:
                 corrections.linear_polarisation(
-                    self._raw_data, k_out_array, pol_vec.array)  
-                
+                    self._raw_data, k_out_array, pol_vec.array
+                )
+
     def generate_mask(self, min_intensity: Union[float, int]) -> np.ndarray:
         """
         Generates a mask from every pixel whose intensity is below a certain
@@ -282,8 +272,6 @@ class Image:
         """
         self._processing_steps.append(function)
 
-
-
     @property
     def data(self):
         """
@@ -294,44 +282,41 @@ class Image:
         """
         arr = self._raw_data.copy()
 
-
         for step in self._processing_steps:
             arr = step(arr)
 
         # Solid angle corrections are not optional.
         arr /= self.metadata.solid_angles
-        
-        transmission_array=self.metadata.data_file.transmission
-        arr = correct_transmission(transmission_array,arr,self.index)
 
-        det_name=self.metadata.data_file.detector_name
+        transmission_array = self.metadata.data_file.transmission
+        arr = correct_transmission(transmission_array, arr, self.index)
+
+        det_name = self.metadata.data_file.detector_name
         scan_entry = self.metadata.diffractometer.data_file.nxfile
-        try:  
-            count_time_data= scan_entry.entry[det_name]['count_time'].nxdata
+        try:
+            count_time_data = scan_entry.entry[det_name]["count_time"].nxdata
         except NeXusError:
-            count_time_data=None
-        arr = correct_counttime(count_time_data,arr,self.index)
+            count_time_data = None
+        arr = correct_counttime(count_time_data, arr, self.index)
 
         if self.metadata.diffractometer.data_file.is_dectris:
-            arr=do_mask_detris(arr)
-        
-        arr=do_edfmask(self.metadata.edfmask,arr)
-        arr=do_mask_pixels(self.metadata.mask_pixels,arr)
-        arr=do_mask_regions(self.metadata.mask_regions,arr)
-        
+            arr = do_mask_detris(arr)
+
+        arr = do_edfmask(self.metadata.edfmask, arr)
+        arr = do_mask_pixels(self.metadata.mask_pixels, arr)
+        arr = do_mask_regions(self.metadata.mask_regions, arr)
+
         return arr
-    
 
-        
-
-    def q_vectors(self,
-                  frame: Frame,
-                  spherical_bragg_vec: np.array,
-                  oop='y',
-                  indices: tuple = None,
-                  lorentz_correction: bool = False,
-                  pol_correction: bool = True,
-                  ) -> np.ndarray:
+    def q_vectors(
+        self,
+        frame: Frame,
+        spherical_bragg_vec: np.array,
+        oop="y",
+        indices: tuple = None,
+        lorentz_correction: bool = False,
+        pol_correction: bool = True,
+    ) -> np.ndarray:
         """
         Calculates the wavevector through which light had to scatter to reach
         every pixel on the detector in a given frame of reference.
@@ -375,21 +360,27 @@ class Image:
         # Note that we need the extra "3" to store qx, qy, qz (3d vector).
         desired_shape = tuple(list(self._raw_data.shape) + [3])
 
-
-        det_displacement,detector_distance=self.get_detector_values(frame)
-        det_vertical,det_horizontal,vertical,horizontal=self.get_vert_hor_values(frame)
+        det_displacement, detector_distance = self.get_detector_values(frame)
+        det_vertical, det_horizontal, vertical, horizontal = self.get_vert_hor_values(
+            frame
+        )
         # vector parallel to k_out, we can just work out the displacement from
         # each pixel to the sample.
         # This calculation is done component-by-component to match array shapes.
         # This routine has been benchmarked to be ~4x faster than using an
         # outer product and reshaping it.
-    
-        detector_values=[det_displacement,detector_distance,\
-                                    det_vertical,det_horizontal]
-        pixel_arrays=[vertical,horizontal]
-        k_out_array_unnormalised=calc_kout_array(desired_shape,i,j,detector_values,pixel_arrays)
-        k_out_array=norm_kout_array(k_out_array_unnormalised,i,j)
 
+        detector_values = [
+            det_displacement,
+            detector_distance,
+            det_vertical,
+            det_horizontal,
+        ]
+        pixel_arrays = [vertical, horizontal]
+        k_out_array_unnormalised = calc_kout_array(
+            desired_shape, i, j, detector_values, pixel_arrays
+        )
+        k_out_array = norm_kout_array(k_out_array_unnormalised, i, j)
 
         # For performance reasons these should also be float32.
         incident_beam_arr = self.diffractometer.get_incident_beam(frame).array
@@ -400,8 +391,13 @@ class Image:
         # free", Lorentz/polarisation corrections should be applied. Only do
         # this if we're mapping the entire image (i.e. indices is None).
         # this if we're mapping the entire image (i.e. indices is None).
-        self.apply_corrections(frame,lorentz_correction,pol_correction, incident_beam_arr, k_out_array=k_out_array)
-
+        self.apply_corrections(
+            frame,
+            lorentz_correction,
+            pol_correction,
+            incident_beam_arr,
+            k_out_array=k_out_array,
+        )
 
         # Note that this is an order of magnitude faster than:
         # k_out_array -= incident_beam_arr
@@ -428,15 +424,10 @@ class Image:
             transform_mat = self.metadata.data_file.u_matrix.astype(np.float32)
             transform_mat = np.linalg.inv(transform_mat)
         else:
-            transform_mat = np.array([
-                [1, 0, 0],
-                [0, 1, 0],
-                [0, 0, 1]
-            ])
+            transform_mat = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 
-        coord_change_mat=get_coordchange_matrix(oop)
+        coord_change_mat = get_coordchange_matrix(oop)
         # Finally, we make it so that (001) will end up OOP.
-
 
         transform_mat = np.matmul(transform_mat, coord_change_mat)
 
@@ -460,8 +451,7 @@ class Image:
             mapper_c_utils.linear_map(to_map, transform_mat)
             k_out_array[i, j, :] = to_map
         else:
-            k_out_array = k_out_array.reshape(
-                (desired_shape[0] * desired_shape[1], 3))
+            k_out_array = k_out_array.reshape((desired_shape[0] * desired_shape[1], 3))
             # This takes CPU time: mapping every vector.
             mapper_c_utils.linear_map(k_out_array, transform_mat)
             # Reshape the k_out_array to have the same shape as the image.
@@ -481,19 +471,22 @@ class Image:
                 k_out_array[i, j, :] = to_polar
             else:
                 k_out_array = k_out_array.reshape(
-                    (desired_shape[0] * desired_shape[1], 3))
+                    (desired_shape[0] * desired_shape[1], 3)
+                )
                 mapper_c_utils.spherical_polar(k_out_array)
                 k_out_array = k_out_array.reshape(desired_shape)
 
         # Only return the indices that we worked on.
         return k_out_array[i, j, :]
 
-    def q_vector_array(self,
-                       frame: Frame,
-                       spherical_bragg_vec: np.array,
-                       oop='y',
-                       lorentz_correction: bool = False,
-                       pol_correction: bool = True) -> np.ndarray:
+    def q_vector_array(
+        self,
+        frame: Frame,
+        spherical_bragg_vec: np.array,
+        oop="y",
+        lorentz_correction: bool = False,
+        pol_correction: bool = True,
+    ) -> np.ndarray:
         """
         Returns a numpy array of q_vectors whose shape is (N,3).
         """
@@ -502,8 +495,10 @@ class Image:
             spherical_bragg_vec,
             oop=oop,
             lorentz_correction=lorentz_correction,
-            pol_correction=pol_correction).reshape()
+            pol_correction=pol_correction,
+        ).reshape()
         num_q_vectors = q_vectors.shape[0] * q_vectors.shape[1]
         return q_vectors.reshape((num_q_vectors, 3))
 
-print('Done')
+
+print("Done")
