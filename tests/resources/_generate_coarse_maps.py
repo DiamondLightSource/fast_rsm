@@ -7,9 +7,8 @@ from time import time
 
 import numpy as np
 
-from diffraction_utils import Frame, Vector3
+from diffraction_utils import Frame
 
-from fast_rsm.writing import linear_bin_to_vtk
 from fast_rsm.scan import Scan
 
 

@@ -2,21 +2,22 @@
 The purpose of this module is to provide routines for running some
 pre-processing analysis on the data. This was motivated by the need to work out
 e.g. reciprocal space bounds on scans in a performant way. The decision was made
-to move this into the core of the module.
+to move this into the core of the module .
 """
 
 from typing import TYPE_CHECKING
+
 import numpy as np
 
-
 from fast_rsm.scan import Scan
+
 if TYPE_CHECKING:
     from fast_rsm.experiment import Experiment
 
 
-def get_step_from_filesize(start: np.ndarray,
-                           stop: np.ndarray,
-                           file_size: float = 100) -> np.ndarray:
+def get_step_from_filesize(
+    start: np.ndarray, stop: np.ndarray, file_size: float = 100
+) -> np.ndarray:
     """
     Takes a requested file size, a start and a stop. Works out the step that
     will give you a resultant file of your requested filesize. To calculate
@@ -73,13 +74,15 @@ def _find_exc_broken_frames(scan: Scan):
         else:
             # This is suspicious.
             broken_frames.append(i)
-            print(f"Image with index {i} has suspiciously high counts. "
-                  "It is likely broken and will be ignored.")
+            print(
+                f"Image with index {i} has suspiciously high counts. "
+                "It is likely broken and will be ignored."
+            )
 
     return broken_frames
 
 
-def skip_i07_exc_broken_frames(experiment: 'Experiment'):
+def skip_i07_exc_broken_frames(experiment: "Experiment"):
     """
     This is the public facing function that can be used to skip all dodgy
     frames captured by i07's excalibur detector.

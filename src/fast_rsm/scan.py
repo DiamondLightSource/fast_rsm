@@ -1,45 +1,43 @@
 """
 This module contains the scan class, that is used to store all of the
-information relating to a reciprocal space scan.
+information relating to a reciprocal space scan .
 """
 
 # pylint: disable=protected-access
 # pylint: disable=global-statement
 
+import logging
 import traceback
 from multiprocessing import current_process
 from multiprocessing.shared_memory import SharedMemory
-from multiprocessing import Lock
 from pathlib import Path
-from typing import Union, Tuple, List, Dict
-import logging
-
+from typing import Dict, Generator, List, Tuple, Union
 
 import numpy as np
 
-from diffraction_utils import  Frame
-
+from diffraction_utils import Frame
 from fast_rsm import io
 from fast_rsm.binning import weighted_bin_3d
+from fast_rsm.corrections import make_float32
 from fast_rsm.image import Image
 from fast_rsm.rsm_metadata import RSMMetadata
 from fast_rsm.writing import linear_bin_to_vtk
-from fast_rsm.corrections import make_float32
 
 logger = logging.getLogger("fastrsm")
 
 
-lock=None
-RSM_ARRAY=None
-COUNT_ARRAY=None
-SHM_RSM=None
-SHM_COUNT=None
-METADATA=None
-NUM_THREADS=None
-FRAME=None
-OUTPUT_FILE_NAME=None
-SHM_INTENSITY=None
-INTENSITY_ARRAY=None
+lock = None
+RSM_ARRAY = None
+COUNT_ARRAY = None
+SHM_RSM = None
+SHM_COUNT = None
+METADATA = None
+NUM_THREADS = None
+FRAME = None
+OUTPUT_FILE_NAME = None
+SHM_INTENSITY = None
+INTENSITY_ARRAY = None
+
 
 def check_shared_memory(shared_mem_name: str) -> None:
     """
@@ -52,8 +50,7 @@ def check_shared_memory(shared_mem_name: str) -> None:
     """
     # Make sure that we don't leak this memory more than once.
     try:
-        shm = SharedMemory(shared_mem_name,
-                           size=100)  # Totally arbitrary number.
+        shm = SharedMemory(shared_mem_name, size=100)  # Totally arbitrary number.
         shm.close()
         shm.unlink()
         print(f"Had to unlink *leaked* shared memory '{shared_mem_name}'...")
@@ -63,12 +60,12 @@ def check_shared_memory(shared_mem_name: str) -> None:
 
 
 def init_process_pool(
-        locks: List[Lock],
-        num_threads: int,
-        metadata: RSMMetadata,
-        frame: Frame,
-        shape: tuple,
-        output_file_name: str = None
+    locks: List,
+    num_threads: int,
+    metadata: RSMMetadata,
+    frame: Frame,
+    shape: tuple,
+    output_file_name: str = None,
 ) -> None:
     """
     Initializes a processing pool to have a global shared lock.
@@ -122,14 +119,12 @@ def init_process_pool(
     arr = np.ndarray(shape=shape, dtype=np.float32)
 
     # Construct the shared memory buffers.
-    SHARED_RSM_NAME = f'rsm_{current_process().name}'
-    SHARED_COUNT_NAME = f'count_{current_process().name}'
+    SHARED_RSM_NAME = f"rsm_{current_process().name}"
+    SHARED_COUNT_NAME = f"count_{current_process().name}"
     check_shared_memory(SHARED_RSM_NAME)
     check_shared_memory(SHARED_COUNT_NAME)
-    SHARED_RSM = SharedMemory(
-        name=SHARED_RSM_NAME, create=True, size=arr.nbytes)
-    SHARED_COUNT = SharedMemory(
-        name=SHARED_COUNT_NAME, create=True, size=arr.nbytes)
+    SHARED_RSM = SharedMemory(name=SHARED_RSM_NAME, create=True, size=arr.nbytes)
+    SHARED_COUNT = SharedMemory(name=SHARED_COUNT_NAME, create=True, size=arr.nbytes)
 
     # Construct the global references to the shared memory arrays.
     RSM = np.ndarray(shape, dtype=np.float32, buffer=SHARED_RSM.buf)
@@ -178,10 +173,12 @@ def chunk(lst, num_chunks):
     if chunk_size * num_chunks < len(lst):
         chunk_size += 1
     for i in range(0, len(lst), chunk_size):
-        yield lst[i:i + chunk_size]
+        yield lst[i : i + chunk_size]
 
 
-def _chunk_indices(array: np.ndarray, num_chunks: int) -> tuple:
+def _chunk_indices(
+    array: np.ndarray, num_chunks: int
+) -> Generator[tuple[int, int], None, None]:
     """
     Yield num_chunks (N) tuples of incides (a, b) such that array[a0:b0],
     array[a1:b1], ..., array[aN:bN] spans the entire array.
@@ -192,27 +189,28 @@ def _chunk_indices(array: np.ndarray, num_chunks: int) -> tuple:
     for i in range(0, len(array), chunk_size):
         yield i, i + chunk_size
 
+
 # ==========testing functions========
 
 
-def bin_maps_with_indices_smm(indices: List[int],
-                              start: np.ndarray,
-                              stop: np.ndarray,
-                              step: np.ndarray,
-                              min_intensity: float,
-                              processing_steps: list,
-                              skip_images: List[int],
-                              oop: str,
-                              spherical_bragg_vec: np.array,
-                              map_each_image: bool = False,
-                              previous_images: int = 0,
-                              ) -> None:
+def bin_maps_with_indices_smm(
+    indices: List[int],
+    start: np.ndarray,
+    stop: np.ndarray,
+    step: np.ndarray,
+    min_intensity: float,
+    processing_steps: list,
+    skip_images: List[int],
+    oop: str,
+    spherical_bragg_vec: np.array,
+    map_each_image: bool = False,
+    previous_images: int = 0,
+) -> None:
     """
     Bins all of the maps with indices in indices. The purpose of this
     intermediate function call is to decrease the amount of context switching/
     serialization that the interpreter has to do.
     """
-
 
     # We need to catch all exceptions and explicitly print them in worker
     # threads.
@@ -224,8 +222,18 @@ def bin_maps_with_indices_smm(indices: List[int],
             if idx in skip_images:
                 continue
             # print(f"Processing image {idx}. ", end='')
-            _bin_one_map_smm(start, stop, step, min_intensity, idx,
-                processing_steps, oop, spherical_bragg_vec, map_each_image, previous_images)
+            _bin_one_map_smm(
+                start,
+                stop,
+                step,
+                min_intensity,
+                idx,
+                processing_steps,
+                oop,
+                spherical_bragg_vec,
+                map_each_image,
+                previous_images,
+            )
     except Exception as exception:
         print("Exception thrown in bin_one_map:")
         print(traceback.format_exc())
@@ -238,18 +246,18 @@ def bin_maps_with_indices_smm(indices: List[int],
     # return SHARED_RSM_NAME, SHARED_COUNT_NAME
 
 
-def _bin_one_map_smm(start: np.ndarray,
-                     stop: np.ndarray,
-                     step: np.ndarray,
-                     min_intensity: float,
-                     idx: int,
-                     processing_steps: list,
-                     oop: str,
-                     spherical_bragg_vec: np.array,
-                     map_each_image: bool = False,
-                     previous_images: int = 0,
-
-                     ) -> np.ndarray:
+def _bin_one_map_smm(
+    start: np.ndarray,
+    stop: np.ndarray,
+    step: np.ndarray,
+    min_intensity: float,
+    idx: int,
+    processing_steps: list,
+    oop: str,
+    spherical_bragg_vec: np.array,
+    map_each_image: bool = False,
+    previous_images: int = 0,
+) -> np.ndarray:
     """
     Calculates and bins the reciprocal space map with index idx. Saves the
     result to the shared memory buffer.
@@ -261,17 +269,19 @@ def _bin_one_map_smm(start: np.ndarray,
 
     image = Image(METADATA, idx)
     image._processing_steps = processing_steps
-    binning_data=make_float32([image.data])[0]
+    binning_data = make_float32([image.data])[0]
     # Do the mapping for this image; bin the mapping.
     q_vectors = image.q_vectors(FRAME, spherical_bragg_vec, oop=oop)
-    weighted_bin_3d(q_vectors,
-                    binning_data,
-                    RSM_ARRAY,
-                    COUNT_ARRAY,
-                    start,
-                    stop,
-                    step,
-                    min_intensity)
+    weighted_bin_3d(
+        q_vectors,
+        binning_data,
+        RSM_ARRAY,
+        COUNT_ARRAY,
+        start,
+        stop,
+        step,
+        min_intensity,
+    )
 
     if map_each_image:
         # If the user also wants us to map each image, rerun the map for just
@@ -286,14 +296,16 @@ def _bin_one_map_smm(start: np.ndarray,
         image_id = str(previous_images + idx).zfill(6)
 
         # Now we just need to save this map; work out its unique name.
-        volume_path = str(OUTPUT_FILE_NAME) + '_' + str(image_id)
+        volume_path = str(OUTPUT_FILE_NAME) + "_" + str(image_id)
 
         # Save the vtk, as well as a .npy and a bounds file.
         linear_bin_to_vtk(normalised_map, volume_path, start, stop, step)
         np.save(volume_path, normalised_map)
-        np.savetxt(str(volume_path) + "_bounds.txt",
-                   np.array((start, stop, step)).transpose(),
-                   header="start stop step")
+        np.savetxt(
+            str(volume_path) + "_bounds.txt",
+            np.array((start, stop, step)).transpose(),
+            header="start stop step",
+        )
 
         q_vec_path = volume_path + "_q"
         intensities_path = volume_path + "_uncorrected_intensities"
@@ -309,7 +321,8 @@ def _bin_one_map_smm(start: np.ndarray,
             spherical_bragg_vec,
             oop=oop,
             lorentz_correction=False,
-            pol_correction=False)
+            pol_correction=False,
+        )
 
         # Also, just to provide complete information on a per-image basis, save
         # every single *exact* q-vector for this scan.
@@ -321,10 +334,18 @@ def _bin_one_map_smm(start: np.ndarray,
         np.save(corrected_intensity_path, image.data.ravel())
 
 
-def rsm_init_worker(l, shm_rsm_name: str, shm_counts_name: str, shmshape: np.ndarray,\
-                    metadata: RSMMetadata,newmetadata: dict,\
-                    motors: Dict[str, np.ndarray], num_threads: int, \
-                    frame: Frame, output_file_name: str = None):
+def rsm_init_worker(
+    smmlock,
+    shm_rsm_name: str,
+    shm_counts_name: str,
+    shmshape: np.ndarray,
+    metadata: RSMMetadata,
+    newmetadata: dict,
+    motors: Dict[str, np.ndarray],
+    num_threads: int,
+    frame: Frame,
+    output_file_name: str = None,
+):
     """
     initialiser for reciprocal space mapping
     """
@@ -347,13 +368,15 @@ def rsm_init_worker(l, shm_rsm_name: str, shm_counts_name: str, shmshape: np.nda
     METADATA = metadata
     METADATA.update_i07_nx(motors, newmetadata)
 
-    lock = l
+    lock = smmlock
     SHM_RSM = SharedMemory(name=shm_rsm_name)
     RSM_ARRAY = np.ndarray(shmshape, dtype=np.float32, buffer=SHM_RSM.buf)
     SHM_COUNT = SharedMemory(name=shm_counts_name)
     COUNT_ARRAY = np.ndarray(shmshape, dtype=np.uint32, buffer=SHM_COUNT.buf)
 
+
 # ============================
+
 
 class Scan:
     """
@@ -401,8 +424,9 @@ class Scan:
         """
         return Image(self.metadata, idx, load_data)
 
-    def q_bounds(self, frame: Frame, spherical_bragg_vec: np.array,
-                 oop: str = 'y') -> Tuple[np.ndarray]:
+    def q_bounds(
+        self, frame: Frame, spherical_bragg_vec: np.array, oop: str = "y"
+    ) -> Tuple[np.ndarray]:
         """
         Works out the region of reciprocal space sampled by this scan.
 
@@ -419,13 +443,13 @@ class Scan:
         bottom_right = (-1, -1)
         poni = self.metadata.beam_centre
         extremal_q_points = np.array(
-            [top_left, top_right, bottom_left, bottom_right, poni])
+            [top_left, top_right, bottom_left, bottom_right, poni]
+        )
         extremal_q_points = (extremal_q_points[:, 0], extremal_q_points[:, 1])
 
         # Get some sort of starting value.
         img = self.load_image(0, load_data=False)
-        q_vec = img.q_vectors(frame, spherical_bragg_vec,
-                              indices=poni, oop=oop)
+        q_vec = img.q_vectors(frame, spherical_bragg_vec, indices=poni, oop=oop)
 
         start, stop = q_vec, q_vec
 
@@ -436,23 +460,28 @@ class Scan:
 
             # Work out all the extreme q values for this image.
             q_vecs = img.q_vectors(
-                frame, spherical_bragg_vec, indices=extremal_q_points, oop=oop)
+                frame, spherical_bragg_vec, indices=extremal_q_points, oop=oop
+            )
 
             # Get the min/max of each component.
             min_q = np.array([np.amin(q_vecs[:, i]) for i in range(3)])
             max_q = np.array([np.amax(q_vecs[:, i]) for i in range(3)])
 
             # Update start/stop accordingly.
-            start = [min_q[x] if min_q[x] < start[x] else start[x]
-                     for x in range(3)]
-            stop = [max_q[x] if max_q[x] > stop[x] else stop[x]
-                    for x in range(3)]
+            start = [min_q[x] if min_q[x] < start[x] else start[x] for x in range(3)]
+            stop = [max_q[x] if max_q[x] > stop[x] else stop[x] for x in range(3)]
         start, stop = np.array(start), np.array(stop)
         # adjust start,stop,step if frame is in spherical polar co-ordinates
         if frame.coordinates == Frame.sphericalpolar:
             # calculate vector radius
-            maxradius = np.max(np.array(
-                [np.linalg.norm(q_vecs[i, :]) for i in range(len(extremal_q_points))]))
+            maxradius = np.max(
+                np.array(
+                    [
+                        np.linalg.norm(q_vecs[i, :])
+                        for i in range(len(extremal_q_points))
+                    ]
+                )
+            )
             start = [0, 0, -np.pi]
             stop = [maxradius, np.pi, np.pi]
             return start, stop
@@ -463,11 +492,13 @@ class Scan:
         return start, stop
 
     @staticmethod
-    def from_i10(path_to_nx: Union[str, Path],
-                 beam_centre: Tuple[int],
-                 detector_distance: float,
-                 setup: str,
-                 path_to_data: str = ''):
+    def from_i10(
+        path_to_nx: Union[str, Path],
+        beam_centre: Tuple[int],
+        detector_distance: float,
+        setup: str,
+        path_to_data: str = "",
+    ):
         """
         Aliases to io.from_i10.
 
@@ -490,17 +521,18 @@ class Scan:
         Returns:
             Corresponding instance of Scan.
         """
-        return io.from_i10(path_to_nx, beam_centre, detector_distance,
-                           setup, path_to_data)
-        
-
+        return io.from_i10(
+            path_to_nx, beam_centre, detector_distance, setup, path_to_data
+        )
 
     @staticmethod
-    def from_i07(path_to_nx: Union[str, Path],
-                 beam_centre: Tuple[int],
-                 detector_distance: float,
-                 setup: str,
-                 path_to_data: str = ''):
+    def from_i07(
+        path_to_nx: Union[str, Path],
+        beam_centre: Tuple[int],
+        detector_distance: float,
+        setup: str,
+        path_to_data: str = "",
+    ):
         """
         Aliases to io.from_i07.
 
@@ -523,5 +555,6 @@ class Scan:
         Returns:
             Corresponding instance of Scan.
         """
-        return io.from_i07(path_to_nx, beam_centre, detector_distance,
-                           setup, path_to_data)
+        return io.from_i07(
+            path_to_nx, beam_centre, detector_distance, setup, path_to_data
+        )

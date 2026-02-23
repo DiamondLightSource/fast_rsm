@@ -1,5 +1,5 @@
 """
-This module contains a series of corrections that can be applied to detector
+This module contains a  series of corrections that can be applied to detector
 images.
 """
 
@@ -11,25 +11,27 @@ import mapper_c_utils
 
 
 def make_float32(data_arrays):
-    outarrays=[]
+    outarrays = []
     for values in data_arrays:
-        outvalues=values
-        if values.dtype!=np.float32:
-            outvalues=values.astype(np.float32)
+        outvalues = values
+        if values.dtype != np.float32:
+            outvalues = values.astype(np.float32)
         outarrays.append(outvalues)
     return outarrays
 
-def get_corr_ints_kout(intensities,k_out):
+
+def get_corr_ints_kout(intensities, k_out):
     intensity_shape = intensities.shape
     k_out_shape = k_out.shape
     intensities = intensities.reshape(intensities.size)
     k_out = k_out.reshape((int(k_out.size / 3), 3))
-    return intensities,k_out,[intensity_shape,k_out_shape]
+    return intensities, k_out, [intensity_shape, k_out_shape]
 
-def reshape_to_original(intensities,k_out,start_shapes):
+
+def reshape_to_original(intensities, k_out, start_shapes):
     intensities = intensities.reshape(start_shapes[0])
     k_out = k_out.reshape(start_shapes[1])
-    return intensities,k_out
+    return intensities, k_out
 
 
 def lorentz(intensities: np.ndarray, k_in: np.ndarray, k_out: np.ndarray):
@@ -59,23 +61,23 @@ def lorentz(intensities: np.ndarray, k_in: np.ndarray, k_out: np.ndarray):
     #     k_in = k_in.astype(np.float32)
     # if k_out.dtype != np.float32:
     #     k_out = k_out.astype(np.float32)
-    
-    intensities,k_in,k_out=make_float32([intensities,k_in,k_out])
+
+    intensities, k_in, k_out = make_float32([intensities, k_in, k_out])
     # Make sure that the shapes are good.
 
     # intensities = intensities.reshape(intensities.size)
     # k_out = k_out.reshape((int(k_out.size / 3), 3))
-    intensities,k_out,start_shapes=get_corr_ints_kout(intensities,k_out)
+    intensities, k_out, start_shapes = get_corr_ints_kout(intensities, k_out)
     # Call the C function. This directly affects the elements of the
     # intensities array.
     mapper_c_utils.lorentz_correction(k_in, k_out, intensities)
-    
-    intensities,k_out = reshape_to_original(intensities,k_out,start_shapes)
+
+    intensities, k_out = reshape_to_original(intensities, k_out, start_shapes)
 
 
-
-def linear_polarisation(intensities: np.ndarray, k_out: np.ndarray,
-                        polarisation_vector: np.ndarray):
+def linear_polarisation(
+    intensities: np.ndarray, k_out: np.ndarray, polarisation_vector: np.ndarray
+):
     """
     Carries out an exact polarisation correction assuming that the incident
     light is perfectly linearly polarised.
@@ -101,13 +103,15 @@ def linear_polarisation(intensities: np.ndarray, k_out: np.ndarray,
     #     k_out = k_out.astype(np.float32)
     # if polarisation_vector.dtype != np.float32:
     #     polarisation_vector = polarisation_vector.astype(np.float32)
-    intensities,k_out,polarisation_vector=make_float32([intensities,k_out,polarisation_vector])
+    intensities, k_out, polarisation_vector = make_float32(
+        [intensities, k_out, polarisation_vector]
+    )
     # Make sure that the shapes are good.
     # intensity_shape = intensities.shape
     # k_out_shape = k_out.shape
     # intensities = intensities.reshape(intensities.size)
     # k_out = k_out.reshape((int(k_out.size / 3), 3))
-    intensities,k_out,start_shapes=get_corr_ints_kout(intensities,k_out)
+    intensities, k_out, start_shapes = get_corr_ints_kout(intensities, k_out)
 
     # Call the C function. This directly affects the elements of the
     # intensities array.
@@ -119,8 +123,7 @@ def linear_polarisation(intensities: np.ndarray, k_out: np.ndarray,
     # print("previous version - incorrectly has double  'lorentz'")
     mapper_c_utils.lorentz_correction(polarisation_vector, k_out, intensities)
 
-    intensities,k_out = reshape_to_original(intensities,k_out,start_shapes)
-
+    intensities, k_out = reshape_to_original(intensities, k_out, start_shapes)
 
     # # Return the shapes to their original values.
     # intensities = intensities.reshape(intensity_shape)
