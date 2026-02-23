@@ -8,7 +8,7 @@ import numpy as np
 from pyFAI import units
 
 from fast_rsm.angle_pixel_q import gamdel2rots
-from fast_rsm.experiment import Experiment, gamdel2rots
+from fast_rsm.experiment import Experiment
 from fast_rsm.logging_config import do_time_check, get_logger
 
 # ==============common functions
