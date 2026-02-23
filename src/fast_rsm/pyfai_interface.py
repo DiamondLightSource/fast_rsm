@@ -19,7 +19,7 @@ import yaml
 
 from fast_rsm.angle_pixel_q import calcq
 from fast_rsm.experiment import Experiment, do_savedats, do_savetiffs
-from fast_rsm.logging_config import get_debug_logger, get_logger, listener_process
+from fast_rsm.logging_config import get_logger, listener_process
 from fast_rsm.pyfai_workers import (
     pyfai_move_exitangles_worker_new,
     pyfai_move_ivsq_worker_new,
@@ -29,13 +29,6 @@ from fast_rsm.pyfai_workers import (
     pyfai_stat_qmap_worker_new,
 )
 from fast_rsm.scan import Scan, chunk
-
-LOGGER_DEBUG = "fastrsm_debug"
-LOGGER_ERROR = "fastrsm_error"
-
-
-debug_logger = get_debug_logger()
-sys.stdout.reconfigure(line_buffering=True)
 
 # ----------------------------
 # Tuning: set BLAS/OpenMP threads to 1 to avoid oversubscription
@@ -402,6 +395,8 @@ def add_buffer_to_limits(limits):
 
 
 def setup_debug_logger():
+    LOGGER_DEBUG = "fastrsm_debug"
+    sys.stdout.reconfigure(line_buffering=True)
     logger = get_logger(LOGGER_DEBUG)
     listener, log_queue = start_listener()
     return logger, listener, log_queue

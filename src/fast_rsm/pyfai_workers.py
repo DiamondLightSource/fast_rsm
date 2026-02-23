@@ -8,16 +8,10 @@ import numpy as np
 from pyFAI import units
 
 from fast_rsm.angle_pixel_q import gamdel2rots
-from fast_rsm.experiment import Experiment
-from fast_rsm.logging_config import do_time_check, get_debug_logger, get_logger
+from fast_rsm.experiment import Experiment, gamdel2rots
+from fast_rsm.logging_config import do_time_check, get_logger
 
-LOGGER_DEBUG = "fastrsm_debug"
-LOGGER_ERROR = "fastrsm_error"
-debug_logger = get_debug_logger()
-sys.stdout.reconfigure(line_buffering=True)
-
-
-# ============== common functions
+# ==============common functions
 
 
 def get_pyfai_image_data(experiment: Experiment, scan, i):
@@ -148,6 +142,11 @@ def get_sector_mask(ai, shape, sector_ranges):
 
 
 def get_time_logger(queue, logn):
+    LOGGER_DEBUG = "fastrsm_debug"
+    # LOGGER_ERROR = "fastrsm_error"
+    # debug_logger = get_debug_logger()
+    sys.stdout.reconfigure(line_buffering=True)
+
     time_logger = get_logger(LOGGER_DEBUG)
     if queue is not None:
         # print('found queue')
@@ -175,8 +174,8 @@ def pyfai_move_ivsq_worker_new(
     cfg = process_config
     d5i_data = []
     unit_tth, unit_oop = setup_ip_oop_units(cfg)
-    time_logger = get_time_logger(queue, logn)
-    time_logger.debug(do_time_check(f"start ivq worker {logn}"))
+    # time_logger = get_time_logger(queue, logn)
+    # time_logger.debug(do_time_check(f"start ivq worker {logn}"))
     fullresult = np.zeros(cfg.ivqbins)
     fullcounts = np.zeros(cfg.ivqbins)  #
 
@@ -192,7 +191,7 @@ def pyfai_move_ivsq_worker_new(
 
         fullresult += single_result.sum_signal
         fullcounts += single_result.count
-    time_logger.debug(do_time_check(f"stop loop of child_{logn}"))
+    # time_logger.debug(do_time_check(f"stop loop of child_{logn}"))
     return fullresult, fullcounts, single_result.radial, img_mask
 
 
@@ -205,11 +204,12 @@ def pyfai_move_qmap_worker_new(
     cfg = process_config
 
     d5i_data = []
+    inc_angle = np.radians(experiment.incident_angle)
     unit_ip, unit_oop = setup_ip_oop_units(cfg)
 
-    time_logger = get_time_logger(queue, logn)
-    time_logger.debug(do_time_check(f"start qmap worker {logn}"))
-    time_logger.debug(do_time_check(f"start loop of image child_{logn}"))
+    # time_logger = get_time_logger(queue, logn)
+    # time_logger.debug(do_time_check(f"start qmap worker {logn}"))
+    # time_logger.debug(do_time_check(f"start loop of image child_{logn}"))
 
     fullresult = np.zeros((cfg.qmapbins[1], cfg.qmapbins[0]))
     fullcounts = np.zeros((cfg.qmapbins[1], cfg.qmapbins[0]))  #
@@ -228,7 +228,7 @@ def pyfai_move_qmap_worker_new(
 
         fullresult += single_result.sum_signal
         fullcounts += single_result.count
-    time_logger.debug(do_time_check(f"stop loop of image child_{logn}"))
+    # time_logger.debug(do_time_check(f"stop loop of image child_{logn}"))
     return fullresult, fullcounts, axisinfo, img_mask
 
 
