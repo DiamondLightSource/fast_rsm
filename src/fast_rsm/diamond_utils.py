@@ -35,13 +35,17 @@ from fast_rsm.pyfai_interface import (
 )
 
 
-def setup_processing(exp_setup_file: Path, job_file_path: str, scan_numbers: list):
+def setup_processing(
+    exp_setup_file: Path, job_file_path: str, scan_numbers: list, debuglogging: bool
+):
     """
     uses process configuration to create an experiment object
     and setup a logger if requested
     returns :  Experiment, config, logger
     """
-    cfg = create_process_config(exp_setup_file, job_file_path, scan_numbers)
+    cfg = create_process_config(
+        exp_setup_file, job_file_path, scan_numbers, debuglogging
+    )
     experiment, cfg = create_experiment(cfg)
 
     return experiment, cfg
