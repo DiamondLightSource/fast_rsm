@@ -1,26 +1,25 @@
 """
 custom module to contain methods for creating custom a custom logger
 """
-import shutil
-import os
-import sys
-import traceback
+
+import getpass
 import logging
 import logging.config
-import getpass
+import os
+import shutil
+import sys
 import time as toptime
-import multiprocessing as mp
+import traceback
+
+LOGGER_DEBUG = "fastrsm_debug"
+LOGGER_ERROR = "fastrsm_error"
 
 
-LOGGER_DEBUG = 'fastrsm_debug'
-LOGGER_ERROR = 'fastrsm_error'
+ERROR_LOG_DIR = "/dls/science/groups/das/ExampleData/i07/fast_rsm_error_logs"
 
 
-ERROR_LOG_DIR='/dls/science/groups/das/ExampleData/i07/fast_rsm_error_logs'
+def do_time_check(outstring, queue=None, logn=None):
 
-
-def do_time_check(outstring, queue=None,logn=None):
-    
     pid = os.getpid()
     allowed = None
     if hasattr(os, "sched_getaffinity"):
@@ -37,11 +36,12 @@ def do_time_check(outstring, queue=None,logn=None):
             cur = None
 
     t_wall = toptime.time()
-    t_cpu  = toptime.process_time()
+    t_cpu = toptime.process_time()
     return f"{outstring} pid={pid} allowed={allowed if allowed is not None else 'n/a'} current_cpu={cur} wall={t_wall:.6f} cpu={t_cpu:.6f}"
 
-def listener_process(queue,configurer,log_name):
-    """ Listener process is a target for a multiprocess process
+
+def listener_process(queue, configurer, log_name):
+    """Listener process is a target for a multiprocess process
     that runs and listens to a queue for logging events.
 
     Arguments:
@@ -62,16 +62,17 @@ def listener_process(queue,configurer,log_name):
             logger = logging.getLogger(record.name)
             logger.handle(record)
         except Exception:
-            print('Failure in listener_process', file=sys.stderr)
+            print("Failure in listener_process", file=sys.stderr)
             traceback.print_last(limit=1, file=sys.stderr)
 
-def start_frsm_loggers(version_path,debugflag: bool):
+
+def start_frsm_loggers(version_path, debugflag: bool):
     """
     initiate loggers for fast_rsm - debug and error loggers
     """
 
     # Load your INI configuration
-    config_fname = f'{version_path}/fast_rsm/src/fast_rsm/logging.ini'
+    config_fname = f"{version_path}/fast_rsm/src/fast_rsm/logging.ini"
     logging.config.fileConfig(config_fname, disable_existing_loggers=False)
 
     # Adjust debug level according to debugflag
@@ -80,7 +81,7 @@ def start_frsm_loggers(version_path,debugflag: bool):
     dbg_logger.setLevel(logging.DEBUG if debugflag else logging.CRITICAL)
 
     # Create a multiprocessing Queue for log records
-    log_queue = mp.Queue()
+    # log_queue = mp.Queue()
 
     # Collect handlers configured by your INI for both loggers
     # (these are the "final sinks" you already defined: ConcurrentRotatingFileHandler, etc.)
@@ -97,38 +98,44 @@ def start_frsm_loggers(version_path,debugflag: bool):
     # listener = multiprocessing.Process(target=listener_process,
     #                                     args=(log_queue, get_logger, LOGGER_DEBUG))
     # listener.start()
-    return err_logger,dbg_logger 
-#,log_queue, listener
+    return err_logger, dbg_logger
+
+
+# ,log_queue, listener
 
 
 def get_logger(log_name):
     return logging.getLogger(log_name)
 
+
 def get_debug_logger():
     """
     return already initialised debug logger
     """
-    return logging.getLogger('fastrsm_debug')
+    return logging.getLogger("fastrsm_debug")
+
 
 def get_error_logger():
     """
     return already initialised debug logger
     """
-    return logging.getLogger('fastrsm_error')
+    return logging.getLogger("fastrsm_error")
 
-def log_error_info(jobfile,slurmfile,error_logger):
+
+def log_error_info(jobfile, slurmfile, error_logger):
     """
     pass error info to logger
     """
-    copy_path=shutil.copy2(slurmfile,ERROR_LOG_DIR)
+    copy_path = shutil.copy2(slurmfile, ERROR_LOG_DIR)
     os.chmod(copy_path, 0o777)
     error_logger.debug(f"{getpass.getuser()}\t{jobfile}\t{slurmfile}")
 
+
 def close_logging():
-    '''
+    """
     closes all logging handlers and then shutsdown logging
-    '''
-    e_logger=get_error_logger()
+    """
+    e_logger = get_error_logger()
     # Close all handlers
     for handler in e_logger.handlers[:]:
         handler.close()
