@@ -2,14 +2,15 @@
 module to load in process configurations and check against preset schemas
 """
 
-import os
 import ast
+import os
 import re
 from pathlib import Path
-from schema import Or, And, Schema, SchemaError
-from simpleeval import SimpleEval
-import yaml
+
 import numpy as np
+import yaml
+from schema import And, Or, Schema, SchemaError
+from simpleeval import SimpleEval
 
 valid_outs = ["full_reciprocal_map", "pyfai_ivsq", "pyfai_qmap", "pyfai_exitangles"]
 giwaxsdeplist = [
