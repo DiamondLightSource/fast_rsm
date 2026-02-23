@@ -1,19 +1,19 @@
-#===================================================================
-#======Information required for all scan types======
-#===================================================================
+# ===================================================================
+# ======Information required for all scan types======
+# ===================================================================
 
 # How was your sample mounted? Options are 'horizontal', 'vertical' and 'DCD'.
-setup = 'horizontal'
+setup = "horizontal"
 
 # which experimental hutch was used 0 = unsure, 1= experimental hutch 1,
 # 2=experimental hutch 2
 experimental_hutch = 1
 # Set this to the directory path where your files are saved, note you will
 # need to include any subdirectories in this path
-local_data_path = 'path'  # '/dls/i07/data/2024/##experiment-number##/##subfolder#
+local_data_path = "path"  # '/dls/i07/data/2024/##experiment-number##/##subfolder#
 # Set this to the path where you want the output from the data processing
 # to be saved
-local_output_path = 'path'  # '/dls/i07/data/2024/##experiment-number##/processing'
+local_output_path = "path"  # '/dls/i07/data/2024/##experiment-number##/processing'
 
 
 # The beam centre, as can be read out from GDA, in pixel_x, pixel_y.
@@ -35,7 +35,7 @@ detector_distance = 0.18
 # 'pyfai_exitangles' - calculates a map of vertical exit angle Vs horizontal exit angle
 
 # 'pyfai_ivsq'  , 'pyfai_qmap','pyfai_exitangles' ,'full_reciprocal_map'
-process_outputs = ['pyfai_qmap']
+process_outputs = ["pyfai_qmap"]
 
 
 # Set this to True if you would like each image to be mapped independently.
@@ -44,9 +44,9 @@ process_outputs = ['pyfai_qmap']
 map_per_image = False
 
 
-#===================================================================
-#=======Optional settings applicable to all scan types
-#===================================================================
+# ===================================================================
+# =======Optional settings applicable to all scan types
+# ===================================================================
 #               ===========MASKING=============
 # add path to edfmaskfile created with pyFAI gui accessed via 'makemask'
 # option in fast_rsm
@@ -81,15 +81,14 @@ mask_regions = None
 # any pixels, then set min_intensity = None. This is useful for dynamically
 # creating masks (which is really useful for generating masks from -ve
 # numbers).
-min_intensity = 0.
+min_intensity = 0.0
 
 #            =======OPTIONS FOR SKIPPING IMAGES IF ISSUES ARE PRESENT
 # CHOOSE SCANS WHICH HAVE IMAGES TO SKIP, AND THEN SPECIFY WHICH IMAGES WITHIN THOSE SCANS NEED TO BE SKIPPED
 # I.E. A LIST OF IMAGES TO SKIP FOR EACH SCAN VALUE IN SKIPSCANS
 skipscans = []
 
-skipimages = [[],
-              []]
+skipimages = [[], []]
 
 # Are you using the DPS system?
 using_dps = False
@@ -99,14 +98,14 @@ using_dps = False
 dpsx_central_pixel = 0
 dpsy_central_pixel = 0
 dpsz_central_pixel = 0
-dpsz2_central_pixel = 0
+dpsz2k_central_pixel = 0
 
-#for specifying the use of the new motor thv - a combination of diffractometer and hexapod to reach larger incident angles
+# for specifying the use of the new motor thv - a combination of diffractometer and hexapod to reach larger incident angles
 use_thv = False
 
-#===================================================================
-#=========Optional settings for GIWAXS analysis
-#===================================================================
+# ===================================================================
+# =========Optional settings for GIWAXS analysis
+# ===================================================================
 
 # There will always be a .hdf5 file created. You can set the option for exporting additonal files with the savetiffs and savedats options below
 # if you want to export '2d qpara Vs qperp maps' to extra .tiff images set
@@ -119,34 +118,34 @@ savedats = False
 
 # if not using sample slits leave both as None, if using slits set to
 # slit-detector/sample-detector  e.g. 0.55/0.89
-slitvertratio =  None #0.55 / 0.89 
+slitvertratio = None  # 0.55 / 0.89
 slithorratio = None
 
 # critical edge of sample in degrees
 alphacritical = 0.08
 
 # if calculating pyfai integration on scan with moving detector and large number of images, there is the option to
-# specify range of q or theta so that number of bins can be calculated. If commented out this will automatically calculate 
+# specify range of q or theta so that number of bins can be calculated. If commented out this will automatically calculate
 # the limits of the dataset #e.g.
 radialrange = (0, 60)
 
-#specify steps in theta to calculate the number of bins - if commented out this will default to 0.01
-radialstepval =None
+# specify steps in theta to calculate the number of bins - if commented out this will default to 0.01
+radialstepval = None
 ###==OR
-# ## specify directly the number of bins for I Vs Q profile - which will mean radialstepval will have no effect. 
+# ## specify directly the number of bins for I Vs Q profile - which will mean radialstepval will have no effect.
 # ivqbins = None # e.g. 1000
 
 # *********calculating qpara Vs qperp maps,
 # set number of bins in the form (q_parallel, q_perpendicular)
 qmapbins = (1200, 1200)
 
-#define an azimuthal range over which to carry out the 1d integration for IvsQ
-azimuthal_sector=(110,80)
+# define an azimuthal range over which to carry out the 1d integration for IvsQ
+azimuthal_sector = (110, 80)
 
-#===================================================================
-#=========Optional settings for full reciprocal space maps
-#===================================================================
-#  
+# ===================================================================
+# =========Optional settings for full reciprocal space maps
+# ===================================================================
+#
 # volume_start = [h_start, k_start, l_start]
 # volume_stop = [h_stop, k_stop, l_stop]
 # volume_step = [h_step, k_step, l_step]
@@ -164,10 +163,10 @@ volume_step = None
 # Max file size is 2GB (2048MB).
 output_file_size = 50
 
-#Choose if you want a .vtk volume saved as well the hdf5, which can be used for loading into paraview
+# Choose if you want a .vtk volume saved as well the hdf5, which can be used for loading into paraview
 save_vtk = False
 
-#Choose if you want a .npy file saved as well as the hdf5, for manual analysis
+# Choose if you want a .npy file saved as well as the hdf5, for manual analysis
 save_npy = False
 
 # Only use this if you need to load your data from a .dat file.
@@ -178,8 +177,7 @@ load_from_dat = False
 # choose central point to calculate spherical polars around - if commented out defaults to [0,0,0]
 # spherical_bragg_vec=[1.35,1.42,0.96] #519910 , 519528
 # choose to have a manually set cylinder axis to use with cylindrical co-ordinates
-#cylinder_axis=False
+# cylinder_axis=False
 
-#choose to change frame of reference for mapping from default ‘hkl’ to 'qxqyqz' :
-#frame_name='hkl'
-
+# choose to change frame of reference for mapping from default ‘hkl’ to 'qxqyqz' :
+# frame_name='hkl'
