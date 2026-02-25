@@ -621,6 +621,8 @@ def pyfai_moving_ivsq_smm_new(experiment: Experiment, hf, scanlist, process_conf
     cfg = setup_job(process_config, experiment, scanlist, "ang")
     if cfg.debuglogging:
         logger, listener, log_queue = setup_debug_logger()
+    else:
+        log_queue = None
     # num_threads = int(cfg.num_threads)  # e.g., 40
     intensity_results_per_scan, count_results_per_scan, tth_results_per_scan = [
         [],

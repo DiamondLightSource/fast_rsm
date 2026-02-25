@@ -9,7 +9,7 @@ from pyFAI import units
 
 from fast_rsm.angle_pixel_q import gamdel2rots
 from fast_rsm.experiment import Experiment
-from fast_rsm.logging_config import do_time_check, get_logger
+from fast_rsm.logging_config import get_logger
 
 # ==============common functions
 
@@ -179,7 +179,7 @@ def pyfai_move_ivsq_worker_new(
     fullresult = np.zeros(cfg.ivqbins)
     fullcounts = np.zeros(cfg.ivqbins)  #
 
-    time_logger.debug(do_time_check(f"start loop of child_{logn}"))
+    # time_logger.debug(do_time_check(f"start loop of child_{logn}"))
     for i, ind in enumerate(imageindices):
         current_ai, img_data, img_mask, method, inc_angle_out, d5i_data = (
             setup_stat_worker(experiment, cfg, scan, ind)
