@@ -13,7 +13,6 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from time import time
 from types import SimpleNamespace
 from typing import Tuple
 
@@ -392,7 +391,7 @@ def make_new_hdf5(
     name_end = cfg.scan_numbers[scan_index]
     datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
     cfg.projected_name = f"{name_start}_{name_end}_{datetime_str}"
-    cfg.process_start_time = time()
+    cfg.process_start_time = time.time()
     experiment.load_curve_values(experiment.scans[scan_index])
     cfg.pyfaiponi = createponi(experiment, cfg.local_output_path)
     return h5py.File(f"{cfg.local_output_path}/{cfg.projected_name}.hdf5", "w")
@@ -409,7 +408,7 @@ def run_one_scan_process(cfg, i, experiment, inputscan, runoptions):
         f"saved {infostring} data to\
             {cfg.local_output_path}/{cfg.projected_name}.hdf5"
     )
-    total_time = (time() - cfg.process_start_time) / 60
+    total_time = (time.time() - cfg.process_start_time) / 60
     print(f"\n {infostring} calculations took {total_time} minutes")
 
 
@@ -506,7 +505,7 @@ def run_full_map_process(experiment, cfg):
                 "went wrong. I'm going with the latter, but exiting out anyway."
             )
     map_frame = Frame(frame_name=cfg.frame_name, coordinates=cfg.coordinates)
-    start_time = time()
+    start_time = time.time()
     # Calculate and save a binned reciprocal space map, if requested.
     cfg.mapped_data = experiment.binned_reciprocal_space_map_smm(
         cfg.num_threads,
@@ -527,7 +526,7 @@ def run_full_map_process(experiment, cfg):
 
     # Finally, print that it's finished We'll use this to work out when the
     # processing is done.
-    total_time = time() - start_time
+    total_time = time.time() - start_time
     print(f"\nProcessing took {total_time}s")
     print(f"This corresponds to {total_time * 1000 / cfg.total_images}ms per image.\n")
 
@@ -650,7 +649,8 @@ class ProcessArgs:
     scan_range: list[int] | None = None
     out_path: str | None = None
     debuglogging: bool = 0
-    cluster: bool = 1
+    local: bool = 0
+    dev: bool = 0
 
     def start_loggers(self):
         self.debug_logger, self.error_logger = start_frsm_loggers(
@@ -754,7 +754,9 @@ class ProcessArgs:
                 for pos in phrase_positions:
                     phrase = line[pos[0] : pos[1]]
                     outphrase = phrase.strip("$").strip("{").strip("}")
-                    outline = outline.replace(phrase, str(locals()[f"{outphrase}"]))
+                    outline = outline.replace(
+                        phrase, str(self.__getattribute__(f"{outphrase}"))
+                    )
                 mf.write(outline)
 
     def check_slurmfiles(self):
@@ -763,6 +765,14 @@ class ProcessArgs:
         slurms.append(files[0])
         slurms.sort(key=lambda x: os.path.getmtime(f"{Path.home()}/islatu/{x}"))
         return slurms
+    
+    def print_exp_lines(self):
+        with open(self.exp_path,"r") as file:
+            print(file.read())
+    
+    def print_calc_lines(self):
+        with open(self.calc_path,"r") as file:
+            print(file.read())
 
     def run_cluster_job(self):
 
@@ -836,9 +846,8 @@ class ProcessArgs:
         self.parse_scans()
         self.create_job_name()
 
-        if not self.cluster:
+        if self.local:
             self.create_jobscript()
-            self.create_jobfile()
             subprocess.run(["python", f"{self.save_path}"])
 
         else:
