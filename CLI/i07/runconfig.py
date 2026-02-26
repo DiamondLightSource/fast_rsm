@@ -43,13 +43,19 @@ if __name__ == "__main__":
     HELP_STR = "Use this flag to activate the debug logger"
     parser.add_argument("-dblog", "--debuglogging", help=HELP_STR, default=0)
 
-    HELP_STR = "Set this flag to false to run job locally"
-    parser.add_argument("-c", "--cluster", help=HELP_STR, default=1)
+    HELP_STR = "Set this flag to true to run job locally"
+    parser.add_argument("-local", "--local", help=HELP_STR, action="store_true")
 
+    HELP_STR = "Set this flag to true to run job using development python version"
+    parser.add_argument("-dev", "--dev", help=HELP_STR, action="store_true")
     # Extract the arguments from the parser.
     args = parser.parse_args()
     args.version_path = version_path
     args.python_version = python_version
+    if args.dev:
+        args.python_version = (
+            "/dls/science/users/rpy65944/python_envs/runpytest/bin/python"  # python_version
+        )
 
     process_args = ProcessArgs(**vars(args))
     process_args.parse_and_reduce()
