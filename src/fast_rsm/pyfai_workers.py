@@ -117,7 +117,7 @@ def pyfai_move_ivsq_worker_new(experiment: Experiment, imageindices,
         # unit_ip.set_incident_angle(inc_angle_out)
         gamdelval=cfg.gamdelvals[ind]
         current_ai=get_pyfai_ai(experiment,cfg.aistart, cfg.slitratios, cfg.alphacritical,inc_angle,gamdelval)
-        unit_tth.incident_angles=inc_angle_out
+        unit_tth.incident_angle=inc_angle_out
         unit_oop.incident_angle=inc_angle_out
         d5i_data=cfg.d5i_full[ind]
         #current_ai.rot2=np.radians(34.8)
