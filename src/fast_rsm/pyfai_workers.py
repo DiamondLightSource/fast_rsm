@@ -77,6 +77,11 @@ def get_pyfai_limits(limits_in):
 
 #==========moving workers
 
+#--------------------------------------
+        # decided to remove incident from units for now, as a simple
+        # incident angle for sxrd does not affect the exit angle of interest, just the specific set of crystallites that are in diffraction condition
+        #DCD is more complicated and will check later
+#------------------------------------
 
 def pyfai_move_ivsq_worker_new(experiment: Experiment, imageindices,
                            scan, process_config,queue=None,logn=None) -> None:
@@ -117,8 +122,13 @@ def pyfai_move_ivsq_worker_new(experiment: Experiment, imageindices,
         # unit_ip.set_incident_angle(inc_angle_out)
         gamdelval=cfg.gamdelvals[ind]
         current_ai=get_pyfai_ai(experiment,cfg.aistart, cfg.slitratios, cfg.alphacritical,inc_angle,gamdelval)
-        unit_tth.incident_angle=inc_angle_out
-        unit_oop.incident_angle=inc_angle_out
+
+        # =============================================
+        # see incident angle message at top of worker section line 80
+        #=============================================
+        # unit_ip.incident_angle=inc_angle_out
+        # unit_oop.incident_angle=inc_angle_out
+
         d5i_data=cfg.d5i_full[ind]
         #current_ai.rot2=np.radians(34.8)
 
@@ -188,8 +198,13 @@ def pyfai_move_qmap_worker_new(experiment: Experiment, imageindices,
     #time_logger.debug(do_time_check(f'start loop of image child_{logn}'))
     for i,ind in enumerate(imageindices):
         inc_angle,inc_angle_out=cfg.all_inc_angles[ind]
-        # unit_oop.set_incident_angle(inc_angle_out)
-        # unit_ip.set_incident_angle(inc_angle_out)
+
+        # =============================================
+        # see incident angle message at top of worker section line 80
+        #=============================================
+        # unit_ip.incident_angle=inc_angle_out
+        # unit_oop.incident_angle=inc_angle_out
+
         gamdelval=cfg.gamdelvals[ind]
         current_ai=get_pyfai_ai(experiment,cfg.aistart, cfg.slitratios, cfg.alphacritical,inc_angle,gamdelval)
         d5i_data=cfg.d5i_full[ind]
@@ -198,8 +213,13 @@ def pyfai_move_qmap_worker_new(experiment: Experiment, imageindices,
         img_data,img_mask=get_pyfai_image_data(experiment,scan,ind)
         current_ai.mask=img_mask
         method=("no", "histogram", "cython")
-        unit_ip.incident_angle=inc_angle_out
-        unit_oop.incident_angle=inc_angle_out
+
+        # =============================================
+        # see incident angle message at top of worker section line 80
+        #=============================================
+        # unit_ip.incident_angle=inc_angle_out
+        # unit_oop.incident_angle=inc_angle_out
+        
         outrangerad=cfg.fullranges[0:2]
         outrangeazi=cfg.fullranges[2:]
         single_result=current_ai.integrate2d(img_data, cfg.qmapbins[0],
@@ -251,8 +271,13 @@ def pyfai_move_exitangles_worker_new(experiment: Experiment, imageindices,
     #time_logger.debug(do_time_check(f'start loop of image child_{logn}'))
     for i,ind in enumerate(imageindices):
         inc_angle,inc_angle_out=cfg.all_inc_angles[ind]
-        # unit_oop.set_incident_angle(inc_angle_out)
-        # unit_ip.set_incident_angle(inc_angle_out)
+
+        # =============================================
+        # see incident angle message at top of worker section line 80
+        #=============================================
+        # unit_ip.incident_angle=inc_angle_out
+        # unit_oop.incident_angle=inc_angle_out
+
         gamdelval=cfg.gamdelvals[ind]
         current_ai=get_pyfai_ai(experiment,cfg.aistart, cfg.slitratios, cfg.alphacritical,inc_angle,gamdelval)
         d5i_data=cfg.d5i_full[ind]
@@ -293,8 +318,13 @@ def pyfai_stat_ivsq_worker_new(experiment: Experiment, imageindex, scan,
     cfg = process_config
     index = imageindex
     inc_angle,inc_angle_out=cfg.all_inc_angles[index]
-    # unit_oop.set_incident_angle(inc_angle_out)
-    # unit_ip.set_incident_angle(inc_angle_out)
+
+    # =============================================
+    # see incident angle message at top of worker section line 80
+    #=============================================
+    # unit_ip.incident_angle=inc_angle_out
+    # unit_oop.incident_angle=inc_angle_out
+
     gamdelval=cfg.gamdelvals[index]
     current_ai=get_pyfai_ai(experiment,cfg.aistart, cfg.slitratios, cfg.alphacritical,inc_angle,gamdelval)
     d5i_data=cfg.d5i_full[index]
@@ -342,8 +372,12 @@ def pyfai_stat_exitangles_worker_new(experiment: Experiment, imageindex, scan,\
     cfg = process_config
     index = imageindex
     inc_angle,inc_angle_out=cfg.all_inc_angles[index]
-    # unit_oop.set_incident_angle(inc_angle_out)
-    # unit_ip.set_incident_angle(inc_angle_out)
+
+    # =============================================
+    # see incident angle message at top of worker section line 80
+    #=============================================
+    # unit_ip.incident_angle=inc_angle_out
+    # unit_oop.incident_angle=inc_angle_out
     gamdelval=cfg.gamdelvals[index]
     current_ai=get_pyfai_ai(experiment,cfg.aistart, cfg.slitratios, cfg.alphacritical,inc_angle,gamdelval)
     d5i_data=cfg.d5i_full[index]
@@ -385,8 +419,13 @@ def pyfai_stat_qmap_worker_new(experiment: Experiment, imageindex, scan,\
     cfg = process_config
     index = imageindex
     inc_angle,inc_angle_out=cfg.all_inc_angles[index]
-    # unit_oop.set_incident_angle(inc_angle_out)
-    # unit_ip.set_incident_angle(inc_angle_out)
+
+    # =============================================
+    # see incident angle message at top of worker section line 80
+    #=============================================
+    # unit_ip.incident_angle=inc_angle_out
+    # unit_oop.incident_angle=inc_angle_out
+    
     gamdelval=cfg.gamdelvals[index]
     current_ai=get_pyfai_ai(experiment,cfg.aistart, cfg.slitratios, cfg.alphacritical,inc_angle,gamdelval)
     d5i_data=cfg.d5i_full[index]
