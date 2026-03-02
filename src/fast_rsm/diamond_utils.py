@@ -760,10 +760,10 @@ class ProcessArgs:
                 mf.write(outline)
 
     def check_slurmfiles(self):
-        files = os.listdir(f"{Path.home()}/islatu")
+        files = os.listdir(f"{Path.home()}/fast_rsm")
         slurms = [x for x in files if ".out" in x]
         slurms.append(files[0])
-        slurms.sort(key=lambda x: os.path.getmtime(f"{Path.home()}/islatu/{x}"))
+        slurms.sort(key=lambda x: os.path.getmtime(f"{Path.home()}/fast_rsm/{x}"))
         return slurms
     
     def print_exp_lines(self):
