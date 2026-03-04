@@ -8,6 +8,7 @@ import multiprocessing
 import os
 import re
 import subprocess
+from dataclasses import dataclass
 import sys
 from datetime import datetime
 from pathlib import Path
