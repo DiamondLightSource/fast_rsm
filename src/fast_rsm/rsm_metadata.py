@@ -1,8 +1,9 @@
 """
 This module contains the metadata class, which provides a python interface
-for the .nxs file written for the scan.
+for the .nxs file written for the scan .
 """
-from typing import Tuple, List, Dict
+
+from typing import Dict, List, Tuple
 
 import numpy as np
 from scipy.constants import physical_constants
@@ -41,12 +42,13 @@ class RSMMetadata:
             elements of a numpy array simultaneously: google it.
     """
 
-    def __init__(self,
-                 diffractometer: DiffractometerBase,
-                 beam_centre: Tuple[int, int],  # In number of pixels.
-                 mask_pixels: tuple = None,
-                 mask_regions: List[Region] = None
-                 ):
+    def __init__(
+        self,
+        diffractometer: DiffractometerBase,
+        beam_centre: Tuple[int, int],  # In number of pixels.
+        mask_pixels: tuple = None,
+        mask_regions: List[Region] = None,
+    ):
         self.diffractometer = diffractometer
         self.data_file = diffractometer.data_file  # A handy reference.
         self.beam_centre = beam_centre
@@ -63,7 +65,7 @@ class RSMMetadata:
         self._horizontal_pixel_offsets = None
         self._vertical_pixel_distances = None
         self._horizontal_pixel_distances = None
-    
+
     def swap_beam_centre(self):
         self.beam_centre = (self.beam_centre[1], self.beam_centre[0])
 
@@ -71,19 +73,22 @@ class RSMMetadata:
         if self.data_file.is_rotated:
             self.beam_centre = (
                 self.data_file.image_shape[0] - self.beam_centre[1],
-                self.beam_centre[0])
-    
+                self.beam_centre[0],
+            )
+
     def beam_centre_range_check(self):
         test_arr = np.ndarray(self.data_file.image_shape)
         try:
             test_arr[self.beam_centre[0], self.beam_centre[1]]
         except IndexError as error:
-            print(f"beam_centre {self.beam_centre} out of bounds. Your image "
-                  f"has shape {self.data_file.image_shape} (slow_axis, "
-                  f"fast_axis).")
+            print(
+                f"beam_centre {self.beam_centre} out of bounds. Your image "
+                f"has shape {self.data_file.image_shape} (slow_axis, "
+                f"fast_axis)."
+            )
             raise error
         return True
-    
+
     def _correct_beam_centre(self):
         """
         Correct the beam centre, if necessary. We can use the metadata to work
@@ -99,13 +104,11 @@ class RSMMetadata:
 
         if isinstance(self.data_file, I07Nexus):
             # I07 beam centres are given (x, y) (the wrong way around).
-            #self.beam_centre = (self.beam_centre[1], self.beam_centre[0])
+            # self.beam_centre = (self.beam_centre[1], self.beam_centre[0])
             self.swap_beam_centre()
             self.check_beam_centre_rot()
-            
+
         self.beam_centre_range_check()
-        # Make sure that the beam_centre can lie within the image.
-        test_arr = np.ndarray(self.data_file.image_shape)
 
     def update_i07_nx(self, motors: Dict[str, np.ndarray], metadata: dict):
         """
@@ -192,14 +195,14 @@ class RSMMetadata:
             the central pixel.
         """
         if self._vertical_pixel_distances is None:
-            self._vertical_pixel_distances = \
+            self._vertical_pixel_distances = (
                 self.vertical_pixel_offsets * self.data_file.pixel_size
+            )
 
         # If the DPS system is being used, account for it.
         try:
             if self.data_file.using_dps:
-                return self._vertical_pixel_distances + \
-                    self.data_file.dpsy[idx]
+                return self._vertical_pixel_distances + self.data_file.dpsy[idx]
         except AttributeError:
             # If there's no using_dps attribute on our data file, just return
             # the pre-calculated _vertical_pixel_distances.
@@ -222,14 +225,14 @@ class RSMMetadata:
             from the central pixel.
         """
         if self._horizontal_pixel_distances is None:
-            self._horizontal_pixel_distances = \
+            self._horizontal_pixel_distances = (
                 self.horizontal_pixel_offsets * self.data_file.pixel_size
+            )
 
         # If the DPS system is being used, account for it.
         try:
             if self.data_file.using_dps:
-                return (self._horizontal_pixel_distances +
-                        self.data_file.dpsx[index])
+                return self._horizontal_pixel_distances + self.data_file.dpsx[index]
         except AttributeError:
             # If there's no using_dps attribute on our data file, just return
             # the pre-calculated _vertical_pixel_distances.
@@ -263,10 +266,12 @@ class RSMMetadata:
         """
         Returns the wavelength of the incident light in Å.
         """
-        return (physical_constants["Planck constant in eV s"][0] *
-                physical_constants["speed of light in vacuum"][0] /
-                self.diffractometer.data_file.probe_energy *
-                1e10)  # To convert to Å.
+        return (
+            physical_constants["Planck constant in eV s"][0]
+            * physical_constants["speed of light in vacuum"][0]
+            / self.diffractometer.data_file.probe_energy
+            * 1e10
+        )  # To convert to Å.
 
     @property
     def k_incident_length(self):
@@ -311,7 +316,7 @@ class RSMMetadata:
         # Finally, store as a single precision float.
         self._solid_angles = self._solid_angles.astype(np.float32)
 
-    def get_pixel_index_offsets(self,index, image_shape):
+    def get_pixel_index_offsets(self, index, image_shape):
         if image_shape is None:
             image_shape = self.data_file.image_shape
         num_pixels = image_shape[index]
@@ -323,14 +328,14 @@ class RSMMetadata:
         # Now pixel_offsets -= ((11-1) - 2)
         # => pixel_offsets = [2, 1, 0, -1, -2, -3, -4, -5, -6, -7, -8]
         # This is good! The top of the detector is above the centre in y.
-        pixel_offsets -= ((num_pixels - 1) - beam_centre_val)
-        return pixel_offsets,image_shape
+        pixel_offsets -= (num_pixels - 1) - beam_centre_val
+        return pixel_offsets, image_shape
 
     def _init_vertical_pixel_offsets(self, image_shape: int = None):
         """
         Initializes the array of relative pixel offsets.
         """
-        pixel_offsets,out_shape=self.get_pixel_index_offsets(0,image_shape)
+        pixel_offsets, out_shape = self.get_pixel_index_offsets(0, image_shape)
         # Save this value to an array with the same shape as the images.
         self._vertical_pixel_offsets = np.zeros(out_shape, np.float32)
 
@@ -344,7 +349,7 @@ class RSMMetadata:
         beam centre.
         """
 
-        pixel_offsets,out_shape=self.get_pixel_index_offsets(1,image_shape)
+        pixel_offsets, out_shape = self.get_pixel_index_offsets(1, image_shape)
         # Save this value to an array with the same shape as the images.
         self._horizontal_pixel_offsets = np.zeros(out_shape, np.float32)
         for i, pixel_offset in enumerate(pixel_offsets):
@@ -354,7 +359,7 @@ class RSMMetadata:
         """
         Initializes the relative_polar array.
         """
-        pixel_offsets,out_shape = self.get_pixel_index_offsets(0,image_shape)
+        pixel_offsets, out_shape = self.get_pixel_index_offsets(0, image_shape)
         # Now convert pixel number to distances
         # Imagine self.pixel_size = 0.1m
         # Now distance_offsets = [0.2, 0.1, 0, -0.1, -0.2, -0.3, -0.4, -0.5...]
@@ -367,8 +372,7 @@ class RSMMetadata:
         #   |¬                        \ <- Theta measured from here.
         #   ---------------------------
         #                ^ This distance is detector distance.
-        theta_offsets = np.arctan2(distance_offsets,
-                                   self.data_file.detector_distance)
+        theta_offsets = np.arctan2(distance_offsets, self.data_file.detector_distance)
 
         # Now use these offsets to initialize the relative_polar array.
         self._relative_polar = np.zeros(out_shape)
@@ -379,11 +383,10 @@ class RSMMetadata:
         """
         Initializes the relative_azimuth array.
         """
-        pixel_offsets,out_shape=self.get_pixel_index_offsets(1,image_shape)
+        pixel_offsets, out_shape = self.get_pixel_index_offsets(1, image_shape)
         # Now convert from pixels to distances to angles.
         distance_offsets = pixel_offsets * self.data_file.pixel_size
-        phi_offsets = np.arctan2(distance_offsets,
-                                 self.data_file.detector_distance)
+        phi_offsets = np.arctan2(distance_offsets, self.data_file.detector_distance)
 
         # Now use these offsets to initialize the relative_azimuth array
         self._relative_azimuth = np.zeros(out_shape)

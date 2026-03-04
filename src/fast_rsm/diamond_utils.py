@@ -9,10 +9,9 @@ import os
 import re
 import subprocess
 import sys
-import time
-from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from time import time
 from types import SimpleNamespace
 from typing import Tuple
 
@@ -40,20 +39,25 @@ from fast_rsm.pyfai_interface import (
 )
 
 
-def setup_processing(exp_setup_file: Path, job_file_path: str, scan_numbers: list):
+def setup_processing(
+    exp_setup_file: Path, job_file_path: str, scan_numbers: list, debuglogging: bool
+):
     """
     uses process configuration to create an experiment object
     and setup a logger if requested
     returns :  Experiment, config, logger
     """
-    cfg = create_process_config(exp_setup_file, job_file_path, scan_numbers)
-    debug_logger = logging.getLogger("fastrsm_debug")
+    cfg = create_process_config(
+        exp_setup_file, job_file_path, scan_numbers, debuglogging
+    )
     experiment, cfg = create_experiment(cfg)
 
-    return experiment, cfg, debug_logger
+    return experiment, cfg
 
 
-def create_process_config(exp_setup_file: Path, job_file_path: str, scan_numbers: list):
+def create_process_config(
+    exp_setup_file: Path, job_file_path: str, scan_numbers: list, debuglogging: bool
+):
     """
     creates a simplenamespace configuration settings object
     """
@@ -65,6 +69,7 @@ def create_process_config(exp_setup_file: Path, job_file_path: str, scan_numbers
     check_config_schema(default_config)
 
     cfg = SimpleNamespace(**default_config)
+    cfg.debuglogging = debuglogging
     with open(cfg.full_path, encoding="utf-8") as f:
         cfg.joblines = f.readlines()
     polarization_values = {"vertical": -1, "horizontal": 1, "DCD": 1}
@@ -191,7 +196,7 @@ def create_experiment(process_config: SimpleNamespace):
     creates an experiment object from process configuration settings
     """
     cfg = process_config
-    # Work out the paths to each of the nexus files. Store as pathlib.Path
+    # Work out the paths to  each of the nexus files. Store as pathlib.Path
     # objects.
     cfg = get_good_paths(cfg)
     data_corruption_warning(cfg)
@@ -391,7 +396,7 @@ def make_new_hdf5(
     name_end = cfg.scan_numbers[scan_index]
     datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
     cfg.projected_name = f"{name_start}_{name_end}_{datetime_str}"
-    cfg.process_start_time = time.time()
+    cfg.process_start_time = time()
     experiment.load_curve_values(experiment.scans[scan_index])
     cfg.pyfaiponi = createponi(experiment, cfg.local_output_path)
     return h5py.File(f"{cfg.local_output_path}/{cfg.projected_name}.hdf5", "w")
@@ -408,7 +413,7 @@ def run_one_scan_process(cfg, i, experiment, inputscan, runoptions):
         f"saved {infostring} data to\
             {cfg.local_output_path}/{cfg.projected_name}.hdf5"
     )
-    total_time = (time.time() - cfg.process_start_time) / 60
+    total_time = (time() - cfg.process_start_time) / 60
     print(f"\n {infostring} calculations took {total_time} minutes")
 
 

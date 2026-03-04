@@ -1,17 +1,15 @@
-from fast_rsm.diamond_utils import run_process_list,\
-        setup_processing
-
+from fast_rsm.diamond_utils import run_process_list, setup_processing
 from fast_rsm.logging_config import start_frsm_loggers
 
+if debuglogging:
+    err_logger, dbg_logger = start_frsm_loggers(version_path, debuglogging)
 
 
-err_logger,dbg_logger=start_frsm_loggers(version_path,debuglogging)
-
-
-#create experiment object, process configuration and logger
-experiment,process_config,debug_logger=\
-setup_processing(exp_file,__file__,scan_numbers)
-#=================================================================================
+# create experiment object, process configuration and logger
+experiment, process_config = setup_processing(
+    exp_file, __file__, scan_numbers, debuglogging
+)
+# =================================================================================
 ####============SPECIAL ADJUSTMENTS ==============================================
 # #This section is for changing metadata that is stored in, or inferred from, the
 # #nexus file. This is generally for more nonstandard stuff.
@@ -30,8 +28,9 @@ setup_processing(exp_file,__file__,scan_numbers)
 #         [0, 1, 0],
 #         [0, 0, 1]
 #     ])
-#=================================================================================
-#=================================================================================
+# =================================================================================
+# =================================================================================
+
 
 #
 def main():
@@ -39,11 +38,9 @@ def main():
     run processing jobs with process configuration settings requested
     """
 
-
-    run_process_list(experiment,process_config)
+    run_process_list(experiment, process_config)
     print("PROCESSING FINISHED.")
 
 
 if __name__ == "__main__":
     main()
- 

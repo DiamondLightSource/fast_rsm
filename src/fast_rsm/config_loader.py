@@ -128,6 +128,7 @@ config_schema = Schema(
         "map_frame": Or(None, str),
         "coordinates": Or(None, str),
         "use_thv": Or(None, bool),
+        "azimuthal_sector": Or(None, tuple),
     }
 )
 
