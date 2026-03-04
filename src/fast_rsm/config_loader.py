@@ -117,7 +117,8 @@ config_schema = Schema({
     "full_path": str,
     "map_frame":Or(None,str),
     "coordinates":Or(None,str),
-    "use_thv": Or(None,bool)
+    "use_thv": Or(None,bool),
+    "pyfaiponi": Or(None,str),
 })
 
 
