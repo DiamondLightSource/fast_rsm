@@ -161,6 +161,13 @@ def get_time_logger(queue, logn):
 
 
 # ==========moving workers
+#--------------------------------------------
+# ======= incident angle message=======
+# decided to remove incident from units for now, as a sample
+# incident angle for sxrd does not affect the exit angle of interest, just the specific set of crystallites that are in diffraction condition
+# DCD is more complicated and will check later - currently offsets delta if incident angle is above critical angle
+#--------------------------------------------------
+
 
 
 def pyfai_move_ivsq_worker_new(
@@ -185,8 +192,13 @@ def pyfai_move_ivsq_worker_new(
             setup_stat_worker(experiment, cfg, scan, ind)
         )
         current_ai.mask = img_mask
-        unit_tth.incident_angles = inc_angle_out
-        unit_oop.incident_angle = inc_angle_out
+
+        # =============================================
+        # see incident angle message at top of worker section line 80
+        #=============================================
+        # unit_tth.incident_angle = inc_angle_out
+        # unit_oop.incident_angle = inc_angle_out
+
         single_result = calculate_1d(cfg, current_ai, img_data, d5i_data, method)
 
         fullresult += single_result.sum_signal
@@ -220,8 +232,13 @@ def pyfai_move_qmap_worker_new(
         )
         current_ai.mask = img_mask
         method = ("no", "csr", "cython")
-        unit_ip.incident_angle = inc_angle_out
-        unit_oop.incident_angle = inc_angle_out
+        
+        # =============================================
+        # see incident angle message at top of worker section line 80
+        #=============================================
+        # unit_tth.incident_angle = inc_angle_out
+        # unit_oop.incident_angle = inc_angle_out
+        
         single_result, axisinfo = calculate_2d_map(
             cfg, current_ai, img_data, unit_ip, unit_oop, method, d5i_data
         )
@@ -250,8 +267,13 @@ def pyfai_move_exitangles_worker_new(
         current_ai, img_data, img_mask, method, inc_angle_out, d5i_data = (
             setup_stat_worker(experiment, cfg, scan, ind)
         )
-        unit_ip.incident_angle = inc_angle_out
-        unit_oop.incident_angle = inc_angle_out
+        
+        # =============================================
+        # see incident angle message at top of worker section line 80
+        #=============================================
+        # unit_tth.incident_angle = inc_angle_out
+        # unit_oop.incident_angle = inc_angle_out
+
         current_ai.mask = img_mask
         single_result, axisinfo = calculate_2d_map(
             cfg, current_ai, img_data, unit_ip, unit_oop, method, d5i_data
