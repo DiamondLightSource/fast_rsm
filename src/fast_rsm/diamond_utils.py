@@ -3,8 +3,11 @@ This file contains a suite of utility functions for processing data acquired
 specifically at Diamond.
 """
 
+import logging
 import multiprocessing
 import os
+import re
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -23,6 +26,7 @@ from fast_rsm.config_loader import (
     parse_setup_file,
 )
 from fast_rsm.experiment import Experiment
+from fast_rsm.logging_config import log_error_info, start_frsm_loggers
 from fast_rsm.pyfai_interface import (
     createponi,
     pyfai_moving_exitangles_smm_new,
@@ -506,7 +510,7 @@ def run_full_map_process(experiment, cfg):
                 "went wrong. I'm going with the latter, but exiting out anyway."
             )
     map_frame = Frame(frame_name=cfg.frame_name, coordinates=cfg.coordinates)
-    start_time = time()
+    start_time = time.time()
     # Calculate and save a binned reciprocal space map, if requested.
     cfg.mapped_data = experiment.binned_reciprocal_space_map_smm(
         cfg.num_threads,
@@ -527,7 +531,7 @@ def run_full_map_process(experiment, cfg):
 
     # Finally, print that it's finished We'll use this to work out when the
     # processing is done.
-    total_time = time() - start_time
+    total_time = time.time() - start_time
     print(f"\nProcessing took {total_time}s")
     print(f"This corresponds to {total_time * 1000 / cfg.total_images}ms per image.\n")
 
@@ -634,3 +638,222 @@ def get_volume_and_bounds(path_to_npy: str) -> Tuple[np.ndarray]:
 
     # And return what we were asked for!
     return volume, start, stop, step
+
+
+@dataclass
+class ProcessArgs:
+    """
+    a class to hold all information about the processing settings requested, and provide parsing checks, then job submission
+    """
+
+    exp_path: str
+    calc_path: str
+    version_path: str
+    python_version: str
+    scan_nums: list[int] | None = None
+    scan_range: list[int] | None = None
+    out_path: str | None = None
+    debuglogging: bool = 0
+    local: bool = 0
+    dev: bool = 0
+
+    def start_loggers(self):
+        self.debug_logger, self.error_logger = start_frsm_loggers(
+            self.version_path, self.debuglogging
+        )
+
+    def parse_setup(self):
+        self.process_settings = parse_setup_file(Path(self.exp_path))
+        outline = (
+            [self.process_settings["local_output_path"]]
+            if "local_output_path" in self.process_settings
+            else []
+        )
+        if len(outline) == 0:
+            self.outdir = self.out_path
+        else:
+            self.outdir = outline[0]
+        with open(self.calc_path, encoding="utf-8") as f2:
+            self.lines2 = f2.readlines()
+
+    def parse_scans(self):
+        if self.scan_range == 0:
+            self.scans = self.scan_nums
+        else:
+            rlist = eval(self.scan_range)
+            if len(np.shape(rlist)) == 1:
+                scanrange = rlist
+                self.scans = list(
+                    range(int(scanrange[0]), int(scanrange[1]) + 1, int(scanrange[2]))
+                )
+            else:
+                self.scans = []
+                for r in rlist:
+                    scanrange = r
+                    self.scans.extend(
+                        list(
+                            range(
+                                int(scanrange[0]),
+                                int(scanrange[1]) + 1,
+                                int(scanrange[2]),
+                            )
+                        )
+                    )
+
+    def create_job_name(self):
+        i = 1
+        save_file_name = f"job_scan_{self.scans[0]}_{i}.py"
+        save_path = Path(self.outdir) / Path(save_file_name)
+        # Make sure that this name hasn't been used in the past.
+
+        while os.path.exists(str(save_path)):
+            i += 1
+            save_file_name = f"job_scan_{self.scans[0]}_{i}.py"
+            save_path = Path(self.outdir) / Path(save_file_name)
+            if i > 1e7:
+                raise ValueError("naming counter hit limit therefore exiting ")
+        self.save_file_name = save_file_name
+        self.save_path = save_path
+
+    def create_jobscript(self):
+        # save variables to job file using job template
+        with open(self.save_path, "x", encoding="utf-8") as jobf:
+            jobf.write(f"exp_file = '{self.exp_path}'\n")
+            jobf.write(f"scan_numbers= {self.scans}\n")
+            jobf.write(f"version_path='{self.version_path}'\n")
+            jobf.write(f"debuglogging={self.debuglogging}\n")
+            # jobf.write("process_outputs=['pyfai_qmap']\n")
+            jobf.write("".join(self.lines2))
+            jobf.write('\n"""\n')
+            jobf.write(
+                f" {'*' * 40}\n settings from  of {self.exp_path}\n {'*' * 40}\n "
+            )
+            ordered_settings = {
+                k: self.process_settings[k] for k in sorted(self.process_settings)
+            }
+            for k, v in ordered_settings.items():
+                jobf.write(f"{k}  = {v}\n")
+
+            jobf.write('"""')
+        os.chmod(self.save_path, 0o777)
+
+    def create_jobfile(self):
+        # load in template mapscript, new paths
+        with open(
+            f"{self.version_path}fast_rsm/CLI/i07/mapscript_template.sh",
+            "r",
+            encoding="utf-8",
+        ) as maptemplate:
+            maplines = maptemplate.readlines()
+        datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+        # update mapscript in the /home/fast_rsm  directory using template, and filling in variables
+        self.script_path = f"{Path.home()}/mapscript_{datetime_str}.sh"
+        print(self.script_path)
+        with open(self.script_path, "w", encoding="utf-8") as mf:
+            for line in maplines:
+                phrase_matches = list(re.finditer(r"\${[^}]+\}", line))
+                phrase_positions = [
+                    (match.start(), match.end()) for match in phrase_matches
+                ]
+                outline = line
+                for pos in phrase_positions:
+                    phrase = line[pos[0] : pos[1]]
+                    outphrase = phrase.strip("$").strip("{").strip("}")
+                    outline = outline.replace(
+                        phrase, str(self.__getattribute__(f"{outphrase}"))
+                    )
+                mf.write(outline)
+
+    def check_slurmfiles(self):
+        files = os.listdir(f"{Path.home()}/fast_rsm")
+        slurms = [x for x in files if ".out" in x]
+        slurms.append(files[0])
+        slurms.sort(key=lambda x: os.path.getmtime(f"{Path.home()}/fast_rsm/{x}"))
+        return slurms
+    
+    def print_exp_lines(self):
+        with open(self.exp_path,"r") as file:
+            print(file.read())
+    
+    def print_calc_lines(self):
+        with open(self.calc_path,"r") as file:
+            print(file.read())
+
+    def run_cluster_job(self):
+
+        self.create_jobscript()
+        self.create_jobfile()
+
+        startslurms = self.check_slurmfiles()
+        endslurms = self.check_slurmfiles()
+        count = 0
+        limit = 0
+
+        # call subprocess to submit job using wilson
+        subprocess.run(
+            ["ssh", "wilson", f"cd fast_rsm\nsbatch {self.script_path}"], check=False
+        )
+
+        # have check loop to find a new slurm out file
+        while endslurms[-1] == startslurms[-1]:
+            endfiles = os.listdir(f"{Path.home()}/fast_rsm")
+            endslurms = [x for x in endfiles if ".out" in x]
+            endslurms.append(endfiles[0])
+            endslurms.sort(
+                key=lambda x: os.path.getmtime(f"{Path.home()}/fast_rsm/{x}")
+            )
+            if count > 50:
+                limit = 1
+                break
+            print(
+                f"Job submitted, waiting for SLURM output.  Timer={5 * count}", end="\r"
+            )
+            time.sleep(5)
+            count += 1
+        if limit == 1:
+            print("Timer limit reached before new slurm ouput file found")
+        else:
+            foundslurm = f"{Path.home()}/fast_rsm//{endslurms[-1]}"
+            print(f"Slurm output file: {foundslurm} \n")
+
+            breakerline = "*" * 35
+            monitoring_line = f"\n{breakerline}\n ***STARTING TO MONITOR TAIL END OF FILE, TO EXIT THIS VIEW PRESS ANY LETTER FOLLOWED BY ENTER**** \n{breakerline} \n"
+            print(monitoring_line)
+            process = subprocess.Popen(
+                ["tail", "-f", f"{Path.home()}/fast_rsm//{endslurms[-1]}"],
+                stdout=subprocess.PIPE,
+                text=True,
+            )
+            target_phrase = "PROCESSING FINISHED"
+            err_msgs = ["Errno", "error", "Error"]
+            sparse_msg = ["Sparse matrix"]
+            try:
+                for line in process.stdout:
+                    print(line.strip())  # Print each line of output
+                    if re.search(target_phrase, line):
+                        print(f"Target phrase '{target_phrase}' found. Closing tail.")
+                        break
+                    if (
+                        any(s in line for s in err_msgs)
+                        and ("ForkPoolWorker" not in line)
+                        and not any(s in line for s in sparse_msg)
+                    ):
+                        print("error found. closing tail")
+                        log_error_info(self.save_path, foundslurm, self.error_logger)
+                        break
+            finally:
+                process.terminate()
+                process.wait()
+
+    def parse_and_reduce(self):
+        self.start_loggers()
+        self.parse_setup()
+        self.parse_scans()
+        self.create_job_name()
+
+        if self.local:
+            self.create_jobscript()
+            subprocess.run(["python", f"{self.save_path}"])
+
+        else:
+            self.run_cluster_job()
