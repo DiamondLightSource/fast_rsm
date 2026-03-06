@@ -785,8 +785,8 @@ class ProcessArgs:
         self.create_jobscript()
         self.create_jobfile()
 
-        startslurms = self.check_slurmfiles()
-        endslurms = self.check_slurmfiles()
+        # startslurms = self.check_slurmfiles()
+        # endslurms = self.check_slurmfiles()
         count = 0
         limit = 0
 
@@ -847,7 +847,7 @@ class ProcessArgs:
             monitoring_line = f"\n{breakerline}\n ***STARTING TO MONITOR TAIL END OF FILE, TO EXIT THIS VIEW PRESS ANY LETTER FOLLOWED BY ENTER**** \n{breakerline} \n"
             print(monitoring_line)
             tailprocess = subprocess.Popen(
-                ["tail", "-f", f"{Path.home()}/fast_rsm//{endslurms[-1]}"],
+                ["tail", "-f", f"{foundslurm}"],
                 stdout=subprocess.PIPE,
                 text=True,
             )
