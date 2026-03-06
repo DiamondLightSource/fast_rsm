@@ -3,7 +3,7 @@ This module contains functions that can be used to generate the coarse map
 resources that are used in some of the system tests.
 """
 
-from time import time
+from time import time,sleep
 
 import numpy as np
 

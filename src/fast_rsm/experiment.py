@@ -9,7 +9,7 @@ import logging
 import os
 # from multiprocessing.shared_memory import SharedMemory
 from pathlib import Path
-from time import time
+from time import time,sleep
 from typing import List, Tuple, Union
 import numpy as np
 from diffraction_utils import Frame, Region
