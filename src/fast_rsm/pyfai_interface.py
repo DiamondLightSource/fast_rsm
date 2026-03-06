@@ -483,7 +483,7 @@ def save_1d_integration(hf, cfg, int_final, counts_final, tth_vals_final, q_fina
     int_array = np.divide(
         int_final[0],
         counts_final[0],
-        out=np.copy(int_final[0]),
+        out=np.copy(int_final),
         where=counts_final[0].astype(float) > 0.0,
     )
     outlist = [int_array, q_final, tth_vals_final]
