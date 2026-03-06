@@ -12,7 +12,7 @@ from dataclasses import dataclass
 import sys
 from datetime import datetime
 from pathlib import Path
-from time import time
+from time import time,sleep
 from types import SimpleNamespace
 from typing import Tuple
 
@@ -791,36 +791,62 @@ class ProcessArgs:
         limit = 0
 
         # call subprocess to submit job using wilson
-        subprocess.run(
-            ["ssh", "wilson", f"cd fast_rsm\nsbatch {self.script_path}"], check=False
+        # subprocess.run(
+        #     ["ssh", "wilson", f"cd fast_rsm\nsbatch {self.script_path}"], check=False
+        # )
+        
+        cmd = f"cd fast_rsm && sbatch {self.script_path}"
+
+        proc = subprocess.Popen(
+            ["ssh", "wilson", cmd],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,        # line-buffered
+            universal_newlines=True
         )
 
-        # have check loop to find a new slurm out file
-        while endslurms[-1] == startslurms[-1]:
-            endfiles = os.listdir(f"{Path.home()}/fast_rsm")
-            endslurms = [x for x in endfiles if ".out" in x]
-            endslurms.append(endfiles[0])
-            endslurms.sort(
-                key=lambda x: os.path.getmtime(f"{Path.home()}/fast_rsm/{x}")
-            )
+        job_id = None
+        keyword = "Submitted batch job"
+        
+        while job_id is None:
+            for line in proc.stdout:
+                line = line.strip()
+                print("REMOTE:", line)
+                
+
+                if keyword in line:
+                    parts = line.split()
+                    job_id = parts[-1]  
+                    print("FOUND JOB ID:", job_id)
+
+                    foundslurm = f"{self.outdir}/slurm-{job_id}.out"
+                    
+        count=0
+        proc.terminate()
+        print('Job submitted, waiting for SLURM output.')
+        os.environ["PYTHONUNBUFFERED"] = "1"
+        while  not os.path.exists(foundslurm):
+            sys.stdout.flush()
             if count > 50:
-                limit = 1
+                print("Timer limit reached before new slurm ouput file found")
                 break
-            print(
-                f"Job submitted, waiting for SLURM output.  Timer={5 * count}", end="\r"
-            )
-            time.sleep(5)
+
+        # Print a single-line status that updates in place
+            print(f"Timer={5 * count}s")
+            
+
+            sleep(5)
             count += 1
-        if limit == 1:
-            print("Timer limit reached before new slurm ouput file found")
-        else:
-            foundslurm = f"{Path.home()}/fast_rsm//{endslurms[-1]}"
+
+        if os.path.exists(foundslurm):
             print(f"Slurm output file: {foundslurm} \n")
+
 
             breakerline = "*" * 35
             monitoring_line = f"\n{breakerline}\n ***STARTING TO MONITOR TAIL END OF FILE, TO EXIT THIS VIEW PRESS ANY LETTER FOLLOWED BY ENTER**** \n{breakerline} \n"
             print(monitoring_line)
-            process = subprocess.Popen(
+            tailprocess = subprocess.Popen(
                 ["tail", "-f", f"{Path.home()}/fast_rsm//{endslurms[-1]}"],
                 stdout=subprocess.PIPE,
                 text=True,
@@ -829,7 +855,7 @@ class ProcessArgs:
             err_msgs = ["Errno", "error", "Error"]
             sparse_msg = ["Sparse matrix"]
             try:
-                for line in process.stdout:
+                for line in tailprocess.stdout:
                     print(line.strip())  # Print each line of output
                     if re.search(target_phrase, line):
                         print(f"Target phrase '{target_phrase}' found. Closing tail.")
@@ -843,8 +869,20 @@ class ProcessArgs:
                         log_error_info(self.save_path, foundslurm, self.error_logger)
                         break
             finally:
-                process.terminate()
-                process.wait()
+                tailprocess.terminate()
+                tailprocess.wait()
+
+            print("Process finished.")
+            print("Job ID:", job_id)
+            print(f"Slurm output file: {foundslurm} \n")
+
+        # # have check loop to find a new slurm out file
+        #
+        # else:
+        #     foundslurm = f"{Path.home()}/fast_rsm//{endslurms[-1]}"
+        #     print(f"Slurm output file: {foundslurm} \n")
+
+        
 
     def parse_and_reduce(self):
         self.start_loggers()
