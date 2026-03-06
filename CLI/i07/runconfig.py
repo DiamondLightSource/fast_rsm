@@ -21,7 +21,7 @@ import argparse
 import os
 from pathlib import Path
 import subprocess
-import time
+from time import sleep
 import re
 
 
@@ -189,7 +189,7 @@ if __name__ == "__main__":
             limit=1
             break
         print(f'Job submitted, waiting for SLURM output.  Timer={5*count}',end="\r")
-        time.sleep(5)
+        sleep(5)
         count+=1
     if limit==1:
         print('Timer limit reached before new slurm ouput file found')
