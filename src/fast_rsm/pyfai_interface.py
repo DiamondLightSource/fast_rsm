@@ -41,7 +41,7 @@ for var in [
 ]:
     os.environ.setdefault(var, "1")
 
-
+LOGGER_DEBUG = "fastrsm_debug"
 # ====general functions
 
 
@@ -395,7 +395,6 @@ def add_buffer_to_limits(limits):
 
 
 def setup_debug_logger():
-    LOGGER_DEBUG = "fastrsm_debug"
     sys.stdout.reconfigure(line_buffering=True)
     logger = get_logger(LOGGER_DEBUG)
     listener, log_queue = start_listener()
