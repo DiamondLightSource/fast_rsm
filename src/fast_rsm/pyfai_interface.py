@@ -685,6 +685,8 @@ def pyfai_moving_qmap_smm_new(experiment: Experiment, hf, scanlist, process_conf
     cfg = setup_job(process_config, experiment, scanlist, "q")
     if cfg.debuglogging:
         logger, listener, log_queue = setup_debug_logger()
+    else:
+        log_queue = None
     intensity_results_per_scan = []
     count_results_per_scan = []
     mapaxisinfo = []
@@ -749,6 +751,8 @@ def pyfai_moving_exitangles_smm_new(
     cfg = setup_job(process_config, experiment, scanlist, "ang")
     if cfg.debuglogging:
         logger, listener, log_queue = setup_debug_logger()
+    else:
+        log_queue = None
     intensity_results_per_scan = []
     count_results_per_scan = []
     mapaxisinfo = []
