@@ -511,7 +511,7 @@ def run_full_map_process(experiment, cfg):
                 "went wrong. I'm going with the latter, but exiting out anyway."
             )
     map_frame = Frame(frame_name=cfg.frame_name, coordinates=cfg.coordinates)
-    start_time = time.time()
+    start_time = time()
     # Calculate and save a binned reciprocal space map, if requested.
     cfg.mapped_data = experiment.binned_reciprocal_space_map_smm(
         cfg.num_threads,
@@ -532,7 +532,7 @@ def run_full_map_process(experiment, cfg):
 
     # Finally, print that it's finished We'll use this to work out when the
     # processing is done.
-    total_time = time.time() - start_time
+    total_time = time() - start_time
     print(f"\nProcessing took {total_time}s")
     print(f"This corresponds to {total_time * 1000 / cfg.total_images}ms per image.\n")
 
