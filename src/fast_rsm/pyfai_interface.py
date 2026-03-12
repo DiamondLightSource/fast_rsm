@@ -651,8 +651,8 @@ def pyfai_moving_ivsq_smm_new(experiment: Experiment, hf, scanlist, process_conf
             accumulator_tth = np.zeros((1, cfg.ivqbins), dtype=np.float32)
             accumulator_mask = []
 
-            for partial in pool.imap_unordered(worker_unpack, args_iter, chunksize=1):
-                if (completed == 0) & (scanind == 0):
+            for partial in pool.imap_unordered(worker_unpack, args_iter, chunksize=10):
+                if (completed == 0) and (scanind == 0):
                     accumulator_mask = partial[3]
                 accumulator_intensity += partial[0]
                 accumulator_count += partial[1]
@@ -717,8 +717,8 @@ def pyfai_moving_qmap_smm_new(experiment: Experiment, hf, scanlist, process_conf
             )
             accumulator_mask = []
 
-            for partial in pool.imap_unordered(worker_unpack, args_iter, chunksize=1):
-                if (completed == 0) & (scanind == 0):
+            for partial in pool.imap_unordered(worker_unpack, args_iter, chunksize=10):
+                if (completed == 0) and (scanind == 0):
                     accumulator_mask = partial[3]
                     mapaxisinfo.append(partial[2])
                 accumulator_intensity += partial[0]
@@ -784,8 +784,8 @@ def pyfai_moving_exitangles_smm_new(
 
             accumulator_mask = []
 
-            for partial in pool.imap_unordered(worker_unpack, args_iter, chunksize=1):
-                if (completed == 0) & (scanind == 0):
+            for partial in pool.imap_unordered(worker_unpack, args_iter, chunksize=10):
+                if (completed == 0) and (scanind == 0):
                     accumulator_mask = partial[3]
                     mapaxisinfo.append(partial[2])
                 accumulator_intensity += partial[0]
@@ -898,6 +898,9 @@ def pyfai_static_exitangles_new(
             all_xlabels.append(partial[1])
             all_ylabels.append(partial[2])
             all_mapaxisinfo.append(partial[3])
+            completed += 1
+            if completed % 10 == 0 or completed == num_batches:
+                print(f"  completed {completed}/{num_batches} batches", flush=True)
     print("finished process pool")
     inlist = [all_maps, all_xlabels, all_ylabels]
     outlist = check_data_shape(inlist, scan)
@@ -942,6 +945,9 @@ def pyfai_static_qmap_new(
             all_xlabels.append(partial[1])
             all_ylabels.append(partial[2])
             all_mapaxisinfo.append(partial[3])
+            completed += 1
+            if completed % 10 == 0 or completed == num_batches:
+                print(f"  completed {completed}/{num_batches} batches", flush=True)
     print("finished process pool")
     inlist = [all_maps, all_xlabels, all_ylabels]
     outlist = check_data_shape(inlist, scan)
