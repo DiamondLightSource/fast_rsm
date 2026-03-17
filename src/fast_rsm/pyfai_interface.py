@@ -17,17 +17,11 @@ import pyFAI.calibrant
 import pyFAI.detectors
 import yaml
 
+import fast_rsm.shared_mem_setup as shared_mem_setup
 from fast_rsm.angle_pixel_q import calcq
 from fast_rsm.experiment import Experiment, do_savedats, do_savetiffs
-from fast_rsm.logging_config import get_logger, listener_process
-from fast_rsm.pyfai_workers import (
-    pyfai_move_exitangles_worker_new,
-    pyfai_move_ivsq_worker_new,
-    pyfai_move_qmap_worker_new,
-    pyfai_stat_exitangles_worker_new,
-    pyfai_stat_ivsq_worker_new,
-    pyfai_stat_qmap_worker_new,
-)
+from fast_rsm.logging_config import get_debug_logger, get_logger, listener_process
+from fast_rsm.pyfai_workers import worker_unpack
 from fast_rsm.scan import Scan, chunk
 
 # ----------------------------
@@ -110,9 +104,8 @@ def createponi(experiment: Experiment, outpath, offset=0):
     return ponioutpath
 
 
-def get_full_indices(scan, process_config: SimpleNamespace):
-    cfg = process_config
-    fullrange = np.arange(0, cfg.scanlength, cfg.scalegamma)
+def get_full_indices(scan, scanlength, scalegamma):
+    fullrange = np.arange(0, scanlength, scalegamma)
     selectedindices = [n for n in fullrange if n not in scan.skip_images]
     return selectedindices
 
@@ -209,15 +202,15 @@ def pyfai_init_worker(smmlock, shm_intensities_name, shm_counts_name, shmshape):
     lock = smmlock
 
 
-def get_inc_angles_out(experiment: Experiment, index):
-    if np.size(experiment.incident_angle) > 1:
-        inc_angle = -np.radians(experiment.incident_angle[index])
-    elif isinstance(experiment.incident_angle, np.float64):
-        inc_angle = -np.radians(experiment.incident_angle)
+def get_inc_angles_out(incident_angle, setup, index):
+    if np.size(incident_angle) > 1:
+        inc_angle = -np.radians(incident_angle[index])
+    elif isinstance(incident_angle, np.float64):
+        inc_angle = -np.radians(incident_angle)
     else:
-        inc_angle = -np.radians(float(experiment.incident_angle))
+        inc_angle = -np.radians(float(incident_angle))
 
-    if experiment.setup == "DCD":
+    if setup == "DCD":
         inc_angle_out = 0  # debug setting incident angle to 0
     else:
         inc_angle_out = inc_angle
@@ -225,17 +218,17 @@ def get_inc_angles_out(experiment: Experiment, index):
     return inc_angle, inc_angle_out
 
 
-def get_gam_del_vals(experiment: Experiment, index):
+def get_gam_del_vals(gammadata, two_theta_start, deltadata, index):
     gamval = 0
     delval = 0
-    if np.size(experiment.gammadata) > 1:
-        gamval = -np.array(experiment.two_theta_start).ravel()[index]
-    elif np.size(experiment.gammadata) == 1:
-        gamval = -np.array(experiment.two_theta_start).ravel()
-    if np.size(experiment.deltadata) > 1:
-        delval = np.array(experiment.deltadata).ravel()[index]
-    elif np.size(experiment.deltadata) == 1:
-        delval = np.array(experiment.deltadata).ravel()
+    if np.size(gammadata) > 1:
+        gamval = -np.array(two_theta_start).ravel()[index]
+    elif np.size(gammadata) == 1:
+        gamval = -np.array(two_theta_start).ravel()
+    if np.size(deltadata) > 1:
+        delval = np.array(deltadata).ravel()[index]
+    elif np.size(deltadata) == 1:
+        delval = np.array(deltadata).ravel()
     return [gamval, delval]
 
 
@@ -324,21 +317,6 @@ def load_flat_test_image():
     return flat_image, dummy_ai
 
 
-def worker_unpack(args):
-    function_map = {
-        "move_ivq": pyfai_move_ivsq_worker_new,
-        "move_qmap": pyfai_move_qmap_worker_new,
-        "move_exit": pyfai_move_exitangles_worker_new,
-        "static_ivq": pyfai_stat_ivsq_worker_new,
-        "static_exit": pyfai_stat_exitangles_worker_new,
-        "static_qmap": pyfai_stat_qmap_worker_new,
-    }
-    worker_function = function_map[args[0]]
-    worker_args = args[1:]
-    # top-level adapter to avoid lambda pickling issues
-    return worker_function(*worker_args)
-
-
 def combine_ranges(range1, range2):
     """
     combines two ranges to give the widest possible range
@@ -424,28 +402,45 @@ def setup_job(process_config, experiment, scan, limit_key):
     return cfg
 
 
-def setup_pool_info(cfg, experiment, scan, fiber_integrator=False):
-    if fiber_integrator:
-        cfg.aistart = pyFAI.load(
-            cfg.pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator"
-        )
-    else:
-        cfg.aistart = pyFAI.load(
-            cfg.pyfaiponi
-        )  # ,type_="pyFAI.integrator.fiber.FiberIntegrator")
-    cfg.d5i_full = get_d5i_values(scan)
-    imageindices = get_full_indices(scan, cfg)
-    cfg.all_inc_angles = [get_inc_angles_out(experiment, ind) for ind in imageindices]
-    cfg.gamdelvals = [get_gam_del_vals(experiment, ind) for ind in imageindices]
+def setup_pool_info(cfg, experiment, scan):
 
-    if cfg.multi:
-        batches = list(chunked(imageindices, cfg.batchsize))
+    d5i_full = get_d5i_values(scan)
+    imageindices = get_full_indices(scan, cfg.scanlength, cfg.scalegamma)
+
+    incident_angle, setup = experiment.incident_angle, cfg.setup
+    all_inc_angles = [
+        get_inc_angles_out(incident_angle, setup, ind) for ind in imageindices
+    ]
+
+    gammadata, two_theta_start, deltadata = (
+        experiment.gammadata,
+        experiment.two_theta_start,
+        experiment.deltadata,
+    )
+    gamdelvals = [
+        get_gam_del_vals(gammadata, two_theta_start, deltadata, ind)
+        for ind in imageindices
+    ]
+
+    return d5i_full, all_inc_angles, gamdelvals
+
+
+def setup_initial_ai(pyfaiponi, fiber_integrator=False):
+    if fiber_integrator:
+        return pyFAI.load(pyfaiponi, type_="pyFAI.integrator.fiber.FiberIntegrator")
+
+    return pyFAI.load(pyfaiponi)
+
+
+def get_batch_details(multi, imageindices, batchsize):
+    if multi:
+        batches = list(chunked(imageindices, batchsize))
     else:
         batches = imageindices
 
     num_batches = len(batches)
     completed = 0
-    return cfg, batches, num_batches, completed
+    return batches, num_batches, completed
 
 
 def check_data_shape(inlist, scan):
@@ -693,31 +688,49 @@ def pyfai_moving_qmap_smm_new(experiment: Experiment, hf, scanlist, process_conf
     t0 = time()
     cfg.multi = True
     cfg.unit_qip_name = "qip_A^-1"  # "2th_deg"  # "qtot_A^-1"# "qip_A^-1"
-    cfg.unit_qoop_name = "qoop_A^-1"  # "2th_deg"
-
-    cfg.batchsize = 15
+    cfg.unit_qoop_name = "qoop_A^-1"
+    # "2th_deg"
+    cfg.aistart = setup_initial_ai(cfg.pyfaiponi)
+    cfg.batchsize = 25
     ctx = get_context("fork")
-    with ctx.Pool(processes=cfg.num_threads) as pool:
+    with ctx.Pool(
+        processes=cfg.num_threads,
+        initializer=shared_mem_setup.combined_initializer,
+        initargs=(
+            cfg,
+            log_queue,
+        ),
+    ) as pool:
         for scanind, scan in enumerate(
             cfg.scanlistnew
         ):  # chunksize=1 makes sense here: each task is already “large” (25 images)
             experiment.load_curve_values(scan)
-            cfg, batches, num_batches, completed = setup_pool_info(
-                cfg, experiment, scan
+            imageindices = get_full_indices(scan, cfg.scanlength, cfg.scalegamma)
+            batches, num_batches, completed = get_batch_details(
+                cfg.multi, imageindices, cfg.batchsize
             )
+            # Prepare batches
+            unique_scan_vals = setup_pool_info(cfg, experiment, scan)
+
+            # Only lightweight job descriptors sent to workers
             args_iter = (
-                ("move_qmap", experiment, batch, scan, cfg, log_queue, logn)
+                ("move_qmap", batch, scan.metadata, unique_scan_vals, logn)
                 for logn, batch in enumerate(batches)
             )
+
+            chunksize = max(1, num_batches // (cfg.num_threads * 4))
             accumulator_intensity = np.zeros(
-                (1, cfg.qmapbins[1], cfg.qmapbins[0]), dtype=np.float32
+                (cfg.qmapbins[1], cfg.qmapbins[0]), dtype=np.float32
             )
             accumulator_count = np.zeros(
-                (1, cfg.qmapbins[1], cfg.qmapbins[0]), dtype=np.float32
+                (cfg.qmapbins[1], cfg.qmapbins[0]), dtype=np.float32
             )
             accumulator_mask = []
-
-            for partial in pool.imap_unordered(worker_unpack, args_iter, chunksize=10):
+            # Parallel processing
+            logger.debug(f"starting scan imap for {len(batches)} batches")
+            for partial in pool.imap_unordered(
+                worker_unpack, args_iter, chunksize=chunksize
+            ):
                 if (completed == 0) and (scanind == 0):
                     accumulator_mask = partial[3]
                     mapaxisinfo.append(partial[2])
@@ -747,7 +760,7 @@ def pyfai_moving_exitangles_smm_new(
     """
     calculate q_para vs q_perp map for a moving detector scan
     """
-
+    logger = get_debug_logger()
     cfg = setup_job(process_config, experiment, scanlist, "ang")
     if cfg.debuglogging:
         logger, listener, log_queue = setup_debug_logger()
