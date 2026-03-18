@@ -3,25 +3,28 @@ Module for the functions used to interface with pyFAI package
 """
 
 import copy
+import multiprocessing
 import os
 import sys
 from datetime import datetime
-from multiprocessing import Manager, Process, get_context  # Queue
+from multiprocessing import Lock, Manager, Process, get_context  # Queue
+from multiprocessing.managers import SharedMemoryManager
 from multiprocessing.shared_memory import SharedMemory
 from time import time
 from types import SimpleNamespace
 
 import numpy as np
+import psutil
 import pyFAI
 import pyFAI.calibrant
 import pyFAI.detectors
 import yaml
 
-import fast_rsm.shared_mem_setup as shared_mem_setup
-from fast_rsm.angle_pixel_q import calcq
+from fast_rsm.angle_pixel_q import calcq, gamdel2rots
 from fast_rsm.experiment import Experiment, do_savedats, do_savetiffs
+from fast_rsm.image import Image
 from fast_rsm.logging_config import get_debug_logger, get_logger, listener_process
-from fast_rsm.pyfai_workers import worker_unpack
+from fast_rsm.pyfai_workers import pyfai_init_worker, worker_unpack
 from fast_rsm.scan import Scan, chunk
 
 # ----------------------------
@@ -184,22 +187,22 @@ def get_corner_thetas(process_config: SimpleNamespace):
     return absranges, radmax
 
 
-def pyfai_init_worker(smmlock, shm_intensities_name, shm_counts_name, shmshape):
-    """
-    intialiser for pyfai mappings
-    """
-    global lock
-    global SHM_INTENSITY
-    global INTENSITY_ARRAY
-    global SHM_COUNT
-    global COUNT_ARRAY
-    SHM_INTENSITY = SharedMemory(name=shm_intensities_name)
-    SHM_COUNT = SharedMemory(name=shm_counts_name)
-    INTENSITY_ARRAY = np.ndarray(
-        shape=shmshape, dtype=np.float32, buffer=SHM_INTENSITY.buf
-    )
-    COUNT_ARRAY = np.ndarray(shape=shmshape, dtype=np.float32, buffer=SHM_COUNT.buf)
-    lock = smmlock
+# def pyfai_init_worker(smmlock, shm_intensities_name, shm_counts_name, shmshape):
+#     """
+#     intialiser for pyfai mappings
+#     """
+#     global lock
+#     global SHM_INTENSITY
+#     global INTENSITY_ARRAY
+#     global SHM_COUNT
+#     global COUNT_ARRAY
+#     SHM_INTENSITY = SharedMemory(name=shm_intensities_name)
+#     SHM_COUNT = SharedMemory(name=shm_counts_name)
+#     INTENSITY_ARRAY = np.ndarray(
+#         shape=shmshape, dtype=np.float32, buffer=SHM_INTENSITY.buf
+#     )
+#     COUNT_ARRAY = np.ndarray(shape=shmshape, dtype=np.float32, buffer=SHM_COUNT.buf)
+#     lock = smmlock
 
 
 def get_inc_angles_out(incident_angle, setup, index):
@@ -603,6 +606,70 @@ def save_masks(hf, mask_list):
     dset.create_dataset("sector_mask", data=mask_list[2])
 
 
+def start_smm(smm, memshape):
+    """
+    start up the shared memory manager and associated data arrays
+    """
+    shm_intensities = smm.SharedMemory(size=np.zeros(memshape, dtype=np.float32).nbytes)
+    shm_counts = smm.SharedMemory(size=np.zeros(memshape, dtype=np.float32).nbytes)
+    arrays_arr = np.ndarray(memshape, dtype=np.float32, buffer=shm_intensities.buf)
+    counts_arr = np.ndarray(memshape, dtype=np.float32, buffer=shm_counts.buf)
+    arrays_arr.fill(0)
+    counts_arr.fill(0)
+    lock = Lock()
+    return shm_intensities, shm_counts, arrays_arr, counts_arr, lock
+
+
+def setup_copy_ai(aistart, slitratios):
+    out_ai = copy.deepcopy(aistart)
+    if slitratios[0] is not None:
+        out_ai.pixel1 *= slitratios[0]
+        out_ai.poni1 *= slitratios[0]
+
+    if slitratios[1] is not None:
+        out_ai.pixel2 *= slitratios[1]
+        out_ai.poni2 *= slitratios[1]
+    return out_ai
+
+
+def calc_rots_from_gamdel(
+    gamdelval,
+    inc_angle,
+    alphacritical,
+    setup,
+):
+    gamval, delval = gamdelval
+    if (-np.degrees(inc_angle) > alphacritical) & (setup == "DCD"):
+        # if above critical angle, account for direct beam adding to delta
+        return gamdel2rots(gamval, delval + np.degrees(-inc_angle))
+
+    return gamdel2rots(gamval, delval)
+
+
+def set_ai_rots(rots, current_ai, setup):
+    """
+    get components need for mapping with pyFAI
+    """
+    out_ai = copy.deepcopy(current_ai)
+    out_ai.rot1, out_ai.rot2, out_ai.rot3 = rots
+
+    if setup == "vertical":
+        out_ai.rot1 = rots[1]
+        out_ai.rot2 = -rots[0]
+    return out_ai
+
+
+def get_pyfai_image_data(setup: str, metadata, idx):
+
+    # outimage = scan.load_image(i)
+    outimage = Image(metadata, idx, load_image=True)
+    mask = np.isnan(outimage.data).astype(bool)
+    if setup == "vertical":
+        return np.rot90(outimage.data, -1), np.rot90(mask, -1)
+
+    return np.array(outimage.data), mask
+
+
 # ===================================
 # ====moving detector processing
 
@@ -682,6 +749,7 @@ def pyfai_moving_qmap_smm_new(experiment: Experiment, hf, scanlist, process_conf
         logger, listener, log_queue = setup_debug_logger()
     else:
         log_queue = None
+
     intensity_results_per_scan = []
     count_results_per_scan = []
     mapaxisinfo = []
@@ -691,66 +759,108 @@ def pyfai_moving_qmap_smm_new(experiment: Experiment, hf, scanlist, process_conf
     cfg.unit_qoop_name = "qoop_A^-1"
     # "2th_deg"
     cfg.aistart = setup_initial_ai(cfg.pyfaiponi)
-    cfg.batchsize = 25
+    cfg.batchsize = 30
+    print(f"starting multiprocessing with {cfg.num_threads} cpus")
+
+    ram_gb = psutil.virtual_memory().total / 1024**3
+    cores = multiprocessing.cpu_count()
+
+    print("Memory per CPU (GB):", ram_gb / cores)
+
     ctx = get_context("fork")
-    with ctx.Pool(
-        processes=cfg.num_threads,
-        initializer=shared_mem_setup.combined_initializer,
-        initargs=(
-            cfg,
-            log_queue,
-        ),
-    ) as pool:
+    with SharedMemoryManager() as smm:
+        cfg.shapeqpqp = (cfg.qmapbins[1], cfg.qmapbins[0])
+        shm_intensities, shm_counts, arrays_arr, counts_arr, lock = start_smm(
+            smm, cfg.shapeqpqp
+        )
+        start_time = time()
         for scanind, scan in enumerate(
             cfg.scanlistnew
         ):  # chunksize=1 makes sense here: each task is already “large” (25 images)
             experiment.load_curve_values(scan)
+            test_image_chunk = "all"
+            print(f"using test chunk of {test_image_chunk} images")
             imageindices = get_full_indices(scan, cfg.scanlength, cfg.scalegamma)
             batches, num_batches, completed = get_batch_details(
-                cfg.multi, imageindices, cfg.batchsize
+                False, imageindices, cfg.batchsize
             )
             # Prepare batches
-            unique_scan_vals = setup_pool_info(cfg, experiment, scan)
-
+            d5i_full, all_inc_angles, gamdelvals = setup_pool_info(
+                cfg, experiment, scan
+            )
+            current_ai = setup_copy_ai(cfg.aistart, cfg.slitratios)
             # Only lightweight job descriptors sent to workers
-            args_iter = (
-                ("move_qmap", batch, scan.metadata, unique_scan_vals, logn)
-                for logn, batch in enumerate(batches)
-            )
+            pool_function = worker_unpack("move_qmap")
 
+            # args_iter = [
+            #     [batch, scan.metadata, unique_scan_vals, cfg, log_queue, logn]
+            #     for logn, batch in enumerate(batches)
+            # ]
+            alphacritical = cfg.alphacritical
+            setup = cfg.setup
+            newrots = [
+                calc_rots_from_gamdel(
+                    gamdelvals[ind_n], all_inc_angles[ind_n][0], alphacritical, setup
+                )
+                for ind_n in np.arange(len(batches))
+            ]
+            # img_list = [
+            #     get_pyfai_image_data(setup, scan.metadata, ind) for ind in batches
+            # ]
+            # ai_list = [set_ai_rots(newrot, current_ai, setup) for newrot in newrots]
+            args_iter = [
+                [
+                    ind,
+                    d5i_full[ind_n],
+                    scan.metadata,
+                    current_ai,
+                    newrots[ind_n],
+                    cfg,
+                    log_queue,
+                    ind_n,
+                ]
+                for ind_n, ind in enumerate(batches)
+            ]
             chunksize = max(1, num_batches // (cfg.num_threads * 4))
-            accumulator_intensity = np.zeros(
-                (cfg.qmapbins[1], cfg.qmapbins[0]), dtype=np.float32
-            )
-            accumulator_count = np.zeros(
-                (cfg.qmapbins[1], cfg.qmapbins[0]), dtype=np.float32
-            )
-            accumulator_mask = []
-            # Parallel processing
-            logger.debug(f"starting scan imap for {len(batches)} batches")
-            for partial in pool.imap_unordered(
-                worker_unpack, args_iter, chunksize=chunksize
-            ):
-                if (completed == 0) and (scanind == 0):
-                    accumulator_mask = partial[3]
-                    mapaxisinfo.append(partial[2])
-                accumulator_intensity += partial[0]
-                accumulator_count += partial[1]
-                completed += 1
-                if completed % 10 == 0 or completed == num_batches:
-                    print(f"  completed {completed}/{num_batches} batches", flush=True)
+            with ctx.Pool(
+                processes=cfg.num_threads,
+                initializer=pyfai_init_worker,
+                initargs=(
+                    lock,
+                    shm_intensities.name,
+                    shm_counts.name,
+                    cfg.shapeqpqp,
+                ),
+            ) as pool:
+                mapaxisinfolist = pool.starmap(pool_function, args_iter)
+        qmap_final = np.zeros(cfg.shapeqpqp, dtype=np.float32)
+        counts_final = np.zeros(cfg.shapeqpqp, dtype=np.float32)
+        shmI = SharedMemory(name=shm_intensities.name)
+        shmC = SharedMemory(name=shm_counts.name)
 
-            intensity_results_per_scan.append(accumulator_intensity)
-            count_results_per_scan.append(accumulator_count)
+        intensity_view = np.ndarray(cfg.shapeqpqp, dtype=np.float32, buffer=shmI.buf)
+        count_view = np.ndarray(cfg.shapeqpqp, dtype=np.float32, buffer=shmC.buf)
+
+        qmap_final += intensity_view
+        counts_final += count_view
+        # intensity_results_per_scan.append(accumulator_intensity)
+        # count_results_per_scan.append(accumulator_count)
 
     if cfg.debuglogging:
         log_queue.put_nowait(None)  # End the queue
         listener.join()  # Stop the listener
 
-    qmap_final = np.sum(intensity_results_per_scan, axis=0)
-    counts_final = np.sum(count_results_per_scan, axis=0)
+    # qmap_final = np.sum(intensity_results_per_scan, axis=0)
+    # counts_final = np.sum(count_results_per_scan, axis=0)
     save_hf_map(
-        experiment, hf, "qpara_qperp", qmap_final, counts_final, mapaxisinfo[0], t0, cfg
+        experiment,
+        hf,
+        "qpara_qperp",
+        qmap_final,
+        counts_final,
+        mapaxisinfolist[0],
+        t0,
+        cfg,
     )
 
 

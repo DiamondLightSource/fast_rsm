@@ -1,6 +1,8 @@
 # shared_mem_setup.py
 
-from pyFAI import units
+from multiprocessing.shared_memory import SharedMemory
+
+import numpy as np
 
 UNIT_IP = None
 UNIT_OOP = None
@@ -10,27 +12,13 @@ CFG = None
 LOGQ = None
 
 
-def init_units(qip_name, qoop_name, sample_orientation):
-    global UNIT_IP, UNIT_OOP
-    UNIT_IP, UNIT_OOP = setup_ip_oop_units(
-        qip_name,
-        qoop_name,
-        sample_orientation,
-    )
-
-
-def setup_ip_oop_units(qip_name, qoop_name, sample_orientation, inc_angle_out=0):
-    unit_ip = units.get_unit_fiber(
-        qip_name,
-        sample_orientation=sample_orientation,
-        incident_angle=inc_angle_out,
-    )
-    unit_oop = units.get_unit_fiber(
-        qoop_name,
-        sample_orientation=sample_orientation,
-        incident_angle=inc_angle_out,
-    )
-    return unit_ip, unit_oop
+# def init_units(qip_name, qoop_name, sample_orientation):
+#     global UNIT_IP, UNIT_OOP
+#     UNIT_IP, UNIT_OOP = setup_ip_oop_units(
+#         qip_name,
+#         qoop_name,
+#         sample_orientation,
+#     )
 
 
 def init_worker(global_cfg, global_log_queue):
@@ -43,9 +31,30 @@ def init_worker(global_cfg, global_log_queue):
     LOGQ = global_log_queue
 
 
+def pyfai_init_worker(lock, shm_intensities_name, shm_counts_name, shmshape):
+    """
+    intialiser for pyfai mappings
+    """
+    global LOCK
+    global SHM_INTENSITY
+    global INTENSITY_ARRAY
+    global SHM_COUNT
+    global COUNT_ARRAY
+
+    SHM_INTENSITY = SharedMemory(name=shm_intensities_name)
+    SHM_COUNT = SharedMemory(name=shm_counts_name)
+    INTENSITY_ARRAY = np.ndarray(
+        shape=shmshape, dtype=np.float32, buffer=SHM_INTENSITY.buf
+    )
+    COUNT_ARRAY = np.ndarray(shape=shmshape, dtype=np.float32, buffer=SHM_COUNT.buf)
+    LOCK = lock
+
+
 def combined_initializer(
-    global_cfg,
-    global_log_queue,
+    lock,
+    shm_intensities_name,
+    shm_counts_name,
+    shmshape,
 ):
     """
     Pool initializer that sets both config and shared memory attachments
@@ -54,13 +63,14 @@ def combined_initializer(
     """
 
     try:
-        init_worker(global_cfg, global_log_queue)
+        # init_worker(global_cfg, global_log_queue)
 
-        init_units(
-            global_cfg.unit_qip_name,
-            global_cfg.unit_qoop_name,
-            global_cfg.sample_orientation,
-        )
+        # init_units(
+        #     global_cfg.unit_qip_name,
+        #     global_cfg.unit_qoop_name,
+        #     global_cfg.sample_orientation,
+        # )
+        pyfai_init_worker(lock, shm_intensities_name, shm_counts_name, shmshape)
 
     except Exception as e:
         print(f"combined initialised failed: {e}")

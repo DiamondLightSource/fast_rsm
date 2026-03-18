@@ -2,12 +2,12 @@ import copy
 import logging
 import logging.handlers
 import sys
+from multiprocessing.shared_memory import SharedMemory
 from types import SimpleNamespace
 
 import numpy as np
 from pyFAI import units
 
-import fast_rsm.shared_mem_setup as shared_mem_setup
 from fast_rsm.angle_pixel_q import gamdel2rots
 from fast_rsm.experiment import Experiment
 from fast_rsm.image import Image
@@ -87,16 +87,16 @@ def get_pyfai_image_data(setup: str, metadata, idx):
     return np.array(outimage.data), mask
 
 
-def set_ai_rots(inc_angle, gamdelval, current_ai, setup, alphacritical):
+def set_ai_rots(rots, current_ai, setup):
     """
     get components need for mapping with pyFAI
     """
-    gamval, delval = gamdelval
-    if (-np.degrees(inc_angle) > alphacritical) & (setup == "DCD"):
-        # if above critical angle, account for direct beam adding to delta
-        rots = gamdel2rots(gamval, delval + np.degrees(-inc_angle))
-    else:
-        rots = gamdel2rots(gamval, delval)
+    # gamval, delval = gamdelval
+    # if (-np.degrees(inc_angle) > alphacritical) & (setup == "DCD"):
+    #     # if above critical angle, account for direct beam adding to delta
+    #     rots = gamdel2rots(gamval, delval + np.degrees(-inc_angle))
+    # else:
+    #     rots = gamdel2rots(gamval, delval)
 
     current_ai.rot1, current_ai.rot2, current_ai.rot3 = rots
 
@@ -106,22 +106,16 @@ def set_ai_rots(inc_angle, gamdelval, current_ai, setup, alphacritical):
 
 
 def setup_stat_worker(
-    metadata,
     imageindex,
-    current_ai,
-    setup,
     all_inc_angles,
     gamdelvals,
     d5i_full,
-    alphacritical,
 ):
     inc_angle, inc_angle_out = all_inc_angles[imageindex]
     gamdelval = gamdelvals[imageindex]
-    set_ai_rots(inc_angle, gamdelval, current_ai, setup, alphacritical)
     d5i_data = d5i_full[imageindex]
-    img_data, img_mask = get_pyfai_image_data(setup, metadata, imageindex)
 
-    return img_data, img_mask, inc_angle_out, d5i_data
+    return inc_angle, inc_angle_out, d5i_data, gamdelval
 
 
 # def setup_stat_worker(experiment: Experiment, cfg, scan, imageindex):
@@ -136,15 +130,17 @@ def setup_stat_worker(
 #     return current_ai, img_data, img_mask, method, inc_angle_out, d5i_data
 
 
-def setup_ip_oop_units(cfg, inc_angle_out=0):
+def setup_ip_oop_units(
+    unit_qip_name, unit_qoop_name, sample_orientation, inc_angle_out=0
+):
     unit_ip = units.get_unit_fiber(
-        cfg.unit_qip_name,
-        sample_orientation=cfg.sample_orientation,
+        unit_qip_name,
+        sample_orientation=sample_orientation,
         incident_angle=inc_angle_out,
     )
     unit_oop = units.get_unit_fiber(
-        cfg.unit_qoop_name,
-        sample_orientation=cfg.sample_orientation,
+        unit_qoop_name,
+        sample_orientation=sample_orientation,
         incident_angle=inc_angle_out,
     )
     return unit_ip, unit_oop
@@ -161,8 +157,8 @@ def calculate_2d_map(
         radial_range=(fullranges[0], fullranges[1]),
         azimuth_range=(fullranges[2], fullranges[3]),
         method=method,
-        polarization_factor=polarization,
-        normalization_factor=d5i,
+        # polarization_factor=polarization,
+        # normalization_factor=d5i,
     )
     mapaxisinfo = [
         map2d.azimuthal,
@@ -214,10 +210,29 @@ def get_time_logger(queue, logn):
     return time_logger
 
 
+def pyfai_init_worker(lock, shm_intensities_name, shm_counts_name, shmshape):
+    """
+    intialiser for pyfai mappings
+    """
+    global LOCK
+    global SHM_INTENSITY
+    global INTENSITY_ARRAY
+    global SHM_COUNT
+    global COUNT_ARRAY
+
+    SHM_INTENSITY = SharedMemory(name=shm_intensities_name)
+    SHM_COUNT = SharedMemory(name=shm_counts_name)
+    INTENSITY_ARRAY = np.ndarray(
+        shape=shmshape, dtype=np.float32, buffer=SHM_INTENSITY.buf
+    )
+    COUNT_ARRAY = np.ndarray(shape=shmshape, dtype=np.float32, buffer=SHM_COUNT.buf)
+    LOCK = lock
+
+
 # -----------------------------
 # Dispatcher
 # -----------------------------
-def worker_unpack(args):
+def worker_unpack(worker_type):
     function_map = {
         "move_ivq": pyfai_move_ivsq_worker_new,
         "move_qmap": pyfai_move_qmap_worker_minimum,  # pyfai_move_qmap_worker_new,
@@ -226,11 +241,11 @@ def worker_unpack(args):
         "static_exit": pyfai_stat_exitangles_worker_new,
         "static_qmap": pyfai_stat_qmap_worker_new,
     }
-    worker_type = args[0]
-    worker_function = function_map[worker_type]
-    worker_args = args[1:]
+    # worker_type = args[0]
+    return function_map[worker_type]
+    # worker_args = args[1:]
     # top-level adapter to avoid lambda pickling issues
-    return worker_function(*worker_args)
+    # return worker_function(*worker_args)
 
 
 # ==========moving workers
@@ -280,98 +295,117 @@ def pyfai_move_ivsq_worker_new(
 
 
 def pyfai_move_qmap_worker_minimum(
-    imageindices, metadata, unique_scan_vals, logn=None
+    imageind,
+    d5i,
+    metadata,
+    current_ai,
+    newrot,
+    cfg,
+    log_queue,
+    logn=None,
 ) -> None:
     """
     calculate 2d q_para Vs q_perp map for moving detector scan using pyFAI
     """
 
-    logger = get_debug_logger()
-    cfg = shared_mem_setup.CFG
-    # cfg.unit_ip, cfg.unit_oop = setup_ip_oop_units(
-    #     cfg.unit_qip_name, cfg.unit_qoop_name, cfg.sample_orientation
-    # )
-    # logger.debug("loaded cfg in work minimum")
-    cfg.d5i_full, cfg.all_inc_angles, cfg.gamdelvals = unique_scan_vals
-    d5i_data = []
-    # inc_angle = np.radians(experiment.incident_angle)
-
-    # time_logger = get_time_logger(queue, logn)
-    # time_logger.debug(do_time_check(f"start qmap worker {logn}"))
-    # time_logger.debug(do_time_check(f"start loop of image child_{logn}"))
-
-    fullresult = np.zeros((cfg.qmapbins[1], cfg.qmapbins[0]), dtype=np.float32)
-    fullcounts = np.zeros((cfg.qmapbins[1], cfg.qmapbins[0]), dtype=np.float32)
-    # #
-
-    current_ai = setup_start_ai(cfg.aistart, cfg.slitratios)
+    global INTENSITY_ARRAY, COUNT_ARRAY
+    ind = imageind
 
     mask = current_ai.mask
-
-    unit_ip = shared_mem_setup.UNIT_IP
-    unit_oop = shared_mem_setup.UNIT_OOP
+    mapunits = setup_ip_oop_units(
+        cfg.unit_qip_name,
+        cfg.unit_qoop_name,
+        cfg.sample_orientation,
+    )
+    unit_ip = mapunits[0]  # shared_mem_setup.UNIT_IP
+    unit_oop = mapunits[1]  # shared_mem_setup.UNIT_OOP
     method = ("no", "csr", "cython")
-    alphacritical = cfg.alphacritical
+    # alphacritical = cfg.alphacritical
     setup = cfg.setup
-    all_inc_angles = cfg.all_inc_angles
-    gamdelvals = cfg.gamdelvals
-    d5i_full = cfg.d5i_full
+
     qmapbins, fullranges, polarization = (
         cfg.qmapbins,
         cfg.fullranges,
         cfg.polarization,
     )
-    logger.debug(
-        f"reached start of loop for batch {logn}: images {imageindices[0]}-{imageindices[-1]} "
+    set_ai_rots(newrot, current_ai, setup)
+    img_data, img_mask = get_pyfai_image_data(setup, metadata, ind)
+    if current_ai.mask is None:
+        current_ai.mask = np.array(img_mask, copy=True)
+        mask = current_ai.mask
+    else:
+        np.copyto(mask, img_mask)
+
+    map2d = current_ai.integrate2d(
+        img_data,
+        qmapbins[0],
+        qmapbins[1],
+        unit=(unit_ip, unit_oop),
+        radial_range=(fullranges[0], fullranges[1]),
+        azimuth_range=(fullranges[2], fullranges[3]),
+        method=method,
+        # polarization_factor=polarization,
+        # normalization_factor=d5i,
     )
-    for i, ind in enumerate(imageindices):
-        img_data, img_mask, inc_angle_out, d5i_data = setup_stat_worker(
-            metadata,
-            ind,
-            current_ai,
-            setup,
-            all_inc_angles,
-            gamdelvals,
-            d5i_full,
-            alphacritical,
-        )
 
-        if mask is None:
-            current_ai.mask = np.array(img_mask, copy=True)
-            mask = current_ai.mask
-        else:
-            np.copyto(mask, img_mask)
+    mapaxisinfo = [
+        map2d.azimuthal,
+        map2d.radial,
+        str(map2d.azimuthal_unit),
+        str(map2d.radial_unit),
+    ]
+    with LOCK:
+        INTENSITY_ARRAY += map2d.sum_signal
+        COUNT_ARRAY += map2d.count.astype(dtype=np.int32)
 
-        # method = ("no", "histogram", "cython")
+    return mapaxisinfo
 
-        # =============================================
-        # see incident angle message at top of worker section line 80
-        # =============================================
-        # unit_tth.incident_angle = inc_angle_out
-        # unit_oop.incident_angle = inc_angle_out
-        # logger.debug(f"start map calculation {ind}")
-        single_result, axisinfo = calculate_2d_map(
-            current_ai,
-            img_data,
-            unit_ip,
-            unit_oop,
-            method,
-            d5i_data,
-            qmapbins,
-            fullranges,
-            polarization,
-        )
-        if ind % 10 == 0:
-            logger.debug(f"ended map calculation {ind}")
+    # for i, ind in enumerate(imageindices):
+    #     img_data, img_mask, inc_angle_out, d5i_data = setup_stat_worker(
+    #         metadata,
+    #         ind,
+    #         current_ai,
+    #         setup,
+    #         all_inc_angles,
+    #         gamdelvals,
+    #         d5i_full,
+    #         alphacritical,
+    #     )
 
-        fullresult += single_result.sum_signal
-        fullcounts += single_result.count
-    logger.debug(
-        f"reached end of loop for batch {logn}: images {imageindices[0]}-{imageindices[-1]} "
-    )
+    #     if mask is None:
+    #         current_ai.mask = np.array(img_mask, copy=True)
+    #         mask = current_ai.mask
+    #     else:
+    #         np.copyto(mask, img_mask)
+
+    #     # =============================================
+    #     # see incident angle message at top of worker section line 80
+    #     # =============================================
+    #     # unit_tth.incident_angle = inc_angle_out
+    #     # unit_oop.incident_angle = inc_angle_out
+
+    #     single_result, axisinfo = calculate_2d_map(
+    #         current_ai,
+    #         img_data,
+    #         unit_ip,
+    #         unit_oop,
+    #         method,
+    #         d5i_data,
+    #         qmapbins,
+    #         fullranges,
+    #         polarization,
+    #     )
+    #     if ind % 10 == 0:
+    #         logger.debug(f"ended map calculation {ind}")
+
+    #     fullresult += single_result.sum_signal
+    #     fullcounts += single_result.count
+    # logger.debug(
+    #     f"reached end of loop for batch {logn}: images {imageindices[0]}-{imageindices[-1]} "
+    # )
 
     # time_logger.debug(do_time_check(f"stop loop of image child_{logn}"))
-    return fullresult, fullcounts, axisinfo, img_mask
+    # return fullresult, fullcounts, axisinfo, img_mask
 
 
 def pyfai_move_qmap_worker_new(

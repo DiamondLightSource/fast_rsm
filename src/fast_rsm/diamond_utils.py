@@ -3,16 +3,15 @@ This file contains a suite of utility functions for processing data acquired
 specifically at Diamond.
 """
 
-import logging
 import multiprocessing
 import os
 import re
 import subprocess
-from dataclasses import dataclass
 import sys
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from time import time,sleep
+from time import sleep, time
 from types import SimpleNamespace
 from typing import Tuple
 
@@ -748,7 +747,7 @@ class ProcessArgs:
             maplines = maptemplate.readlines()
         datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
         # update mapscript in the /home/fast_rsm  directory using template, and filling in variables
-        self.script_path = f"{Path.home()}/mapscript_{datetime_str}.sh"
+        self.script_path = f"{Path(self.outdir)}/mapscript_{datetime_str}.sh"
         print(self.script_path)
         with open(self.script_path, "w", encoding="utf-8") as mf:
             for line in maplines:
@@ -766,18 +765,18 @@ class ProcessArgs:
                 mf.write(outline)
 
     def check_slurmfiles(self):
-        files = os.listdir(f"{Path.home()}/fast_rsm")
+        files = os.listdir(f"{Path(self.outdir)}/fast_rsm")
         slurms = [x for x in files if ".out" in x]
         slurms.append(files[0])
         slurms.sort(key=lambda x: os.path.getmtime(f"{Path.home()}/fast_rsm/{x}"))
         return slurms
-    
+
     def print_exp_lines(self):
-        with open(self.exp_path,"r") as file:
+        with open(self.exp_path, "r") as file:
             print(file.read())
-    
+
     def print_calc_lines(self):
-        with open(self.calc_path,"r") as file:
+        with open(self.calc_path, "r") as file:
             print(file.read())
 
     def run_cluster_job(self):
@@ -794,7 +793,7 @@ class ProcessArgs:
         # subprocess.run(
         #     ["ssh", "wilson", f"cd fast_rsm\nsbatch {self.script_path}"], check=False
         # )
-        
+
         cmd = f"cd fast_rsm && sbatch {self.script_path}"
 
         proc = subprocess.Popen(
@@ -802,46 +801,43 @@ class ProcessArgs:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            bufsize=1,        # line-buffered
-            universal_newlines=True
+            bufsize=1,  # line-buffered
+            universal_newlines=True,
         )
 
         job_id = None
         keyword = "Submitted batch job"
-        
+
         while job_id is None:
             for line in proc.stdout:
                 line = line.strip()
                 print("REMOTE:", line)
-                
 
                 if keyword in line:
                     parts = line.split()
-                    job_id = parts[-1]  
+                    job_id = parts[-1]
                     print("FOUND JOB ID:", job_id)
 
                     foundslurm = f"{self.outdir}/slurm-{job_id}.out"
-                    
-        count=0
+
+        count = 0
         proc.terminate()
-        print('Job submitted, waiting for SLURM output.')
+        print("Job submitted, waiting for SLURM output.")
         os.environ["PYTHONUNBUFFERED"] = "1"
-        while  not os.path.exists(foundslurm):
+        while not os.path.exists(foundslurm):
             sys.stdout.flush()
             if count > 50:
                 print("Timer limit reached before new slurm ouput file found")
                 break
 
-        # Print a single-line status that updates in place
+            # Print a single-line status that updates in place
             print(f"Timer={5 * count}s")
-            
 
             sleep(5)
             count += 1
 
         if os.path.exists(foundslurm):
             print(f"Slurm output file: {foundslurm} \n")
-
 
             breakerline = "*" * 35
             monitoring_line = f"\n{breakerline}\n ***STARTING TO MONITOR TAIL END OF FILE, TO EXIT THIS VIEW PRESS ANY LETTER FOLLOWED BY ENTER**** \n{breakerline} \n"
@@ -881,8 +877,6 @@ class ProcessArgs:
         # else:
         #     foundslurm = f"{Path.home()}/fast_rsm//{endslurms[-1]}"
         #     print(f"Slurm output file: {foundslurm} \n")
-
-        
 
     def parse_and_reduce(self):
         self.start_loggers()
