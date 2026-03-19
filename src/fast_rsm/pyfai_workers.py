@@ -157,8 +157,8 @@ def calculate_2d_map(
         radial_range=(fullranges[0], fullranges[1]),
         azimuth_range=(fullranges[2], fullranges[3]),
         method=method,
-        # polarization_factor=polarization,
-        # normalization_factor=d5i,
+        polarization_factor=polarization,
+        normalization_factor=d5i,
     )
     mapaxisinfo = [
         map2d.azimuthal,
@@ -169,18 +169,26 @@ def calculate_2d_map(
     return map2d, mapaxisinfo
 
 
-def calculate_1d(cfg, ai, img_data, norm_data, method):
+def calculate_1d(
+    ivqbins, radialrange, unit_ip, polarization, ai, img_data, norm_data, method
+):
+    range_with_buffer = (radialrange[0] - 0.5, radialrange[1] + 0.5)
+    # radian_range = [np.deg2rad(val) for val in range_with_buffer]
     result1d = ai.integrate1d(
         img_data,
-        cfg.ivqbins,
-        unit=cfg.unit_qip_name,
+        ivqbins,
+        unit=unit_ip,
         normalization_factor=norm_data,
         correctSolidAngle=True,
         method=method,
-        radial_range=(cfg.radialrange[0] - 0.5, cfg.radialrange[1] + 0.5),
-        polarization_factor=cfg.polarization,
+        radial_range=range_with_buffer,
+        polarization_factor=polarization,
     )
-    return result1d
+    mapaxisinfo = [
+        result1d.radial,
+        str(result1d._unit),
+    ]
+    return result1d, mapaxisinfo
 
 
 def get_sector_mask(ai, shape, sector_ranges):
@@ -234,9 +242,9 @@ def pyfai_init_worker(lock, shm_intensities_name, shm_counts_name, shmshape):
 # -----------------------------
 def worker_unpack(worker_type):
     function_map = {
-        "move_ivq": pyfai_move_ivsq_worker_new,
-        "move_qmap": pyfai_move_qmap_worker_minimum,  # pyfai_move_qmap_worker_new,
-        "move_exit": pyfai_move_exitangles_worker_new,
+        "move_ivsq": pyfai_move_1dmap_worker,
+        "move_qmap": pyfai_move_2dmap_worker,  # pyfai_move_qmap_worker_new,
+        "move_exit": pyfai_move_2dmap_worker,
         "static_ivq": pyfai_stat_ivsq_worker_new,
         "static_exit": pyfai_stat_exitangles_worker_new,
         "static_qmap": pyfai_stat_qmap_worker_new,
@@ -294,7 +302,53 @@ def pyfai_move_ivsq_worker_new(
     return fullresult, fullcounts, single_result.radial, img_mask
 
 
-def pyfai_move_qmap_worker_minimum(
+def pyfai_move_1dmap_worker(
+    imageind,
+    d5i,
+    metadata,
+    current_ai,
+    newrot,
+    cfg,
+    log_queue,
+    logn=None,
+) -> None:
+    """
+    calculate 2d q_para Vs q_perp map for moving detector scan using pyFAI
+    """
+
+    global INTENSITY_ARRAY, COUNT_ARRAY
+    ind = imageind
+
+    mask = current_ai.mask
+    method = ("no", "csr", "cython")
+    # alphacritical = cfg.alphacritical
+    setup = cfg.setup
+
+    polarization, ivqbins, radialrange, unit_ip = (
+        cfg.polarization,
+        cfg.ivqbins,
+        cfg.radialrange,
+        cfg.unit_qip_name,
+    )
+    set_ai_rots(newrot, current_ai, setup)
+    img_data, img_mask = get_pyfai_image_data(setup, metadata, ind)
+    if current_ai.mask is None:
+        current_ai.mask = np.array(img_mask, copy=True)
+        mask = current_ai.mask
+    else:
+        np.copyto(mask, img_mask)
+    res1d, mapaxisinfo = calculate_1d(
+        ivqbins, radialrange, unit_ip, polarization, current_ai, img_data, d5i, method
+    )
+
+    with LOCK:
+        INTENSITY_ARRAY += res1d._sum_signal
+        COUNT_ARRAY += res1d.count.astype(dtype=np.int32)
+
+    return mapaxisinfo
+
+
+def pyfai_move_2dmap_worker(
     imageind,
     d5i,
     metadata,
@@ -335,77 +389,42 @@ def pyfai_move_qmap_worker_minimum(
         mask = current_ai.mask
     else:
         np.copyto(mask, img_mask)
-
-    map2d = current_ai.integrate2d(
+    map2d, mapaxisinfo = calculate_2d_map(
+        current_ai,
         img_data,
-        qmapbins[0],
-        qmapbins[1],
-        unit=(unit_ip, unit_oop),
-        radial_range=(fullranges[0], fullranges[1]),
-        azimuth_range=(fullranges[2], fullranges[3]),
-        method=method,
-        # polarization_factor=polarization,
-        # normalization_factor=d5i,
+        unit_ip,
+        unit_oop,
+        method,
+        d5i,
+        qmapbins,
+        fullranges,
+        polarization,
     )
 
-    mapaxisinfo = [
-        map2d.azimuthal,
-        map2d.radial,
-        str(map2d.azimuthal_unit),
-        str(map2d.radial_unit),
-    ]
     with LOCK:
         INTENSITY_ARRAY += map2d.sum_signal
         COUNT_ARRAY += map2d.count.astype(dtype=np.int32)
 
     return mapaxisinfo
 
-    # for i, ind in enumerate(imageindices):
-    #     img_data, img_mask, inc_angle_out, d5i_data = setup_stat_worker(
-    #         metadata,
-    #         ind,
-    #         current_ai,
-    #         setup,
-    #         all_inc_angles,
-    #         gamdelvals,
-    #         d5i_full,
-    #         alphacritical,
-    #     )
-
-    #     if mask is None:
-    #         current_ai.mask = np.array(img_mask, copy=True)
-    #         mask = current_ai.mask
-    #     else:
-    #         np.copyto(mask, img_mask)
-
-    #     # =============================================
-    #     # see incident angle message at top of worker section line 80
-    #     # =============================================
-    #     # unit_tth.incident_angle = inc_angle_out
-    #     # unit_oop.incident_angle = inc_angle_out
-
-    #     single_result, axisinfo = calculate_2d_map(
-    #         current_ai,
-    #         img_data,
-    #         unit_ip,
-    #         unit_oop,
-    #         method,
-    #         d5i_data,
-    #         qmapbins,
-    #         fullranges,
-    #         polarization,
-    #     )
-    #     if ind % 10 == 0:
-    #         logger.debug(f"ended map calculation {ind}")
-
-    #     fullresult += single_result.sum_signal
-    #     fullcounts += single_result.count
-    # logger.debug(
-    #     f"reached end of loop for batch {logn}: images {imageindices[0]}-{imageindices[-1]} "
+    # map2d = current_ai.integrate2d(
+    #     img_data,
+    #     qmapbins[0],
+    #     qmapbins[1],
+    #     unit=(unit_ip, unit_oop),
+    #     radial_range=(fullranges[0], fullranges[1]),
+    #     azimuth_range=(fullranges[2], fullranges[3]),
+    #     method=method,
+    #     polarization_factor=polarization,
+    #     normalization_factor=d5i,
     # )
 
-    # time_logger.debug(do_time_check(f"stop loop of image child_{logn}"))
-    # return fullresult, fullcounts, axisinfo, img_mask
+    # mapaxisinfo = [
+    #     map2d.azimuthal,
+    #     map2d.radial,
+    #     str(map2d.azimuthal_unit),
+    #     str(map2d.radial_unit),
+    # ]
 
 
 def pyfai_move_qmap_worker_new(
