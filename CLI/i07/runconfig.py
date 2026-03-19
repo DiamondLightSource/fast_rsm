@@ -7,19 +7,6 @@ reciprocal space.
 # pylint: disable=invalid-name
 
 import argparse
-import os
-from datetime import datetime
-
-import numpy as np
-
-from fast_rsm.logging_config import start_frsm_loggers,log_error_info
-from fast_rsm.config_loader import parse_setup_file
-from pathlib import Path
-import subprocess
-import time
-import re
-
-
 
 from fast_rsm.diamond_utils import ProcessArgs
 
@@ -66,9 +53,7 @@ if __name__ == "__main__":
     args.version_path = version_path
     args.python_version = python_version
     if args.dev:
-        args.python_version = (
-            "/dls/science/users/rpy65944/python_envs/runpytest/bin/python"  # python_version
-        )
+        args.python_version = "/dls/science/users/rpy65944/python_envs/runpytest/bin/python"  # python_version
 
     process_args = ProcessArgs(**vars(args))
     process_args.parse_and_reduce()
