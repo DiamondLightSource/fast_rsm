@@ -778,11 +778,7 @@ def pyfai_moving_qmap_smm_new(experiment: Experiment, hf, scanlist, process_conf
             cfg.scanlistnew
         ):  # chunksize=1 makes sense here: each task is already “large” (25 images)
             experiment.load_curve_values(scan)
-            test_image_chunk = 800
-            print(f"using test chunk of {test_image_chunk} images")
-            imageindices = get_full_indices(scan, cfg.scanlength, cfg.scalegamma)[
-                0:test_image_chunk
-            ]
+            imageindices = get_full_indices(scan, cfg.scanlength, cfg.scalegamma)
             batches, num_batches, completed = get_batch_details(
                 False, imageindices, cfg.batchsize
             )
