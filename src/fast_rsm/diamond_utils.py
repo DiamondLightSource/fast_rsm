@@ -784,16 +784,6 @@ class ProcessArgs:
         self.create_jobscript()
         self.create_jobfile()
 
-        # startslurms = self.check_slurmfiles()
-        # endslurms = self.check_slurmfiles()
-        count = 0
-        limit = 0
-
-        # call subprocess to submit job using wilson
-        # subprocess.run(
-        #     ["ssh", "wilson", f"cd fast_rsm\nsbatch {self.script_path}"], check=False
-        # )
-
         cmd = f"cd fast_rsm && sbatch {self.script_path}"
 
         proc = subprocess.Popen(
