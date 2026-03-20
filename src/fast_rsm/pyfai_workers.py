@@ -159,8 +159,7 @@ def calculate_2d_map(
 def calculate_1d(
     ivqbins, radialrange, unit_ip, polarization, ai, img_data, norm_data, method
 ):
-    range_with_buffer = (radialrange[0] - 0.5, radialrange[1] + 0.5)
-    # radian_range = [np.deg2rad(val) for val in range_with_buffer]
+
     result1d = ai.integrate1d(
         img_data,
         ivqbins,
