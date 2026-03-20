@@ -167,7 +167,7 @@ def calculate_1d(
         normalization_factor=norm_data,
         correctSolidAngle=True,
         method=method,
-        radial_range=range_with_buffer,
+        radial_range=radialrange,
         polarization_factor=polarization,
     )
     mapaxisinfo = [
