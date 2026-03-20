@@ -3,7 +3,6 @@ import logging
 import logging.handlers
 import sys
 from multiprocessing.shared_memory import SharedMemory
-from types import SimpleNamespace
 
 import numpy as np
 from pyFAI import units
@@ -11,7 +10,7 @@ from pyFAI import units
 from fast_rsm.angle_pixel_q import gamdel2rots
 from fast_rsm.experiment import Experiment
 from fast_rsm.image import Image
-from fast_rsm.logging_config import get_debug_logger, get_logger
+from fast_rsm.logging_config import get_logger
 
 # ==============common functions
 
@@ -116,18 +115,6 @@ def setup_stat_worker(
     d5i_data = d5i_full[imageindex]
 
     return inc_angle, inc_angle_out, d5i_data, gamdelval
-
-
-# def setup_stat_worker(experiment: Experiment, cfg, scan, imageindex):
-#     inc_angle, inc_angle_out = cfg.all_inc_angles[imageindex]
-#     gamdelval = cfg.gamdelvals[imageindex]
-#     current_ai = get_pyfai_ai(
-#         experiment, cfg.aistart, cfg.slitratios, cfg.alphacritical, inc_angle, gamdelval
-#     )
-#     d5i_data = cfg.d5i_full[imageindex]
-#     img_data, img_mask = get_pyfai_image_data(experiment, scan, imageindex)
-#     method = ("no", "histogram", "cython")
-#     return current_ai, img_data, img_mask, method, inc_angle_out, d5i_data
 
 
 def setup_ip_oop_units(
@@ -242,12 +229,12 @@ def pyfai_init_worker(lock, shm_intensities_name, shm_counts_name, shmshape):
 # -----------------------------
 def worker_unpack(worker_type):
     function_map = {
-        "move_ivsq": pyfai_move_1dmap_worker,
-        "move_qmap": pyfai_move_2dmap_worker,  # pyfai_move_qmap_worker_new,
-        "move_exit": pyfai_move_2dmap_worker,
-        "static_ivq": pyfai_stat_ivsq_worker_new,
-        "static_exit": pyfai_stat_exitangles_worker_new,
-        "static_qmap": pyfai_stat_qmap_worker_new,
+        "move_ivsq": pyfai_1dmap_worker,
+        "move_qmap": pyfai_2dmap_worker,  # pyfai_move_qmap_worker_new,
+        "move_exit": pyfai_2dmap_worker,
+        "static_ivsq": pyfai_1dmap_worker,
+        "static_exit": pyfai_2dmap_worker,
+        "static_qmap": pyfai_2dmap_worker,
     }
     # worker_type = args[0]
     return function_map[worker_type]
@@ -256,53 +243,14 @@ def worker_unpack(worker_type):
     # return worker_function(*worker_args)
 
 
-# ==========moving workers
-# --------------------------------------------
-# ======= incident angle message=======
-# decided to remove incident from units for now, as a sample
-# incident angle for sxrd does not affect the exit angle of interest, just the specific set of crystallites that are in diffraction condition
-# DCD is more complicated and will check later - currently offsets delta if incident angle is above critical angle
-# --------------------------------------------------
+def save_intcountshm_withlock(result):
+    global INTENSITY_ARRAY, COUNT_ARRAY
+    with LOCK:
+        INTENSITY_ARRAY += result._sum_signal
+        COUNT_ARRAY += result.count.astype(dtype=np.int32)
 
 
-def pyfai_move_ivsq_worker_new(
-    experiment: Experiment, imageindices, scan, process_config, queue=None, logn=None
-) -> None:
-    """
-    calculate 1d intensity vs q profile for moving detector scan using pyFAI
-
-    """
-
-    cfg = process_config
-    d5i_data = []
-    unit_tth, unit_oop = setup_ip_oop_units(cfg)
-    # time_logger = get_time_logger(queue, logn)
-    # time_logger.debug(do_time_check(f"start ivq worker {logn}"))
-    fullresult = np.zeros(cfg.ivqbins)
-    fullcounts = np.zeros(cfg.ivqbins)  #
-
-    # time_logger.debug(do_time_check(f"start loop of child_{logn}"))
-    for i, ind in enumerate(imageindices):
-        current_ai, img_data, img_mask, method, inc_angle_out, d5i_data = (
-            setup_stat_worker(experiment, cfg, scan, ind)
-        )
-        current_ai.mask = img_mask
-
-        # =============================================
-        # see incident angle message at top of worker section line 80
-        # =============================================
-        # unit_tth.incident_angle = inc_angle_out
-        # unit_oop.incident_angle = inc_angle_out
-
-        single_result = calculate_1d(cfg, current_ai, img_data, d5i_data, method)
-
-        fullresult += single_result.sum_signal
-        fullcounts += single_result.count
-    # time_logger.debug(do_time_check(f"stop loop of child_{logn}"))
-    return fullresult, fullcounts, single_result.radial, img_mask
-
-
-def pyfai_move_1dmap_worker(
+def pyfai_1dmap_worker(
     imageind,
     d5i,
     metadata,
@@ -311,12 +259,12 @@ def pyfai_move_1dmap_worker(
     cfg,
     log_queue,
     logn=None,
+    shared=False,
 ) -> None:
     """
     calculate 2d q_para Vs q_perp map for moving detector scan using pyFAI
     """
 
-    global INTENSITY_ARRAY, COUNT_ARRAY
     ind = imageind
 
     mask = current_ai.mask
@@ -332,23 +280,31 @@ def pyfai_move_1dmap_worker(
     )
     set_ai_rots(newrot, current_ai, setup)
     img_data, img_mask = get_pyfai_image_data(setup, metadata, ind)
+
     if current_ai.mask is None:
         current_ai.mask = np.array(img_mask, copy=True)
         mask = current_ai.mask
     else:
         np.copyto(mask, img_mask)
+    sector_mask = get_sector_mask(current_ai, img_data.shape, cfg.azimuthal_sector)
+    current_ai.mask = np.logical_or(img_mask, sector_mask)
+
     res1d, mapaxisinfo = calculate_1d(
         ivqbins, radialrange, unit_ip, polarization, current_ai, img_data, d5i, method
     )
+    if shared:
+        save_intcountshm_withlock(res1d)
+        return mapaxisinfo
 
-    with LOCK:
-        INTENSITY_ARRAY += res1d._sum_signal
-        COUNT_ARRAY += res1d.count.astype(dtype=np.int32)
+    return (
+        res1d.intensity,
+        mapaxisinfo[0],
+        [current_ai.mask, img_mask, sector_mask],
+        mapaxisinfo[1],
+    )
 
-    return mapaxisinfo
 
-
-def pyfai_move_2dmap_worker(
+def pyfai_2dmap_worker(
     imageind,
     d5i,
     metadata,
@@ -357,12 +313,13 @@ def pyfai_move_2dmap_worker(
     cfg,
     log_queue,
     logn=None,
+    shared=False,
 ) -> None:
     """
     calculate 2d q_para Vs q_perp map for moving detector scan using pyFAI
     """
 
-    global INTENSITY_ARRAY, COUNT_ARRAY
+    # global INTENSITY_ARRAY, COUNT_ARRAY
     ind = imageind
 
     mask = current_ai.mask
@@ -400,169 +357,8 @@ def pyfai_move_2dmap_worker(
         fullranges,
         polarization,
     )
+    if shared:
+        save_intcountshm_withlock(map2d)
+        return mapaxisinfo
 
-    with LOCK:
-        INTENSITY_ARRAY += map2d.sum_signal
-        COUNT_ARRAY += map2d.count.astype(dtype=np.int32)
-
-    return mapaxisinfo
-
-    # map2d = current_ai.integrate2d(
-    #     img_data,
-    #     qmapbins[0],
-    #     qmapbins[1],
-    #     unit=(unit_ip, unit_oop),
-    #     radial_range=(fullranges[0], fullranges[1]),
-    #     azimuth_range=(fullranges[2], fullranges[3]),
-    #     method=method,
-    #     polarization_factor=polarization,
-    #     normalization_factor=d5i,
-    # )
-
-    # mapaxisinfo = [
-    #     map2d.azimuthal,
-    #     map2d.radial,
-    #     str(map2d.azimuthal_unit),
-    #     str(map2d.radial_unit),
-    # ]
-
-
-def pyfai_move_qmap_worker_new(
-    experiment: Experiment, imageindices, scan, process_config, queue=None, logn=None
-) -> None:
-    """
-    calculate 2d q_para Vs q_perp map for moving detector scan using pyFAI
-    """
-    logger = get_debug_logger()
-    cfg = process_config
-
-    d5i_data = []
-    inc_angle = np.radians(experiment.incident_angle)
-    unit_ip, unit_oop = setup_ip_oop_units(cfg)
-    cfg.current_ai = setup_start_ai(cfg.aistart, cfg.slitratios)
-    # time_logger = get_time_logger(queue, logn)
-    # time_logger.debug(do_time_check(f"start qmap worker {logn}"))
-    # time_logger.debug(do_time_check(f"start loop of image child_{logn}"))
-
-    fullresult = np.zeros((cfg.qmapbins[1], cfg.qmapbins[0]))
-    fullcounts = np.zeros((cfg.qmapbins[1], cfg.qmapbins[0]))  #
-    logger.debug(f"starting batch {logn}: {imageindices[0]}-{imageindices[-1]}")
-    for i, ind in enumerate(imageindices):
-        img_data, img_mask, inc_angle_out, d5i_data = setup_stat_worker(
-            experiment, cfg, scan, ind
-        )
-        cfg.current_ai.mask = img_mask
-        method = ("no", "csr", "cython")
-
-        # =============================================
-        # see incident angle message at top of worker section line 80
-        # =============================================
-        # unit_tth.incident_angle = inc_angle_out
-        # unit_oop.incident_angle = inc_angle_out
-
-        single_result, axisinfo = calculate_2d_map(
-            cfg, cfg.current_ai, img_data, unit_ip, unit_oop, method, d5i_data
-        )
-
-        fullresult += single_result.sum_signal
-        fullcounts += single_result.count
-    logger.debug(f"finished batch {imageindices[0]}-{imageindices[-1]}")
-
-    # time_logger.debug(do_time_check(f"stop loop of image child_{logn}"))
-    return fullresult, fullcounts, axisinfo, img_mask
-
-
-def pyfai_move_exitangles_worker_new(
-    experiment: Experiment, imageindices, scan, process_config, queue=None, logn=None
-) -> None:
-    """
-    calculate 2d q_para Vs q_perp map for moving detector scan using pyFAI
-    """
-    cfg = process_config
-    # time_logger = get_time_logger(queue, logn)
-    d5i_data = []
-    unit_ip, unit_oop = setup_ip_oop_units(cfg)
-
-    fullresult = np.zeros((cfg.qmapbins[1], cfg.qmapbins[0]))
-    fullcounts = np.zeros((cfg.qmapbins[1], cfg.qmapbins[0]))  #
-    # time_logger.debug(do_time_check(f'start loop of child_{logn}'))
-    for i, ind in enumerate(imageindices):
-        current_ai, img_data, img_mask, method, inc_angle_out, d5i_data = (
-            setup_stat_worker(experiment, cfg, scan, ind)
-        )
-
-        # =============================================
-        # see incident angle message at top of worker section line 80
-        # =============================================
-        # unit_tth.incident_angle = inc_angle_out
-        # unit_oop.incident_angle = inc_angle_out
-
-        current_ai.mask = img_mask
-        single_result, axisinfo = calculate_2d_map(
-            cfg, current_ai, img_data, unit_ip, unit_oop, method, d5i_data
-        )
-
-        fullresult += single_result.sum_signal
-        fullcounts += single_result.count
-    # time_logger.debug(do_time_check(f'stop loop of child_{logn}'))
-    return fullresult, fullcounts, axisinfo, img_mask
-
-
-# ============static workers
-
-
-def pyfai_stat_ivsq_worker_new(
-    experiment: Experiment, imageindex, scan, process_config: SimpleNamespace
-) -> None:
-    """
-    calculate Intensity Vs Q profile for static detector scan data using pyFAI Fiber integrator
-    """
-    cfg = process_config
-    current_ai, img_data, img_mask, method, inc_angle_out, d5i_data = setup_stat_worker(
-        experiment, cfg, scan, imageindex
-    )
-    sector_mask = get_sector_mask(current_ai, img_data.shape, cfg.azimuthal_sector)
-    current_ai.mask = np.logical_or(img_mask, sector_mask)
-
-    tth, intensity = calculate_1d(cfg, current_ai, img_data, d5i_data, method)
-    mask_list = [current_ai.mask, img_mask, sector_mask]
-    return intensity, tth, mask_list
-
-
-def pyfai_stat_exitangles_worker_new(
-    experiment: Experiment, imageindex, scan, process_config: SimpleNamespace
-) -> None:
-    """
-    calculate exit angle map for static detector scan data using pyFAI Fiber integrator
-    """
-    cfg = process_config
-    current_ai, img_data, img_mask, method, inc_angle_out, d5i_data = setup_stat_worker(
-        experiment, cfg, scan, imageindex
-    )
-    current_ai.mask = img_mask
-    unit_ip, unit_oop = setup_ip_oop_units(cfg, inc_angle_out)
-    map2d, mapaxisinfo = calculate_2d_map(
-        cfg, current_ai, img_data, unit_ip, unit_oop, method, d5i_data
-    )
-
-    return map2d[0], map2d[1], map2d[2], mapaxisinfo, img_mask
-
-
-def pyfai_stat_qmap_worker_new(
-    experiment: Experiment, imageindex, scan, process_config: SimpleNamespace
-) -> None:
-    """
-    calculate exit angle map for static detector scan data using pyFAI Fiber integrator
-    """
-    cfg = process_config
-    current_ai, img_data, img_mask, method, inc_angle_out, d5i_data = setup_stat_worker(
-        experiment, cfg, scan, imageindex
-    )
-    current_ai.mask = img_mask
-    unit_ip, unit_oop = setup_ip_oop_units(cfg, inc_angle_out)
-    method = ("no", "csr", "cython")
-    map2d, mapaxisinfo = calculate_2d_map(
-        cfg, current_ai, img_data, unit_ip, unit_oop, method, d5i_data
-    )
-
-    return map2d[0], map2d[1], map2d[2], mapaxisinfo, img_mask
+    return map2d[0], map2d[1], map2d[2], mapaxisinfo, current_ai.mask

@@ -95,11 +95,6 @@ def do_mask_regions(mask_regions, data_arr):
             data_arr[region.slice] = np.nan
     return data_arr
 
-    # #DEBUG - mask zeros from image
-    # arr[arr.astype(float)==0.0]=np.nan
-
-    # if there is an edf mask file loaded, apply mask
-
 
 def norm_kout_array(k_out_array, i, j):
     # We're going to need to normalize; this function bottlenecks if not
