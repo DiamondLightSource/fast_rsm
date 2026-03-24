@@ -72,6 +72,8 @@ def createponi(experiment: Experiment, outpath, offset=0):
 
     """
     image2dshape = experiment.imshape
+    if experiment.setup == "vertical":
+        image2dshape = (image2dshape[1], image2dshape[0])
     beam_centre = experiment.beam_centre
     datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
     ponioutpath = rf"{outpath}/fast_rsm_{datetime_str}.poni"
