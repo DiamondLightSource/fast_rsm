@@ -19,14 +19,6 @@ jobs:
         id: branch
         run: echo "branch_name=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
 
-      # Clone repo2 and repo3 using the same branch
-      - name: Clone diffraciton_utils and mapper_c_utils
-        run: |
-          git clone --branch "${{ steps.branch.outputs.branch_name }}" https://github.com/DiamondLightSource/diffraction_utils/ || \
-              git clone https://github.com/DiamondLightSource/diffraction_utils/
-
-          git clone --branch "${{ steps.branch.outputs.branch_name }}" https://github.com/DiamondLightSource/mapper_c_utils/ || \
-              git clone https://github.com/DiamondLightSource/mapper_c_utils/
 
       # Set up Python
       - uses: actions/setup-python@v4
