@@ -39,8 +39,10 @@ jobs:
           git clone --branch "${{ steps.branch.outputs.branch_name }}" https://github.com/DiamondLightSource/mapper_c_utils/ || \
           git clone https://github.com/DiamondLightSource/mapper_c_utils/
 
-          pip install setuptools==73.0.1
+
+          pip install --upgrade pip wheel
           pip install siphash24
+          pip install "setuptools<60"     
           pip install --no-build-isolation mapper_c_utils/
 
 
