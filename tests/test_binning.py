@@ -4,41 +4,50 @@ This module provides tests for the functions in the fast_rsm.binning module.
 
 import numpy as np
 import pytest
+from fast_rsm.binning import (
+    finite_diff_grid,
+    finite_diff_shape,
+    fix_delta_q_geometry,
+    fix_intensity_geometry,
+    typecheckdict,
+)
 from numpy.testing import assert_allclose
-from fast_rsm.binning import finite_diff_shape,fix_intensity_geometry,\
-    fix_delta_q_geometry,finite_diff_grid,typecheckfloats
+
 
 def test_fix_deltaqgeom():
-    arr1=np.ones((2,3,4))
-    outarr=fix_delta_q_geometry(arr1)
-    assert np.shape(outarr)==(6,4)
+    arr1 = np.ones((2, 3, 4))
+    outarr = fix_delta_q_geometry(arr1)
+    assert np.shape(outarr) == (6, 4)
 
 
 def test_fix_intgeom():
-    arr1=np.ones((2,5))
-    outarr=fix_intensity_geometry(arr1)
-    assert np.shape(outarr)==(10,)
+    arr1 = np.ones((2, 5))
+    outarr = fix_intensity_geometry(arr1)
+    assert np.shape(outarr) == (10,)
+
 
 def test_typecheckfloats():
-    weights_int=np.array([1,2,3]).astype(np.uint32)
-    weights_fl=np.array([1.0,2.0,3.0])
-    testdict1={'weights1':weights_int}
-    testdict2={'weights1':weights_fl,'weights2':weights_int}
-    assert typecheckfloats(testdict1)
+    weights_int = np.array([1, 2, 3]).astype(np.uint32)
+    weights_fl = np.array([1.0, 2.0, 3.0])
+    testdict1 = {"weights1": weights_int}
+    testdict2 = {"weights2": weights_fl}
+    assert typecheckdict(testdict2, np.float64)
     with pytest.raises(ValueError):
-        typecheckfloats(testdict2)
+        typecheckdict(testdict1, np.float64)
+
 
 def test_finite_diff_grid():
     start = np.array([1.0, 1.0, 2.0])
     stop = np.array([2.6, 3, 3])
     step = np.array([0.1, 0.1, 0.1])
-    xgrid=np.arange(1.0,2.6,0.1)
-    ygrid=np.arange(1.0,3,0.1)
-    zgrid=np.arange(2,3,0.1)
-    outgrid=finite_diff_grid(start,stop,step)
-    assert_allclose(outgrid[0],xgrid)
-    assert_allclose(outgrid[1],ygrid)
-    assert_allclose(outgrid[2],zgrid)
+    xgrid = np.arange(1.0, 2.6, 0.1)
+    ygrid = np.arange(1.0, 3, 0.1)
+    zgrid = np.arange(2, 3, 0.1)
+    outgrid = finite_diff_grid(start, stop, step)
+    assert_allclose(outgrid[0], xgrid)
+    assert_allclose(outgrid[1], ygrid)
+    assert_allclose(outgrid[2], zgrid)
+
 
 def test_finite_diff_shape():
     """
