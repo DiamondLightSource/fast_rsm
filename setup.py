@@ -1,5 +1,5 @@
 """
-latest version created: create_pyfaiponi in fast_rsm/
+latest version created: fullrsm_scanlength in fast_rsm/
 The setup file. To install as a developer (only do this in a venv):
 
 python setup.py develop
