@@ -5,3 +5,4 @@ jupyter_sphinx
 sphinx-collapse
 sphinx-autodoc2
 sphinx-rtd-theme
+sphinx-tabs
