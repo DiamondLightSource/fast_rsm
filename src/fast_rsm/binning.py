@@ -1,8 +1,7 @@
 """
-This module contains functions for binning 3D scalar fields.
+This module contains functions for binning 3D  scalar fields.
 """
 
-import fast_histogram as fast
 import numpy as np
 
 import mapper_c_utils
@@ -128,18 +127,23 @@ def finite_diff_shape(start: np.ndarray, stop: np.ndarray, step: np.ndarray):
 #     return dd
 
 
-
-def typecheckdict(float_dict,type):
-    for k,v in float_dict.items():
+def typecheckdict(float_dict, type):
+    for k, v in float_dict.items():
         if v.dtype != type:
             raise ValueError(f"{k} must have dtype={type}")
     return True
 
-def weighted_bin_3d(coords: np.ndarray, weights: np.ndarray,
-                    out: np.ndarray, count: np.ndarray,
-                    start: np.ndarray, stop: np.ndarray, step: np.ndarray,
-                    min_intensity=None
-                    ) -> np.ndarray:
+
+def weighted_bin_3d(
+    coords: np.ndarray,
+    weights: np.ndarray,
+    out: np.ndarray,
+    count: np.ndarray,
+    start: np.ndarray,
+    stop: np.ndarray,
+    step: np.ndarray,
+    min_intensity=None,
+) -> np.ndarray:
     """
     This is an alias to the native C function _weighted_bin_3d, which adds a
     useful protective layer. A lot of explicit type conversions are carried out,
@@ -186,11 +190,11 @@ def weighted_bin_3d(coords: np.ndarray, weights: np.ndarray,
         min_intensity = -np.inf
     min_intensity = np.array([min_intensity]).astype(np.float32)
 
-    float_dict={'weights':weights,'coords':coords,'out':out}
-    typecheckdict(float_dict,np.float32)
+    float_dict = {"weights": weights, "coords": coords, "out": out}
+    typecheckdict(float_dict, np.float32)
 
-    int_dict={'count':count}
-    typecheckdict(int_dict,np.uint32)
+    int_dict = {"count": count}
+    typecheckdict(int_dict, np.uint32)
     # if weights.dtype != np.float32:
     #     raise ValueError("Weights must have dtype=np.float32")
     # if coords.dtype != np.float32:
@@ -202,20 +206,23 @@ def weighted_bin_3d(coords: np.ndarray, weights: np.ndarray,
 
     # Now we're ready to call the function.
     mapper_c_utils.weighted_bin_3d(
-        coords, start, step, shape, weights, out, count, min_intensity)
+        coords, start, step, shape, weights, out, count, min_intensity
+    )
 
     # time_taken = time.time() - time_1
     # print(f"Binning time: {time_taken}")
     return out
 
 
-def weighted_bin_1d(coords: np.ndarray,
-                    weights: np.ndarray,
-                    out: np.ndarray,
-                    count: np.ndarray,
-                    start: float,
-                    stop: float,
-                    step: float):
+def weighted_bin_1d(
+    coords: np.ndarray,
+    weights: np.ndarray,
+    out: np.ndarray,
+    count: np.ndarray,
+    start: float,
+    stop: float,
+    step: float,
+):
     """
     Entirely analogous to weighted_bin_3d, but histograms in only 1 dimension.
     This is useful for re-histogramming for e.g. 2-theta and |Q| projections.
@@ -255,14 +262,17 @@ def weighted_bin_1d(coords: np.ndarray,
     # of defence! For things to _feel_ pythonic, this is exactly the point where
     # we need explicit type checking!
     if not isinstance(start, float):
-        raise ValueError("start Argument must have type float. "
-                         f"Instead, it had type {type(start)}")
+        raise ValueError(
+            f"start Argument must have type float. Instead, it had type {type(start)}"
+        )
     if not isinstance(stop, float):
-        raise ValueError("stop Argument must have type float. "
-                         f"Instead, it had type {type(stop)}")
+        raise ValueError(
+            f"stop Argument must have type float. Instead, it had type {type(stop)}"
+        )
     if not isinstance(step, float):
-        raise ValueError("step Argument must have type float. "
-                         f"Instead, it had type {type(step)}")
+        raise ValueError(
+            f"step Argument must have type float. Instead, it had type {type(step)}"
+        )
 
     # Work out how many bins we're going to need.
     shape = np.arange(start, stop, step).shape[0]
@@ -277,11 +287,12 @@ def weighted_bin_1d(coords: np.ndarray,
     #     raise ValueError("out must have dtype=np.float32")
     # if count.dtype != np.uint32:
     #     raise ValueError("Count must have dtype=np.uint32")
-    float_dict={'weights':weights,'coords':coords,'out':out,'count':count}
-    typecheckfloats(float_dict)
+    float_dict = {"weights": weights, "coords": coords, "out": out, "count": count}
+    typecheckdict(float_dict, np.float32)
+    unit_dict = {"counts": count}
+    typecheckdict(unit_dict, np.unit32)
     # Now we're ready to call the function.
-    mapper_c_utils.weighted_bin_1d(
-       coords, start, step, shape, weights, out, count)
+    mapper_c_utils.weighted_bin_1d(coords, start, step, shape, weights, out, count)
 
     return out
 

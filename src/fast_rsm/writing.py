@@ -1,17 +1,18 @@
 """
-This module contains convenience functions for writing reciprocal space maps.
+This module contains  convenience functions for writing reciprocal space maps.
 """
-
 
 import numpy as np
 from pyevtk.hl import gridToVTK
 
 
-def linear_bin_to_vtk(binned_data: np.ndarray,
-                      file_path: str,
-                      start: np.ndarray,
-                      stop: np.ndarray,
-                      step: np.ndarray) -> None:
+def linear_bin_to_vtk(
+    binned_data: np.ndarray,
+    file_path: str,
+    start: np.ndarray,
+    stop: np.ndarray,
+    step: np.ndarray,
+) -> None:
     """
     Takes binned data and saves it to a .vtk file.
     """
@@ -35,5 +36,4 @@ def linear_bin_to_vtk(binned_data: np.ndarray,
     z_range.append(stop[2])
     z_range = np.array(z_range, dtype=np.float32)
 
-    gridToVTK(file_path, x_range, y_range, z_range,
-              cellData={"Intensity": binned_data})
+    gridToVTK(file_path, x_range, y_range, z_range, cellData={"Intensity": binned_data})

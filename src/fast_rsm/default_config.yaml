@@ -41,4 +41,5 @@ spherical_bragg_vec: [0,0,0]
 map_frame: null
 coordinates: null
 use_thv: False
+azimuthal_sector: null
 pyfaiponi: null

@@ -2,16 +2,18 @@
 # ======Information required for all scan types======
 # ===================================================================
 
+# How was your sample mounted? Options are 'horizontal', 'vertical' and 'DCD'.
+setup = "horizontal"
+
+# which experimental hutch was used 0 = unsure, 1= experimental hutch 1,
+# 2=experimental hutch 2
+experimental_hutch = 1
 # Set this to the directory path where your files are saved, note you will
 # need to include any subdirectories in this path
 local_data_path = "path"  # '/dls/i07/data/2024/##experiment-number##/##subfolder#
 # Set this to the path where you want the output from the data processing
 # to be saved
 local_output_path = "path"  # '/dls/i07/data/2024/##experiment-number##/processing'
-
-
-# How was your sample mounted? Options are 'horizontal', 'vertical' and 'DCD'.
-setup = "horizontal"
 
 # which experimental hutch was 
 # 1= experimental hutch 1,
@@ -102,9 +104,6 @@ use_thv = False
 # ===================================================================
 # =========Optional settings for GIWAXS analysis
 # ===================================================================
-
-#If you have collected data from a calibration sample you can use it to create your own PONI file. Then include the path to the PONI file as the following variable.
-pyfaiponi = 'path/to/poni/file'
 
 # There will always be a .hdf5 file created. You can set the option for exporting additonal files with the savetiffs and savedats options below
 # if you want to export '2d qpara Vs qperp maps' to extra .tiff images set
