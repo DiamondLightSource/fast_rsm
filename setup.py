@@ -6,7 +6,7 @@ python setup.py develop
 
 Otherwise, just:
 
-python setup.py install
+python setup.py  install
 """
 
 from setuptools import find_packages, setup
