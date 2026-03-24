@@ -1,15 +1,7 @@
-Creating experiment files
+Overview of all settings
 =========================
 
-
-
-To create a new experiment setup file type the following command after loading the fast_rsm module
-
-    .. code-block:: bash
-
-        makesetup 
-    
-this will open up a template experimental file, edit with your experimental information. Use the information below to create your exp_setup.py file. The sections are organised as follows:
+An overview of all the settings available for the fast_rsm experiment setup file organised into the following sections:
     
     * :ref:`info_for_all_scans` - These are all of the values which always need to be defined in your experimental setup file 
     * :ref:`optional_for_all` - These are the optional values which can be set for all scan types, but will default to a preset values if not included in the experimental setup file
@@ -18,33 +10,11 @@ this will open up a template experimental file, edit with your experimental info
 
 Usually the default calc_setup.py file that contains the calculation settings will be suitable,however if a bespoke calc_setup.py is needed, copy over the calc_setup.py file in the fast_rsm/CLI/i07  folder and edit accordingly. contact beamline staff or i07 data analysis scientist for guidance on this.
 
-If you need a mask file for your data, make a mask by using the makemask command from the terminal line. This requires two inputs:
-    
-    * -dir =the path to where the experiment data i stored
-    * -s =the number of the scan you want to make the mask for
-
-    e.g.
-
-    .. code-block:: bash
-
-        makemask -dir /dls/i07/data/2025/si36456-5/sample1 -s 535612
-    
-    This will open up the mask GUI. Save the created mask and note down the full file path to the .edf file.
 
 .. _info_for_all_scans:
 
 Information required for all scan types
 --------------------------------------------
-
-.. confval:: setup
-
-        How was your sample mounted? Options are 'horizontal', 'vertical' and 'DCD'
-
-.. confval:: experimental_hutch
-
-        which experimental hutch was used 1= experimental hutch 1, 2=experimental hutch 2
-
-
 
 .. confval:: local_data_path
 
@@ -61,6 +31,15 @@ Information required for all scan types
         .. code-block:: bash
             
             /dls/i07/data/2025/si36456-5/processing/sample1 
+
+.. confval:: setup
+
+        How was your sample mounted? Options are 'horizontal', 'vertical' and 'DCD'
+
+.. confval:: experimental_hutch
+
+        which experimental hutch was used 1= experimental hutch 1, 2=experimental hutch 2
+
     
 .. confval:: beam_centre
     
@@ -225,6 +204,14 @@ To manually set the step size you can use one of two options:
         specify directly the number of bins for I Vs Q profile - which will mean radialstepval will have no effect
 
 Note: the number of bins will be automatically calculated using a step size of 0.01 degrees if no step settings are given.
+
+.. confval:: azimuthal_sector
+
+    specify a azimuthal angular range for the azimuthal integration e.g. (110, 80)
+
+.. confval:: pyfaiponi
+
+
 
 
 .. _optional_singlecrystal:

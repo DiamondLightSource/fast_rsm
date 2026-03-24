@@ -15,6 +15,10 @@ local_data_path = "path"  # '/dls/i07/data/2024/##experiment-number##/##subfolde
 # to be saved
 local_output_path = "path"  # '/dls/i07/data/2024/##experiment-number##/processing'
 
+# which experimental hutch was 
+# 1= experimental hutch 1,
+# 2=experimental hutch 2
+experimental_hutch = 1
 
 # The beam centre, as can be read out from GDA, in pixel_x, pixel_y.
 beam_centre = (119, 1564)
@@ -23,6 +27,7 @@ beam_centre = (119, 1564)
 # distance between the receiving slit and the detector). Units of meters.
 detector_distance = 0.18
 
+pyfaiponi = "path/to/pyfai/ponifile"
 
 # define what outputs you would like form the processing here, choose from:
 # 'full_reciprocal_map' = calculates a full reciprocal space map combining all
@@ -54,20 +59,13 @@ edfmaskfile = None
 
 
 # alternatively specify masked regions with pixels and regions
-# If you have a small number of hot pixels to mask, specify them one at a time
-# in a list. In other words, it should look like:
-# specific_pixels = [(pixel_x1, pixel_y1), (pixel_x2, pixel_y2)]
-# Or, an exact example, where we want to mask pixel (233, 83) and pixel
+# If you have a small number of hot pixels to mask, an exact example, where we want to mask pixel (233, 83) and pixel
 # (234, 83), where pixel coordinates are (x, y):
 #
-specific_pixels = None  # [(233, 234),(83, 83)]
+specific_pixels = None  
 #
-# Leave specific pixels as None if you dont want to mask any specific pixels.
-# For this dataset we need to mask pixel (x=233, y=83)
-# specific_pixels = None
-
-# to allow saving masks to hdf5 file, creating regions was moved to calc_setup,
-# here give just start_x,  stop_x, start_y, start_y, as follows:
+# give  (start_x,  stop_x, start_y, start_y) for each region
+#
 #
 mask_1 = (0, 75, 0, 194)
 mask_2 = (425, 485, 0, 194)
@@ -98,7 +96,7 @@ using_dps = False
 dpsx_central_pixel = 0
 dpsy_central_pixel = 0
 dpsz_central_pixel = 0
-dpsz2_central_pixel = 0
+dpsz2k_central_pixel = 0
 
 # for specifying the use of the new motor thv - a combination of diffractometer and hexapod to reach larger incident angles
 use_thv = False
