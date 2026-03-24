@@ -31,15 +31,19 @@ jobs:
           git clone --branch "${{ steps.branch.outputs.branch_name }}" https://github.com/DiamondLightSource/diffraction_utils/ || \
           git clone https://github.com/DiamondLightSource/diffraction_utils/
 
+          pip install diffraciton_utils/
+
           git clone --branch "${{ steps.branch.outputs.branch_name }}" https://github.com/DiamondLightSource/mapper_c_utils/ || \
           git clone https://github.com/DiamondLightSource/mapper_c_utils/
+
+          pip install mapper_c_utils/
 
           python -m pip install --upgrade pip setuptools wheel
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
           # Install diffraciton_utils and mapper_c_utils in editable mode
-          pip install -e ./diffraciton_utils
-          pip install -e ./mapper_c_utils
+          
+          
 
           # Install fast_rsm
           pip install -e .
