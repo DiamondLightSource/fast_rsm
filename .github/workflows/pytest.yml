@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10"]
+          python-version: ["3.10"]
 
     steps:
       # Checkout fast_rsm (the main repo)
@@ -48,7 +48,7 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-        
+          pip install psutil
           # Install fast_rsm
           pip install -e .
 
