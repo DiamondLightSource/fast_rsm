@@ -129,6 +129,7 @@ config_schema = Schema(
         "coordinates": Or(None, str),
         "use_thv": Or(None, bool),
         "azimuthal_sector": Or(None, tuple),
+        "pyfaiponi": Or(None,str),
     }
 )
 
