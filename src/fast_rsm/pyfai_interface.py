@@ -72,6 +72,9 @@ def createponi(experiment: Experiment, outpath, offset=0):
 
     """
     image2dshape = experiment.imshape
+    max_shape_vals = f"{image2dshape[0]}, {image2dshape[1]}"
+    if experiment.setup == "vertical":
+        max_shape_vals = f"{image2dshape[1]}, {image2dshape[0]}"
     beam_centre = experiment.beam_centre
     datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
     ponioutpath = rf"{outpath}/fast_rsm_{datetime_str}.poni"
@@ -83,7 +86,7 @@ def createponi(experiment: Experiment, outpath, offset=0):
         pixel_line = (
             f"{experiment.pixel_size}, "
             f'"pixel2": {experiment.pixel_size}, '
-            f'"max_shape": [{image2dshape[0]}, {image2dshape[1]}]'
+            f'"max_shape": [{max_shape_vals}]'
         )
         f.write(pixel_line)
         f.write("}\n")

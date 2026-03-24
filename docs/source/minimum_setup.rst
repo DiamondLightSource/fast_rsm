@@ -97,7 +97,7 @@ Putting everything together into an example exp_setup.py file gives the followin
             local_output_path = '/dls/i07/data/2025/si36456-5/processing/sample1'  # '/dls/i07/data/2024/##experiment-number##/processing'
 
 
-            # The beam centre, as can be read ou    t from GDA, in pixel_x, pixel_y.
+            # The beam centre, as can be read out from GDA, in pixel_x, pixel_y.
             beam_centre = (119, 1564)
 
             # The distance between the sample and the detector (or, if using the DCD, the

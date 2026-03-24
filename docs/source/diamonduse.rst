@@ -13,7 +13,7 @@ Below are detailed instructions on how to use fast_rsm at i07. If you requied an
 Once you have a diamond linux session and your SSH connection setup, follow the steps below to run your processing jobs. 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    experiment_setup
    processcli

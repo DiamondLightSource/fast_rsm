@@ -57,7 +57,7 @@ You can adjust the options pyFAI will use for its binning procedue through the f
 GIWAXS masking
 ---------------
 
-**azimuthal_sector**: define an azimuthal range over which to carry out the 1d integration for IvsQ (-110, -80)
+**azimuthal_sector**: define an azimuthal range over which to carry out the 1d integration for IvsQ (110, 80)
 
 
 Examples of using all of these together for an extra section in your exp_setup file is as follows:

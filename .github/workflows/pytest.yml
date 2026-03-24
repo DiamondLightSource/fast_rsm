@@ -1,0 +1,57 @@
+
+name: pytest
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+          python-version: ["3.10"]
+
+    steps:
+      # Checkout fast_rsm (the main repo)
+      - uses: actions/checkout@v3
+
+      # Extract the current branch name (for PRs or pushes)
+      - name: Get branch name
+        id: branch
+        run: echo "branch_name=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
+
+
+      # Set up Python
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+
+          
+          
+          git clone --branch "${{ steps.branch.outputs.branch_name }}" https://github.com/DiamondLightSource/diffraction_utils/ || \
+          git clone https://github.com/DiamondLightSource/diffraction_utils/
+
+          pip install diffraction_utils/
+          
+          git clone --branch "${{ steps.branch.outputs.branch_name }}" https://github.com/DiamondLightSource/mapper_c_utils/ || \
+          git clone https://github.com/DiamondLightSource/mapper_c_utils/
+
+
+          pip install --upgrade pip wheel
+          pip install siphash24
+          pip install "setuptools<60"     
+          pip install --no-build-isolation mapper_c_utils/
+
+          python -m pip install --upgrade pip setuptools wheel
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+          pip install psutil
+          # Install fast_rsm
+          pip install -e .
+
+      # Run tests
+      - name: Run pytest
+        run: pytest

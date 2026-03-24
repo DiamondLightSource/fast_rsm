@@ -398,7 +398,8 @@ def make_new_hdf5(
     cfg.projected_name = f"{name_start}_{name_end}_{datetime_str}"
     cfg.process_start_time = time()
     experiment.load_curve_values(experiment.scans[scan_index])
-    cfg.pyfaiponi = createponi(experiment, cfg.local_output_path)
+    if cfg.pyfaiponi is None:
+        cfg.pyfaiponi = createponi(experiment, cfg.local_output_path)
     return h5py.File(f"{cfg.local_output_path}/{cfg.projected_name}.hdf5", "w")
 
 
