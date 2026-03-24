@@ -40,8 +40,8 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
           # Install diffraciton_utils and mapper_c_utils in editable mode
-          pip install -e diffraciton_utils
-          pip install -e mapper_c_utils
+          pip install -e ./diffraciton_utils
+          pip install -e ./mapper_c_utils
 
           # Install fast_rsm
           pip install -e .
