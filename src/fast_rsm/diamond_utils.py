@@ -29,12 +29,7 @@ from fast_rsm.experiment import Experiment
 from fast_rsm.logging_config import log_error_info, start_frsm_loggers
 from fast_rsm.pyfai_interface import (
     createponi,
-    pyfai_moving_exitangles_smm_new,
-    pyfai_moving_ivsq_smm_refactor,
-    pyfai_moving_qmap_smm_new,
-    pyfai_static_exitangles_new,
-    pyfai_static_ivsq_new,
-    pyfai_static_qmap_new,
+    get_functions_dict,
     save_config_variables,
 )
 
@@ -435,40 +430,14 @@ def run_scanlist_combined(cfg, experiment, runoptions):
     run_one_scan_process(cfg, 0, experiment, scanlist, runoptions)
 
 
-def get_run_functions(process_config):
+def get_run_function(map_per_image):
     """
     returns a dict of functions for mapping either static or moving, depending
     on configuration requested
     """
-    cfg = process_config
-    static_functions = {
-        "pyfai_qmap": [pyfai_static_qmap_new, "Qmap", "2d Qmap"],
-        "pyfai_exitangles": [
-            pyfai_static_exitangles_new,
-            "exitmap",
-            "2d exit angle map",
-        ],
-        "pyfai_ivsq": [pyfai_static_ivsq_new, "IvsQ", "1d integration "],
-    }
-
-    moving_functions = {
-        "pyfai_qmap": [pyfai_moving_qmap_smm_new, "Qmap", "2d Qmap"],
-        "pyfai_exitangles": [
-            pyfai_moving_exitangles_smm_new,
-            "exitmap",
-            "2d exit angle map",
-        ],
-        "pyfai_ivsq": [pyfai_moving_ivsq_smm_refactor, "IvsQ", "1d integration "],
-    }
-
-    if cfg.map_per_image:
-        functions_dict = static_functions
-        scanlist_function = run_scanlist_loop
-    else:
-        functions_dict = moving_functions
-        scanlist_function = run_scanlist_combined
-
-    return functions_dict, scanlist_function
+    if map_per_image:
+        return run_scanlist_loop
+    return run_scanlist_combined
 
 
 def run_process_list(experiment, process_config):
@@ -476,8 +445,8 @@ def run_process_list(experiment, process_config):
     separate function for sending of jobs defined by process output list and input arguments
     """
     cfg = process_config
-
-    functions_dict, scanlist_function = get_run_functions(cfg)
+    functions_dict = get_functions_dict(cfg.map_per_image)
+    scanlist_function = get_run_function(cfg.map_per_image)
     pyfai_options = ["pyfai_qmap", "pyfai_exitangles", "pyfai_ivsq"]
     for output in cfg.process_outputs:
         if output in pyfai_options:

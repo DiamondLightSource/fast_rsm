@@ -237,7 +237,7 @@ def worker_unpack(worker_type):
         "move_ivsq": pyfai_1dmap_worker_refactor,  # pyfai_1dmap_worker,
         "move_qmap": pyfai_2dmap_worker,  # pyfai_move_qmap_worker_new,
         "move_exit": pyfai_2dmap_worker,
-        "static_ivsq": pyfai_1dmap_worker,
+        "static_ivsq": pyfai_1dmap_worker_refactor,
         "static_exit": pyfai_2dmap_worker,
         "static_qmap": pyfai_2dmap_worker,
     }

@@ -708,6 +708,29 @@ class pyfai_settings:
     azimuthal_sector: np.ndarray | None = None
 
 
+def get_functions_dict(map_per_image: bool) -> dict:
+    if map_per_image:
+        return {
+            "pyfai_qmap": [pyfai_static_qmap_new, "Qmap", "2d Qmap"],
+            "pyfai_exitangles": [
+                pyfai_static_exitangles_new,
+                "exitmap",
+                "2d exit angle map",
+            ],
+            "pyfai_ivsq": [pyfai_static_ivsq_new_refactor, "IvsQ", "1d integration "],
+        }
+
+    return {
+        "pyfai_qmap": [pyfai_moving_qmap_smm_new, "Qmap", "2d Qmap"],
+        "pyfai_exitangles": [
+            pyfai_moving_exitangles_smm_new,
+            "exitmap",
+            "2d exit angle map",
+        ],
+        "pyfai_ivsq": [pyfai_moving_ivsq_smm_refactor, "IvsQ", "1d integration "],
+    }
+
+
 # ===================================
 # ====moving detector processing
 
@@ -1119,6 +1142,92 @@ def pyfai_moving_exitangles_smm_new(
 
 # ===================================
 # ====static detector processing
+
+
+def pyfai_static_ivsq_new_refactor(
+    experiment: Experiment, hf, scan, process_config: SimpleNamespace
+):
+    """
+    calculate Intensity Vs Q 1d profile from static detector scan
+    """
+    cfg = setup_job(process_config, experiment, scan, "ang")
+    log_queue = None
+    if cfg.debuglogging:
+        logger, listener, log_queue = setup_debug_logger(cfg.num_threads)
+    aistart = setup_initial_ai(cfg.pyfaiponi)
+    set_ai_slits(aistart, cfg.slitratios)
+    pyfai_info = pyfai_settings(
+        setup=cfg.setup,
+        radialrange=cfg.radialrange,
+        unit_ip_name="2th_deg",
+        unit_oop_name="2th_deg",
+        shapedataout=np.array([np.abs(cfg.ivqbins)]),
+        polarization=cfg.polarization,
+        azimuthal_sector=cfg.azimuthal_sector,
+    )
+    t0 = time()
+    ctx = get_context("fork")
+    experiment.load_curve_values(scan)
+
+    imageindices = get_full_indices(scan, cfg.scanlength, cfg.scalegamma)
+    batches, num_batches, completed = get_batch_details(
+        pyfai_info.multi, imageindices, pyfai_info.batchsize
+    )
+    # Prepare batches
+    d5i_full, all_inc_angles, gamdelvals = setup_pool_info(
+        cfg, experiment, scan, imageindices
+    )
+    # current_ai = setup_copy_ai(cfg.aistart, cfg.slitratios)
+
+    pool_function = worker_unpack("static_ivsq")
+
+    newrots = [
+        calc_rots_from_gamdel(
+            gamdelvals[ind_n],
+            all_inc_angles[ind_n][0],
+            cfg.alphacritical,
+            cfg.setup,
+        )
+        for ind_n in np.arange(len(batches))
+    ]
+
+    args_iter = [
+        [
+            pyfai_info,
+            ind,
+            d5i_full[ind_n],
+            scan.metadata,
+            aistart,
+            newrots[ind_n],
+            log_queue,
+            ind_n,
+        ]
+        for ind_n, ind in enumerate(batches)
+    ]
+    scan_masks, axis_name, all_ints, all_two_ths, all_qs = [[], [], [], [], []]
+    with ctx.Pool(processes=cfg.num_threads) as pool:
+        for partial in pool.starmap(pool_function, args_iter, chunksize=1):
+            if completed == 0:
+                scan_masks.append(partial[2])
+                axis_name.append(partial[3])
+            all_ints.append(partial[0])
+            all_two_ths.append(partial[1])
+            all_qs.append(
+                [calcq(val, experiment.incident_wavelength) for val in partial[1]]
+            )
+            completed += 1
+            if completed % 10 == 0 or completed == num_batches:
+                print(f"  completed {completed}/{num_batches} batches", flush=True)
+
+    inlist = [all_ints, all_qs, all_two_ths]
+    outlist = check_data_shape(inlist, scan)
+    outlist.append(axis_name[0])
+    save_masks(hf, scan_masks[0])
+
+    save_1d_integration_static(cfg, hf, outlist, scan)
+    if cfg.debuglogging:
+        log_queue.put_nowait(None)  # End the queue
+        listener.join()  # Stop the listener
 
 
 def pyfai_static_ivsq_new(
