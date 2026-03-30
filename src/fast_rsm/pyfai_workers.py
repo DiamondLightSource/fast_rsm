@@ -2,6 +2,7 @@ import copy
 import logging
 import logging.handlers
 import sys
+from functools import lru_cache
 from multiprocessing.shared_memory import SharedMemory
 
 import numpy as np
@@ -99,6 +100,7 @@ def setup_stat_worker(
     return inc_angle, inc_angle_out, d5i_data, gamdelval
 
 
+@lru_cache
 def setup_ip_oop_units(
     unit_qip_name, unit_qoop_name, sample_orientation, inc_angle_out=0
 ):
@@ -157,6 +159,32 @@ def calculate_1d(
         str(result1d._unit),
     ]
     return result1d, mapaxisinfo
+
+
+def calculate_2d_map_refactor(
+    pyfai_info,
+    ai,
+    img_data,
+    norm_data,
+):
+    map2d = ai.integrate2d(
+        img_data,
+        pyfai_info.shapedataout[1],
+        pyfai_info.shapedataout[0],
+        unit=(pyfai_info.unit_ip, pyfai_info.unit_oop),
+        radial_range=(pyfai_info.fullranges[0], pyfai_info.fullranges[1]),
+        azimuth_range=(pyfai_info.fullranges[2], pyfai_info.fullranges[3]),
+        method=pyfai_info.method,
+        polarization_factor=pyfai_info.polarization,
+        normalization_factor=norm_data,
+    )
+    mapaxisinfo = [
+        map2d.azimuthal,
+        map2d.radial,
+        str(map2d.azimuthal_unit),
+        str(map2d.radial_unit),
+    ]
+    return map2d, mapaxisinfo
 
 
 def calculate_1d_refactor(
@@ -235,11 +263,11 @@ def pyfai_init_worker(lock, shm_intensities_name, shm_counts_name, shmshape):
 def worker_unpack(worker_type):
     function_map = {
         "move_ivsq": pyfai_1dmap_worker_refactor,  # pyfai_1dmap_worker,
-        "move_qmap": pyfai_2dmap_worker,  # pyfai_move_qmap_worker_new,
-        "move_exit": pyfai_2dmap_worker,
+        "move_qmap": pyfai_2dmap_worker_refactor,  # pyfai_move_qmap_worker_new,
+        "move_exit": pyfai_2dmap_worker_refactor,
         "static_ivsq": pyfai_1dmap_worker_refactor,
+        "static_qmap": pyfai_2dmap_worker_refactor,
         "static_exit": pyfai_2dmap_worker,
-        "static_qmap": pyfai_2dmap_worker,
     }
     # worker_type = args[0]
     return function_map[worker_type]
@@ -349,9 +377,6 @@ def pyfai_1dmap_worker_refactor(
 
     ind = imageind
     current_ai = copy.deepcopy(start_ai)
-    # mask = current_ai.mask
-
-    # alphacritical = cfg.alphacritical
 
     set_ai_rots(newrot, current_ai, pyfai_info.setup)
     img_data, img_mask = get_pyfai_image_data(pyfai_info.setup, metadata, ind)
@@ -359,15 +384,6 @@ def pyfai_1dmap_worker_refactor(
         current_ai, img_data.shape, pyfai_info.azimuthal_sector
     )
     current_ai.mask = np.logical_or(img_mask, sector_mask)
-    # if current_ai.mask is None:
-    #     current_ai.mask = np.array(img_mask, copy=True)
-    #     mask = current_ai.mask
-    # else:
-    #     np.copyto(mask, img_mask)
-    # sector_mask = get_sector_mask(
-    #     current_ai, img_data.shape, pyfai_info.azimuthal_sector
-    # )
-    # current_ai.mask = np.logical_or(img_mask, sector_mask)
 
     res1d, mapaxisinfo = calculate_1d_refactor(
         pyfai_info,
@@ -381,9 +397,8 @@ def pyfai_1dmap_worker_refactor(
 
     return (
         res1d.intensity,
-        mapaxisinfo[0],
+        mapaxisinfo,
         [current_ai.mask, img_mask, sector_mask],
-        mapaxisinfo[1],
     )
 
 
@@ -429,6 +444,7 @@ def pyfai_2dmap_worker(
         mask = current_ai.mask
     else:
         np.copyto(mask, img_mask)
+
     map2d, mapaxisinfo = calculate_2d_map(
         current_ai,
         img_data,
@@ -445,3 +461,45 @@ def pyfai_2dmap_worker(
         return mapaxisinfo
 
     return (map2d[0], map2d[1], map2d[2], mapaxisinfo, current_ai.mask)
+
+
+def pyfai_2dmap_worker_refactor(
+    pyfai_info,
+    imageind,
+    d5i,
+    metadata,
+    start_ai,
+    newrot,
+    log_queue,
+    logn=None,
+    shared=False,
+) -> tuple:
+    """
+    calculate 2d q_para Vs q_perp map for moving detector scan using pyFAI
+    """
+
+    ind = imageind
+    current_ai = copy.deepcopy(start_ai)
+
+    set_ai_rots(newrot, current_ai, pyfai_info.setup)
+    img_data, img_mask = get_pyfai_image_data(pyfai_info.setup, metadata, ind)
+    sector_mask = get_sector_mask(
+        current_ai, img_data.shape, pyfai_info.azimuthal_sector
+    )
+    current_ai.mask = np.logical_or(img_mask, sector_mask)
+    pyfai_info.unit_ip, pyfai_info.unit_oop = setup_ip_oop_units(
+        pyfai_info.unit_ip_name,
+        pyfai_info.unit_oop_name,
+        pyfai_info.sample_orientation,
+    )
+    map2d, mapaxisinfo = calculate_2d_map_refactor(
+        pyfai_info,
+        current_ai,
+        img_data,
+        d5i,
+    )
+    if shared:
+        save_intcountshm_withlock(map2d)
+        return mapaxisinfo
+
+    return (map2d, mapaxisinfo, current_ai.mask)
