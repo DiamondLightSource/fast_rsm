@@ -30,7 +30,7 @@ from fast_rsm.logging_config import log_error_info, start_frsm_loggers
 from fast_rsm.pyfai_interface import (
     createponi,
     pyfai_moving_exitangles_smm_new,
-    pyfai_moving_ivsq_smm_new,
+    pyfai_moving_ivsq_smm_refactor,
     pyfai_moving_qmap_smm_new,
     pyfai_static_exitangles_new,
     pyfai_static_ivsq_new,
@@ -458,7 +458,7 @@ def get_run_functions(process_config):
             "exitmap",
             "2d exit angle map",
         ],
-        "pyfai_ivsq": [pyfai_moving_ivsq_smm_new, "IvsQ", "1d integration "],
+        "pyfai_ivsq": [pyfai_moving_ivsq_smm_refactor, "IvsQ", "1d integration "],
     }
 
     if cfg.map_per_image:

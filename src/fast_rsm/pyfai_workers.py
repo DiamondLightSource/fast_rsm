@@ -86,24 +86,6 @@ def get_pyfai_image_data(setup: str, metadata, idx):
     return np.array(outimage.data), mask
 
 
-def set_ai_rots(rots, current_ai, setup):
-    """
-    get components need for mapping with pyFAI
-    """
-    # gamval, delval = gamdelval
-    # if (-np.degrees(inc_angle) > alphacritical) & (setup == "DCD"):
-    #     # if above critical angle, account for direct beam adding to delta
-    #     rots = gamdel2rots(gamval, delval + np.degrees(-inc_angle))
-    # else:
-    #     rots = gamdel2rots(gamval, delval)
-
-    current_ai.rot1, current_ai.rot2, current_ai.rot3 = rots
-
-    if setup == "vertical":
-        current_ai.rot1 = rots[1]
-        current_ai.rot2 = -rots[0]
-
-
 def setup_stat_worker(
     imageindex,
     all_inc_angles,
@@ -177,6 +159,30 @@ def calculate_1d(
     return result1d, mapaxisinfo
 
 
+def calculate_1d_refactor(
+    pyfai_info,
+    ai,
+    img_data,
+    norm_data,
+):
+
+    result1d = ai.integrate1d(
+        img_data,
+        pyfai_info.shapedataout,
+        unit=pyfai_info.unit_ip_name,
+        normalization_factor=norm_data,
+        correctSolidAngle=True,
+        method=pyfai_info.method,
+        radial_range=pyfai_info.radialrange,
+        polarization_factor=pyfai_info.polarization,
+    )
+    mapaxisinfo = [
+        result1d.radial,
+        str(result1d._unit),
+    ]
+    return result1d, mapaxisinfo
+
+
 def get_sector_mask(ai, shape, sector_ranges):
     if sector_ranges is None:
         return np.zeros(shape)
@@ -228,7 +234,7 @@ def pyfai_init_worker(lock, shm_intensities_name, shm_counts_name, shmshape):
 # -----------------------------
 def worker_unpack(worker_type):
     function_map = {
-        "move_ivsq": pyfai_1dmap_worker,
+        "move_ivsq": pyfai_1dmap_worker_refactor,  # pyfai_1dmap_worker,
         "move_qmap": pyfai_2dmap_worker,  # pyfai_move_qmap_worker_new,
         "move_exit": pyfai_2dmap_worker,
         "static_ivsq": pyfai_1dmap_worker,
@@ -249,6 +255,29 @@ def save_intcountshm_withlock(result):
         COUNT_ARRAY += result.count.astype(dtype=np.int32)
 
 
+def set_ai_rots(rots, current_ai, setup):
+    """
+    get components need for mapping with pyFAI
+    """
+    current_ai.rot1, current_ai.rot2, current_ai.rot3 = rots
+
+    if setup == "vertical":
+        current_ai.rot1 = rots[1]
+        current_ai.rot2 = -rots[0]
+
+
+def set_ai_mask(current_ai, img_data_shape, img_mask, azimuthal_sector) -> np.ndarray:
+    # if current_ai.mask is None:
+    #     current_ai.mask = np.array(img_mask, copy=True)
+    #     mask = current_ai.mask
+    # else:
+    #     np.copyto(mask, img_mask)
+
+    sector_mask = get_sector_mask(current_ai, img_data_shape, azimuthal_sector)
+    current_ai.mask = np.logical_or(img_mask, sector_mask)
+    return np.array([img_mask, sector_mask])
+
+
 def pyfai_1dmap_worker(
     imageind,
     d5i,
@@ -259,7 +288,7 @@ def pyfai_1dmap_worker(
     log_queue,
     logn=None,
     shared=False,
-) -> None:
+) -> tuple:
     """
     calculate 2d q_para Vs q_perp map for moving detector scan using pyFAI
     """
@@ -303,6 +332,61 @@ def pyfai_1dmap_worker(
     )
 
 
+def pyfai_1dmap_worker_refactor(
+    pyfai_info,
+    imageind,
+    d5i,
+    metadata,
+    start_ai,
+    newrot,
+    log_queue,
+    logn=None,
+    shared=False,
+) -> tuple:
+    """
+    calculate 2d q_para Vs q_perp map for moving detector scan using pyFAI
+    """
+
+    ind = imageind
+    current_ai = copy.deepcopy(start_ai)
+    # mask = current_ai.mask
+
+    # alphacritical = cfg.alphacritical
+
+    set_ai_rots(newrot, current_ai, pyfai_info.setup)
+    img_data, img_mask = get_pyfai_image_data(pyfai_info.setup, metadata, ind)
+    sector_mask = get_sector_mask(
+        current_ai, img_data.shape, pyfai_info.azimuthal_sector
+    )
+    current_ai.mask = np.logical_or(img_mask, sector_mask)
+    # if current_ai.mask is None:
+    #     current_ai.mask = np.array(img_mask, copy=True)
+    #     mask = current_ai.mask
+    # else:
+    #     np.copyto(mask, img_mask)
+    # sector_mask = get_sector_mask(
+    #     current_ai, img_data.shape, pyfai_info.azimuthal_sector
+    # )
+    # current_ai.mask = np.logical_or(img_mask, sector_mask)
+
+    res1d, mapaxisinfo = calculate_1d_refactor(
+        pyfai_info,
+        current_ai,
+        img_data,
+        d5i,
+    )
+    if shared:
+        save_intcountshm_withlock(res1d)
+        return mapaxisinfo
+
+    return (
+        res1d.intensity,
+        mapaxisinfo[0],
+        [current_ai.mask, img_mask, sector_mask],
+        mapaxisinfo[1],
+    )
+
+
 def pyfai_2dmap_worker(
     imageind,
     d5i,
@@ -313,7 +397,7 @@ def pyfai_2dmap_worker(
     log_queue,
     logn=None,
     shared=False,
-) -> None:
+) -> tuple:
     """
     calculate 2d q_para Vs q_perp map for moving detector scan using pyFAI
     """
@@ -360,4 +444,4 @@ def pyfai_2dmap_worker(
         save_intcountshm_withlock(map2d)
         return mapaxisinfo
 
-    return map2d[0], map2d[1], map2d[2], mapaxisinfo, current_ai.mask
+    return (map2d[0], map2d[1], map2d[2], mapaxisinfo, current_ai.mask)

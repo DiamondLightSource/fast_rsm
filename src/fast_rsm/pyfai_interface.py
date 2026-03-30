@@ -6,6 +6,7 @@ import copy
 import multiprocessing
 import os
 import sys
+from dataclasses import dataclass
 from datetime import datetime
 from multiprocessing import Lock, Manager, Process, get_context  # Queue
 from multiprocessing.managers import SharedMemoryManager
@@ -19,6 +20,8 @@ import pyFAI
 import pyFAI.calibrant
 import pyFAI.detectors
 import yaml
+from pyFAI.integrator.azimuthal import AzimuthalIntegrator
+from pyFAI.integrator.fiber import FiberIntegrator
 
 from fast_rsm.angle_pixel_q import calcq, gamdel2rots
 from fast_rsm.experiment import Experiment, do_savedats, do_savetiffs
@@ -238,27 +241,31 @@ def get_gam_del_vals(gammadata, two_theta_start, deltadata, index):
     return [gamval, delval]
 
 
+def parse_hvslit_ratios(slitratios):
+    if slitratios is not None:
+        return slitratios
+    return None, None
+
+
+def check_scanlist(scanlist):
+    if isinstance(scanlist, Scan):
+        return [scanlist]
+    return scanlist
+
+
 def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, process_config):
     """
     calculate setup values needed for pyfai calculations
     """
     # pylint: disable=attribute-defined-outside-init
     cfg = process_config
-    slitratios = cfg.slitratios
-    if isinstance(scanlist, Scan):
-        scanlistnew = [scanlist]
-    else:
-        scanlistnew = scanlist
+    slithorratio, slitvertratio = parse_hvslit_ratios(cfg.slitratios)
+    scanlistnew = check_scanlist(scanlist)
 
     limhor = None
     limver = None
     for scan in scanlistnew:
         experiment.load_curve_values(scan)
-
-        if slitratios is not None:
-            slitvertratio, slithorratio = slitratios
-        else:
-            slitvertratio = slithorratio = None
 
         scanlimhor = limitfunction("hor", slithorratio=slithorratio)
         scanlimver = limitfunction("vert", slitvertratio=slitvertratio)
@@ -540,7 +547,7 @@ def setup_debug_logger(num_cpus: int):
     return logger, listener, log_queue
 
 
-def setup_job(process_config, experiment, scan, limit_key):
+def setup_job(process_config, experiment: Experiment, scan, limit_key):
     cfg = copy.copy(process_config)
 
     limit_functions = {"ang": experiment.calcanglim, "q": experiment.calcqlim}
@@ -627,6 +634,16 @@ def start_smm(smm, memshape):
     return shm_intensities, shm_counts, arrays_arr, counts_arr, lock
 
 
+def set_ai_slits(aistart: AzimuthalIntegrator | FiberIntegrator, slitratios: tuple):
+    if slitratios[0] is not None:
+        aistart.pixel1 *= slitratios[0]
+        aistart.poni1 *= slitratios[0]
+
+    if slitratios[1] is not None:
+        aistart.pixel2 *= slitratios[1]
+        aistart.poni2 *= slitratios[1]
+
+
 def setup_copy_ai(aistart, slitratios):
     out_ai = copy.deepcopy(aistart)
     if slitratios[0] is not None:
@@ -677,8 +694,129 @@ def get_pyfai_image_data(setup: str, metadata, idx):
     return np.array(outimage.data), mask
 
 
+@dataclass
+class pyfai_settings:
+    setup: str
+    radialrange: np.ndarray
+    polarization: int
+    shapedataout: np.ndarray
+    unit_ip_name: str  # "qip_A^-1"# "qip_A^-1""2th_deg"  #
+    unit_oop_name: str
+    batchsize: int = 30
+    multi: bool = False
+    method: tuple = ("no", "csr", "cython")
+    azimuthal_sector: np.ndarray | None = None
+
+
 # ===================================
 # ====moving detector processing
+
+
+def pyfai_moving_ivsq_smm_refactor(
+    experiment: Experiment, hf, scanlist, process_config
+) -> None:
+    """
+    calculate q_para vs q_perp map for a moving detector scan
+    """
+
+    cfg = setup_job(process_config, experiment, scanlist, "ang")
+    log_queue = None
+    if cfg.debuglogging:
+        logger, listener, log_queue = setup_debug_logger(cfg.num_threads)
+    aistart = setup_initial_ai(cfg.pyfaiponi)
+    set_ai_slits(aistart, cfg.slitratios)
+    pyfai_info = pyfai_settings(
+        setup=cfg.setup,
+        radialrange=cfg.radialrange,
+        unit_ip_name="2th_deg",
+        unit_oop_name="2th_deg",
+        shapedataout=np.array([np.abs(cfg.ivqbins)]),
+        polarization=cfg.polarization,
+        azimuthal_sector=cfg.azimuthal_sector,
+    )
+    t0 = time()
+    ctx = get_context("fork")
+    with SharedMemoryManager() as smm:
+        shm_intensities, shm_counts, arrays_arr, counts_arr, lock = start_smm(
+            smm, pyfai_info.shapedataout
+        )
+        start_time = time()
+        for scanind, scan in enumerate(cfg.scanlistnew):
+            experiment.load_curve_values(scan)
+
+            imageindices = get_full_indices(scan, cfg.scanlength, cfg.scalegamma)
+            batches, num_batches, completed = get_batch_details(
+                pyfai_info.multi, imageindices, pyfai_info.batchsize
+            )
+            # Prepare batches
+            d5i_full, all_inc_angles, gamdelvals = setup_pool_info(
+                cfg, experiment, scan, imageindices
+            )
+            # current_ai = setup_copy_ai(cfg.aistart, cfg.slitratios)
+
+            pool_function = worker_unpack("move_ivsq")
+
+            newrots = [
+                calc_rots_from_gamdel(
+                    gamdelvals[ind_n],
+                    all_inc_angles[ind_n][0],
+                    cfg.alphacritical,
+                    cfg.setup,
+                )
+                for ind_n in np.arange(len(batches))
+            ]
+
+            args_iter = [
+                [
+                    pyfai_info,
+                    ind,
+                    d5i_full[ind_n],
+                    scan.metadata,
+                    aistart,
+                    newrots[ind_n],
+                    log_queue,
+                    ind_n,
+                    True,
+                ]
+                for ind_n, ind in enumerate(batches)
+            ]
+            with ctx.Pool(
+                processes=cfg.num_threads,
+                initializer=pyfai_init_worker,
+                initargs=(
+                    lock,
+                    shm_intensities.name,
+                    shm_counts.name,
+                    pyfai_info.shapedataout,
+                ),
+            ) as pool:
+                mapaxisinfolist = pool.starmap(pool_function, args_iter)
+
+        ints_final = np.zeros(pyfai_info.shapedataout, dtype=np.float32)
+        counts_final = np.zeros(pyfai_info.shapedataout, dtype=np.float32)
+        shmI = SharedMemory(name=shm_intensities.name)
+        shmC = SharedMemory(name=shm_counts.name)
+
+        intensity_view = np.ndarray(
+            pyfai_info.shapedataout, dtype=np.float32, buffer=shmI.buf
+        )
+        count_view = np.ndarray(
+            pyfai_info.shapedataout, dtype=np.float32, buffer=shmC.buf
+        )
+
+        ints_final += intensity_view
+        counts_final += count_view
+
+    if cfg.debuglogging:
+        log_queue.put_nowait(None)  # End the queue
+        listener.join()  # Stop the listener
+    outaxisinfo = mapaxisinfolist[0]
+    tth_vals_final = outaxisinfo[0]
+    tth_string = outaxisinfo[1]
+    q_final = [calcq(val, experiment.incident_wavelength) for val in tth_vals_final]
+    save_1d_integration(
+        hf, cfg, ints_final, counts_final, tth_vals_final, q_final, tth_string
+    )
 
 
 def pyfai_moving_ivsq_smm_new(experiment: Experiment, hf, scanlist, process_config):
