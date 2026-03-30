@@ -267,7 +267,7 @@ def worker_unpack(worker_type):
         "move_exit": pyfai_2dmap_worker_refactor,
         "static_ivsq": pyfai_1dmap_worker_refactor,
         "static_qmap": pyfai_2dmap_worker_refactor,
-        "static_exit": pyfai_2dmap_worker,
+        "static_exit": pyfai_2dmap_worker_refactor,
     }
     # worker_type = args[0]
     return function_map[worker_type]
