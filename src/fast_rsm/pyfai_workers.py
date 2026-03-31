@@ -117,48 +117,48 @@ def setup_ip_oop_units(
     return unit_ip, unit_oop
 
 
-def calculate_2d_map(
-    ai, img_data, unit_ip, unit_oop, method, d5i, qmapbins, fullranges, polarization
-):
-    map2d = ai.integrate2d(
-        img_data,
-        qmapbins[0],
-        qmapbins[1],
-        unit=(unit_ip, unit_oop),
-        radial_range=(fullranges[0], fullranges[1]),
-        azimuth_range=(fullranges[2], fullranges[3]),
-        method=method,
-        polarization_factor=polarization,
-        normalization_factor=d5i,
-    )
-    mapaxisinfo = [
-        map2d.azimuthal,
-        map2d.radial,
-        str(map2d.azimuthal_unit),
-        str(map2d.radial_unit),
-    ]
-    return map2d, mapaxisinfo
+# def calculate_2d_map(
+#     ai, img_data, unit_ip, unit_oop, method, d5i, qmapbins, fullranges, polarization
+# ):
+#     map2d = ai.integrate2d(
+#         img_data,
+#         qmapbins[0],
+#         qmapbins[1],
+#         unit=(unit_ip, unit_oop),
+#         radial_range=(fullranges[0], fullranges[1]),
+#         azimuth_range=(fullranges[2], fullranges[3]),
+#         method=method,
+#         polarization_factor=polarization,
+#         normalization_factor=d5i,
+#     )
+#     mapaxisinfo = [
+#         map2d.azimuthal,
+#         map2d.radial,
+#         str(map2d.azimuthal_unit),
+#         str(map2d.radial_unit),
+#     ]
+#     return map2d, mapaxisinfo
 
 
-def calculate_1d(
-    ivqbins, radialrange, unit_ip, polarization, ai, img_data, norm_data, method
-):
+# def calculate_1d(
+#     ivqbins, radialrange, unit_ip, polarization, ai, img_data, norm_data, method
+# ):
 
-    result1d = ai.integrate1d(
-        img_data,
-        ivqbins,
-        unit=unit_ip,
-        normalization_factor=norm_data,
-        correctSolidAngle=True,
-        method=method,
-        radial_range=radialrange,
-        polarization_factor=polarization,
-    )
-    mapaxisinfo = [
-        result1d.radial,
-        str(result1d._unit),
-    ]
-    return result1d, mapaxisinfo
+#     result1d = ai.integrate1d(
+#         img_data,
+#         ivqbins,
+#         unit=unit_ip,
+#         normalization_factor=norm_data,
+#         correctSolidAngle=True,
+#         method=method,
+#         radial_range=radialrange,
+#         polarization_factor=polarization,
+#     )
+#     mapaxisinfo = [
+#         result1d.radial,
+#         str(result1d._unit),
+#     ]
+#     return result1d, mapaxisinfo
 
 
 def calculate_2d_map_refactor(
@@ -502,4 +502,4 @@ def pyfai_2dmap_worker_refactor(
         save_intcountshm_withlock(map2d)
         return mapaxisinfo
 
-    return (map2d, mapaxisinfo, current_ai.mask)
+    return (map2d[0], mapaxisinfo, current_ai.mask)
