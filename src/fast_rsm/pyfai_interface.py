@@ -591,12 +591,12 @@ def get_batch_details(multi, imageindices, batchsize):
     return batches, num_batches, completed
 
 
-def check_data_shape(inlist, scan):
+def check_data_shape(arr, scan):
     signal_shape = np.shape(scan.metadata.data_file.default_signal)
     if len(signal_shape) > 1:
-        outlist = [reshape_to_signalshape(arr, signal_shape) for arr in inlist]
-        return outlist
-    return inlist
+        # outlist = [ for arr in inlist]
+        return reshape_to_signalshape(arr, signal_shape)
+    return arr
 
 
 def start_smm(smm, memshape):
@@ -1056,9 +1056,10 @@ def pyfai_static_ivsq_new_refactor(
     two_th_vals = mapaxisinfo[0][0]
     q_vals = [calcq(val, experiment.incident_wavelength) for val in two_th_vals]
 
-    inlist = [mapped_data[0], q_vals, two_th_vals]
-    outlist = check_data_shape(inlist, scan)
-    outlist.append(mapaxisinfo[0][1])
+    # inlist = [mapped_data, q_vals, two_th_vals]
+    outmap = check_data_shape(mapped_data, scan)
+
+    outlist = [outmap, q_vals, two_th_vals, mapaxisinfo[0][1]]
     save_masks(hf, mask_info[0])
 
     save_1d_integration_static(cfg, hf, outlist, scan)

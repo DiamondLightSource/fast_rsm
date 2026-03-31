@@ -402,67 +402,6 @@ def pyfai_1dmap_worker_refactor(
     )
 
 
-def pyfai_2dmap_worker(
-    imageind,
-    d5i,
-    metadata,
-    current_ai,
-    newrot,
-    cfg,
-    log_queue,
-    logn=None,
-    shared=False,
-) -> tuple:
-    """
-    calculate 2d q_para Vs q_perp map for moving detector scan using pyFAI
-    """
-
-    # global INTENSITY_ARRAY, COUNT_ARRAY
-    ind = imageind
-
-    mask = current_ai.mask
-    mapunits = setup_ip_oop_units(
-        cfg.unit_qip_name,
-        cfg.unit_qoop_name,
-        cfg.sample_orientation,
-    )
-    unit_ip = mapunits[0]  # shared_mem_setup.UNIT_IP
-    unit_oop = mapunits[1]  # shared_mem_setup.UNIT_OOP
-    method = ("no", "csr", "cython")
-    # alphacritical = cfg.alphacritical
-    setup = cfg.setup
-
-    qmapbins, fullranges, polarization = (
-        cfg.qmapbins,
-        cfg.fullranges,
-        cfg.polarization,
-    )
-    set_ai_rots(newrot, current_ai, setup)
-    img_data, img_mask = get_pyfai_image_data(setup, metadata, ind)
-    if current_ai.mask is None:
-        current_ai.mask = np.array(img_mask, copy=True)
-        mask = current_ai.mask
-    else:
-        np.copyto(mask, img_mask)
-
-    map2d, mapaxisinfo = calculate_2d_map(
-        current_ai,
-        img_data,
-        unit_ip,
-        unit_oop,
-        method,
-        d5i,
-        qmapbins,
-        fullranges,
-        polarization,
-    )
-    if shared:
-        save_intcountshm_withlock(map2d)
-        return mapaxisinfo
-
-    return (map2d[0], map2d[1], map2d[2], mapaxisinfo, current_ai.mask)
-
-
 def pyfai_2dmap_worker_refactor(
     pyfai_info,
     imageind,
@@ -503,3 +442,64 @@ def pyfai_2dmap_worker_refactor(
         return mapaxisinfo
 
     return (map2d[0], mapaxisinfo, current_ai.mask)
+
+
+# def pyfai_2dmap_worker(
+#     imageind,
+#     d5i,
+#     metadata,
+#     current_ai,
+#     newrot,
+#     cfg,
+#     log_queue,
+#     logn=None,
+#     shared=False,
+# ) -> tuple:
+#     """
+#     calculate 2d q_para Vs q_perp map for moving detector scan using pyFAI
+#     """
+
+#     # global INTENSITY_ARRAY, COUNT_ARRAY
+#     ind = imageind
+
+#     mask = current_ai.mask
+#     mapunits = setup_ip_oop_units(
+#         cfg.unit_qip_name,
+#         cfg.unit_qoop_name,
+#         cfg.sample_orientation,
+#     )
+#     unit_ip = mapunits[0]  # shared_mem_setup.UNIT_IP
+#     unit_oop = mapunits[1]  # shared_mem_setup.UNIT_OOP
+#     method = ("no", "csr", "cython")
+#     # alphacritical = cfg.alphacritical
+#     setup = cfg.setup
+
+#     qmapbins, fullranges, polarization = (
+#         cfg.qmapbins,
+#         cfg.fullranges,
+#         cfg.polarization,
+#     )
+#     set_ai_rots(newrot, current_ai, setup)
+#     img_data, img_mask = get_pyfai_image_data(setup, metadata, ind)
+#     if current_ai.mask is None:
+#         current_ai.mask = np.array(img_mask, copy=True)
+#         mask = current_ai.mask
+#     else:
+#         np.copyto(mask, img_mask)
+
+#     map2d, mapaxisinfo = calculate_2d_map(
+#         current_ai,
+#         img_data,
+#         unit_ip,
+#         unit_oop,
+#         method,
+#         d5i,
+#         qmapbins,
+#         fullranges,
+#         polarization,
+#     )
+#     if shared:
+#         save_intcountshm_withlock(map2d)
+#         return mapaxisinfo
+
+#     return (map2d[0], map2d[1], map2d[2], mapaxisinfo, current_ai.mask)
