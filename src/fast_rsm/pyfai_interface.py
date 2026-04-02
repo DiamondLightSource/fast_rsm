@@ -279,8 +279,8 @@ def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, process_
 
     outlimits = [limhor[0], limhor[1], limver[0], limver[1]]
     if experiment.setup == "vertical":
-        experiment.beam_centre = [experiment.beam_centre[1], experiment.beam_centre[0]]
-        experiment.beam_centre[1] = experiment.imshape[0] - experiment.beam_centre[1]
+        experiment.beam_centre = (experiment.beam_centre[1], experiment.beam_centre[0])
+        experiment.beam_centre = ( experiment.beam_centre[0], experiment.imshape[0] - experiment.beam_centre[1])
 
     datacheck = "data" in list(scan.metadata.data_file.nx_detector)
     localpathcheck = "local_image_paths" in scan.metadata.data_file.__dict__.keys()
@@ -363,15 +363,18 @@ def get_d5i_values(scan):
 # ====data saving functions
 
 
-def save_1d_integration_static(cfg, hf, outlist, scan=None):
+def save_1d_integration_static(cfg, hf, outlist: dict, scan=None):
     """
     save 1d Intensity Vs Q profile to hdf5 file
     """
 
     dset = hf.create_group("integrations")
-    dset.create_dataset("Intensity", data=outlist[0])
-    dset.create_dataset("Q_angstrom^-1", data=outlist[1])
-    dset.create_dataset(f"{outlist[3]}", data=outlist[2])
+    for k, v in outlist.items():
+        dset.create_dataset(k, data=v)
+
+    # dset.create_dataset("Intensity", data=outlist[0])
+    # dset.create_dataset(f"{outlist[3][0]}", data=outlist[1])
+    # dset.create_dataset(f"{outlist[3][1]}", data=outlist[2])
 
     if (scan is not None) & ("scanfields" not in hf.keys()):
         save_scan_field_values(hf, scan)
@@ -709,6 +712,8 @@ def get_functions_dict(map_per_image: bool) -> dict:
                 "2d exit angle map",
             ],
             "pyfai_ivsq": [pyfai_static_ivsq_new_refactor, "IvsQ", "1d integration "],
+            "pyfai_ivschi": [pyfai_static_ivschi_refactor, "IvsChi", "1d integration "],
+            "pyfai_chimap": [pyfai_static_chimap_refactor, "Chimap", "2d Chi map "],
         }
 
     return {
@@ -814,7 +819,7 @@ def setup_args_iter(
 
 def run_shared_memory(
     pyfai_info: pyfai_settings, scanangles_list: list[angle_info], pool_setup, cfg
-):
+)-> tuple:
 
     pool_function, aistart, scanlistnew, num_threads = pool_setup
     ctx = get_context("fork")
@@ -846,10 +851,10 @@ def run_shared_memory(
         shmI = SharedMemory(name=shm_intensities.name)
         shmC = SharedMemory(name=shm_counts.name)
 
-        intensity_view = np.ndarray(
+        intensity_view: np.ndarray = np.ndarray(
             pyfai_info.shapedataout, dtype=np.float32, buffer=shmI.buf
         )
-        count_view = np.ndarray(
+        count_view: np.ndarray = np.ndarray(
             pyfai_info.shapedataout, dtype=np.float32, buffer=shmC.buf
         )
 
@@ -1059,10 +1064,101 @@ def pyfai_static_ivsq_new_refactor(
     # inlist = [mapped_data, q_vals, two_th_vals]
     outmap = check_data_shape(mapped_data, scan)
 
-    outlist = [outmap, q_vals, two_th_vals, mapaxisinfo[0][1]]
+    outlist = {
+        "Intensity": outmap,
+        f"{mapaxisinfo[0][1]}": mapaxisinfo[0][0],
+        "Q_angstrom^-1": q_vals,
+    }
+    # outlist = [outmap, q_vals, two_th_vals, mapaxisinfo[0][1]]
     save_masks(hf, mask_info[0])
 
     save_1d_integration_static(cfg, hf, outlist, scan)
+    if cfg.debuglogging:
+        log_queue.put_nowait(None)  # End the queue
+        listener.join()  # Stop the listener
+
+
+def pyfai_static_ivschi_refactor(
+    experiment: Experiment, hf, scan, process_config: SimpleNamespace
+):
+    # unit_oop = "chigi_deg" if polar_degrees else "chigi_rad"
+    # unit_ip = "qtot_A^-1" if radial_unit == "A^-1" else "qtot_nm^-1"
+    cfg = setup_job(process_config, experiment, scan, "ang")
+    log_queue = None
+    if cfg.debuglogging:
+        logger, listener, log_queue = setup_debug_logger(cfg.num_threads)
+    aistart = setup_initial_ai(cfg.pyfaiponi, fiber_integrator=True)
+    set_ai_slits(aistart, cfg.slitratios)
+    pyfai_info = pyfai_settings(
+        setup=cfg.setup,
+        radialrange=np.array(
+            [calcq(val, aistart.wavelength) for val in cfg.radialrange]
+        ),
+        unit_ip_name="qtot_A^-1",
+        unit_oop_name="chigi_deg",
+        shapedataout=np.array(np.abs(cfg.ivqbins)),
+        polarization=cfg.polarization,
+        azimuthal_sector=np.array(cfg.azimuthal_sector),
+    )
+
+    pool_function = worker_unpack("static_ivschi")
+    scan_angles = get_scanangles(experiment, scan)
+    args_iter = setup_args_iter(
+        scan, pyfai_info, scan_angles, cfg, aistart, shared=False
+    )
+
+    mapped_data, mapaxisinfo, mask_info = run_single_scan_pool(
+        pool_function=pool_function, args_iter=args_iter, num_threads=cfg.num_threads
+    )
+
+    # inlist = [mapped_data, q_vals, two_th_vals]
+    outmap = check_data_shape(mapped_data, scan)
+    save_masks(hf, mask_info[0])
+    outlist = {
+        "Intensity": outmap,
+        f"{mapaxisinfo[0][1]}": mapaxisinfo[0][0],
+    }
+
+    save_1d_integration_static(cfg, hf, outlist, scan)
+    if cfg.debuglogging:
+        log_queue.put_nowait(None)  # End the queue
+        listener.join()  # Stop the listener
+
+
+def pyfai_static_chimap_refactor(
+    experiment: Experiment, hf, scan, process_config: SimpleNamespace
+):
+    # unit_oop = "chigi_deg" if polar_degrees else "chigi_rad"
+    # unit_ip = "qtot_A^-1" if radial_unit == "A^-1" else "qtot_nm^-1"
+    cfg = setup_job(process_config, experiment, scan, "ang")
+    log_queue = None
+    if cfg.debuglogging:
+        logger, listener, log_queue = setup_debug_logger(cfg.num_threads)
+    aistart = setup_initial_ai(cfg.pyfaiponi, fiber_integrator=True)
+    set_ai_slits(aistart, cfg.slitratios)
+    pyfai_info = pyfai_settings(
+        setup=cfg.setup,
+        radialrange=np.array(
+            [calcq(val, aistart.wavelength) for val in cfg.radialrange]
+        ),
+        unit_ip_name="qtot_A^-1",
+        unit_oop_name="chigi_deg",
+        shapedataout=np.array([cfg.qmapbins[1], cfg.qmapbins[0]]),
+        polarization=cfg.polarization,
+        azimuthal_sector=np.array(cfg.azimuthal_sector),
+    )
+    t0 = time()
+    pool_function = worker_unpack("static_chimap")
+    scan_angles = get_scanangles(experiment, scan)
+    args_iter = setup_args_iter(
+        scan, pyfai_info, scan_angles, cfg, aistart, shared=False
+    )
+
+    mapped_data, mapaxisinfo, *_ = run_single_scan_pool(
+        pool_function=pool_function, args_iter=args_iter, num_threads=cfg.num_threads
+    )
+    outdata = check_data_shape(mapped_data, scan)
+    save_hf_map_static(hf, cfg, t0, "chi_qtotal", outdata, mapaxisinfo[0], scan)
     if cfg.debuglogging:
         log_queue.put_nowait(None)  # End the queue
         listener.join()  # Stop the listener

@@ -447,7 +447,13 @@ def run_process_list(experiment, process_config):
     cfg = process_config
     functions_dict = get_functions_dict(cfg.map_per_image)
     scanlist_function = get_run_function(cfg.map_per_image)
-    pyfai_options = ["pyfai_qmap", "pyfai_exitangles", "pyfai_ivsq"]
+    pyfai_options = [
+        "pyfai_qmap",
+        "pyfai_exitangles",
+        "pyfai_ivsq",
+        "pyfai_ivschi",
+        "pyfai_chimap",
+    ]
     for output in cfg.process_outputs:
         if output in pyfai_options:
             runoptions = functions_dict[output]
