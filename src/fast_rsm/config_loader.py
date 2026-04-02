@@ -12,7 +12,14 @@ import yaml
 from schema import And, Or, Schema, SchemaError
 from simpleeval import SimpleEval
 
-valid_outs = ["full_reciprocal_map", "pyfai_ivsq", "pyfai_qmap", "pyfai_exitangles"]
+valid_outs = [
+    "full_reciprocal_map",
+    "pyfai_ivsq",
+    "pyfai_qmap",
+    "pyfai_exitangles",
+    "pyfai_ivschi",
+    "pyfai_chimap",
+]
 giwaxsdeplist = [
     "curved_projection_2D",
     "pyfai_1D",
@@ -129,7 +136,7 @@ config_schema = Schema(
         "coordinates": Or(None, str),
         "use_thv": Or(None, bool),
         "azimuthal_sector": Or(None, tuple),
-        "pyfaiponi": Or(None,str),
+        "pyfaiponi": Or(None, str),
     }
 )
 
