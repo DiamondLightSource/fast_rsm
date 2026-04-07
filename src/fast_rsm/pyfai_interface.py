@@ -385,7 +385,7 @@ def save_1d_integration_static(cfg, hf, outlist: dict, scan=None):
 
 
 def save_1d_integration(
-    hf, cfg, ints_final, counts_final, tth_vals_final, q_final, tth_string
+    hf, cfg, ints_final, counts_final, tth_vals_final, q_final, mapaxisinfo
 ):
 
     int_array = np.divide(
@@ -394,7 +394,13 @@ def save_1d_integration(
         out=np.copy(ints_final),
         where=counts_final.astype(float) > 0.0,
     )
-    outlist = [int_array, q_final, tth_vals_final, tth_string]
+    # outlist = [int_array, q_final, tth_vals_final, tth_string]
+
+    outlist = {
+        "Intensity": int_array,
+        f"{mapaxisinfo[0][1]}": mapaxisinfo[0][0],
+        "Q_angstrom^-1": q_final,
+    }
     save_1d_integration_static(cfg, hf, outlist)
 
 
@@ -908,10 +914,10 @@ def pyfai_moving_ivsq_smm_refactor(
         listener.join()  # Stop the listener
     outaxisinfo = mapaxisinfolist[0]
     tth_vals_final = outaxisinfo[0]
-    tth_string = outaxisinfo[1]
+    # tth_string = outaxisinfo[1]
     q_final = [calcq(val, experiment.incident_wavelength) for val in tth_vals_final]
     save_1d_integration(
-        hf, cfg, ints_final, counts_final, tth_vals_final, q_final, tth_string
+        hf, cfg, ints_final, counts_final, tth_vals_final, q_final, mapaxisinfolist
     )
 
 
