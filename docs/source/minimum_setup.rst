@@ -13,9 +13,13 @@ Data paths
 
 The first details to include in the setup file are where the data is currently saved, and where you would like to output the processed results. This information is stored in the following two variables:
 
-**local_data_path** : Set this to the directory path where your files are saved, note you will need to include any subdirectories in this path e.g  */dls/i07/data/2025/si36456-5/sample1*
+.. confval:: local_data_path
+    
+    Set this to the directory path where your files are saved, note you will need to include any subdirectories in this path e.g  */dls/i07/data/2025/si36456-5/sample1*
 
-**local_output_path**: Set this to the path where you want the output from the data processing to be saved e.g.  */dls/i07/data/2025/si36456-5/processing/sample1*
+.. confval:: local_output_path
+    
+    Set this to the path where you want the output from the data processing to be saved e.g.  */dls/i07/data/2025/si36456-5/processing/sample1*
 
 
 Geometry
@@ -23,19 +27,56 @@ Geometry
 
 The next step is to include details on the geometry of the setup, which are stored in the following variables: 
 
-**setup**: How was your sample mounted? Options are ‘horizontal’, ‘vertical’ and ‘DCD’
+.. confval:: setup 
+    
+    How was your sample mounted? Options are ‘horizontal’, ‘vertical’ and ‘DCD’.
 
-**experimental_hutch**: which experimental hutch was used 1= experimental hutch 1, 2=experimental hutch 2
+    from `Schleputz 2011 paper`_
 
-**beam_centre**: The beam centre, as can be read out from GDA, in pixel_x, pixel_y.
 
-**detector_distance**:  The distance between the sample and the detector (or, if using the DCD, the distance between the receiving slit and the detector). Units of meters.
+.. subfigure:: AA|BC
+   :gap: 8px
+   :subcaptions: above
+   :name: setups
+   :class-grid: outline
+
+   .. image:: figures/hor_ver_diagram.png
+       :width: 450px
+
+   .. image:: figures/horizontal_setup.png
+      :alt: Horizontal setup
+      :width: 300px
+
+
+   .. image:: figures/vertical_setup.png
+      :alt: Vertical setup
+      :width: 300px
+
+
+.. confval:: experimental_hutch
+    
+    which experimental hutch was used 1= experimental hutch 1, 2=experimental hutch 2
+
+.. confval:: beam_centre
+    
+    The beam centre, as can be read out from GDA, in pixel_x, pixel_y.
+
+.. figure:: ./figures/beam_centre.png
+
+.. confval:: detector_distance
+  
+  The distance between the sample and the detector (or, if using the DCD, the distance between the receiving slit and the detector). Units of meters.
+
+
+.. figure:: ./figures/i07_EH1_geometry.png      
 
 
 Processing options
 --------------------
 
-**process_outputs**: define what outputs you would like from the processing in a list e.g. [‘pyfai_ivsq’]. The options available are:
+.. confval:: process_outputs
+
+     define what outputs you would like from the processing in a list e.g. [‘pyfai_ivsq’]. The options available are:
 
         - **full_reciprocal_map**: calculates a full reciprocal space map combining all scans listed into a single volume. Use this option for scan such as crystal truncation rod scans, fractional order rod scans, or in-plane HK scans.
 
@@ -45,7 +86,9 @@ Processing options
 
         - **pyfai_exitangles**: calculates a 2d map of horizontal exit angle Vs vertical exit angle
 
-**map_per_image**: this option will set whether to combine all scans into a single output:
+.. confval:: map_per_image
+
+     this option will set whether to combine all scans into a single output:
 
         map_per_image=False -> gives a single output file (either HKL volume or mapped GIWAXS data)
 
@@ -123,3 +166,8 @@ Putting everything together into an example exp_setup.py file gives the followin
             # If this is False, all images in all scans will be combined into one large
             # reciprocal space map.
             map_per_image = False
+
+
+
+.. _Schleputz 2011 paper: https://journals.iucr.org/paper?S0021889810048922
+

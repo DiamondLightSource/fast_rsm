@@ -28,20 +28,27 @@ Option 1 (preferred)
     
     This will open up the mask GUI. Save the created mask and note down the full file path to the .edf file.
     
-    **edfmaskfile**:  path to the .edf mask file under this variable
+.. confval:: edfmaskfile
+    
+    path to the .edf mask file under this variable
     
 
 Option 2
     Alternatively you can directly specify pixel or regions to mask
     
-    **specific_pixels**: here you provide a list of pixel positions to mask in the format [(xvalues),(yvalues)] e.g. [(233, 234),(83, 83)]
+.. confval:: specific_pixels
+    
+    here you provide a list of pixel positions to mask in the format [(xvalues),(yvalues)] e.g. [(233, 234),(83, 83)]
 
     to mask whole regions, specify the indivudual regions as mask_n in the format *(xstart,xend,ystart,yend)* and then combine them together into a list mask_regions e.g. 
         - **mask_1** = (0, 75, 0, 194)
         - **mask_2** = (425, 485, 0, 194)
         - **mask_regions** = [mask_1, mask_2]
 
-    **min_intensity**: used to set a minimum intensity threshold below which the pixel is masked
+
+.. confval:: min_intensity
+    
+    used to set a minimum intensity threshold below which the pixel is masked
  
 
 
@@ -50,9 +57,13 @@ Skipping
 
 If something has gone wrong during the experiment and you end up with corrupted images you can still process the scan, and set the software to ignore specific images in specific scans
     
-    **skipscans**: this should be a list of scans which have images to skipimages e.g. *[123,124]*
+.. confval:: skipscans
+    
+    this should be a list of scans which have images to skipimages e.g. *[123,124]*
 
-    **skipimages**: this is the list of images to scan for each of the scans given in *skipscans* e.g. [[10,16,24],[11,23]]
+.. confval:: skipimages
+    
+    this is the list of images to scan for each of the scans given in *skipscans* e.g. [[10,16,24],[11,23]]
 
 DPS settings
 ---------------
@@ -60,7 +71,9 @@ DPS settings
 If you have used the Detector Positioning System (DPS) in your experiment you will need to include the initial positions of the DPS when aligned on the straight-through beam
 
 
-    **using_dps**: set this to True when your experiment has used the DPS
+.. confval:: using_dps
+    
+    set this to True when your experiment has used the DPS
     The actual positions of the DPS are saved in the following four variables, saved in units of **meters**
     
     - **dpsx_central_pixel**
@@ -71,7 +84,9 @@ If you have used the Detector Positioning System (DPS) in your experiment you wi
 Using thv motor
 -----------------
 
-    **use_thv**: set this to True if you have used the hexapod to access higher angles and require using the *thv* motor
+.. confval:: use_thv
+    
+    set this to True if you have used the hexapod to access higher angles and require using the *thv* motor
 
 .. toctree::
     :hidden:

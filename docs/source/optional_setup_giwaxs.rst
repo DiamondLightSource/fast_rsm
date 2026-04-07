@@ -7,7 +7,9 @@ Calibration information
 
 If you have collected data from a calibration sample you can use it to create your own PONI file. Then include the path to the PONI file as the following variable. If not included then the mapper will assumed all normal incidence to the detector and create a poni file based on the values for detector_distance and the central pixel. 
 
-**pyfaiponi** - path to a PONI file to be used by pyFAI
+.. confval::  pyfaiponi
+    
+    path to a PONI file to be used by pyFAI
 
 
 
@@ -17,9 +19,13 @@ Extra output formats
 
 If you have your own software which would require either images or profile data separately you can use the following options to output additional file as well as the standard hdf5 file. 
 
-**savetiffs** : when set to *True* this will output all mapped images as separate tiff files as well as hdf5 format. 
+.. confval::  savetiffs
+    
+    when set to *True* this will output all mapped images as separate tiff files as well as hdf5 format. 
 
-**savedats** : when set to *True* this will output all 1d line profiles as .dat files as weill as hdf5 format
+.. confval::  savedats
+    
+    when set to *True* this will output all 1d line profiles as .dat files as weill as hdf5 format
 
 
 Detector slits
@@ -27,8 +33,15 @@ Detector slits
 
 If you have used extra slits infront of the detector you will need to specify the ratio of the slit distance to the sample detector distance. For example if your detector distance is 0.89m and you slits are position 0.55m away from the detector the ratio would be 0.55/0.89 
 
-**slitvertratio** : if you have used vertical slits include the ratio of distances here
-**slithorratio** :  if you have used horizontal slits include the ratio of distance here
+.. confval::  slitvertratio
+    
+    if you have used vertical slits include the ratio of distances here
+
+.. confval::  slithorratio
+    
+    if you have used horizontal slits include the ratio of distance here
+
+.. figure:: ./figures/i07_EH2_geometry.png      
 
 
 Critical edge
@@ -36,7 +49,9 @@ Critical edge
 
 When using the DCD special consideration of the incident angle needs to be taken account. For these calculations the mapper needs to know the critical angle of your sample
 
-**alphacritical**: provide the critical angle in degrees for the substrate material being measured
+.. confval::  alphacritical
+    
+    provide the critical angle in degrees for the substrate material being measured
 
 
 Binning 
@@ -44,20 +59,35 @@ Binning
 
 You can adjust the options pyFAI will use for its binning procedue through the following variables
 
-**radialrange** : this is the radial range in degrees that you would like used for mapping to 1D profile data, in the format (angle_start, angle_stop) e.g. (0,45). If not included the mapper will calculate the full radial range covered by the scans being mapped. 
+.. confval::  radialrange
+    
+    this is the radial range in degrees that you would like used for mapping to 1D profile data, in the format (angle_start, angle_stop) e.g. (0,45). If not included the mapper will calculate the full radial range covered by the scans being mapped. 
 
 **resolution**
-    **radialstepval** : this is the resolution in the radial angle you would like to be used for mapping to 1D profile data, which will default to 0.01 degrees if not set
+    .. confval::  radialstepval
+        
+        this is the resolution in the radial angle you would like to be used for mapping to 1D profile data, which will default to 0.01 degrees if not set
+    
     OR
-    **ivqbins**: this will set the number of bins you would like to be used for mapping to 1D profile data, which will calculate a step value for the set range being used. 
 
-    **qmapbins**: set the number of bins you would like to be used for the mapping of 2d Qmaps or exitangle maps
+    .. confval::  ivqbins
+        
+        this will set the number of bins you would like to be used for mapping to 1D profile data, which will calculate a step value for the set range being used. 
+
+    .. confval::  qmapbins
+        
+        set the number of bins you would like to be used for the mapping of 2d Qmaps or exitangle maps
 
 
 GIWAXS masking
 ---------------
 
-**azimuthal_sector**: define an azimuthal range over which to carry out the 1d integration for IvsQ (110, 80)
+.. confval::  azimuthal_sector
+    
+    define an azimuthal range over which to carry out the 1d integration for IvsQ. The convention is setting directly to the right of the beam centre as 0, and going counter clockwise increases the degrees to the positive direction, and going clockwise increases the degrees in the negative direction. Then provide the sector going from largest positive angle to largest negative angle, for example the sector shown in the diagram below is given by the values (135, 45)
+
+.. figure:: figures/azimuthal_sector.png
+    :width: 300px
 
 
 Examples of using all of these together for an extra section in your exp_setup file is as follows:

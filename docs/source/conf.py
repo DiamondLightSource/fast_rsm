@@ -47,11 +47,14 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
     "sphinx_tabs.tabs",
+    "sphinx_subfigure",
+    "sphinx_design",
     "nbsphinx",
     "jupyter_sphinx",
     "sphinx_collapse",
     "autodoc2",
 ]
+numfig = True  # optional
 
 autodoc2_packages = [
     "../../src/fast_rsm/binning.py",
