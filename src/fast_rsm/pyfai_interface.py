@@ -361,17 +361,41 @@ def get_d5i_values(scan):
 
 # ===================================
 # ====data saving functions
+from typing import ClassVar
 
 
-def save_1d_integration_static(cfg, hf, outlist: dict, scan=None):
+@dataclass
+class result2d:
+    data: np.ndarray
+    x_axis: np.ndarray
+    y_axis: np.ndarray
+    x_unit: str | None = None
+    y_unit: str | None = None
+
+
+@dataclass
+class result1d:
+    data: np.ndarray
+    data_name: str
+    x_axis: np.ndarray
+    x_axis_name:str
+    x2_axis: np.ndarray | None = None
+    x2_axis_name: str | None = None
+
+
+
+def save_1d_integration_static(cfg, hf, outresult: result1d, scan=None):
     """
     save 1d Intensity Vs Q profile to hdf5 file
     """
 
     dset = hf.create_group("integrations")
-    for k, v in outlist.items():
-        dset.create_dataset(k, data=v)
-
+    # for k, v in outlist.items():
+    #     dset.create_dataset(k, data=v)
+    dset.create_dataset(outresult.data_name,data=outresult.data)
+    dset.create_dataset(outresult.x_axis_name,data=outresult.x_axis)
+    if outresult.x2_axis is not None:
+        dset.create_dataset(outresult.x2_axis_name, data=outresult.x2_axis)
     # dset.create_dataset("Intensity", data=outlist[0])
     # dset.create_dataset(f"{outlist[3][0]}", data=outlist[1])
     # dset.create_dataset(f"{outlist[3][1]}", data=outlist[2])
@@ -379,7 +403,7 @@ def save_1d_integration_static(cfg, hf, outlist: dict, scan=None):
     if (scan is not None) & ("scanfields" not in hf.keys()):
         save_scan_field_values(hf, scan)
     if cfg.savedats is True:
-        do_savedats(hf, outlist[0], outlist[1], outlist[2])
+        do_savedats(hf, outresult.data, outresult.x2_axis, outresult.x_axis)
     save_config_variables(hf, cfg)
     hf.close()
 
@@ -401,7 +425,8 @@ def save_1d_integration(
         f"{mapaxisinfo[0][1]}": mapaxisinfo[0][0],
         "Q_angstrom^-1": q_final,
     }
-    save_1d_integration_static(cfg, hf, outlist)
+    outresult=result1d(data=int_array,data_name='Intensity',x_axis=mapaxisinfo[0][0],x_axis_name=f"{mapaxisinfo[0][1]}",x2_axis=q_final,x2_axis_name="Q_angstrom^-1")
+    save_1d_integration_static(cfg, hf, outresult)
 
 
 def save_qperp_qpara(experiment, hf, qperp_qpara_map, scan=0):
@@ -1075,10 +1100,12 @@ def pyfai_static_ivsq_new_refactor(
         f"{mapaxisinfo[0][1]}": mapaxisinfo[0][0],
         "Q_angstrom^-1": q_vals,
     }
+    outresult=result1d(data=outmap,data_name='Intensity',x_axis=mapaxisinfo[0][0],x_axis_name=f"{mapaxisinfo[0][1]}",x2_axis=q_vals,x2_axis_name="Q_angstrom^-1")
+    
     # outlist = [outmap, q_vals, two_th_vals, mapaxisinfo[0][1]]
     save_masks(hf, mask_info[0])
 
-    save_1d_integration_static(cfg, hf, outlist, scan)
+    save_1d_integration_static(cfg, hf, outresult, scan)
     if cfg.debuglogging:
         log_queue.put_nowait(None)  # End the queue
         listener.join()  # Stop the listener
