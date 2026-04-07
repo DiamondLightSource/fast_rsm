@@ -1147,12 +1147,14 @@ def pyfai_static_ivschi_refactor(
     # inlist = [mapped_data, q_vals, two_th_vals]
     outmap = check_data_shape(mapped_data, scan)
     save_masks(hf, mask_info[0])
-    outlist = {
-        "Intensity": outmap,
-        f"{mapaxisinfo[0][1]}": mapaxisinfo[0][0],
-    }
+    # outlist = {
+    #     "Intensity": outmap,
+    #     f"{mapaxisinfo[0][1]}": mapaxisinfo[0][0],
+    # }
 
-    save_1d_integration_static(cfg, hf, outlist, scan)
+    outresult=result1d(data=outmap,data_name='Intensity',x_axis=mapaxisinfo[0][0],x_axis_name=f"{mapaxisinfo[0][1]}")
+
+    save_1d_integration_static(cfg, hf, outresult, scan)
     if cfg.debuglogging:
         log_queue.put_nowait(None)  # End the queue
         listener.join()  # Stop the listener
