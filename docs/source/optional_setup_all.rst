@@ -42,11 +42,17 @@ Option 2
     here you provide a list of pixel positions to mask in the format [(xvalues),(yvalues)] e.g. [(233, 234),(83, 83)]
 
     to mask whole regions, specify the indivudual regions as mask_n in the format *(xstart,xend,ystart,yend)* and then combine them together into a list mask_regions e.g. 
+
         .. confval:: mask_1
+
                 (0, 75, 0, 194)
+
         .. confval:: mask_2
+
                 (425, 485, 0, 194)
+
         .. confval:: mask_regions
+            
                 [mask_1, mask_2]
 
 
@@ -99,7 +105,7 @@ Using thv motor
 Detector slits
 ----------------
 
-If you have used extra slits infront of the detector you will need to specify the ratio of the slit distance to the sample detector distance. For example if your detector distance is 0.89m and you slits are position 0.55m away from the detector the ratio would be 0.55/0.89 
+If you have used extra slits infront of the detector you will need to specify the ratio of the slit distance to the sample detector distance. For example if your detector distance is 0.89m and your slits are positioned 0.55m away from the detector the ratio would be 0.55/0.89 
 
 .. confval::  slitvertratio
     
