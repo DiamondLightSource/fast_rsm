@@ -3,7 +3,7 @@ Walkthrough 2 - Optional settings applicable to all scan types
 
 There are several optional settings that can be included for all scan types, which fall into the following categories:
 
-- masking 
+- masking
 - skipping
 - DPS settings
 - Using thv motor

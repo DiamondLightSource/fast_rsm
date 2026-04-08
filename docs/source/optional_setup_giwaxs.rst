@@ -27,21 +27,7 @@ If you have your own software which would require either images or profile data 
     
     when set to *True* this will output all 1d line profiles as .dat files as weill as hdf5 format
 
-
-Detector slits
-----------------
-
-If you have used extra slits infront of the detector you will need to specify the ratio of the slit distance to the sample detector distance. For example if your detector distance is 0.89m and you slits are position 0.55m away from the detector the ratio would be 0.55/0.89 
-
-.. confval::  slitvertratio
-    
-    if you have used vertical slits include the ratio of distances here
-
-.. confval::  slithorratio
-    
-    if you have used horizontal slits include the ratio of distance here
-
-.. figure:: ./figures/i07_EH2_geometry.png      
+   
 
 
 Critical edge
@@ -106,9 +92,6 @@ Examples of using all of these together for an extra section in your exp_setup f
             savetiffs = True
             savedats = True
 
-            slitvertratio = 0.55 / 0.89  
-            slithorratio = 0.55 / 0.89
-
             alphacritical = 0.08
 
             radialrange = (0, 60)
@@ -137,10 +120,6 @@ Examples of using all of these together for an extra section in your exp_setup f
             # to True
             savedats = True
 
-            # if not using sample slits leave both as None, if using slits set to
-            # slit-detector/sample-detector  e.g. 0.55/0.89
-            slitvertratio = 0.55 / 0.89  # 0.55 / 0.89
-            slithorratio = 0.55 / 0.89
 
             # critical edge of sample in degrees
             alphacritical = 0.08
