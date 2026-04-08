@@ -1090,17 +1090,20 @@ def pyfai_static_ivsq_new_refactor(
         pool_function=pool_function, args_iter=args_iter, num_threads=cfg.num_threads
     )
     two_th_vals = mapaxisinfo[0][0]
-    q_vals = [calcq(val, experiment.incident_wavelength) for val in two_th_vals]
+    q_vals = np.array([calcq(val, experiment.incident_wavelength) for val in two_th_vals])
 
     # inlist = [mapped_data, q_vals, two_th_vals]
-    outmap = check_data_shape(mapped_data, scan)
+    outdata = check_data_shape(mapped_data, scan)
 
-    outlist = {
-        "Intensity": outmap,
-        f"{mapaxisinfo[0][1]}": mapaxisinfo[0][0],
-        "Q_angstrom^-1": q_vals,
-    }
-    outresult=result1d(data=outmap,data_name='Intensity',x_axis=mapaxisinfo[0][0],x_axis_name=f"{mapaxisinfo[0][1]}",x2_axis=q_vals,x2_axis_name="Q_angstrom^-1")
+    # outlist = {
+    #     "Intensity": outmap,
+    #     f"{mapaxisinfo[0][1]}": mapaxisinfo[0][0],
+    #     "Q_angstrom^-1": q_vals,
+    # }
+    if (len(np.shape(outdata))==2) and (np.shape(outdata)[0]==1):
+        outdata=outdata[0]
+
+    outresult=result1d(data=outdata,data_name='Intensity',x_axis=mapaxisinfo[0][0],x_axis_name=f"{mapaxisinfo[0][1]}",x2_axis=q_vals,x2_axis_name="Q_angstrom^-1")
     
     # outlist = [outmap, q_vals, two_th_vals, mapaxisinfo[0][1]]
     save_masks(hf, mask_info[0])
@@ -1145,14 +1148,15 @@ def pyfai_static_ivschi_refactor(
     )
 
     # inlist = [mapped_data, q_vals, two_th_vals]
-    outmap = check_data_shape(mapped_data, scan)
+    outdata = check_data_shape(mapped_data, scan)
     save_masks(hf, mask_info[0])
     # outlist = {
     #     "Intensity": outmap,
     #     f"{mapaxisinfo[0][1]}": mapaxisinfo[0][0],
     # }
-
-    outresult=result1d(data=outmap,data_name='Intensity',x_axis=mapaxisinfo[0][0],x_axis_name=f"{mapaxisinfo[0][1]}")
+    if (len(np.shape(outdata))==2) and (np.shape(outdata)[0]==1):
+        outdata=outdata[0]
+    outresult=result1d(data=outdata,data_name='Intensity',x_axis=mapaxisinfo[0][0],x_axis_name=f"{mapaxisinfo[0][1]}")
 
     save_1d_integration_static(cfg, hf, outresult, scan)
     if cfg.debuglogging:
