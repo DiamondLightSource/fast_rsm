@@ -80,11 +80,20 @@ Processing options
 
         - **full_reciprocal_map**: calculates a full reciprocal space map combining all scans listed into a single volume. Use this option for scan such as crystal truncation rod scans, fractional order rod scans, or in-plane HK scans.
 
-        - **pyfai_qmap**: calculates 2d q_parallel Vs q_perpendicular plots using pyFAI. Use this options for GIWAXS measurements either with a static detector or a moving detector.
+        - **pyfai_qmap**: calculates 2d q_parallel Vs q_perpendicular plots using pyFAI. 
 
-        - **pyfai_ivsq**: calculates 1d Intensity Vs Q using pyFAI. Use this options for GIWAXS measurements either with a static detector or a moving detector.
+        - **pyfai_ivsq**: calculates 1d Intensity Vs Q using pyFAI. 
 
         - **pyfai_exitangles**: calculates a 2d map of horizontal exit angle Vs vertical exit angle
+
+        
+        .. note::
+
+            pyFAI latest version has grazing incidence options, however chi angle may not be true chi. Currently ok for qualitative comparisons. 
+
+        - **pyfai_ivschi**: calculates 1d Intensity Vs Chi using pyFAI. 
+
+        - **pyfai_chimap**: calculates 2d Chi Vs Q_total using pyFAI.
 
 .. confval:: map_per_image
 
