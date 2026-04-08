@@ -22,10 +22,3 @@ Use the walkthrough guides below to create your exp_setup.py file.
    optional_setup_all
    optional_setup_giwaxs
 
-
-For a full list of settings options with descriptions 
-
-.. toctree::
-   :maxdepth: 1
-
-   experimentfiles

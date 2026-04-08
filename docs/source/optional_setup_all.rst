@@ -41,9 +41,12 @@ Option 2
     here you provide a list of pixel positions to mask in the format [(xvalues),(yvalues)] e.g. [(233, 234),(83, 83)]
 
     to mask whole regions, specify the indivudual regions as mask_n in the format *(xstart,xend,ystart,yend)* and then combine them together into a list mask_regions e.g. 
-        - **mask_1** = (0, 75, 0, 194)
-        - **mask_2** = (425, 485, 0, 194)
-        - **mask_regions** = [mask_1, mask_2]
+        .. confval:: mask_1
+                (0, 75, 0, 194)
+        .. confval:: mask_2
+                (425, 485, 0, 194)
+        .. confval:: mask_regions
+                [mask_1, mask_2]
 
 
 .. confval:: min_intensity

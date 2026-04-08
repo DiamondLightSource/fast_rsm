@@ -59,7 +59,7 @@ The next step is to include details on the geometry of the setup, which are stor
 
 .. confval:: beam_centre
     
-    The beam centre, as can be read out from GDA, in pixel_x, pixel_y.
+    The beam centre, as can be read out from GDA, in pixel_x, pixel_y. e.g. (231,1531)
 
 .. figure:: ./figures/beam_centre.png
 
