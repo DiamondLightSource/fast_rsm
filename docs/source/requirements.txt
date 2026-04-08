@@ -6,3 +6,4 @@ sphinx-collapse
 sphinx-autodoc2
 sphinx-rtd-theme
 sphinx-tabs
+sphinx-subfigure
