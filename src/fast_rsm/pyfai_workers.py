@@ -165,8 +165,8 @@ def calculate_2d_map_fiber(
         normalization_factor=norm_data,
     )
     mapaxisinfo = [
-        map2d.azimuthal,
-        map2d.radial,
+        map2d.outofplane,
+        map2d.inplane,
         str(map2d.oop_unit),
         str(map2d.ip_unit),
     ]
@@ -195,7 +195,7 @@ def calculate_1d_fiber(
         normalization_factor=norm_data,
     )
     mapaxisinfo = [
-        result1d.radial,
+        result1d.integrated,
         str(result1d._unit),
     ]
     return result1d, mapaxisinfo
@@ -228,7 +228,7 @@ def calculate_1d(
 def get_sector_mask(ai, shape, sector_ranges):
     if sector_ranges is None:
         return np.zeros(shape)
-    chivals = ai.chiArray(shape)
+    chivals = ai.center_array(unit='chi_rad')
     chi_min, chi_max = ai.normalize_azimuth_range(sector_ranges)
     return np.logical_or(chivals > chi_max, chivals < chi_min)
 
