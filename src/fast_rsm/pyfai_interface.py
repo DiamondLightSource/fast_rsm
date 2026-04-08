@@ -1193,6 +1193,8 @@ def pyfai_static_chimap_refactor(
         pool_function=pool_function, args_iter=args_iter, num_threads=cfg.num_threads
     )
     outdata = check_data_shape(mapped_data, scan)
+    if (len(np.shape(outdata))==3) and (np.shape(outdata)[0]==1):
+        outdata=outdata[0]
     save_hf_map_static(hf, cfg, t0, "chi_qtotal", outdata, mapaxisinfo[0], scan)
     if cfg.debuglogging:
         log_queue.put_nowait(None)  # End the queue
@@ -1264,6 +1266,8 @@ def pyfai_static_exitangles_refactor(
         pool_function=pool_function, args_iter=args_iter, num_threads=cfg.num_threads
     )
     outdata = check_data_shape(mapped_data, scan)
+    if (len(np.shape(outdata))==3) and (np.shape(outdata)[0]==1):
+        outdata=outdata[0]
     # outdata = check_data_shape(mapped_data[0][0], scan)
     save_hf_map_static(hf, cfg, t0, "exit_angles", outdata, mapaxisinfo[0], scan)
     if cfg.debuglogging:
