@@ -7,6 +7,7 @@ There are several optional settings that can be included for all scan types, whi
 - skipping
 - DPS settings
 - Using thv motor
+- Using slits
 
 Masking
 -----------------------
@@ -95,6 +96,20 @@ Using thv motor
     :hidden:
     :maxdepth: 1
 
+Detector slits
+----------------
+
+If you have used extra slits infront of the detector you will need to specify the ratio of the slit distance to the sample detector distance. For example if your detector distance is 0.89m and you slits are position 0.55m away from the detector the ratio would be 0.55/0.89 
+
+.. confval::  slitvertratio
+    
+    if you have used vertical slits include the ratio of distances here
+
+.. confval::  slithorratio
+    
+    if you have used horizontal slits include the ratio of distance here
+
+.. figure:: ./figures/i07_EH2_geometry.png   
 
 Examples of using all of these together for an extra section in your exp_setup file is as follows:
 
@@ -123,6 +138,9 @@ Examples of using all of these together for an extra section in your exp_setup f
             dpsz2_central_pixel = 0.160
             
             use_thv = True
+            slitvertratio = 0.55 / 0.89  
+            slithorratio = 0.55 / 0.89
+
 
     .. tab:: With comments mask edf
 
@@ -160,6 +178,11 @@ Examples of using all of these together for an extra section in your exp_setup f
             # for specifying the use of the new motor thv - a combination of diffractometer and hexapod to reach larger incident angles
             use_thv = True
 
+            # if not using sample slits leave both as None, if using slits set to
+            # slit-detector/sample-detector  e.g. 0.55/0.89
+            slitvertratio = 0.55 / 0.89  # 0.55 / 0.89
+            slithorratio = 0.55 / 0.89
+
     .. tab:: Without comments mask regions
 
         .. code-block:: python
@@ -190,6 +213,8 @@ Examples of using all of these together for an extra section in your exp_setup f
             dpsz2_central_pixel = 0.160
             
             use_thv = True
+            slitvertratio = 0.55 / 0.89  
+            slithorratio = 0.55 / 0.89
 
 
     .. tab:: With comments mask regions
@@ -245,3 +270,8 @@ Examples of using all of these together for an extra section in your exp_setup f
 
             # for specifying the use of the new motor thv - a combination of diffractometer and hexapod to reach larger incident angles
             use_thv = True
+
+            # if not using sample slits leave both as None, if using slits set to
+            # slit-detector/sample-detector  e.g. 0.55/0.89
+            slitvertratio = 0.55 / 0.89  # 0.55 / 0.89
+            slithorratio = 0.55 / 0.89
