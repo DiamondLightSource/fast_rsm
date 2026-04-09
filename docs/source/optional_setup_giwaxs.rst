@@ -70,7 +70,7 @@ GIWAXS masking
 
 .. confval::  azimuthal_sector
     
-    define an azimuthal range over which to carry out the 1d integration for IvsQ. The convention is setting directly to the right of the beam centre as 0, and going counter clockwise increases the degrees to the positive direction, and going clockwise increases the degrees in the negative direction. Then provide the sector going from largest positive angle to largest negative angle, for example the sector shown in the diagram below is given by the values (135, 45)
+    define an azimuthal range over which to carry out the 1d integration for IvsQ. The convention is setting directly to the right of the beam centre as 0, and going counter clockwise increases the degrees to the negative direction, and going clockwise increases the degrees in the positive direction. Then provide the sector going from largest negative angle to largest positive angle, for example the sector shown in the diagram below is given by the values (-135, -45)
 
 .. figure:: figures/azimuthal_sector.png
     :width: 300px
