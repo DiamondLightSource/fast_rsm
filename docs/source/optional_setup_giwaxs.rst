@@ -97,7 +97,7 @@ Examples of using all of these together for an extra section in your exp_setup f
             radialrange = (0, 60)
             radialstepval = 0.025
             qmapbins = (1200, 1200)
-            azimuthal_sector = (110, 80)
+            azimuthal_sector = (-110, -80)
 
     .. tab:: With comments
 
@@ -140,4 +140,4 @@ Examples of using all of these together for an extra section in your exp_setup f
             qmapbins = (1200, 1200)
 
             # define an azimuthal range over which to carry out the 1d integration for IvsQ
-            azimuthal_sector = (110, 80)
+            azimuthal_sector = (-110, -80)
