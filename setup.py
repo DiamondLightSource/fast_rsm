@@ -1,5 +1,5 @@
 """
-latest version created: create_pyfaiponi in fast_rsm/
+latest version created: add_ivschi in fast_rsm/
 The setup file. To install as a developer (only do this in a venv):
 
 python setup.py develop
@@ -13,7 +13,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="fast_rsm",
-    version="2.3.1",
+    version="2.3.2",
     license="MIT License",
     packages=find_packages("src"),
     description=(

@@ -15,10 +15,6 @@ local_data_path = "path"  # '/dls/i07/data/2024/##experiment-number##/##subfolde
 # to be saved
 local_output_path = "path"  # '/dls/i07/data/2024/##experiment-number##/processing'
 
-# which experimental hutch was 
-# 1= experimental hutch 1,
-# 2=experimental hutch 2
-experimental_hutch = 1
 
 # The beam centre, as can be read out from GDA, in pixel_x, pixel_y.
 beam_centre = (119, 1564)
@@ -62,7 +58,7 @@ edfmaskfile = None
 # If you have a small number of hot pixels to mask, an exact example, where we want to mask pixel (233, 83) and pixel
 # (234, 83), where pixel coordinates are (x, y):
 #
-specific_pixels = None  
+specific_pixels = None
 #
 # give  (start_x,  stop_x, start_y, start_y) for each region
 #
