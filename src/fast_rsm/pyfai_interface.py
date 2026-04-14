@@ -960,7 +960,7 @@ def pyfai_moving_qmap_smm_refactor(
     set_ai_slits(aistart, cfg.slitratios)
     pyfai_info = pyfai_settings(
         setup=cfg.setup,
-        radialrange=cfg.radialrange,
+        radialrange=[calcq(val, aistart.wavelength) for val in cfg.radialrange],
         unit_ip_name="qip_A^-1",
         unit_oop_name="qoop_A^-1",
         shapedataout=np.array([cfg.qmapbins[1], cfg.qmapbins[0]]),
@@ -1216,7 +1216,9 @@ def pyfai_static_qmap_refactor(
     set_ai_slits(aistart, cfg.slitratios)
     pyfai_info = pyfai_settings(
         setup=cfg.setup,
-        radialrange=cfg.radialrange,
+        radialrange=np.array(
+            [calcq(val, aistart.wavelength) for val in cfg.radialrange]
+        ),
         unit_ip_name="qip_A^-1",
         unit_oop_name="qoop_A^-1",
         shapedataout=np.array([cfg.qmapbins[1], cfg.qmapbins[0]]),
