@@ -82,11 +82,13 @@ def get_pyfai_image_data(setup: str, metadata, idx):
 
     # outimage = scan.load_image(i)
     outimage = Image(metadata, idx, load_image=True)
-    mask = np.isnan(outimage.data).astype(bool)
+    mask_nan = np.isnan(outimage.data).astype(bool)
+    mask_negative = outimage.data < 0
+    fullmask = np.logical_or(mask_nan, mask_negative)
     if setup == "vertical":
-        return np.rot90(outimage.data, -1), np.rot90(mask, -1)
+        return np.rot90(outimage.data, -1), np.rot90(fullmask, -1)
 
-    return np.array(outimage.data), mask
+    return np.array(outimage.data), fullmask
 
 
 def setup_stat_worker(
@@ -156,7 +158,7 @@ def calculate_2d_map_fiber(
         npt_oop=pyfai_info.shapedataout[1],
         npt_ip=pyfai_info.shapedataout[0],
         unit_ip=pyfai_info.unit_ip_name,
-        oop_range=pyfai_info.azimuthal_sector-90,
+        oop_range=pyfai_info.azimuthal_sector - 90,
         unit_oop=pyfai_info.unit_oop_name,
         ip_range=pyfai_info.radialrange,
         sample_orientation=pyfai_info.sample_orientation,
@@ -185,7 +187,7 @@ def calculate_1d_fiber(
         npt_oop=int(pyfai_info.shapedataout),
         npt_ip=int(pyfai_info.shapedataout),
         unit_ip=pyfai_info.unit_ip_name,
-        oop_range=pyfai_info.azimuthal_sector-90,
+        oop_range=pyfai_info.azimuthal_sector - 90,
         unit_oop=pyfai_info.unit_oop_name,
         ip_range=pyfai_info.radialrange,
         vertical_integration=True,
@@ -228,7 +230,7 @@ def calculate_1d(
 def get_sector_mask(ai, shape, sector_ranges):
     if sector_ranges is None:
         return np.zeros(shape)
-    chivals = ai.center_array(unit='chi_rad')
+    chivals = ai.center_array(unit="chi_rad")
     chi_min, chi_max = ai.normalize_azimuth_range(sector_ranges)
     return np.logical_or(chivals > chi_max, chivals < chi_min)
 
