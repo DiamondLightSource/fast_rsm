@@ -93,11 +93,11 @@ def validate_regions(regions):
     for i, region in enumerate(regions):
         if region[0] >= region[1]:
             raise ValueError(
-                f"region start needs to be lower than region end. Region {i} xstart {region[0]} is greater than or equal xend to {region[0]}"
+                f"region start needs to be lower than region end. Region {i} xstart {region[0]} is greater than or equal to xend {region[0]}"
             )
         if region[2] >= region[3]:
             raise ValueError(
-                f"region start needs to be lower than region end. Region {i} ystart {region[2]} is greater than or equal yend to {region[3]}"
+                f"region start needs to be lower than region end. Region {i} ystart {region[2]} is greater than or equal to yend {region[3]}"
             )
     return True
 
