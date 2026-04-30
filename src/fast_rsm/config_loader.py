@@ -84,6 +84,24 @@ def validate_spherical_bragg(bragg):
     return True
 
 
+def validate_regions(regions):
+    """
+    check region x/y start and stop values make sense
+    """
+    if regions is None:
+        return True
+    for i, region in enumerate(regions):
+        if region[0] >= region[1]:
+            raise ValueError(
+                f"region start needs to be lower than region end. Region {i} xstart {region[0]} is greater than or equal xend to {region[0]}"
+            )
+        if region[2] >= region[3]:
+            raise ValueError(
+                f"region start needs to be lower than region end. Region {i} ystart {region[2]} is greater than or equal yend to {region[3]}"
+            )
+    return True
+
+
 config_schema = Schema(
     {
         "setup": str,
@@ -117,7 +135,7 @@ config_schema = Schema(
         "ivqbins": Or(None, int),
         "edfmaskfile": Or(None, str),
         "specific_pixels": Or(None, list),
-        "mask_regions": Or(None, list, tuple),
+        "mask_regions": And(Or(None, list, tuple), validate_regions),
         "min_intensity": float,
         "skipscans": list,
         "skipimages": list,
