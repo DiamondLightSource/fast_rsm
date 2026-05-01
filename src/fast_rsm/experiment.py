@@ -21,7 +21,6 @@ import tifffile
 
 import fast_rsm.io as io
 from diffraction_utils import Frame, Region
-from diffraction_utils.io import p2m_detector_info
 from fast_rsm.angle_pixel_q import (
     calc_qupplow_hor,
     calc_qupplow_vert,
