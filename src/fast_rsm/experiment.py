@@ -332,7 +332,7 @@ class Experiment:
         datafile=scan.metadata.data_file
         if datafile.using_dps:
             return [ datafile.dpsx,datafile.dpsy,datafile.dpsz,datafile.dpsz2]
-        return [0,0,0,0]
+        return [[0],[0],[0],[0]]
 
 
     def load_curve_values(self, scan: Scan):
