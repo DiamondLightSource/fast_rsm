@@ -215,7 +215,7 @@ def calculate_1d(
         pyfai_info.shapedataout,
         unit=pyfai_info.unit_ip_name,
         normalization_factor=norm_data,
-        correctSolidAngle=True,
+        correctSolidAngle=False,
         method=pyfai_info.method,
         radial_range=pyfai_info.radialrange,
         polarization_factor=pyfai_info.polarization,
