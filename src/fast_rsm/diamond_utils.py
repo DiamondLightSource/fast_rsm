@@ -64,6 +64,7 @@ def create_process_config(
     check_config_schema(default_config)
 
     cfg = SimpleNamespace(**default_config)
+    cfg.external_poni = cfg.pyfaiponi is not None
     cfg.debuglogging = debuglogging
     with open(cfg.full_path, encoding="utf-8") as f:
         cfg.joblines = f.readlines()
@@ -393,7 +394,7 @@ def make_new_hdf5(
     cfg.projected_name = f"{name_start}_{name_end}_{datetime_str}"
     cfg.process_start_time = time()
     experiment.load_curve_values(experiment.scans[scan_index])
-    if cfg.pyfaiponi is None:
+    if cfg.external_poni is False:
         cfg.pyfaiponi = createponi(experiment, cfg.local_output_path)
     return h5py.File(f"{cfg.local_output_path}/{cfg.projected_name}.hdf5", "w")
 
