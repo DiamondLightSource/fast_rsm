@@ -52,7 +52,7 @@ def find_bad_image_paths(scan: Scan):
     return badpaths
 
 
-def createponi(experiment: Experiment, outpath, offset=0):
+def createponi(experiment: Experiment, outpath: str):
     """
     creates a poni file from experiment settings to use in pyFAI functions
 
@@ -80,6 +80,9 @@ def createponi(experiment: Experiment, outpath, offset=0):
     beam_centre = experiment.beam_centre
     datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
     ponioutpath = rf"{outpath}/fast_rsm_{datetime_str}.poni"
+
+    dpsx,dpsy,dpsz,dpsz2 = experiment.dps_offsets
+    total_distance=experiment.detector_distance +dpsz[0]+dpsz2[0]
     with open(ponioutpath, "w", encoding="utf-8") as f:
         f.write("# PONI file created by fast_rsm\n#\n")
         f.write("poni_version: 2\n")
@@ -92,16 +95,14 @@ def createponi(experiment: Experiment, outpath, offset=0):
         )
         f.write(pixel_line)
         f.write("}\n")
-        f.write(f"Distance: {experiment.detector_distance}\n")
-        if beam_centre == 0:
-            poni1 = (image2dshape[0] - offset) * experiment.pixel_size
-            poni2 = image2dshape[1] * experiment.pixel_size
-        elif (offset == 0) & (experiment.setup != "vertical"):
-            poni1 = (beam_centre[0]) * experiment.pixel_size
-            poni2 = beam_centre[1] * experiment.pixel_size
+        f.write(f"Distance: {total_distance}\n")
+
+        if (experiment.setup != "vertical"):
+            poni1 = (beam_centre[0]* experiment.pixel_size) +dpsy[0]
+            poni2 = (beam_centre[1]* experiment.pixel_size) +dpsx[0]
         else:  # (offset == 0) & (experiment.setup == 'vertical'):
-            poni1 = beam_centre[1] * experiment.pixel_size
-            poni2 = (image2dshape[0] - beam_centre[0]) * experiment.pixel_size
+            poni1 = (beam_centre[1] * experiment.pixel_size) + dpsy[0]
+            poni2 = ((image2dshape[0] - beam_centre[0]) * experiment.pixel_size) +dpsx[0]
 
         f.write(f"Poni1: {poni1}\n")
         f.write(f"Poni2: {poni2}\n")
@@ -817,6 +818,11 @@ def setup_args_iter(
         cfg.setup, scan_angles, scan, imageindices
     )
     # current_ai = setup_copy_ai(cfg.aistart, cfg.slitratios)
+    aiout=copy.deepcopy(aistart)
+    if scan.metadata.data_file.using_dps:
+        aiout._dist+=scan.metadata.data_file.dpsz[0]+scan.metadata.data_file.dpsz2[0]
+        aiout._poni1+=scan.metadata.data_file.dpsx[0]
+        aiout._poni2+=scan.metadata.data_file.dpsy[0]
 
     newrots = [
         calc_rots_from_gamdel(
@@ -828,13 +834,14 @@ def setup_args_iter(
         for ind_n in np.arange(len(batches))
     ]
 
+
     return [
         [
             pyfai_info,
             ind,
             d5i_full[ind_n],
             scan.metadata,
-            aistart,
+            aiout,
             newrots[ind_n],
             log_queue,
             ind_n,
