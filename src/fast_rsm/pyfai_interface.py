@@ -821,8 +821,8 @@ def setup_args_iter(
     aiout=copy.deepcopy(aistart)
     if scan.metadata.data_file.using_dps:
         aiout._dist+=scan.metadata.data_file.dpsz[0]+scan.metadata.data_file.dpsz2[0]
-        aiout._poni1+=scan.metadata.data_file.dpsx[0]
-        aiout._poni2+=scan.metadata.data_file.dpsy[0]
+        aiout._poni1+=scan.metadata.data_file.dpsy[0]
+        aiout._poni2+=scan.metadata.data_file.dpsx[0]
 
     newrots = [
         calc_rots_from_gamdel(
