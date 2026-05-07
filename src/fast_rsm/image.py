@@ -142,7 +142,13 @@ class Image:
             quickly calculate a few q_vectors.
     """
 
-    def __init__(self, metadata: RSMMetadata, index: int, load_image=True):
+    def __init__(
+        self,
+        metadata: RSMMetadata,
+        index: int,
+        load_image=True,
+        pyfai_calculation=False,
+    ):
         # Store intensities as 32 bit floats.
 
         loader = getattr(metadata, "image_loader", None)
@@ -157,6 +163,7 @@ class Image:
         self.metadata = metadata
         self.diffractometer = self.metadata.diffractometer
         self.index = index
+        self.pyfai_calc = pyfai_calculation
 
         self._delta_q = None
 
@@ -280,8 +287,9 @@ class Image:
         for step in self._processing_steps:
             arr = step(arr)
 
-        # Solid angle corrections are not optional.
-        arr /= self.metadata.solid_angles
+        # Solid angle corrections only if not using pyfai solid angle correction
+        if not self.pyfai_calc:
+            arr /= self.metadata.solid_angles
 
         transmission_array = self.metadata.data_file.transmission
         arr = correct_transmission(transmission_array, arr, self.index)
