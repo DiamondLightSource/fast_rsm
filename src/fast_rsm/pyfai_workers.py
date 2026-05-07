@@ -123,9 +123,9 @@ def setup_ip_oop_units(
 
 def calculate_2d_map(
     pyfai_info,
-    ai,
-    img_data,
-    norm_data,
+    ai: AzimuthalIntegrator,
+    img_data: np.ndarray,
+    norm_data: float | int,
 ):
     map2d = ai.integrate2d(
         img_data,
@@ -149,9 +149,9 @@ def calculate_2d_map(
 
 def calculate_2d_map_fiber(
     pyfai_info,
-    fi,
-    img_data,
-    norm_data,
+    fi: FiberIntegrator,
+    img_data: np.ndarray,
+    norm_data: float | int,
 ):
     map2d = fi.integrate2d_fiber(
         img_data,
@@ -205,9 +205,9 @@ def calculate_1d_fiber(
 
 def calculate_1d(
     pyfai_info,
-    ai,
-    img_data,
-    norm_data,
+    ai: AzimuthalIntegrator,
+    img_data: np.ndarray,
+    norm_data: float | int,
 ):
 
     result1d = ai.integrate1d(
@@ -215,7 +215,6 @@ def calculate_1d(
         pyfai_info.shapedataout,
         unit=pyfai_info.unit_ip_name,
         normalization_factor=norm_data,
-        correctSolidAngle=False,
         method=pyfai_info.method,
         radial_range=pyfai_info.radialrange,
         polarization_factor=pyfai_info.polarization,
