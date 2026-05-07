@@ -2,6 +2,7 @@ import copy
 import logging
 import logging.handlers
 import sys
+from dataclasses import dataclass
 from functools import lru_cache
 from multiprocessing.shared_memory import SharedMemory
 
@@ -121,8 +122,34 @@ def setup_ip_oop_units(
     return unit_ip, unit_oop
 
 
+@dataclass
+class pyfai_settings:
+    setup: str
+    radialrange: np.ndarray
+    polarization: int
+    shapedataout: np.ndarray
+    unit_ip_name: str  # "qip_A^-1"# "qip_A^-1""2th_deg"  #
+    unit_oop_name: str
+    batchsize: int = 30
+    multi: bool = False
+    method: tuple = ("no", "csr", "cython")
+    azimuthal_sector: np.ndarray | None = None
+    sample_orientation: int = 1
+    fullranges: np.ndarray | None = None
+
+
+@dataclass
+class angle_info:
+    gamma: np.ndarray
+    delta: np.ndarray
+    two_theta_start: np.ndarray
+    incident_angle: float
+    alpha_critical: float = 0.0
+    scalegamma: int | float = 1
+
+
 def calculate_2d_map(
-    pyfai_info,
+    pyfai_info: pyfai_settings,
     ai: AzimuthalIntegrator,
     img_data: np.ndarray,
     norm_data: float | int,
@@ -148,7 +175,7 @@ def calculate_2d_map(
 
 
 def calculate_2d_map_fiber(
-    pyfai_info,
+    pyfai_info: pyfai_settings,
     fi: FiberIntegrator,
     img_data: np.ndarray,
     norm_data: float | int,
@@ -176,7 +203,7 @@ def calculate_2d_map_fiber(
 
 
 def calculate_1d_fiber(
-    pyfai_info,
+    pyfai_info: pyfai_settings,
     fi: FiberIntegrator,
     img_data: np.ndarray,
     norm_data: float | int,
@@ -204,7 +231,7 @@ def calculate_1d_fiber(
 
 
 def calculate_1d(
-    pyfai_info,
+    pyfai_info: pyfai_settings,
     ai: AzimuthalIntegrator,
     img_data: np.ndarray,
     norm_data: float | int,

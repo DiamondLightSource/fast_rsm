@@ -26,7 +26,12 @@ from fast_rsm.angle_pixel_q import calcq, gamdel2rots
 from fast_rsm.experiment import Experiment, do_savedats, do_savetiffs
 from fast_rsm.image import Image
 from fast_rsm.logging_config import get_logger, listener_process
-from fast_rsm.pyfai_workers import pyfai_init_worker, worker_unpack
+from fast_rsm.pyfai_workers import (
+    angle_info,
+    pyfai_init_worker,
+    pyfai_settings,
+    worker_unpack,
+)
 from fast_rsm.scan import Scan, chunk
 
 # ----------------------------
@@ -716,32 +721,6 @@ def get_pyfai_image_data(setup: str, metadata, idx):
         return np.rot90(outimage.data, -1), np.rot90(mask, -1)
 
     return np.array(outimage.data), mask
-
-
-@dataclass
-class pyfai_settings:
-    setup: str
-    radialrange: np.ndarray
-    polarization: int
-    shapedataout: np.ndarray
-    unit_ip_name: str  # "qip_A^-1"# "qip_A^-1""2th_deg"  #
-    unit_oop_name: str
-    batchsize: int = 30
-    multi: bool = False
-    method: tuple = ("no", "csr", "cython")
-    azimuthal_sector: np.ndarray | None = None
-    sample_orientation: int = 1
-    fullranges: np.ndarray | None = None
-
-
-@dataclass
-class angle_info:
-    gamma: np.ndarray
-    delta: np.ndarray
-    two_theta_start: np.ndarray
-    incident_angle: float
-    alpha_critical: float = 0.0
-    scalegamma: int | float = 1
 
 
 def get_functions_dict(map_per_image: bool) -> dict:
