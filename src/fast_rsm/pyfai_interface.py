@@ -5,7 +5,6 @@ Module for the functions used to interface with pyFAI package
 import copy
 import multiprocessing
 import os
-from dataclasses import dataclass
 from datetime import datetime
 from multiprocessing import Lock, Manager, Process, get_context  # Queue
 from multiprocessing.managers import SharedMemoryManager
@@ -18,16 +17,28 @@ import psutil
 import pyFAI
 import pyFAI.calibrant
 import pyFAI.detectors
-import yaml
 from pyFAI.integrator.azimuthal import AzimuthalIntegrator
 from pyFAI.integrator.fiber import FiberIntegrator
 
 from fast_rsm.angle_pixel_q import calcq, gamdel2rots
-from fast_rsm.experiment import Experiment, do_savedats, do_savetiffs
+from fast_rsm.experiment import Experiment
 from fast_rsm.image import Image
 from fast_rsm.logging_config import get_logger, listener_process
-from fast_rsm.pyfai_workers import pyfai_init_worker, worker_unpack
-from fast_rsm.scan import Scan, chunk
+from fast_rsm.pyfai_workers import (
+    angle_info,
+    pyfai_init_worker,
+    pyfai_settings,
+    worker_unpack,
+)
+from fast_rsm.scan import Scan
+from fast_rsm.writing import (
+    result1d,
+    save_1d_integration,
+    save_1d_integration_static,
+    save_hf_map,
+    save_hf_map_static,
+    save_masks,
+)
 
 # ----------------------------
 # Tuning: set BLAS/OpenMP threads to 1 to avoid oversubscription
@@ -112,27 +123,27 @@ def createponi(experiment: Experiment, outpath, offset=0):
     return ponioutpath
 
 
-def get_full_indices(scan, scanlength, scalegamma):
+def get_full_indices(skip_images, scanlength, scalegamma):
     fullrange = np.arange(0, scanlength, scalegamma)
-    selectedindices = [n for n in fullrange if n not in scan.skip_images]
+    selectedindices = [n for n in fullrange if n not in skip_images]
     return selectedindices
 
 
-def get_input_args(experiment, scan, process_config: SimpleNamespace):
-    """
-    create the input arguments for processing depending on process
-    configuration
-    """
-    cfg = process_config
-    fullrange = np.arange(0, cfg.scanlength, cfg.scalegamma)
-    selectedindices = [n for n in fullrange if n not in scan.skip_images]
-    if cfg.multi:
-        inputindices = chunk(selectedindices, cfg.num_threads)
-    else:
-        inputindices = selectedindices
+# def get_input_args(experiment, scan, process_config: SimpleNamespace):
+#     """
+#     create the input arguments for processing depending on process
+#     configuration
+#     """
+#     cfg = process_config
+#     fullrange = np.arange(0, cfg.scanlength, cfg.scalegamma)
+#     selectedindices = [n for n in fullrange if n not in scan.skip_images]
+#     if cfg.multi:
+#         inputindices = chunk(selectedindices, cfg.num_threads)
+#     else:
+#         inputindices = selectedindices
 
-    input_args = [[experiment, indices, scan, cfg] for indices in inputindices]
-    return input_args
+#     input_args = [[experiment, indices, scan, cfg] for indices in inputindices]
+#     return input_args
 
 
 def reshape_to_signalshape(arr, signal_shape):
@@ -149,19 +160,19 @@ def reshape_to_signalshape(arr, signal_shape):
     return np.reshape(outarr, fullshape)
 
 
-def get_qmapbins(qlimits, experiment):
-    """
-    obtain number of map bins required for a q step of 0.01
-    """
+# def get_qmapbins(qlimits, experiment):
+#     """
+#     obtain number of map bins required for a q step of 0.01
+#     """
 
-    qstep = round(
-        calcq(1.00, experiment.incident_wavelength)
-        - calcq(1.01, experiment.incident_wavelength),
-        4,
-    )
-    binshor = abs(round(((qlimits[1] - qlimits[0]) / qstep) * 1.05))
-    binsver = abs(round(((qlimits[3] - qlimits[2]) / qstep) * 1.05))
-    return (binshor, binsver)
+#     qstep = round(
+#         calcq(1.00, experiment.incident_wavelength)
+#         - calcq(1.01, experiment.incident_wavelength),
+#         4,
+#     )
+#     binshor = abs(round(((qlimits[1] - qlimits[0]) / qstep) * 1.05))
+#     binsver = abs(round(((qlimits[3] - qlimits[2]) / qstep) * 1.05))
+#     return (binshor, binsver)
 
 
 def get_corner_thetas(process_config: SimpleNamespace):
@@ -678,7 +689,8 @@ def calc_rots_from_gamdel(
     gamval, delval = gamdelval
     if (-np.degrees(inc_angle) > alphacritical) & (setup == "DCD"):
         # if above critical angle, account for direct beam adding to delta
-        return gamdel2rots(gamval, delval + np.degrees(-inc_angle))
+        newdelval = delval + np.degrees(-inc_angle)
+        return gamdel2rots(gamval, newdelval)
 
     return gamdel2rots(gamval, delval)
 
@@ -799,6 +811,14 @@ def setup_pool_info(cfg, experiment, scan, imageindices):
     return d5i_full, all_inc_angles, gamdelvals
 
 
+def adjust_ai_dps(data_file, ai: AzimuthalIntegrator | FiberIntegrator):
+    if data_file.using_dps:
+        ai._dist += data_file.dpsz[0] + data_file.dpsz2[0]
+        ai._poni1 += data_file.dpsy[0]
+        ai._poni2 += data_file.dpsx[0]
+    return ai
+
+
 def setup_args_iter(
     scan,
     pyfai_info: pyfai_settings,
@@ -808,7 +828,9 @@ def setup_args_iter(
     log_queue=None,
     shared=False,
 ):
-    imageindices = get_full_indices(scan, cfg.scanlength, scan_angles.scalegamma)
+    imageindices = get_full_indices(
+        scan.skip_images, cfg.scanlength, scan_angles.scalegamma
+    )
     batches, num_batches, completed = get_batch_details(
         pyfai_info.multi, imageindices, pyfai_info.batchsize
     )
@@ -817,6 +839,8 @@ def setup_args_iter(
         cfg.setup, scan_angles, scan, imageindices
     )
     # current_ai = setup_copy_ai(cfg.aistart, cfg.slitratios)
+    # aiout = copy.deepcopy(aistart)
+    aiout = adjust_ai_dps(scan.metadata.data_file, copy.deepcopy(aistart))
 
     newrots = [
         calc_rots_from_gamdel(
@@ -905,6 +929,22 @@ def get_scanangles(experiment: Experiment, scan: Scan):
     )
 
 
+def setup_pyfai_info(
+    process_config, names: list[str], shapeout=np.ndarray
+) -> pyfai_settings:
+    cfg = process_config
+    return pyfai_settings(
+        setup=cfg.setup,
+        radialrange=cfg.radialrange,
+        unit_ip_name=names[0],
+        unit_oop_name=names[1],
+        shapedataout=shapeout,
+        polarization=cfg.polarization,
+        azimuthal_sector=cfg.azimuthal_sector,
+        fullranges=cfg.fullranges,
+    )
+
+
 def pyfai_moving_ivsq_smm_refactor(
     experiment: Experiment, hf, scanlist, process_config
 ) -> None:
@@ -918,15 +958,10 @@ def pyfai_moving_ivsq_smm_refactor(
         logger, listener, log_queue = setup_debug_logger(cfg.num_threads)
     aistart = setup_initial_ai(cfg.pyfaiponi)
     set_ai_slits(aistart, cfg.slitratios)
-    pyfai_info = pyfai_settings(
-        setup=cfg.setup,
-        radialrange=cfg.radialrange,
-        unit_ip_name="2th_deg",
-        unit_oop_name="2th_deg",
-        shapedataout=np.array([np.abs(cfg.ivqbins)]),
-        polarization=cfg.polarization,
-        azimuthal_sector=cfg.azimuthal_sector,
+    pyfai_info = setup_pyfai_info(
+        cfg, names=["2th_deg", "2th_deg"], shapeout=np.array([np.abs(cfg.ivqbins)])
     )
+
     scanangles_list = [get_scanangles(experiment, scan) for scan in cfg.scanlistnew]
     pool_function = worker_unpack("move_ivsq")
     pool_setup = [pool_function, aistart, cfg.scanlistnew, cfg.num_threads]
@@ -958,15 +993,15 @@ def pyfai_moving_qmap_smm_refactor(
         logger, listener, log_queue = setup_debug_logger(cfg.num_threads)
     aistart = setup_initial_ai(cfg.pyfaiponi)
     set_ai_slits(aistart, cfg.slitratios)
-    pyfai_info = pyfai_settings(
-        setup=cfg.setup,
-        radialrange=[calcq(val, aistart.wavelength) for val in cfg.radialrange],
-        unit_ip_name="qip_A^-1",
-        unit_oop_name="qoop_A^-1",
-        shapedataout=np.array([cfg.qmapbins[1], cfg.qmapbins[0]]),
-        polarization=cfg.polarization,
-        fullranges=cfg.fullranges,
+    pyfai_info = setup_pyfai_info(
+        cfg,
+        names=["qip_A^-1", "qoop_A^-1"],
+        shapeout=np.array([cfg.qmapbins[1], cfg.qmapbins[0]]),
     )
+    pyfai_info.radialrange = np.array(
+        [calcq(val, aistart.wavelength) for val in cfg.radialrange]
+    )
+
     print(f"DEBUG = {pyfai_info}")
     t0 = time()
     scanangles_list = [get_scanangles(experiment, scan) for scan in cfg.scanlistnew]
@@ -1004,15 +1039,12 @@ def pyfai_moving_exitangles_refactor(
         logger, listener, log_queue = setup_debug_logger(cfg.num_threads)
     aistart = setup_initial_ai(cfg.pyfaiponi)
     set_ai_slits(aistart, cfg.slitratios)
-    pyfai_info = pyfai_settings(
-        setup=cfg.setup,
-        radialrange=cfg.radialrange,
-        unit_ip_name="exit_angle_horz_deg",
-        unit_oop_name="exit_angle_vert_deg",
-        shapedataout=np.array([cfg.qmapbins[1], cfg.qmapbins[0]]),
-        polarization=cfg.polarization,
-        fullranges=cfg.fullranges,
+    pyfai_info = setup_pyfai_info(
+        cfg,
+        names=["exit_angle_horz_deg", "exit_angle_vert_deg"],
+        shapeout=np.array([cfg.qmapbins[1], cfg.qmapbins[0]]),
     )
+
     t0 = time()
     scanangles_list = [get_scanangles(experiment, scan) for scan in cfg.scanlistnew]
     pool_function = worker_unpack("move_exit")
@@ -1070,14 +1102,10 @@ def pyfai_static_ivsq_new_refactor(
         logger, listener, log_queue = setup_debug_logger(cfg.num_threads)
     aistart = setup_initial_ai(cfg.pyfaiponi)
     set_ai_slits(aistart, cfg.slitratios)
-    pyfai_info = pyfai_settings(
-        setup=cfg.setup,
-        radialrange=cfg.radialrange,
-        unit_ip_name="2th_deg",
-        unit_oop_name="2th_deg",
-        shapedataout=np.array([np.abs(cfg.ivqbins)]),
-        polarization=cfg.polarization,
-        azimuthal_sector=cfg.azimuthal_sector,
+    pyfai_info = setup_pyfai_info(
+        cfg,
+        names=["2th_deg", "2th_deg"],
+        shapeout=np.array([np.abs(cfg.ivqbins)]),
     )
 
     pool_function = worker_unpack("static_ivsq")
@@ -1095,13 +1123,8 @@ def pyfai_static_ivsq_new_refactor(
     # inlist = [mapped_data, q_vals, two_th_vals]
     outdata = check_data_shape(mapped_data, scan)
 
-    # outlist = {
-    #     "Intensity": outmap,
-    #     f"{mapaxisinfo[0][1]}": mapaxisinfo[0][0],
-    #     "Q_angstrom^-1": q_vals,
-    # }
-    if (len(np.shape(outdata))==2) and (np.shape(outdata)[0]==1):
-        outdata=outdata[0]
+    if (len(np.shape(outdata)) == 2) and (np.shape(outdata)[0] == 1):
+        outdata = outdata[0]
 
     outresult=result1d(data=outdata,data_name='Intensity',x_axis=mapaxisinfo[0][0],x_axis_name=f"{mapaxisinfo[0][1]}",x2_axis=q_vals,x2_axis_name="Q_angstrom^-1")
     
@@ -1125,16 +1148,14 @@ def pyfai_static_ivschi_refactor(
         logger, listener, log_queue = setup_debug_logger(cfg.num_threads)
     aistart = setup_initial_ai(cfg.pyfaiponi, fiber_integrator=True)
     set_ai_slits(aistart, cfg.slitratios)
-    pyfai_info = pyfai_settings(
-        setup=cfg.setup,
-        radialrange=np.array(
-            [calcq(val, aistart.wavelength) for val in cfg.radialrange]
-        ),
-        unit_ip_name="qtot_A^-1",
-        unit_oop_name="chigi_deg",
-        shapedataout=np.array(np.abs(cfg.ivqbins)),
-        polarization=cfg.polarization,
-        azimuthal_sector=np.array(cfg.azimuthal_sector),
+
+    pyfai_info = setup_pyfai_info(
+        cfg,
+        names=["qtot_A^-1", "chigi_deg"],
+        shapeout=np.array([np.abs(cfg.ivqbins)]),
+    )
+    pyfai_info.radialrange = np.array(
+        [calcq(val, aistart.wavelength) for val in cfg.radialrange]
     )
 
     pool_function = worker_unpack("static_ivschi")
@@ -1175,17 +1196,16 @@ def pyfai_static_chimap_refactor(
         logger, listener, log_queue = setup_debug_logger(cfg.num_threads)
     aistart = setup_initial_ai(cfg.pyfaiponi, fiber_integrator=True)
     set_ai_slits(aistart, cfg.slitratios)
-    pyfai_info = pyfai_settings(
-        setup=cfg.setup,
-        radialrange=np.array(
-            [calcq(val, aistart.wavelength) for val in cfg.radialrange]
-        ),
-        unit_ip_name="qtot_A^-1",
-        unit_oop_name="chigi_deg",
-        shapedataout=np.array([cfg.qmapbins[1], cfg.qmapbins[0]]),
-        polarization=cfg.polarization,
-        azimuthal_sector=np.array(cfg.azimuthal_sector),
+
+    pyfai_info = setup_pyfai_info(
+        cfg,
+        names=["qtot_A^-1", "chigi_deg"],
+        shapeout=np.array([cfg.qmapbins[1], cfg.qmapbins[0]]),
     )
+    pyfai_info.radialrange = np.array(
+        [calcq(val, aistart.wavelength) for val in cfg.radialrange]
+    )
+
     t0 = time()
     pool_function = worker_unpack("static_chimap")
     scan_angles = get_scanangles(experiment, scan)
@@ -1214,17 +1234,15 @@ def pyfai_static_qmap_refactor(
         logger, listener, log_queue = setup_debug_logger(cfg.num_threads)
     aistart = setup_initial_ai(cfg.pyfaiponi)
     set_ai_slits(aistart, cfg.slitratios)
-    pyfai_info = pyfai_settings(
-        setup=cfg.setup,
-        radialrange=np.array(
-            [calcq(val, aistart.wavelength) for val in cfg.radialrange]
-        ),
-        unit_ip_name="qip_A^-1",
-        unit_oop_name="qoop_A^-1",
-        shapedataout=np.array([cfg.qmapbins[1], cfg.qmapbins[0]]),
-        polarization=cfg.polarization,
-        fullranges=cfg.fullranges,
+    pyfai_info = setup_pyfai_info(
+        cfg,
+        names=["qip_A^-1", "qoop_A^-1"],
+        shapeout=np.array([cfg.qmapbins[1], cfg.qmapbins[0]]),
     )
+    pyfai_info.radialrange = np.array(
+        [calcq(val, aistart.wavelength) for val in cfg.radialrange]
+    )
+
     t0 = time()
     pool_function = worker_unpack("static_qmap")
     scan_angles = get_scanangles(experiment, scan)
@@ -1253,15 +1271,16 @@ def pyfai_static_exitangles_refactor(
         logger, listener, log_queue = setup_debug_logger(cfg.num_threads)
     aistart = setup_initial_ai(cfg.pyfaiponi)
     set_ai_slits(aistart, cfg.slitratios)
-    pyfai_info = pyfai_settings(
-        setup=cfg.setup,
-        radialrange=cfg.radialrange,
-        unit_ip_name="exit_angle_horz_deg",
-        unit_oop_name="exit_angle_vert_deg",
-        shapedataout=np.array([cfg.qmapbins[1], cfg.qmapbins[0]]),
-        polarization=cfg.polarization,
-        fullranges=cfg.fullranges,
+
+    pyfai_info = setup_pyfai_info(
+        cfg,
+        names=[
+            "exit_angle_horz_deg",
+            "exit_angle_vert_deg",
+        ],
+        shapeout=np.array([cfg.qmapbins[1], cfg.qmapbins[0]]),
     )
+
     t0 = time()
     pool_function = worker_unpack("static_exit")
     scan_angles = get_scanangles(experiment, scan)

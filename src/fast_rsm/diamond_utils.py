@@ -30,8 +30,8 @@ from fast_rsm.logging_config import log_error_info, start_frsm_loggers
 from fast_rsm.pyfai_interface import (
     createponi,
     get_functions_dict,
-    save_config_variables,
 )
+from fast_rsm.writing import save_config_variables
 
 
 def setup_processing(

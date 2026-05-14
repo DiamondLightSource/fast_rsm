@@ -16,8 +16,6 @@ from typing import List, Tuple, Union
 
 import fabio
 import numpy as np
-import pandas as pd
-import tifffile
 
 import fast_rsm.io as io
 from diffraction_utils import Frame, Region
@@ -163,95 +161,6 @@ def _match_start_stop_to_step(step, user_bounds, auto_bounds, eps=1e-5):
     return start, stop
 
 
-def write_im_to_tiff(parainfo, perpinfo, hfname, out_filename, imdata):
-    metadata = {
-        "Description": f"Image data identical to data saved in {hfname}",
-        "Xlimits": f"min {parainfo.min()}, max {parainfo.max()}",
-        "Ylimits": f"min {perpinfo.min()}, max {perpinfo.max()}",
-    }
-    tifffile.imwrite(out_filename, imdata, metadata=metadata)
-
-
-def do_savetiffs(hf, data, axespara, axesperp):
-    """
-    save separate tiffs for all 2d image data in data
-    """
-    datashape = np.shape(data)
-    extradims = len(datashape) - 2
-    outdir = hf.filename.strip(".hdf5")
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
-    outname = outdir.split("/")[-1]
-    if extradims == 0:
-        imdata = data
-        parainfo = axespara
-        perpinfo = axesperp
-        out_filename = f"{outdir}/{outname}.tiff"
-        write_im_to_tiff(parainfo, perpinfo, hf.filename, out_filename, imdata)
-
-    if extradims == 1:
-        for i1 in np.arange(datashape[0]):
-            imdata = data[i1]
-            parainfo = axespara[i1]
-            perpinfo = axesperp[i1]
-            out_filename = f"{outdir}/{outname}_{i1}.tiff"
-            write_im_to_tiff(parainfo, perpinfo, hf.filename, out_filename, imdata)
-
-    if extradims == 2:
-        for i1 in np.arange(datashape[0]):
-            for i2 in np.arange(datashape[1]):
-                imdata = data[i1][i2]
-                parainfo = axespara[i1][i2]
-                perpinfo = axesperp[i1][i2]
-                out_filename = f"{outdir}/{outname}_{i1}_{i2}.tiff"
-                write_im_to_tiff(parainfo, perpinfo, hf.filename, out_filename, imdata)
-
-
-def write_qi_to_csv(qvals, intvals, tthetavals, out_filename, metadata):
-    outdf = pd.DataFrame(
-        {"Q_angstrom^-1": qvals, "Intensity": intvals, "two_theta": tthetavals}
-    )
-    with open(out_filename, "w", encoding="utf-8") as f:
-        f.write(metadata)
-        outdf.to_csv(f, sep="\t", index=False)
-
-
-def do_savedats(hf, intdata, qdata, tthdata):
-    """
-    save all 1d datasets to .dat files
-    """
-    datashape = np.shape(intdata)
-    extradims = len(datashape) - 1
-    outdir = hf.filename.strip(".hdf5")
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
-    metadata = f"Intensity data identical to data saved in {hf.filename}\n"
-    outname = outdir.split("/")[-1]
-    if extradims == 0:
-        intvals = intdata
-        qvals = qdata
-        tthetavals = tthdata
-        out_filename = f"{outdir}/{outname}.dat"
-        write_qi_to_csv(qvals, intvals, tthetavals, out_filename, metadata)
-
-    if extradims == 1:
-        for i1 in np.arange(datashape[0]):
-            intvals = intdata[i1]
-            qvals = qdata[i1]
-            tthetavals = tthdata[i1]
-            out_filename = f"{outdir}/{outname}_{i1}.dat"
-            write_qi_to_csv(qvals, intvals, tthetavals, out_filename, metadata)
-
-    if extradims == 2:
-        for i1 in np.arange(datashape[0]):
-            for i2 in np.arange(datashape[1]):
-                intvals = intdata[i1][i2]
-                qvals = qdata[i1][i2]
-                tthetavals = tthdata[i1][i2]
-                out_filename = f"{outdir}/{outname}_{i1}_{i2}.dat"
-                write_qi_to_csv(qvals, intvals, tthetavals, out_filename, metadata)
-
-
 class Experiment:
     """
     The Experiment class specifies all experimental details necessary to process
@@ -328,12 +237,18 @@ class Experiment:
             return scan.metadata.data_file.alpha, 0
         return [0], 0
 
+    def load_dps_offsets(self, scan: Scan):
+        datafile = scan.metadata.data_file
+        if datafile.using_dps:
+            return [datafile.dpsx, datafile.dpsy, datafile.dpsz, datafile.dpsz2]
+        return [[0], [0], [0], [0]]
+
     def load_curve_values(self, scan: Scan):
         """
         set attributes of experiment for easier access to key variables
         """
         # pylint: disable=attribute-defined-outside-init
-        large_det_names = ["pil2stats", "p2r", "pil2roi", "eir"]
+        # large_det_names = ["pil2stats", "p2r", "pil2roi", "eir"]
         self.pixel_size = scan.metadata.diffractometer.data_file.pixel_size
         self.entry = scan.metadata.data_file.nx_entry
 
@@ -342,14 +257,17 @@ class Experiment:
         #     self.detector_distance=scan.metadata.diffractometer.data_file.detector_distance
         self.incident_wavelength = 1e-10 * scan.metadata.incident_wavelength
         self.kmod = 2 * np.pi / (self.incident_wavelength)
-        self.gammadata = self.load_gamma_data(scan)
+        self.gammadata = scan.metadata.data_file.gamma  # self.load_gamma_data(scan)
         # self.deltadata=np.array( self.entry.instrument.diff1delta.value)
-        self.deltadata = self.load_delta_data(scan, large_det_names)
+        self.deltadata = (
+            scan.metadata.data_file.delta
+        )  # self.load_delta_data(scan, large_det_names)
 
         self.incident_angle, tthdirect = self.load_incident_angle(scan)
 
         self.imshape = scan.metadata.data_file.image_shape
         self.beam_centre = scan.metadata.beam_centre
+        self.dps_offsets = self.load_dps_offsets(scan)
         self.rotval = round(scan.metadata.data_file.det_rot)
         self.two_theta_start = self.gammadata - tthdirect
 
@@ -603,14 +521,14 @@ class Experiment:
         map_frame: Frame,
         process_config: SimpleNamespace,
         output_file_name: str = "mapped",
-        min_intensity_mask: float = None,
+        min_intensity_mask: float | None = None,
         output_file_size: float = 100,
         save_vtk: bool = True,
         save_npy: bool = True,
         oop: str = "y",
-        volume_start: np.ndarray = None,
-        volume_stop: np.ndarray = None,
-        volume_step: np.ndarray = None,
+        volume_start: np.ndarray | None = None,
+        volume_stop: np.ndarray | None = None,
+        volume_step: np.ndarray | None = None,
         map_each_image: bool = False,
     ):
         """
