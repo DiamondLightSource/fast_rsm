@@ -129,7 +129,7 @@ def calculate_2d_map(
         img_data,
         npt_rad=pyfai_info.shapedataout[1],
         npt_azim=pyfai_info.shapedataout[0],
-        unit=(pyfai_info.unit_ip, pyfai_info.unit_oop),
+        unit=(pyfai_info.unit_ip_name, pyfai_info.unit_oop_name),
         radial_range=(pyfai_info.fullranges[0], pyfai_info.fullranges[1]),
         azimuth_range=(pyfai_info.fullranges[2], pyfai_info.fullranges[3]),
         method=pyfai_info.method,
@@ -392,7 +392,7 @@ def pyfai_2dmap_worker(
         current_ai, img_data.shape, pyfai_info.azimuthal_sector
     )
     current_ai.mask = np.logical_or(img_mask, sector_mask)
-    pyfai_info.unit_ip, pyfai_info.unit_oop = setup_ip_oop_units(
+    pyfai_info.unit_ip_name, pyfai_info.unit_oop_name = setup_ip_oop_units(
         pyfai_info.unit_ip_name,
         pyfai_info.unit_oop_name,
         pyfai_info.sample_orientation,
