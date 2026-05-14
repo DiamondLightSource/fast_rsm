@@ -33,6 +33,29 @@ from fast_rsm.pyfai_interface import (
     save_config_variables,
 )
 
+from PIL import Image
+
+from diffraction_utils import I07Nexus
+
+
+def get_im_path(directorypath: str, scan_number: int, image_number:int = 0):
+    files = [file for file in os.listdir(f"{directorypath}") if ".nxs" in file]
+    found_file = [file for file in files if str(scan_number) + ".nxs" in file][0]
+    filepath = f"{directorypath}/{found_file}"
+    found_nexus = I07Nexus(filepath, directorypath)
+    if found_nexus.has_hdf5_data:
+        hf = h5py.File(found_nexus.local_hdf5_path)
+        imdata = hf[found_nexus.hdf5_internal_path][int(image_number)]
+        imout = Image.fromarray(imdata, mode="I")
+        fname = str(found_nexus.local_hdf5_path).split("/")[-1].strip(".h5")
+        home_dir = os.path.expanduser("~")
+        outname = rf"maskimage_{fname}_0.tiff"
+        outpath = os.path.join(home_dir, outname)
+        # print(f'outpath before saving ={outpath}')
+        imout.save(outpath, "TIFF")
+
+        return outpath
+    return found_nexus.local_image_paths[0]
 
 def setup_processing(
     exp_setup_file: Path, job_file_path: str, scan_numbers: list, debuglogging: bool
