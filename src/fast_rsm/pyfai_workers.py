@@ -2,6 +2,7 @@ import copy
 import logging
 import logging.handlers
 import sys
+from dataclasses import dataclass
 from functools import lru_cache
 from multiprocessing.shared_memory import SharedMemory
 
@@ -82,11 +83,13 @@ def get_pyfai_image_data(setup: str, metadata, idx):
 
     # outimage = scan.load_image(i)
     outimage = Image(metadata, idx, load_image=True)
-    mask = np.isnan(outimage.data).astype(bool)
+    mask_nan = np.isnan(outimage.data).astype(bool)
+    mask_negative = outimage.data < 0
+    fullmask = np.logical_or(mask_nan, mask_negative)
     if setup == "vertical":
-        return np.rot90(outimage.data, -1), np.rot90(mask, -1)
+        return np.rot90(outimage.data, -1), np.rot90(fullmask, -1)
 
-    return np.array(outimage.data), mask
+    return np.array(outimage.data), fullmask
 
 
 def setup_stat_worker(
@@ -119,11 +122,37 @@ def setup_ip_oop_units(
     return unit_ip, unit_oop
 
 
+@dataclass
+class pyfai_settings:
+    setup: str
+    radialrange: np.ndarray
+    polarization: int
+    shapedataout: np.ndarray
+    unit_ip_name: str  # "qip_A^-1"# "qip_A^-1""2th_deg"  #
+    unit_oop_name: str
+    batchsize: int = 30
+    multi: bool = False
+    method: tuple = ("no", "csr", "cython")
+    azimuthal_sector: np.ndarray | None = None
+    sample_orientation: int = 1
+    fullranges: np.ndarray | None = None
+
+
+@dataclass
+class angle_info:
+    gamma: np.ndarray
+    delta: np.ndarray
+    two_theta_start: np.ndarray
+    incident_angle: float
+    alpha_critical: float = 0.0
+    scalegamma: int | float = 1
+
+
 def calculate_2d_map(
-    pyfai_info,
-    ai,
-    img_data,
-    norm_data,
+    pyfai_info: pyfai_settings,
+    ai: AzimuthalIntegrator,
+    img_data: np.ndarray,
+    norm_data: float | int,
 ):
     map2d = ai.integrate2d(
         img_data,
@@ -146,17 +175,17 @@ def calculate_2d_map(
 
 
 def calculate_2d_map_fiber(
-    pyfai_info,
-    fi,
-    img_data,
-    norm_data,
+    pyfai_info: pyfai_settings,
+    fi: FiberIntegrator,
+    img_data: np.ndarray,
+    norm_data: float | int,
 ):
     map2d = fi.integrate2d_fiber(
         img_data,
         npt_oop=pyfai_info.shapedataout[1],
         npt_ip=pyfai_info.shapedataout[0],
         unit_ip=pyfai_info.unit_ip_name,
-        oop_range=pyfai_info.azimuthal_sector-90,
+        oop_range=pyfai_info.azimuthal_sector - 90,
         unit_oop=pyfai_info.unit_oop_name,
         ip_range=pyfai_info.radialrange,
         sample_orientation=pyfai_info.sample_orientation,
@@ -174,7 +203,7 @@ def calculate_2d_map_fiber(
 
 
 def calculate_1d_fiber(
-    pyfai_info,
+    pyfai_info: pyfai_settings,
     fi: FiberIntegrator,
     img_data: np.ndarray,
     norm_data: float | int,
@@ -185,7 +214,7 @@ def calculate_1d_fiber(
         npt_oop=int(pyfai_info.shapedataout),
         npt_ip=int(pyfai_info.shapedataout),
         unit_ip=pyfai_info.unit_ip_name,
-        oop_range=pyfai_info.azimuthal_sector-90,
+        oop_range=pyfai_info.azimuthal_sector - 90,
         unit_oop=pyfai_info.unit_oop_name,
         ip_range=pyfai_info.radialrange,
         vertical_integration=True,
@@ -202,10 +231,10 @@ def calculate_1d_fiber(
 
 
 def calculate_1d(
-    pyfai_info,
-    ai,
-    img_data,
-    norm_data,
+    pyfai_info: pyfai_settings,
+    ai: AzimuthalIntegrator,
+    img_data: np.ndarray,
+    norm_data: float | int,
 ):
 
     result1d = ai.integrate1d(
@@ -213,7 +242,6 @@ def calculate_1d(
         pyfai_info.shapedataout,
         unit=pyfai_info.unit_ip_name,
         normalization_factor=norm_data,
-        correctSolidAngle=True,
         method=pyfai_info.method,
         radial_range=pyfai_info.radialrange,
         polarization_factor=pyfai_info.polarization,
@@ -228,7 +256,7 @@ def calculate_1d(
 def get_sector_mask(ai, shape, sector_ranges):
     if sector_ranges is None:
         return np.zeros(shape)
-    chivals = ai.center_array(unit='chi_rad')
+    chivals = ai.center_array(unit="chi_rad")
     chi_min, chi_max = ai.normalize_azimuth_range(sector_ranges)
     return np.logical_or(chivals > chi_max, chivals < chi_min)
 

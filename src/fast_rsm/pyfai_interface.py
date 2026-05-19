@@ -26,7 +26,12 @@ from fast_rsm.angle_pixel_q import calcq, gamdel2rots
 from fast_rsm.experiment import Experiment, do_savedats, do_savetiffs
 from fast_rsm.image import Image
 from fast_rsm.logging_config import get_logger, listener_process
-from fast_rsm.pyfai_workers import pyfai_init_worker, worker_unpack
+from fast_rsm.pyfai_workers import (
+    angle_info,
+    pyfai_init_worker,
+    pyfai_settings,
+    worker_unpack,
+)
 from fast_rsm.scan import Scan, chunk
 
 # ----------------------------
@@ -52,7 +57,7 @@ def find_bad_image_paths(scan: Scan):
     return badpaths
 
 
-def createponi(experiment: Experiment, outpath, offset=0):
+def createponi(experiment: Experiment, outpath: str):
     """
     creates a poni file from experiment settings to use in pyFAI functions
 
@@ -80,6 +85,9 @@ def createponi(experiment: Experiment, outpath, offset=0):
     beam_centre = experiment.beam_centre
     datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
     ponioutpath = rf"{outpath}/fast_rsm_{datetime_str}.poni"
+
+    dpsx, dpsy, dpsz, dpsz2 = experiment.dps_offsets
+    total_distance = experiment.detector_distance + dpsz[0] + dpsz2[0]
     with open(ponioutpath, "w", encoding="utf-8") as f:
         f.write("# PONI file created by fast_rsm\n#\n")
         f.write("poni_version: 2\n")
@@ -92,16 +100,16 @@ def createponi(experiment: Experiment, outpath, offset=0):
         )
         f.write(pixel_line)
         f.write("}\n")
-        f.write(f"Distance: {experiment.detector_distance}\n")
-        if beam_centre == 0:
-            poni1 = (image2dshape[0] - offset) * experiment.pixel_size
-            poni2 = image2dshape[1] * experiment.pixel_size
-        elif (offset == 0) & (experiment.setup != "vertical"):
-            poni1 = (beam_centre[0]) * experiment.pixel_size
-            poni2 = beam_centre[1] * experiment.pixel_size
+        f.write(f"Distance: {total_distance}\n")
+
+        if experiment.setup != "vertical":
+            poni1 = (beam_centre[0] * experiment.pixel_size) + dpsy[0]
+            poni2 = (beam_centre[1] * experiment.pixel_size) + dpsx[0]
         else:  # (offset == 0) & (experiment.setup == 'vertical'):
-            poni1 = beam_centre[1] * experiment.pixel_size
-            poni2 = (image2dshape[0] - beam_centre[0]) * experiment.pixel_size
+            poni1 = (beam_centre[1] * experiment.pixel_size) + dpsy[0]
+            poni2 = ((image2dshape[0] - beam_centre[0]) * experiment.pixel_size) + dpsx[
+                0
+            ]
 
         f.write(f"Poni1: {poni1}\n")
         f.write(f"Poni2: {poni2}\n")
@@ -280,7 +288,10 @@ def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, process_
     outlimits = [limhor[0], limhor[1], limver[0], limver[1]]
     if experiment.setup == "vertical":
         experiment.beam_centre = (experiment.beam_centre[1], experiment.beam_centre[0])
-        experiment.beam_centre = ( experiment.beam_centre[0], experiment.imshape[0] - experiment.beam_centre[1])
+        experiment.beam_centre = (
+            experiment.beam_centre[0],
+            experiment.imshape[0] - experiment.beam_centre[1],
+        )
 
     datacheck = "data" in list(scan.metadata.data_file.nx_detector)
     localpathcheck = "local_image_paths" in scan.metadata.data_file.__dict__.keys()
@@ -361,7 +372,6 @@ def get_d5i_values(scan):
 
 # ===================================
 # ====data saving functions
-from typing import ClassVar
 
 
 @dataclass
@@ -378,10 +388,9 @@ class result1d:
     data: np.ndarray
     data_name: str
     x_axis: np.ndarray
-    x_axis_name:str
+    x_axis_name: str
     x2_axis: np.ndarray | None = None
     x2_axis_name: str | None = None
-
 
 
 def save_1d_integration_static(cfg, hf, outresult: result1d, scan=None):
@@ -392,8 +401,8 @@ def save_1d_integration_static(cfg, hf, outresult: result1d, scan=None):
     dset = hf.create_group("integrations")
     # for k, v in outlist.items():
     #     dset.create_dataset(k, data=v)
-    dset.create_dataset(outresult.data_name,data=outresult.data)
-    dset.create_dataset(outresult.x_axis_name,data=outresult.x_axis)
+    dset.create_dataset(outresult.data_name, data=outresult.data)
+    dset.create_dataset(outresult.x_axis_name, data=outresult.x_axis)
     if outresult.x2_axis is not None:
         dset.create_dataset(outresult.x2_axis_name, data=outresult.x2_axis)
     # dset.create_dataset("Intensity", data=outlist[0])
@@ -425,7 +434,14 @@ def save_1d_integration(
         f"{mapaxisinfo[0][1]}": mapaxisinfo[0][0],
         "Q_angstrom^-1": q_final,
     }
-    outresult=result1d(data=int_array,data_name='Intensity',x_axis=mapaxisinfo[0][0],x_axis_name=f"{mapaxisinfo[0][1]}",x2_axis=q_final,x2_axis_name="Q_angstrom^-1")
+    outresult = result1d(
+        data=int_array,
+        data_name="Intensity",
+        x_axis=mapaxisinfo[0][0],
+        x_axis_name=f"{mapaxisinfo[0][1]}",
+        x2_axis=q_final,
+        x2_axis_name="Q_angstrom^-1",
+    )
     save_1d_integration_static(cfg, hf, outresult)
 
 
@@ -707,32 +723,6 @@ def get_pyfai_image_data(setup: str, metadata, idx):
     return np.array(outimage.data), mask
 
 
-@dataclass
-class pyfai_settings:
-    setup: str
-    radialrange: np.ndarray
-    polarization: int
-    shapedataout: np.ndarray
-    unit_ip_name: str  # "qip_A^-1"# "qip_A^-1""2th_deg"  #
-    unit_oop_name: str
-    batchsize: int = 30
-    multi: bool = False
-    method: tuple = ("no", "csr", "cython")
-    azimuthal_sector: np.ndarray | None = None
-    sample_orientation: int = 1
-    fullranges: np.ndarray | None = None
-
-
-@dataclass
-class angle_info:
-    gamma: np.ndarray
-    delta: np.ndarray
-    two_theta_start: np.ndarray
-    incident_angle: float
-    alpha_critical: float = 0.0
-    scalegamma: int | float = 1
-
-
 def get_functions_dict(map_per_image: bool) -> dict:
     if map_per_image:
         return {
@@ -817,6 +807,13 @@ def setup_args_iter(
         cfg.setup, scan_angles, scan, imageindices
     )
     # current_ai = setup_copy_ai(cfg.aistart, cfg.slitratios)
+    aiout = copy.deepcopy(aistart)
+    if scan.metadata.data_file.using_dps:
+        aiout._dist += (
+            scan.metadata.data_file.dpsz[0] + scan.metadata.data_file.dpsz2[0]
+        )
+        aiout._poni1 += scan.metadata.data_file.dpsy[0]
+        aiout._poni2 += scan.metadata.data_file.dpsx[0]
 
     newrots = [
         calc_rots_from_gamdel(
@@ -834,7 +831,7 @@ def setup_args_iter(
             ind,
             d5i_full[ind_n],
             scan.metadata,
-            aistart,
+            aiout,
             newrots[ind_n],
             log_queue,
             ind_n,
@@ -850,7 +847,7 @@ def setup_args_iter(
 
 def run_shared_memory(
     pyfai_info: pyfai_settings, scanangles_list: list[angle_info], pool_setup, cfg
-)-> tuple:
+) -> tuple:
 
     pool_function, aistart, scanlistnew, num_threads = pool_setup
     ctx = get_context("fork")
@@ -1090,7 +1087,9 @@ def pyfai_static_ivsq_new_refactor(
         pool_function=pool_function, args_iter=args_iter, num_threads=cfg.num_threads
     )
     two_th_vals = mapaxisinfo[0][0]
-    q_vals = np.array([calcq(val, experiment.incident_wavelength) for val in two_th_vals])
+    q_vals = np.array(
+        [calcq(val, experiment.incident_wavelength) for val in two_th_vals]
+    )
 
     # inlist = [mapped_data, q_vals, two_th_vals]
     outdata = check_data_shape(mapped_data, scan)
@@ -1100,11 +1099,18 @@ def pyfai_static_ivsq_new_refactor(
     #     f"{mapaxisinfo[0][1]}": mapaxisinfo[0][0],
     #     "Q_angstrom^-1": q_vals,
     # }
-    if (len(np.shape(outdata))==2) and (np.shape(outdata)[0]==1):
-        outdata=outdata[0]
+    if (len(np.shape(outdata)) == 2) and (np.shape(outdata)[0] == 1):
+        outdata = outdata[0]
 
-    outresult=result1d(data=outdata,data_name='Intensity',x_axis=mapaxisinfo[0][0],x_axis_name=f"{mapaxisinfo[0][1]}",x2_axis=q_vals,x2_axis_name="Q_angstrom^-1")
-    
+    outresult = result1d(
+        data=outdata,
+        data_name="Intensity",
+        x_axis=mapaxisinfo[0][0],
+        x_axis_name=f"{mapaxisinfo[0][1]}",
+        x2_axis=q_vals,
+        x2_axis_name="Q_angstrom^-1",
+    )
+
     # outlist = [outmap, q_vals, two_th_vals, mapaxisinfo[0][1]]
     save_masks(hf, mask_info[0])
 
@@ -1154,9 +1160,14 @@ def pyfai_static_ivschi_refactor(
     #     "Intensity": outmap,
     #     f"{mapaxisinfo[0][1]}": mapaxisinfo[0][0],
     # }
-    if (len(np.shape(outdata))==2) and (np.shape(outdata)[0]==1):
-        outdata=outdata[0]
-    outresult=result1d(data=outdata,data_name='Intensity',x_axis=mapaxisinfo[0][0],x_axis_name=f"{mapaxisinfo[0][1]}")
+    if (len(np.shape(outdata)) == 2) and (np.shape(outdata)[0] == 1):
+        outdata = outdata[0]
+    outresult = result1d(
+        data=outdata,
+        data_name="Intensity",
+        x_axis=mapaxisinfo[0][0],
+        x_axis_name=f"{mapaxisinfo[0][1]}",
+    )
 
     save_1d_integration_static(cfg, hf, outresult, scan)
     if cfg.debuglogging:
@@ -1197,8 +1208,8 @@ def pyfai_static_chimap_refactor(
         pool_function=pool_function, args_iter=args_iter, num_threads=cfg.num_threads
     )
     outdata = check_data_shape(mapped_data, scan)
-    if (len(np.shape(outdata))==3) and (np.shape(outdata)[0]==1):
-        outdata=outdata[0]
+    if (len(np.shape(outdata)) == 3) and (np.shape(outdata)[0] == 1):
+        outdata = outdata[0]
     save_hf_map_static(hf, cfg, t0, "chi_qtotal", outdata, mapaxisinfo[0], scan)
     if cfg.debuglogging:
         log_queue.put_nowait(None)  # End the queue
@@ -1236,8 +1247,8 @@ def pyfai_static_qmap_refactor(
         pool_function=pool_function, args_iter=args_iter, num_threads=cfg.num_threads
     )
     outdata = check_data_shape(mapped_data, scan)
-    if (len(np.shape(outdata))==3) and (np.shape(outdata)[0]==1):
-        outdata=outdata[0]
+    if (len(np.shape(outdata)) == 3) and (np.shape(outdata)[0] == 1):
+        outdata = outdata[0]
     save_hf_map_static(hf, cfg, t0, "qpara_qperp", outdata, mapaxisinfo[0], scan)
     if cfg.debuglogging:
         log_queue.put_nowait(None)  # End the queue
@@ -1272,8 +1283,8 @@ def pyfai_static_exitangles_refactor(
         pool_function=pool_function, args_iter=args_iter, num_threads=cfg.num_threads
     )
     outdata = check_data_shape(mapped_data, scan)
-    if (len(np.shape(outdata))==3) and (np.shape(outdata)[0]==1):
-        outdata=outdata[0]
+    if (len(np.shape(outdata)) == 3) and (np.shape(outdata)[0] == 1):
+        outdata = outdata[0]
     # outdata = check_data_shape(mapped_data[0][0], scan)
     save_hf_map_static(hf, cfg, t0, "exit_angles", outdata, mapaxisinfo[0], scan)
     if cfg.debuglogging:

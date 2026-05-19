@@ -5,7 +5,7 @@ from fast_rsm.image import (
     correct_counttime,
     correct_transmission,
     do_edfmask,
-    do_mask_detris,
+    do_mask_eiger,
     do_mask_pixels,
     do_mask_regions,
     get_coordchange_matrix,
@@ -18,11 +18,11 @@ from numpy.testing import assert_allclose
 #         image_loader=lambda idx: np.ones((5,5)),
 #         solid_angles=np.ones((5,5)),
 #         get_count_time=lambda idx: 1,
-#         data_file=SimpleNamespace(is_dectris=False),
+#         data_file=SimpleNamespace(is_eiger=False),
 #         edfmask=None,
 #         mask_pixels=None,
 #         mask_regions=None,
-#         diffractometer=SimpleNamespace(data_file=SimpleNamespace(is_dectris=False,transmission=1))
+#         diffractometer=SimpleNamespace(data_file=SimpleNamespace(is_eiger=False,transmission=1))
 #     )
 
 #     img = Image(fake_metadata, 0)
@@ -84,14 +84,14 @@ def test_counttime_correction():
     assert_allclose(correct_counttime(counttime4, testarr, 2), testarr)
 
 
-def test_mask_dectris():
+def test_mask_eiger():
     testarr = np.ones((4, 4))
     maskedarr = testarr.copy()
     testarr[(2, 0)] = 4294967300.0
     testarr[(0, 3)] = 4294967300.0
     maskedarr[(2, 0)] = np.nan
     maskedarr[(0, 3)] = np.nan
-    assert_allclose(do_mask_detris(testarr), maskedarr)
+    assert_allclose(do_mask_eiger(testarr), maskedarr)
 
 
 def test_mask_edf():

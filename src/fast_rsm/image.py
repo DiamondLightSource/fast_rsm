@@ -67,10 +67,10 @@ def get_norm_value(values, index):
         return values[index]
 
 
-def do_mask_detris(data_arr):
-    dectris_mask = data_arr >= 4294967300.0
-    if dectris_mask is not None:
-        data_arr[dectris_mask] = np.nan
+def do_mask_eiger(data_arr):
+    eiger_mask = data_arr >= 4294967300.0
+    if eiger_mask is not None:
+        data_arr[eiger_mask] = np.nan
 
     return data_arr
 
@@ -142,7 +142,13 @@ class Image:
             quickly calculate a few q_vectors.
     """
 
-    def __init__(self, metadata: RSMMetadata, index: int, load_image=True):
+    def __init__(
+        self,
+        metadata: RSMMetadata,
+        index: int,
+        load_image=True,
+        pyfai_calculation=False,
+    ):
         # Store intensities as 32 bit floats.
 
         loader = getattr(metadata, "image_loader", None)
@@ -157,6 +163,7 @@ class Image:
         self.metadata = metadata
         self.diffractometer = self.metadata.diffractometer
         self.index = index
+        self.pyfai_calc = pyfai_calculation
 
         self._delta_q = None
 
@@ -280,13 +287,14 @@ class Image:
         for step in self._processing_steps:
             arr = step(arr)
 
-        # Solid angle corrections are not optional.
-        arr /= self.metadata.solid_angles
+        # Solid angle corrections only if not using pyfai solid angle correction
+        if not self.pyfai_calc:
+            arr /= self.metadata.solid_angles
 
         transmission_array = self.metadata.data_file.transmission
         arr = correct_transmission(transmission_array, arr, self.index)
 
-        det_name = self.metadata.data_file.detector_name
+        det_name = self.metadata.data_file.detector_info.name
         scan_entry = self.metadata.diffractometer.data_file.nxfile
         try:
             count_time_data = scan_entry.entry[det_name]["count_time"].nxdata
@@ -294,8 +302,8 @@ class Image:
             count_time_data = None
         arr = correct_counttime(count_time_data, arr, self.index)
 
-        if self.metadata.diffractometer.data_file.is_dectris:
-            arr = do_mask_detris(arr)
+        if self.metadata.diffractometer.data_file.is_eiger:
+            arr = do_mask_eiger(arr)
 
         arr = do_edfmask(self.metadata.edfmask, arr)
         arr = do_mask_pixels(self.metadata.mask_pixels, arr)

@@ -46,8 +46,8 @@ class RSMMetadata:
         self,
         diffractometer: DiffractometerBase,
         beam_centre: Tuple[int, int],  # In number of pixels.
-        mask_pixels: tuple = None,
-        mask_regions: List[Region] = None,
+        mask_pixels: tuple | None = None,
+        mask_regions: List[Region] | None = None,
     ):
         self.diffractometer = diffractometer
         self.data_file = diffractometer.data_file  # A handy reference.

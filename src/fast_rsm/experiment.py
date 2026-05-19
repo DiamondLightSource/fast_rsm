@@ -286,19 +286,19 @@ class Experiment:
         for val in none_exp:  # pylint: disable=attribute-defined-outside-init
             setattr(self, val, None)
 
-    def load_gamma_data(self, scan: Scan):
-        try:
-            return np.array(self.entry.instrument.diff1gamma.value_set).ravel()
-        except BaseException:
-            return np.array(self.entry.instrument.diff1gamma.value).ravel()
+    # def load_gamma_data(self, scan: Scan):
+    #     try:
+    #         return np.array(self.entry.instrument.diff1gamma.value_set).ravel()
+    #     except BaseException:
+    #         return np.array(self.entry.instrument.diff1gamma.value).ravel()
 
-    def load_delta_data(self, scan: Scan, large_det_names):
-        if scan.metadata.data_file.detector_name in large_det_names:
-            return 0
-        try:
-            return np.array(self.entry.instrument.diff1delta.value_set).ravel()
-        except BaseException:
-            return np.array(self.entry.instrument.diff1delta.value).ravel()
+    # def load_delta_data(self, scan: Scan, large_det_names):
+    #     if scan.metadata.data_file.detector_name in large_det_names:
+    #         return 0
+    #     try:
+    #         return np.array(self.entry.instrument.diff1delta.value_set).ravel()
+    #     except BaseException:
+    #         return np.array(self.entry.instrument.diff1delta.value).ravel()
 
     def parse_dcd_angles(self, scan: Scan):
         self.dcdrad = np.array(self.entry.instrument.dcdc2rad.value)
@@ -328,12 +328,19 @@ class Experiment:
             return scan.metadata.data_file.alpha, 0
         return [0], 0
 
+    def load_dps_offsets(self,scan:Scan):
+        datafile=scan.metadata.data_file
+        if datafile.using_dps:
+            return [ datafile.dpsx,datafile.dpsy,datafile.dpsz,datafile.dpsz2]
+        return [[0],[0],[0],[0]]
+
+
     def load_curve_values(self, scan: Scan):
         """
         set attributes of experiment for easier access to key variables
         """
         # pylint: disable=attribute-defined-outside-init
-        large_det_names = ["pil2stats", "p2r", "pil2roi", "eir"]
+        #large_det_names = ["pil2stats", "p2r", "pil2roi", "eir"]
         self.pixel_size = scan.metadata.diffractometer.data_file.pixel_size
         self.entry = scan.metadata.data_file.nx_entry
 
@@ -342,14 +349,15 @@ class Experiment:
         #     self.detector_distance=scan.metadata.diffractometer.data_file.detector_distance
         self.incident_wavelength = 1e-10 * scan.metadata.incident_wavelength
         self.kmod = 2 * np.pi / (self.incident_wavelength)
-        self.gammadata = self.load_gamma_data(scan)
+        self.gammadata = scan.metadata.data_file.gamma #self.load_gamma_data(scan)
         # self.deltadata=np.array( self.entry.instrument.diff1delta.value)
-        self.deltadata = self.load_delta_data(scan, large_det_names)
+        self.deltadata = scan.metadata.data_file.delta #self.load_delta_data(scan, large_det_names)
 
         self.incident_angle, tthdirect = self.load_incident_angle(scan)
 
         self.imshape = scan.metadata.data_file.image_shape
         self.beam_centre = scan.metadata.beam_centre
+        self.dps_offsets= self.load_dps_offsets(scan)
         self.rotval = round(scan.metadata.data_file.det_rot)
         self.two_theta_start = self.gammadata - tthdirect
 

@@ -10,31 +10,7 @@ import argparse
 import os
 import subprocess
 
-import h5py
-from PIL import Image
-
-from diffraction_utils import I07Nexus
-
-
-def get_im_path(directorypath, scan_number, image_number):
-    files = [file for file in os.listdir(f"{directorypath}") if ".nxs" in file]
-    found_file = [file for file in files if str(scan_number) + ".nxs" in file][0]
-    filepath = f"{directorypath}/{found_file}"
-    found_nexus = I07Nexus(filepath, directorypath)
-    if found_nexus.has_hdf5_data:
-        hf = h5py.File(found_nexus.local_hdf5_path)
-        imdata = hf[found_nexus.hdf5_internal_path][int(image_number)]
-        imout = Image.fromarray(imdata, mode="I")
-        fname = found_nexus.local_hdf5_path.split("/")[-1].strip(".h5")
-        home_dir = os.path.expanduser("~")
-        outname = rf"maskimage_{fname}_0.tiff"
-        outpath = os.path.join(home_dir, outname)
-        # print(f'outpath before saving ={outpath}')
-        imout.save(outpath, "TIFF")
-
-        return outpath
-    return found_nexus.local_image_paths[0]
-
+from fast_rsm.diamond_utils import get_im_path
 
 if __name__ == "__main__":
     HELP_STR = "Takes in directory path and scan number, to open up pyfai masking GUI"

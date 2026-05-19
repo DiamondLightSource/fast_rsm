@@ -33,6 +33,35 @@ from fast_rsm.pyfai_interface import (
     save_config_variables,
 )
 
+from PIL import Image
+
+from diffraction_utils import I07Nexus
+
+
+def get_im_path(directorypath: str, scan_number: int, image_number:int = 0):
+    files = [file for file in os.listdir(f"{directorypath}") if ".nxs" in file]
+    found_files = [file for file in files if str(scan_number) + ".nxs" in file]
+    if len(found_files)==0:
+        raise ValueError(f"No nexus files found matching \n\tscan number: {scan_number}\n\tdirectory: {directorypath}")
+    filepath = f"{directorypath}/{found_files[0]}"
+    found_nexus = I07Nexus(filepath, directorypath)
+    if found_nexus.has_hdf5_data:
+        hf = h5py.File(found_nexus.local_hdf5_path)
+        try:
+            imdata = hf[found_nexus.hdf5_internal_path][int(image_number)]
+            imout = Image.fromarray(imdata, mode="I")
+            fname = str(found_nexus.local_hdf5_path).split("/")[-1].strip(".h5")
+            home_dir = os.path.expanduser("~")
+            outname = rf"maskimage_{fname}_0.tiff"
+            outpath = os.path.join(home_dir, outname)
+            # print(f'outpath before saving ={outpath}')
+            imout.save(outpath, "TIFF")
+            return outpath
+        except IndexError as e:
+            raise IndexError(f"Image number {image_number} not found in {filepath}")
+
+        
+    return found_nexus.local_image_paths[0]
 
 def setup_processing(
     exp_setup_file: Path, job_file_path: str, scan_numbers: list, debuglogging: bool
@@ -64,6 +93,7 @@ def create_process_config(
     check_config_schema(default_config)
 
     cfg = SimpleNamespace(**default_config)
+    cfg.external_poni = cfg.pyfaiponi is not None
     cfg.debuglogging = debuglogging
     with open(cfg.full_path, encoding="utf-8") as f:
         cfg.joblines = f.readlines()
@@ -393,7 +423,7 @@ def make_new_hdf5(
     cfg.projected_name = f"{name_start}_{name_end}_{datetime_str}"
     cfg.process_start_time = time()
     experiment.load_curve_values(experiment.scans[scan_index])
-    if cfg.pyfaiponi is None:
+    if cfg.external_poni is False:
         cfg.pyfaiponi = createponi(experiment, cfg.local_output_path)
     return h5py.File(f"{cfg.local_output_path}/{cfg.projected_name}.hdf5", "w")
 
