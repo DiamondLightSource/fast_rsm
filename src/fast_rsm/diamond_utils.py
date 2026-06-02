@@ -17,8 +17,9 @@ from typing import Tuple
 
 import h5py
 import numpy as np
+from PIL import Image
 
-from diffraction_utils import Frame, Region
+from diffraction_utils import Frame, I07Nexus, Region
 from fast_rsm.binning import finite_diff_grid
 from fast_rsm.config_loader import (
     check_config_schema,
@@ -33,16 +34,14 @@ from fast_rsm.pyfai_interface import (
     save_config_variables,
 )
 
-from PIL import Image
 
-from diffraction_utils import I07Nexus
-
-
-def get_im_path(directorypath: str, scan_number: int, image_number:int = 0):
+def get_im_path(directorypath: str, scan_number: int, image_number: int = 0):
     files = [file for file in os.listdir(f"{directorypath}") if ".nxs" in file]
     found_files = [file for file in files if str(scan_number) + ".nxs" in file]
-    if len(found_files)==0:
-        raise ValueError(f"No nexus files found matching \n\tscan number: {scan_number}\n\tdirectory: {directorypath}")
+    if len(found_files) == 0:
+        raise ValueError(
+            f"No nexus files found matching \n\tscan number: {scan_number}\n\tdirectory: {directorypath}"
+        )
     filepath = f"{directorypath}/{found_files[0]}"
     found_nexus = I07Nexus(filepath, directorypath)
     if found_nexus.has_hdf5_data:
@@ -57,11 +56,11 @@ def get_im_path(directorypath: str, scan_number: int, image_number:int = 0):
             # print(f'outpath before saving ={outpath}')
             imout.save(outpath, "TIFF")
             return outpath
-        except IndexError as e:
+        except IndexError:
             raise IndexError(f"Image number {image_number} not found in {filepath}")
 
-        
     return found_nexus.local_image_paths[0]
+
 
 def setup_processing(
     exp_setup_file: Path, job_file_path: str, scan_numbers: list, debuglogging: bool
@@ -683,7 +682,7 @@ class ProcessArgs:
             self.lines2 = f2.readlines()
 
     def parse_scans(self):
-        if self.scan_range == 0:
+        if self.scan_range is None:
             self.scans = self.scan_nums
         else:
             rlist = eval(self.scan_range)
@@ -886,3 +885,40 @@ class ProcessArgs:
 
         else:
             self.run_cluster_job()
+
+    def check_zocalo_calc_path(
+        self,
+    ):
+        if self.calc_path == "None":
+            self.calc_path = (
+                f"{self.version_path}/fast_rsm/CLI/i07/example_calc_setup.py"
+            )
+
+    def check_zocalo_output_path(self):
+        if self.process_settings["local_output_path"].endswith("processing"):
+            print(
+                f"{'*' * 25}\nZocalo given outpath with 'processing', will replace with 'processed' "
+            )
+            print(f"\tOld outpath = {self.process_settings['local_output_path']}")
+            self.process_settings["local_output_path"] = self.process_settings[
+                "local_output_path"
+            ].replace("processing", "processed")
+
+            print(f"\tNew outpath = {self.process_settings['local_output_path']}")
+            self.create_zocalo_exp_file()
+
+    def create_zocalo_exp_file(self):
+        print("Created new exp_setup file for zocalo with new local_output_path")
+        zocalo_exp_path = self.exp_path.replace(".py", "_zocalo.py")
+        with open(zocalo_exp_path, "w") as newf:
+            for k, v in self.process_settings.items():
+                newf.write(f"{k} ={repr(v)}\n")
+        self.exp_path = zocalo_exp_path
+        print(f"\tNew file path = {zocalo_exp_path}\n{'*' * 25}")
+
+    def setup_zocalo_and_reduce(self):
+        # self.start_loggers()
+        self.check_zocalo_calc_path()
+        self.parse_setup()
+        self.check_zocalo_output_path()
+        self.parse_and_reduce()
