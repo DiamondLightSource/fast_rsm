@@ -964,7 +964,6 @@ def pyfai_moving_qmap_smm_refactor(
         polarization=cfg.polarization,
         fullranges=cfg.fullranges,
     )
-    print(f"DEBUG = {pyfai_info}")
     t0 = time()
     scanangles_list = [get_scanangles(experiment, scan) for scan in cfg.scanlistnew]
     pool_function = worker_unpack("move_qmap")
