@@ -358,7 +358,7 @@ def check_full_1d_radial_range(
     if hor_centre and ver_centre:
         radialrange = (0, np.max(cornervalues))
     else:
-        radialrange = (min(full_theta_ranges), radmax)
+        radialrange = (min(cornervalues), radmax)
     return radialrange
 
 
