@@ -359,9 +359,9 @@ def check_full_1d_radial_range(
     if hor_centre and ver_centre:
         radialrange = (0, np.max(cornervalues))
     elif hor_centre:
-        radialrange = (np.min(cfg.fullranges[2:]), radmax)
+        radialrange = (np.min(np.abs(cfg.fullranges[2:])), radmax)
     elif ver_centre:
-        radialrange = (np.min(cfg.fullranges[0:2]), radmax)
+        radialrange = (np.min(np.abs(cfg.fullranges[0:2])), radmax)
     else:
         radialrange = (min(cornervalues), radmax)
     return radialrange
