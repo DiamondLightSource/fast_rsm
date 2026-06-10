@@ -13,6 +13,7 @@ from multiprocessing.shared_memory import SharedMemory
 from time import time
 from types import SimpleNamespace
 
+
 import numpy as np
 import psutil
 import pyFAI
@@ -357,6 +358,10 @@ def check_full_1d_radial_range(
     ver_centre = centre_check[np.sum([(val > 0) for val in cfg.fullranges[2:]])]
     if hor_centre and ver_centre:
         radialrange = (0, np.max(cornervalues))
+    elif hor_centre:
+        radialrange = (np.min(cfg.fullranges[2:]), radmax)
+    elif ver_centre:
+        radialrange = (np.min(cfg.fullranges[0:2]), radmax)
     else:
         radialrange = (min(cornervalues), radmax)
     return radialrange
