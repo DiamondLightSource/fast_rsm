@@ -752,7 +752,7 @@ class ProcessArgs:
             maplines = maptemplate.readlines()
         datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
         # update mapscript in the /home/fast_rsm  directory using template, and filling in variables
-        self.script_path = f"{Path(self.outdir)}/mapscript_{datetime_str}.sh"
+        self.script_path = f"{Path(self.outdir)}/mapscript_{self.scans[0]}_{datetime_str}.sh"
         print(self.script_path)
         with open(self.script_path, "w", encoding="utf-8") as mf:
             for line in maplines:
