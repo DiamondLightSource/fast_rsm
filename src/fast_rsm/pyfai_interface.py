@@ -13,6 +13,7 @@ from multiprocessing.shared_memory import SharedMemory
 from time import time
 from types import SimpleNamespace
 
+
 import numpy as np
 import psutil
 import pyFAI
@@ -357,8 +358,12 @@ def check_full_1d_radial_range(
     ver_centre = centre_check[np.sum([(val > 0) for val in cfg.fullranges[2:]])]
     if hor_centre and ver_centre:
         radialrange = (0, np.max(cornervalues))
+    elif hor_centre:
+        radialrange = (np.min(np.abs(cfg.fullranges[2:])), radmax)
+    elif ver_centre:
+        radialrange = (np.min(np.abs(cfg.fullranges[0:2])), radmax)
     else:
-        radialrange = (min(full_theta_ranges), radmax)
+        radialrange = (min(cornervalues), radmax)
     return radialrange
 
 
@@ -964,7 +969,6 @@ def pyfai_moving_qmap_smm_refactor(
         polarization=cfg.polarization,
         fullranges=cfg.fullranges,
     )
-    print(f"DEBUG = {pyfai_info}")
     t0 = time()
     scanangles_list = [get_scanangles(experiment, scan) for scan in cfg.scanlistnew]
     pool_function = worker_unpack("move_qmap")

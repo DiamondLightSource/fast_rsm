@@ -10,7 +10,7 @@ def test_beamcentre_swap(testRSM):
 
 def test_beamcentre_rot(testRSM):
     testRSM.check_beam_centre_rot()
-    assert testRSM.beam_centre==(60,20)
+    assert testRSM.beam_centre==(59,20)
 
 def test_beamcentre_range(testRSM):
     assert testRSM.beam_centre_range_check()

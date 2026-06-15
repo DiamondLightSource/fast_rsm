@@ -3,26 +3,25 @@ This module contains parsers for different instruments that return Scan objects.
 """
 
 from pathlib import Path
-from typing import Union, Tuple, TYPE_CHECKING
+from typing import Tuple, Union
 
-from diffraction_utils import I07Nexus,Frame, Vector3
 from diffraction_utils.diffractometers import I07Diffractometer
 
-
 import fast_rsm.scan as scan
+from diffraction_utils import Frame, I07Nexus, Vector3
 from fast_rsm.rsm_metadata import RSMMetadata
-
-if TYPE_CHECKING:
-    from fast_rsm.scan import Scan
+from fast_rsm.scan import Scan
 
 
-def from_i07(path_to_nx: Union[str, Path],
-             beam_centre: Tuple[int],
-             detector_distance: float,
-             setup: str,
-             path_to_data: str = '',
-             using_dps: bool = False,
-             experimental_hutch=0) -> 'Scan':
+def from_i07(
+    path_to_nx: Union[str, Path],
+    beam_centre: Tuple[int, int],
+    detector_distance: float,
+    setup: str,
+    path_to_data: str = "",
+    using_dps: bool = False,
+    experimental_hutch=0,
+) -> Scan | None:
     """
     Instantiates a Scan from the path to an I07 nexus file, a beam centre
     coordinate tuple, a detector distance and a sample out-of-plane vector.
@@ -50,10 +49,19 @@ def from_i07(path_to_nx: Union[str, Path],
         Corresponding instance of fast_rsm.scan.Scan
     """
     # Load the nexus file.
-    i07_nexus = I07Nexus(path_to_nx, path_to_data,
-                         detector_distance, setup, using_dps=using_dps,\
-                              experimental_hutch=experimental_hutch)
-
+    i07_nexus = I07Nexus(
+        path_to_nx,
+        path_to_data,
+        detector_distance,
+        setup,
+        using_dps=using_dps,
+        experimental_hutch=experimental_hutch,
+    )
+    if i07_nexus.detector_info.is_none:
+        print(
+            f"Could not parse detector information for file {path_to_nx}, this scan will be skipped"
+        )
+        return None
     # Not used at the moment, but not deleted in case full UB matrix
     # calculations become important in the future (in which case we'll also
     # need to supply a second value).
@@ -67,3 +75,6 @@ def from_i07(path_to_nx: Union[str, Path],
     sample_oop.frame.diffractometer = diff
 
     return scan.Scan(metadata)
+
+
+str

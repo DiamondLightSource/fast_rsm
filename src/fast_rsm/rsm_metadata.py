@@ -72,7 +72,7 @@ class RSMMetadata:
     def check_beam_centre_rot(self):
         if self.data_file.is_rotated:
             self.beam_centre = (
-                self.data_file.image_shape[0] - self.beam_centre[1],
+                (self.data_file.image_shape[0]-1) - self.beam_centre[1],
                 self.beam_centre[0],
             )
 
