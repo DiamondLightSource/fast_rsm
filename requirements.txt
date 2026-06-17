@@ -11,8 +11,7 @@ pyyaml
 pandas
 tifffile
 fabio
-pyFAI
+pyFAI[gui]==2026.5.0
 schema
 concurrent-log-handler
 simpleeval
-pyqt5
