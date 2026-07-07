@@ -38,6 +38,12 @@ pyfaiponi = "path/to/pyfai/ponifile"
 # 'pyfai_ivsq'  , 'pyfai_qmap','pyfai_exitangles' ,'full_reciprocal_map'
 process_outputs = ["pyfai_qmap"]
 
+config1 = {"outputs": ["pyfai_qmap"], 
+           "edfmaskfile": 'path/to/mask1.edf'}
+
+config2 = {"outputs": ["pyfai_ivsq"], 
+           "edfmaskfile": 'path/to/mask2.edf'}
+process_outputs_with_config = [config1,config2]
 
 # Set this to True if you would like each image to be mapped independently.
 # If this is False, all images in all scans will be combined into one large
