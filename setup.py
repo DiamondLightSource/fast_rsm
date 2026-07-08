@@ -38,5 +38,5 @@ setup(
         "Programming Language :: Python :: Implementation :: CPython",
     ],
     # The bare minimum for installation.
-    install_requires=["scipy >= 1.8.0"],
+    install_requires=["scipy==1.13.1"],
 )
