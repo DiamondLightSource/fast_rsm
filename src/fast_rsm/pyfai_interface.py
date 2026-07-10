@@ -401,9 +401,9 @@ def save_supplementary_data(hf, supplementary_data):
     """
     save supplementary data to hdf5 file
     """
-    dset = hf.create_group("supplementary_data")
+    dset_supp = hf.create_group("supplementary_data")
     for k, v in supplementary_data.items():
-        dset.create_dataset(k, data=v)
+        dset_supp.create_dataset(k, data=v)
 
 
 def save_1d_integration_static(
