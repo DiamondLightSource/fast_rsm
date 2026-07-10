@@ -13,7 +13,6 @@ from multiprocessing.shared_memory import SharedMemory
 from time import time
 from types import SimpleNamespace
 
-
 import numpy as np
 import psutil
 import pyFAI
@@ -398,7 +397,18 @@ class result1d:
     x2_axis_name: str | None = None
 
 
-def save_1d_integration_static(cfg, hf, outresult: result1d, scan=None):
+def save_supplementary_data(hf, supplementary_data):
+    """
+    save supplementary data to hdf5 file
+    """
+    dset = hf.create_group("supplementary_data")
+    for k, v in supplementary_data.items():
+        dset.create_dataset(k, data=v)
+
+
+def save_1d_integration_static(
+    cfg, hf, outresult: result1d, scan=None, supplementary_data=None
+):
     """
     save 1d Intensity Vs Q profile to hdf5 file
     """
@@ -413,12 +423,14 @@ def save_1d_integration_static(cfg, hf, outresult: result1d, scan=None):
     # dset.create_dataset("Intensity", data=outlist[0])
     # dset.create_dataset(f"{outlist[3][0]}", data=outlist[1])
     # dset.create_dataset(f"{outlist[3][1]}", data=outlist[2])
-
+    if supplementary_data is not None:
+        save_supplementary_data(hf, supplementary_data)
     if (scan is not None) & ("scanfields" not in hf.keys()):
         save_scan_field_values(hf, scan)
     if cfg.savedats is True:
         do_savedats(hf, outresult.data, outresult.x2_axis, outresult.x_axis)
     save_config_variables(hf, cfg)
+
     hf.close()
 
 
@@ -522,7 +534,16 @@ def save_scan_field_values(hf, scan):
                 dset.create_dataset(f"dim{i}_{field}", data=scannedvaluesout[i])
 
 
-def save_hf_map_static(hf, cfg, start_time, mapname, mapdata, mapaxisinfo, scan=None):
+def save_hf_map_static(
+    hf,
+    cfg,
+    start_time,
+    mapname,
+    mapdata,
+    mapaxisinfo,
+    scan=None,
+    supplementary_data=None,
+):
     end_time = time()
     times = [start_time, end_time]
     dset = hf.create_group(f"{mapname}")
@@ -534,6 +555,8 @@ def save_hf_map_static(hf, cfg, start_time, mapname, mapdata, mapaxisinfo, scan=
     dset.create_dataset("map_perp_indices", data=[0, 1, 2])
     dset.create_dataset("map_para_indices", data=[0, 1, 3])
 
+    if supplementary_data is not None:
+        save_supplementary_data(hf, supplementary_data)
     if (scan is not None) & ("scanfields" not in hf.keys()):
         save_scan_field_values(hf, scan)
     if cfg.savetiffs:
@@ -1059,6 +1082,15 @@ def run_single_scan_pool(pool_function, args_iter, num_threads):
     return mapped_data, mapaxisinfo, mask_info
 
 
+def get_supplementary_data(entry):
+    adckeys = [key for key in entry.keys() if key.startswith("adc")]
+    if len(adckeys) > 0:
+        supplementary_data = {key: np.array(entry[key].data[:]) for key in adckeys}
+    else:
+        supplementary_data = None
+    return supplementary_data
+
+
 def pyfai_static_ivsq_new_refactor(
     experiment: Experiment, hf, scan, process_config: SimpleNamespace
 ):
@@ -1118,7 +1150,9 @@ def pyfai_static_ivsq_new_refactor(
     # outlist = [outmap, q_vals, two_th_vals, mapaxisinfo[0][1]]
     save_masks(hf, mask_info[0])
 
-    save_1d_integration_static(cfg, hf, outresult, scan)
+    save_1d_integration_static(
+        cfg, hf, outresult, scan, get_supplementary_data(experiment.entry)
+    )
     if cfg.debuglogging:
         log_queue.put_nowait(None)  # End the queue
         listener.join()  # Stop the listener
@@ -1173,7 +1207,9 @@ def pyfai_static_ivschi_refactor(
         x_axis_name=f"{mapaxisinfo[0][1]}",
     )
 
-    save_1d_integration_static(cfg, hf, outresult, scan)
+    save_1d_integration_static(
+        cfg, hf, outresult, scan, get_supplementary_data(experiment.entry)
+    )
     if cfg.debuglogging:
         log_queue.put_nowait(None)  # End the queue
         listener.join()  # Stop the listener
@@ -1214,7 +1250,16 @@ def pyfai_static_chimap_refactor(
     outdata = check_data_shape(mapped_data, scan)
     if (len(np.shape(outdata)) == 3) and (np.shape(outdata)[0] == 1):
         outdata = outdata[0]
-    save_hf_map_static(hf, cfg, t0, "chi_qtotal", outdata, mapaxisinfo[0], scan)
+    save_hf_map_static(
+        hf,
+        cfg,
+        t0,
+        "chi_qtotal",
+        outdata,
+        mapaxisinfo[0],
+        scan,
+        get_supplementary_data(experiment.entry),
+    )
     if cfg.debuglogging:
         log_queue.put_nowait(None)  # End the queue
         listener.join()  # Stop the listener
@@ -1253,7 +1298,16 @@ def pyfai_static_qmap_refactor(
     outdata = check_data_shape(mapped_data, scan)
     if (len(np.shape(outdata)) == 3) and (np.shape(outdata)[0] == 1):
         outdata = outdata[0]
-    save_hf_map_static(hf, cfg, t0, "qpara_qperp", outdata, mapaxisinfo[0], scan)
+    save_hf_map_static(
+        hf,
+        cfg,
+        t0,
+        "qpara_qperp",
+        outdata,
+        mapaxisinfo[0],
+        scan,
+        get_supplementary_data(experiment.entry),
+    )
     if cfg.debuglogging:
         log_queue.put_nowait(None)  # End the queue
         listener.join()  # Stop the listener
@@ -1290,7 +1344,16 @@ def pyfai_static_exitangles_refactor(
     if (len(np.shape(outdata)) == 3) and (np.shape(outdata)[0] == 1):
         outdata = outdata[0]
     # outdata = check_data_shape(mapped_data[0][0], scan)
-    save_hf_map_static(hf, cfg, t0, "exit_angles", outdata, mapaxisinfo[0], scan)
+    save_hf_map_static(
+        hf,
+        cfg,
+        t0,
+        "exit_angles",
+        outdata,
+        mapaxisinfo[0],
+        scan,
+        get_supplementary_data(experiment.entry),
+    )
     if cfg.debuglogging:
         log_queue.put_nowait(None)  # End the queue
         listener.join()  # Stop the listener
