@@ -754,15 +754,15 @@ def get_pyfai_image_data(setup: str, metadata, idx):
 def get_functions_dict(map_per_image: bool) -> dict:
     if map_per_image:
         return {
-            "pyfai_qmap": [pyfai_static_qmap_refactor, "Qmap", "2d Qmap"],
+            "pyfai_qmap": [pyfai_static_qmap, "Qmap", "2d Qmap"],
             "pyfai_exitangles": [
-                pyfai_static_exitangles_refactor,
+                pyfai_static_exitangles,
                 "exitmap",
                 "2d exit angle map",
             ],
-            "pyfai_ivsq": [pyfai_static_ivsq_new_refactor, "IvsQ", "1d integration "],
-            "pyfai_ivschi": [pyfai_static_ivschi_refactor, "IvsChi", "1d integration "],
-            "pyfai_chimap": [pyfai_static_chimap_refactor, "Chimap", "2d Chi map "],
+            "pyfai_ivsq": [pyfai_static_ivsq, "IvsQ", "1d integration "],
+            "pyfai_ivschi": [pyfai_static_ivschi, "IvsChi", "1d integration "],
+            "pyfai_chimap": [pyfai_static_chimap, "Chimap", "2d Chi map "],
         }
 
     return {
@@ -1091,7 +1091,7 @@ def get_supplementary_data(entry):
     return supplementary_data
 
 
-def pyfai_static_ivsq_new_refactor(
+def pyfai_static_ivsq(
     experiment: Experiment, hf, scan, process_config: SimpleNamespace
 ):
     """
@@ -1158,7 +1158,7 @@ def pyfai_static_ivsq_new_refactor(
         listener.join()  # Stop the listener
 
 
-def pyfai_static_ivschi_refactor(
+def pyfai_static_ivschi(
     experiment: Experiment, hf, scan, process_config: SimpleNamespace
 ):
     # unit_oop = "chigi_deg" if polar_degrees else "chigi_rad"
@@ -1215,7 +1215,7 @@ def pyfai_static_ivschi_refactor(
         listener.join()  # Stop the listener
 
 
-def pyfai_static_chimap_refactor(
+def pyfai_static_chimap(
     experiment: Experiment, hf, scan, process_config: SimpleNamespace
 ):
     # unit_oop = "chigi_deg" if polar_degrees else "chigi_rad"
@@ -1265,7 +1265,7 @@ def pyfai_static_chimap_refactor(
         listener.join()  # Stop the listener
 
 
-def pyfai_static_qmap_refactor(
+def pyfai_static_qmap(
     experiment: Experiment, hf, scan, process_config: SimpleNamespace
 ):
     cfg = setup_job(process_config, experiment, scan, "q")
@@ -1313,7 +1313,7 @@ def pyfai_static_qmap_refactor(
         listener.join()  # Stop the listener
 
 
-def pyfai_static_exitangles_refactor(
+def pyfai_static_exitangles(
     experiment: Experiment, hf, scan, process_config: SimpleNamespace
 ):
     cfg = setup_job(process_config, experiment, scan, "ang")
