@@ -766,13 +766,13 @@ def get_functions_dict(map_per_image: bool) -> dict:
         }
 
     return {
-        "pyfai_qmap": [pyfai_moving_qmap_smm_refactor, "Qmap", "2d Qmap"],
+        "pyfai_qmap": [pyfai_moving_qmap, "Qmap", "2d Qmap"],
         "pyfai_exitangles": [
-            pyfai_moving_exitangles_refactor,
+            pyfai_moving_exitangles,
             "exitmap",
             "2d exit angle map",
         ],
-        "pyfai_ivsq": [pyfai_moving_ivsq_smm_refactor, "IvsQ", "1d integration "],
+        "pyfai_ivsq": [pyfai_moving_ivsq, "IvsQ", "1d integration "],
     }
 
 
@@ -930,9 +930,7 @@ def get_scanangles(experiment: Experiment, scan: Scan):
     )
 
 
-def pyfai_moving_ivsq_smm_refactor(
-    experiment: Experiment, hf, scanlist, process_config
-) -> None:
+def pyfai_moving_ivsq(experiment: Experiment, hf, scanlist, process_config) -> None:
     """
     calculate q_para vs q_perp map for a moving detector scan
     """
@@ -971,9 +969,7 @@ def pyfai_moving_ivsq_smm_refactor(
     )
 
 
-def pyfai_moving_qmap_smm_refactor(
-    experiment: Experiment, hf, scanlist, process_config
-):
+def pyfai_moving_qmap(experiment: Experiment, hf, scanlist, process_config):
     """
     calculate q_para vs q_perp map for a moving detector scan
     """
@@ -1015,9 +1011,7 @@ def pyfai_moving_qmap_smm_refactor(
     )
 
 
-def pyfai_moving_exitangles_refactor(
-    experiment: Experiment, hf, scanlist, process_config
-):
+def pyfai_moving_exitangles(experiment: Experiment, hf, scanlist, process_config):
     """
     calculate exit_perp Vs exit para for a moving detector scan
     """
