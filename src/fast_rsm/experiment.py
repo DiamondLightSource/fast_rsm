@@ -12,15 +12,14 @@ from multiprocessing.managers import SharedMemoryManager
 from pathlib import Path
 from time import time
 from types import SimpleNamespace
-from typing import List, Tuple, Union
 
 import fabio
 import numpy as np
 import pandas as pd
 import tifffile
 
-import fast_rsm.io as io
 from diffraction_utils import Frame, Region
+from fast_rsm import io
 from fast_rsm.angle_pixel_q import (
     calc_qupplow_hor,
     calc_qupplow_vert,
@@ -41,7 +40,7 @@ logger = logging.getLogger("fastrsm")
 # from memory_profiler import profile
 
 
-def _remove_file(path: Union[str, Path]):
+def _remove_file(path: str | Path):
     """
     Removes a file if it exists. Doesn't do anything if it doesn't exist.
     """
@@ -51,7 +50,7 @@ def _remove_file(path: Union[str, Path]):
         pass
 
 
-def _sum_numpy_files(filenames: List[Union[Path, str]]):
+def _sum_numpy_files(filenames: list[Path | str]):
     """
     Takes a list of paths to .npy files. Adds them all together. Returns this
     sum.
@@ -268,7 +267,7 @@ class Experiment:
             A list of all of the scans explored in this experiment.
     """
 
-    def __init__(self, scans: List[Scan], setup: str) -> None:
+    def __init__(self, scans: list[Scan], setup: str) -> None:
         self.scans = scans
         self.setup = setup
         self._data_file_names = []
@@ -419,7 +418,7 @@ class Experiment:
         for scan in self.scans:
             scan.metadata.mask_pixels = pixels
 
-    def mask_regions(self, regions: List[Region]):
+    def mask_regions(self, regions: list[Region]):
         """
         Masks the requested regions defined as regions in setup file.
         """
@@ -460,7 +459,7 @@ class Experiment:
 
     def q_bounds(
         self, frame: Frame, spherical_bragg_vec: np.ndarray, oop: str = "y"
-    ) -> Tuple[np.ndarray]:
+    ) -> tuple[np.ndarray]:
         """
         Works out the region of reciprocal space sampled by every scan in this
         experiment. This is reasonably performant, but should really be
@@ -784,8 +783,8 @@ class Experiment:
     @classmethod
     def from_i07_nxs(
         cls,
-        nexus_paths: List[Union[str, Path]],
-        beam_centre: Tuple[int],
+        nexus_paths: list[str | Path],
+        beam_centre: tuple[int],
         detector_distance: float,
         setup: str,
         path_to_data: str = "",

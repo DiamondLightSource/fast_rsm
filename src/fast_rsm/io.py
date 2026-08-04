@@ -3,19 +3,18 @@ This module contains parsers for different instruments that return Scan objects.
 """
 
 from pathlib import Path
-from typing import Tuple, Union
 
 from diffraction_utils.diffractometers import I07Diffractometer
 
-import fast_rsm.scan as scan
 from diffraction_utils import Frame, I07Nexus, Vector3
+from fast_rsm import scan
 from fast_rsm.rsm_metadata import RSMMetadata
 from fast_rsm.scan import Scan
 
 
 def from_i07(
-    path_to_nx: Union[str, Path],
-    beam_centre: Tuple[int, int],
+    path_to_nx: str | Path,
+    beam_centre: tuple[int, int],
     detector_distance: float,
     setup: str,
     path_to_data: str = "",
@@ -75,6 +74,3 @@ def from_i07(
     sample_oop.frame.diffractometer = diff
 
     return scan.Scan(metadata)
-
-
-str
