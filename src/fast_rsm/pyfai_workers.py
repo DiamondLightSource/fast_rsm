@@ -152,7 +152,7 @@ def calculate_2d_map(
     pyfai_info: pyfai_settings,
     ai: AzimuthalIntegrator,
     img_data: np.ndarray,
-    norm_data: float | int,
+    norm_data: float,
 ):
     map2d = ai.integrate2d(
         img_data,
@@ -178,7 +178,7 @@ def calculate_2d_map_fiber(
     pyfai_info: pyfai_settings,
     fi: FiberIntegrator,
     img_data: np.ndarray,
-    norm_data: float | int,
+    norm_data: float,
 ):
     map2d = fi.integrate2d_fiber(
         img_data,
@@ -206,7 +206,7 @@ def calculate_1d_fiber(
     pyfai_info: pyfai_settings,
     fi: FiberIntegrator,
     img_data: np.ndarray,
-    norm_data: float | int,
+    norm_data: float,
 ):
 
     result1d = fi.integrate_fiber(
@@ -234,7 +234,7 @@ def calculate_1d(
     pyfai_info: pyfai_settings,
     ai: AzimuthalIntegrator,
     img_data: np.ndarray,
-    norm_data: float | int,
+    norm_data: float,
 ):
 
     result1d = ai.integrate1d(
@@ -331,7 +331,8 @@ def set_ai_rots(rots, current_ai, setup):
     """
     get components need for mapping with pyFAI
     """
-    current_ai.rot1, current_ai.rot2, current_ai.rot3 = rots
+    if np.abs(np.max(rots)) > 0.0:
+        current_ai.rot1, current_ai.rot2, current_ai.rot3 = rots
 
     if setup == "vertical":
         current_ai.rot1 = rots[1]

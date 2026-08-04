@@ -13,7 +13,6 @@ from datetime import datetime
 from pathlib import Path
 from time import sleep, time
 from types import SimpleNamespace
-from typing import Tuple
 
 import h5py
 import numpy as np
@@ -205,7 +204,7 @@ def data_corruption_warning(cfg: SimpleNamespace):
                        and will be ignored during processing",
         )
     )
-    print(f"Directory: {str(cfg.bad_nxs_paths[0].parent)}")
+    print(f"Directory: {cfg.bad_nxs_paths[0].parent!s}")
     for path in cfg.bad_nxs_paths:
         print(f"\t {path.name}")
         for file in cfg.corrupted_file_list[path.name]:
@@ -423,7 +422,7 @@ def make_new_hdf5(
     cfg.process_start_time = time()
     experiment.load_curve_values(experiment.scans[scan_index])
     if cfg.external_poni is False:
-        cfg.pyfaiponi = createponi(experiment, cfg.local_output_path)
+        cfg.pyfaiponi = createponi(experiment, cfg.local_output_path, scan_index)
     return h5py.File(f"{cfg.local_output_path}/{cfg.projected_name}.hdf5", "w")
 
 
@@ -614,7 +613,7 @@ def save_binoviewer_hdf5(output_path: str, process_config: SimpleNamespace):
         save_config_variables(hf, cfg)
 
 
-def get_volume_and_bounds(path_to_npy: str) -> Tuple[np.ndarray]:
+def get_volume_and_bounds(path_to_npy: str) -> tuple[np.ndarray]:
     """
     Takes the path to a .npy file. Loads the volume stored in the .npy file, and
     also grabs the definition of the corresponding finite differences volume
@@ -736,8 +735,7 @@ class ProcessArgs:
             ordered_settings = {
                 k: self.process_settings[k] for k in sorted(self.process_settings)
             }
-            for k, v in ordered_settings.items():
-                jobf.write(f"{k}  = {v}\n")
+            jobf.writelines(f"{k}  = {v}\n" for k, v in ordered_settings.items())
 
             jobf.write('"""')
         os.chmod(self.save_path, 0o777)
@@ -752,7 +750,9 @@ class ProcessArgs:
             maplines = maptemplate.readlines()
         datetime_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
         # update mapscript in the /home/fast_rsm  directory using template, and filling in variables
-        self.script_path = f"{Path(self.outdir)}/mapscript_{self.scans[0]}_{datetime_str}.sh"
+        self.script_path = (
+            f"{Path(self.outdir)}/mapscript_{self.scans[0]}_{datetime_str}.sh"
+        )
         print(self.script_path)
         with open(self.script_path, "w", encoding="utf-8") as mf:
             for line in maplines:
@@ -911,8 +911,7 @@ class ProcessArgs:
         print("Created new exp_setup file for zocalo with new local_output_path")
         zocalo_exp_path = self.exp_path.replace(".py", "_zocalo.py")
         with open(zocalo_exp_path, "w") as newf:
-            for k, v in self.process_settings.items():
-                newf.write(f"{k} ={repr(v)}\n")
+            newf.writelines(f"{k} ={v!r}\n" for k, v in self.process_settings.items())
         self.exp_path = zocalo_exp_path
         print(f"\tNew file path = {zocalo_exp_path}\n{'*' * 25}")
 

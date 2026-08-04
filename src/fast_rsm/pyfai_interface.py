@@ -57,7 +57,7 @@ def find_bad_image_paths(scan: Scan):
     return badpaths
 
 
-def createponi(experiment: Experiment, outpath: str):
+def createponi(experiment: Experiment, outpath: str, scan_index: int):
     """
     creates a poni file from experiment settings to use in pyFAI functions
 
@@ -110,10 +110,16 @@ def createponi(experiment: Experiment, outpath: str):
             poni2 = ((image2dshape[0] - beam_centre[0]) * experiment.pixel_size) + dpsx[
                 0
             ]
+        poni_2_offset = 0
+        rot1 = 0.0
+        if experiment.scans[scan_index].metadata.data_file.using_dps:
+            dcd_angle = experiment.scans[0].metadata.diffractometer.calc_dcd_hor_angle()
+            poni_2_offset = np.tan(np.radians(dcd_angle)) * experiment.detector_distance
+            rot1 = np.radians(dcd_angle)
 
         f.write(f"Poni1: {poni1}\n")
-        f.write(f"Poni2: {poni2}\n")
-        f.write("Rot1: 0.0\n")
+        f.write(f"Poni2: {poni2 + poni_2_offset}\n")
+        f.write(f"Rot1: {rot1} \n")
         f.write("Rot2: 0.0\n")
         f.write("Rot3: 0.0\n")
         f.write(f"Wavelength: {experiment.incident_wavelength}")
@@ -132,7 +138,7 @@ def get_input_args(experiment, scan, process_config: SimpleNamespace):
     configuration
     """
     cfg = process_config
-    fullrange = np.arange(0, cfg.scanlength, cfg.scalegamma)
+    fullrange = np.arange(0, calc_scan_length(scan), cfg.scalegamma)
     selectedindices = [n for n in fullrange if n not in scan.skip_images]
     if cfg.multi:
         inputindices = chunk(selectedindices, cfg.num_threads)
@@ -260,6 +266,26 @@ def check_scanlist(scanlist):
     return scanlist
 
 
+def calc_scan_length(scan):
+    datacheck = "data" in list(scan.metadata.data_file.nx_detector)
+    localpathcheck = "local_image_paths" in scan.metadata.data_file.__dict__
+    intcheck = isinstance(scan.metadata.data_file.scan_length, int)
+    if datacheck & intcheck:
+        scanlength = np.shape(scan.metadata.data_file.nx_detector.data[:, 1, :])[0]
+        scanlength = min(scanlength, scan.metadata.data_file.scan_length)
+    elif datacheck:
+        scanlength = np.shape(scan.metadata.data_file.nx_detector.data[:, 1, :])[0]
+    elif localpathcheck:
+        scanlength = len(scan.metadata.data_file.local_image_paths)
+    else:
+        scanlength = scan.metadata.data_file.scan_length
+    if not scan.metadata.data_file.has_hdf5_data:
+        badimagecheck = find_bad_image_paths(scan)
+        if len(badimagecheck) > 0:
+            scanlength -= len(badimagecheck)
+    return scanlength
+
+
 def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, process_config):
     """
     calculate setup values needed for pyfai calculations
@@ -271,6 +297,7 @@ def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, process_
 
     limhor = None
     limver = None
+    scanlength_list = [calc_scan_length for scan in scanlistnew]
     for scan in scanlistnew:
         experiment.load_curve_values(scan)
 
@@ -293,25 +320,22 @@ def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, process_
             experiment.imshape[0] - experiment.beam_centre[1],
         )
 
-    datacheck = "data" in list(scan.metadata.data_file.nx_detector)
-    localpathcheck = "local_image_paths" in scan.metadata.data_file.__dict__.keys()
-    intcheck = isinstance(scan.metadata.data_file.scan_length, int)
-    if datacheck & intcheck:
-        scanlength = np.shape(scan.metadata.data_file.nx_detector.data[:, 1, :])[0]
-        scanlength = min(scanlength, scan.metadata.data_file.scan_length)
-    elif datacheck:
-        scanlength = np.shape(scan.metadata.data_file.nx_detector.data[:, 1, :])[0]
-    elif localpathcheck:
-        scanlength = len(scan.metadata.data_file.local_image_paths)
-    else:
-        scanlength = scan.metadata.data_file.scan_length
+    # datacheck = "data" in list(scan.metadata.data_file.nx_detector)
+    # localpathcheck = "local_image_paths" in scan.metadata.data_file.__dict__.keys()
+    # intcheck = isinstance(scan.metadata.data_file.scan_length, int)
+    # if datacheck & intcheck:
+    #     scanlength = np.shape(scan.metadata.data_file.nx_detector.data[:, 1, :])[0]
+    #     scanlength = min(scanlength, scan.metadata.data_file.scan_length)
+    # elif datacheck:
+    #     scanlength = np.shape(scan.metadata.data_file.nx_detector.data[:, 1, :])[0]
+    # elif localpathcheck:
+    #     scanlength = len(scan.metadata.data_file.local_image_paths)
+    # else:
+    #     scanlength = scan.metadata.data_file.scan_length
 
     # check for scans finished early
-    if not scan.metadata.data_file.has_hdf5_data:
-        badimagecheck = find_bad_image_paths(scan)
-        if len(badimagecheck) > 0:
-            scanlength -= len(badimagecheck)
-    return outlimits, scanlength, scanlistnew
+
+    return outlimits, scanlength_list, scanlistnew
 
 
 def chunked(lst, n):
@@ -630,7 +654,7 @@ def setup_job(
     cfg = copy.copy(process_config)
 
     limit_functions = {"ang": experiment.calcanglim, "q": experiment.calcqlim}
-    cfg.fullranges, cfg.scanlength, cfg.scanlistnew = pyfai_setup_limits(
+    cfg.fullranges, cfg.scanlength_list, cfg.scanlistnew = pyfai_setup_limits(
         experiment, scan, limit_functions[limit_key], cfg
     )
 
@@ -720,6 +744,7 @@ def calc_rots_from_gamdel(
     setup,
 ):
     gamval, delval = gamdelval
+
     if (-np.degrees(inc_angle) > alphacritical) & (setup == "DCD"):
         # if above critical angle, account for direct beam adding to delta
         return gamdel2rots(gamval, delval + np.degrees(-inc_angle))
@@ -826,7 +851,9 @@ def setup_args_iter(
     log_queue=None,
     shared=False,
 ):
-    imageindices = get_full_indices(scan, cfg.scanlength, scan_angles.scalegamma)
+    imageindices = get_full_indices(
+        scan, calc_scan_length(scan), scan_angles.scalegamma
+    )
     batches, num_batches, completed = get_batch_details(
         pyfai_info.multi, imageindices, pyfai_info.batchsize
     )
@@ -924,8 +951,8 @@ def get_scanangles(experiment: Experiment, scan: Scan):
 
     return angle_info(
         gamma=experiment.gammadata,
-        delta=experiment.deltadata,
         two_theta_start=experiment.two_theta_start,
+        delta=experiment.deltadata,
         incident_angle=experiment.incident_angle,
     )
 
