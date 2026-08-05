@@ -273,10 +273,15 @@ def calc_scan_length(scan):
     localpathcheck = "local_image_paths" in scan.metadata.data_file.__dict__
     intcheck = isinstance(scan.metadata.data_file.scan_length, int)
     if datacheck & intcheck:
-        scanlength = np.shape(scan.metadata.data_file.nx_detector.data[:, 1, :])[0]
+        # scanlength = np.shape(scan.metadata.data_file.nx_detector.data[:, 1, :])[0]
+        link = scan.metadata.data_file.nx_detector.data
+        field = link.nxlink  # initial call to link appears to be needed to allow access to _file and _target attributes
+        scanlength = link._file[link._target].shape[0]
         scanlength = min(scanlength, scan.metadata.data_file.scan_length)
     elif datacheck:
-        scanlength = np.shape(scan.metadata.data_file.nx_detector.data[:, 1, :])[0]
+        link = scan.metadata.data_file.nx_detector.data
+        field = link.nxlink  # initial call to link appears to be needed to allow access to _file and _target attributes
+        scanlength = link._file[link._target].shape[0]
     elif localpathcheck:
         scanlength = len(scan.metadata.data_file.local_image_paths)
     else:
