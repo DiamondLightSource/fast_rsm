@@ -112,7 +112,9 @@ def createponi(experiment: Experiment, outpath: str, scan_index: int):
             ]
         poni_2_offset = 0
         rot1 = 0.0
-        if experiment.scans[scan_index].metadata.data_file.using_dps:
+        if (experiment.scans[scan_index].metadata.data_file.using_dps) and (
+            experiment.setup == "DCD"
+        ):
             dcd_angle = experiment.scans[0].metadata.diffractometer.calc_dcd_hor_angle()
             poni_2_offset = np.tan(np.radians(dcd_angle)) * experiment.detector_distance
             rot1 = np.radians(dcd_angle)
