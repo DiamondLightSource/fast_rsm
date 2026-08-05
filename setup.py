@@ -1,5 +1,5 @@
 """
-latest version created: parsing_detector in fast_rsm/
+latest version created: ivq_gap_issue in fast_rsm/
 The setup file. To install as a developer (only do this in a venv):
 
 python setup.py develop
