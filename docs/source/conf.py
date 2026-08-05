@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Configuration file for the Sphinx documentation builder.
 #
@@ -23,9 +22,9 @@ project = "fast_rsm"
 copyright = "2020-2025, Diamond Light Source Ltd"
 author = "Philip Mousley"
 
-version = "2.4.2"
+version = "2.4.4"
 # The full version, including alpha/beta/rc tags
-release = "2.4.2"
+release = "2.4.4"
 
 
 # -- General configuration ---------------------------------------------------
