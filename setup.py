@@ -1,5 +1,5 @@
 """
-latest version created: fix_pyqt_issue in fast_rsm/
+latest version created: parsing_detector in fast_rsm/
 The setup file. To install as a developer (only do this in a venv):
 
 python setup.py develop
@@ -38,5 +38,5 @@ setup(
         "Programming Language :: Python :: Implementation :: CPython",
     ],
     # The bare minimum for installation.
-    install_requires=["scipy >= 1.8.0"],
+    install_requires=["scipy==1.13.1"],
 )

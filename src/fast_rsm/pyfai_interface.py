@@ -13,7 +13,6 @@ from multiprocessing.shared_memory import SharedMemory
 from time import time
 from types import SimpleNamespace
 
-
 import numpy as np
 import psutil
 import pyFAI
@@ -58,7 +57,7 @@ def find_bad_image_paths(scan: Scan):
     return badpaths
 
 
-def createponi(experiment: Experiment, outpath: str):
+def createponi(experiment: Experiment, outpath: str, scan_index: int):
     """
     creates a poni file from experiment settings to use in pyFAI functions
 
@@ -111,10 +110,18 @@ def createponi(experiment: Experiment, outpath: str):
             poni2 = ((image2dshape[0] - beam_centre[0]) * experiment.pixel_size) + dpsx[
                 0
             ]
+        poni_2_offset = 0
+        rot1 = 0.0
+        if (experiment.scans[scan_index].metadata.data_file.using_dps) and (
+            experiment.setup == "DCD"
+        ):
+            dcd_angle = experiment.scans[0].metadata.diffractometer.calc_dcd_hor_angle()
+            poni_2_offset = np.tan(np.radians(dcd_angle)) * experiment.detector_distance
+            rot1 = np.radians(dcd_angle)
 
         f.write(f"Poni1: {poni1}\n")
-        f.write(f"Poni2: {poni2}\n")
-        f.write("Rot1: 0.0\n")
+        f.write(f"Poni2: {poni2 + poni_2_offset}\n")
+        f.write(f"Rot1: {rot1} \n")
         f.write("Rot2: 0.0\n")
         f.write("Rot3: 0.0\n")
         f.write(f"Wavelength: {experiment.incident_wavelength}")
@@ -133,7 +140,7 @@ def get_input_args(experiment, scan, process_config: SimpleNamespace):
     configuration
     """
     cfg = process_config
-    fullrange = np.arange(0, cfg.scanlength, cfg.scalegamma)
+    fullrange = np.arange(0, calc_scan_length(scan), cfg.scalegamma)
     selectedindices = [n for n in fullrange if n not in scan.skip_images]
     if cfg.multi:
         inputindices = chunk(selectedindices, cfg.num_threads)
@@ -261,6 +268,26 @@ def check_scanlist(scanlist):
     return scanlist
 
 
+def calc_scan_length(scan):
+    datacheck = "data" in list(scan.metadata.data_file.nx_detector)
+    localpathcheck = "local_image_paths" in scan.metadata.data_file.__dict__
+    intcheck = isinstance(scan.metadata.data_file.scan_length, int)
+    if datacheck & intcheck:
+        scanlength = np.shape(scan.metadata.data_file.nx_detector.data[:, 1, :])[0]
+        scanlength = min(scanlength, scan.metadata.data_file.scan_length)
+    elif datacheck:
+        scanlength = np.shape(scan.metadata.data_file.nx_detector.data[:, 1, :])[0]
+    elif localpathcheck:
+        scanlength = len(scan.metadata.data_file.local_image_paths)
+    else:
+        scanlength = scan.metadata.data_file.scan_length
+    if not scan.metadata.data_file.has_hdf5_data:
+        badimagecheck = find_bad_image_paths(scan)
+        if len(badimagecheck) > 0:
+            scanlength -= len(badimagecheck)
+    return scanlength
+
+
 def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, process_config):
     """
     calculate setup values needed for pyfai calculations
@@ -272,6 +299,7 @@ def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, process_
 
     limhor = None
     limver = None
+    scanlength_list = [calc_scan_length for scan in scanlistnew]
     for scan in scanlistnew:
         experiment.load_curve_values(scan)
 
@@ -294,25 +322,22 @@ def pyfai_setup_limits(experiment: Experiment, scanlist, limitfunction, process_
             experiment.imshape[0] - experiment.beam_centre[1],
         )
 
-    datacheck = "data" in list(scan.metadata.data_file.nx_detector)
-    localpathcheck = "local_image_paths" in scan.metadata.data_file.__dict__.keys()
-    intcheck = isinstance(scan.metadata.data_file.scan_length, int)
-    if datacheck & intcheck:
-        scanlength = np.shape(scan.metadata.data_file.nx_detector.data[:, 1, :])[0]
-        scanlength = min(scanlength, scan.metadata.data_file.scan_length)
-    elif datacheck:
-        scanlength = np.shape(scan.metadata.data_file.nx_detector.data[:, 1, :])[0]
-    elif localpathcheck:
-        scanlength = len(scan.metadata.data_file.local_image_paths)
-    else:
-        scanlength = scan.metadata.data_file.scan_length
+    # datacheck = "data" in list(scan.metadata.data_file.nx_detector)
+    # localpathcheck = "local_image_paths" in scan.metadata.data_file.__dict__.keys()
+    # intcheck = isinstance(scan.metadata.data_file.scan_length, int)
+    # if datacheck & intcheck:
+    #     scanlength = np.shape(scan.metadata.data_file.nx_detector.data[:, 1, :])[0]
+    #     scanlength = min(scanlength, scan.metadata.data_file.scan_length)
+    # elif datacheck:
+    #     scanlength = np.shape(scan.metadata.data_file.nx_detector.data[:, 1, :])[0]
+    # elif localpathcheck:
+    #     scanlength = len(scan.metadata.data_file.local_image_paths)
+    # else:
+    #     scanlength = scan.metadata.data_file.scan_length
 
     # check for scans finished early
-    if not scan.metadata.data_file.has_hdf5_data:
-        badimagecheck = find_bad_image_paths(scan)
-        if len(badimagecheck) > 0:
-            scanlength -= len(badimagecheck)
-    return outlimits, scanlength, scanlistnew
+
+    return outlimits, scanlength_list, scanlistnew
 
 
 def chunked(lst, n):
@@ -398,7 +423,18 @@ class result1d:
     x2_axis_name: str | None = None
 
 
-def save_1d_integration_static(cfg, hf, outresult: result1d, scan=None):
+def save_supplementary_data(hf, supplementary_data):
+    """
+    save supplementary data to hdf5 file
+    """
+    dset_supp = hf.create_group("supplementary_data")
+    for k, v in supplementary_data.items():
+        dset_supp.create_dataset(k, data=v)
+
+
+def save_1d_integration_static(
+    cfg, hf, outresult: result1d, scan=None, supplementary_data=None
+):
     """
     save 1d Intensity Vs Q profile to hdf5 file
     """
@@ -413,12 +449,14 @@ def save_1d_integration_static(cfg, hf, outresult: result1d, scan=None):
     # dset.create_dataset("Intensity", data=outlist[0])
     # dset.create_dataset(f"{outlist[3][0]}", data=outlist[1])
     # dset.create_dataset(f"{outlist[3][1]}", data=outlist[2])
-
+    if supplementary_data is not None:
+        save_supplementary_data(hf, supplementary_data)
     if (scan is not None) & ("scanfields" not in hf.keys()):
         save_scan_field_values(hf, scan)
     if cfg.savedats is True:
         do_savedats(hf, outresult.data, outresult.x2_axis, outresult.x_axis)
     save_config_variables(hf, cfg)
+
     hf.close()
 
 
@@ -522,7 +560,16 @@ def save_scan_field_values(hf, scan):
                 dset.create_dataset(f"dim{i}_{field}", data=scannedvaluesout[i])
 
 
-def save_hf_map_static(hf, cfg, start_time, mapname, mapdata, mapaxisinfo, scan=None):
+def save_hf_map_static(
+    hf,
+    cfg,
+    start_time,
+    mapname,
+    mapdata,
+    mapaxisinfo,
+    scan=None,
+    supplementary_data=None,
+):
     end_time = time()
     times = [start_time, end_time]
     dset = hf.create_group(f"{mapname}")
@@ -534,6 +581,8 @@ def save_hf_map_static(hf, cfg, start_time, mapname, mapdata, mapaxisinfo, scan=
     dset.create_dataset("map_perp_indices", data=[0, 1, 2])
     dset.create_dataset("map_para_indices", data=[0, 1, 3])
 
+    if supplementary_data is not None:
+        save_supplementary_data(hf, supplementary_data)
     if (scan is not None) & ("scanfields" not in hf.keys()):
         save_scan_field_values(hf, scan)
     if cfg.savetiffs:
@@ -607,7 +656,7 @@ def setup_job(
     cfg = copy.copy(process_config)
 
     limit_functions = {"ang": experiment.calcanglim, "q": experiment.calcqlim}
-    cfg.fullranges, cfg.scanlength, cfg.scanlistnew = pyfai_setup_limits(
+    cfg.fullranges, cfg.scanlength_list, cfg.scanlistnew = pyfai_setup_limits(
         experiment, scan, limit_functions[limit_key], cfg
     )
 
@@ -697,6 +746,7 @@ def calc_rots_from_gamdel(
     setup,
 ):
     gamval, delval = gamdelval
+
     if (-np.degrees(inc_angle) > alphacritical) & (setup == "DCD"):
         # if above critical angle, account for direct beam adding to delta
         return gamdel2rots(gamval, delval + np.degrees(-inc_angle))
@@ -731,25 +781,25 @@ def get_pyfai_image_data(setup: str, metadata, idx):
 def get_functions_dict(map_per_image: bool) -> dict:
     if map_per_image:
         return {
-            "pyfai_qmap": [pyfai_static_qmap_refactor, "Qmap", "2d Qmap"],
+            "pyfai_qmap": [pyfai_static_qmap, "Qmap", "2d Qmap"],
             "pyfai_exitangles": [
-                pyfai_static_exitangles_refactor,
+                pyfai_static_exitangles,
                 "exitmap",
                 "2d exit angle map",
             ],
-            "pyfai_ivsq": [pyfai_static_ivsq_new_refactor, "IvsQ", "1d integration "],
-            "pyfai_ivschi": [pyfai_static_ivschi_refactor, "IvsChi", "1d integration "],
-            "pyfai_chimap": [pyfai_static_chimap_refactor, "Chimap", "2d Chi map "],
+            "pyfai_ivsq": [pyfai_static_ivsq, "IvsQ", "1d integration "],
+            "pyfai_ivschi": [pyfai_static_ivschi, "IvsChi", "1d integration "],
+            "pyfai_chimap": [pyfai_static_chimap, "Chimap", "2d Chi map "],
         }
 
     return {
-        "pyfai_qmap": [pyfai_moving_qmap_smm_refactor, "Qmap", "2d Qmap"],
+        "pyfai_qmap": [pyfai_moving_qmap, "Qmap", "2d Qmap"],
         "pyfai_exitangles": [
-            pyfai_moving_exitangles_refactor,
+            pyfai_moving_exitangles,
             "exitmap",
             "2d exit angle map",
         ],
-        "pyfai_ivsq": [pyfai_moving_ivsq_smm_refactor, "IvsQ", "1d integration "],
+        "pyfai_ivsq": [pyfai_moving_ivsq, "IvsQ", "1d integration "],
     }
 
 
@@ -803,7 +853,9 @@ def setup_args_iter(
     log_queue=None,
     shared=False,
 ):
-    imageindices = get_full_indices(scan, cfg.scanlength, scan_angles.scalegamma)
+    imageindices = get_full_indices(
+        scan, calc_scan_length(scan), scan_angles.scalegamma
+    )
     batches, num_batches, completed = get_batch_details(
         pyfai_info.multi, imageindices, pyfai_info.batchsize
     )
@@ -901,15 +953,13 @@ def get_scanangles(experiment: Experiment, scan: Scan):
 
     return angle_info(
         gamma=experiment.gammadata,
-        delta=experiment.deltadata,
         two_theta_start=experiment.two_theta_start,
+        delta=experiment.deltadata,
         incident_angle=experiment.incident_angle,
     )
 
 
-def pyfai_moving_ivsq_smm_refactor(
-    experiment: Experiment, hf, scanlist, process_config
-) -> None:
+def pyfai_moving_ivsq(experiment: Experiment, hf, scanlist, process_config) -> None:
     """
     calculate q_para vs q_perp map for a moving detector scan
     """
@@ -948,9 +998,7 @@ def pyfai_moving_ivsq_smm_refactor(
     )
 
 
-def pyfai_moving_qmap_smm_refactor(
-    experiment: Experiment, hf, scanlist, process_config
-):
+def pyfai_moving_qmap(experiment: Experiment, hf, scanlist, process_config):
     """
     calculate q_para vs q_perp map for a moving detector scan
     """
@@ -992,9 +1040,7 @@ def pyfai_moving_qmap_smm_refactor(
     )
 
 
-def pyfai_moving_exitangles_refactor(
-    experiment: Experiment, hf, scanlist, process_config
-):
+def pyfai_moving_exitangles(experiment: Experiment, hf, scanlist, process_config):
     """
     calculate exit_perp Vs exit para for a moving detector scan
     """
@@ -1059,7 +1105,16 @@ def run_single_scan_pool(pool_function, args_iter, num_threads):
     return mapped_data, mapaxisinfo, mask_info
 
 
-def pyfai_static_ivsq_new_refactor(
+def get_supplementary_data(entry):
+    adckeys = [key for key in entry.keys() if key.startswith("adc")]
+    if len(adckeys) > 0:
+        supplementary_data = {key: np.array(entry[key].data[:]) for key in adckeys}
+    else:
+        supplementary_data = None
+    return supplementary_data
+
+
+def pyfai_static_ivsq(
     experiment: Experiment, hf, scan, process_config: SimpleNamespace
 ):
     """
@@ -1118,13 +1173,15 @@ def pyfai_static_ivsq_new_refactor(
     # outlist = [outmap, q_vals, two_th_vals, mapaxisinfo[0][1]]
     save_masks(hf, mask_info[0])
 
-    save_1d_integration_static(cfg, hf, outresult, scan)
+    save_1d_integration_static(
+        cfg, hf, outresult, scan, get_supplementary_data(experiment.entry)
+    )
     if cfg.debuglogging:
         log_queue.put_nowait(None)  # End the queue
         listener.join()  # Stop the listener
 
 
-def pyfai_static_ivschi_refactor(
+def pyfai_static_ivschi(
     experiment: Experiment, hf, scan, process_config: SimpleNamespace
 ):
     # unit_oop = "chigi_deg" if polar_degrees else "chigi_rad"
@@ -1173,13 +1230,15 @@ def pyfai_static_ivschi_refactor(
         x_axis_name=f"{mapaxisinfo[0][1]}",
     )
 
-    save_1d_integration_static(cfg, hf, outresult, scan)
+    save_1d_integration_static(
+        cfg, hf, outresult, scan, get_supplementary_data(experiment.entry)
+    )
     if cfg.debuglogging:
         log_queue.put_nowait(None)  # End the queue
         listener.join()  # Stop the listener
 
 
-def pyfai_static_chimap_refactor(
+def pyfai_static_chimap(
     experiment: Experiment, hf, scan, process_config: SimpleNamespace
 ):
     # unit_oop = "chigi_deg" if polar_degrees else "chigi_rad"
@@ -1214,13 +1273,22 @@ def pyfai_static_chimap_refactor(
     outdata = check_data_shape(mapped_data, scan)
     if (len(np.shape(outdata)) == 3) and (np.shape(outdata)[0] == 1):
         outdata = outdata[0]
-    save_hf_map_static(hf, cfg, t0, "chi_qtotal", outdata, mapaxisinfo[0], scan)
+    save_hf_map_static(
+        hf,
+        cfg,
+        t0,
+        "chi_qtotal",
+        outdata,
+        mapaxisinfo[0],
+        scan,
+        get_supplementary_data(experiment.entry),
+    )
     if cfg.debuglogging:
         log_queue.put_nowait(None)  # End the queue
         listener.join()  # Stop the listener
 
 
-def pyfai_static_qmap_refactor(
+def pyfai_static_qmap(
     experiment: Experiment, hf, scan, process_config: SimpleNamespace
 ):
     cfg = setup_job(process_config, experiment, scan, "q")
@@ -1253,13 +1321,22 @@ def pyfai_static_qmap_refactor(
     outdata = check_data_shape(mapped_data, scan)
     if (len(np.shape(outdata)) == 3) and (np.shape(outdata)[0] == 1):
         outdata = outdata[0]
-    save_hf_map_static(hf, cfg, t0, "qpara_qperp", outdata, mapaxisinfo[0], scan)
+    save_hf_map_static(
+        hf,
+        cfg,
+        t0,
+        "qpara_qperp",
+        outdata,
+        mapaxisinfo[0],
+        scan,
+        get_supplementary_data(experiment.entry),
+    )
     if cfg.debuglogging:
         log_queue.put_nowait(None)  # End the queue
         listener.join()  # Stop the listener
 
 
-def pyfai_static_exitangles_refactor(
+def pyfai_static_exitangles(
     experiment: Experiment, hf, scan, process_config: SimpleNamespace
 ):
     cfg = setup_job(process_config, experiment, scan, "ang")
@@ -1290,7 +1367,16 @@ def pyfai_static_exitangles_refactor(
     if (len(np.shape(outdata)) == 3) and (np.shape(outdata)[0] == 1):
         outdata = outdata[0]
     # outdata = check_data_shape(mapped_data[0][0], scan)
-    save_hf_map_static(hf, cfg, t0, "exit_angles", outdata, mapaxisinfo[0], scan)
+    save_hf_map_static(
+        hf,
+        cfg,
+        t0,
+        "exit_angles",
+        outdata,
+        mapaxisinfo[0],
+        scan,
+        get_supplementary_data(experiment.entry),
+    )
     if cfg.debuglogging:
         log_queue.put_nowait(None)  # End the queue
         listener.join()  # Stop the listener

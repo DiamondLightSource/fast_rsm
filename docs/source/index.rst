@@ -1,11 +1,7 @@
 
-.. 
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-..
-   `calculation details`_ - description of the equations and concepts used to carry out the mapping 
-..
-   .. _calculation details: ./calculations.html   
+
+
+  
 
 
 Reciproal Space Mapping
@@ -15,6 +11,8 @@ Software for mapping raw surface x-ray diffraction images into reciprocal space.
 
 `usage at diamond`_ - detailed instructions on how to use fast_rsm at i07. If you requied any extra assistance, ask a beamline member of staff or email philip.mousley@diamond.ac.uk
 
+
+ `calculation details`_ - description of the equations and concepts used to carry out the mapping 
 
 
 .. toctree::
@@ -26,4 +24,4 @@ Software for mapping raw surface x-ray diffraction images into reciprocal space.
 
 .. _pyFAI: https://pyfai.readthedocs.io/
 .. _usage at Diamond: ./diamonduse.html
-
+.. _calculation details: ./calculations.html 
