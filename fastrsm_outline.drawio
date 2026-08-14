@@ -1,0 +1,441 @@
+<mxfile host="65bd71144e">
+    <diagram id="zz1WSM637PuDPqHPp1Rk" name="Page-1">
+        <mxGraphModel dx="1852" dy="1669" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="4" value="" style="edgeStyle=none;html=1;" parent="1" source="2" target="3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <object label="runconfig" hedietLinkedDataV1_path="../../fast_rsm/CLI/i07/runconfig.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="14" hedietLinkedDataV1_end_col_x-num="26" hedietLinkedDataV1_end_line_x-num="15" id="2">
+                    <mxCell style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                        <mxGeometry x="-790" y="300" width="120" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <mxCell id="6" value="" style="edgeStyle=none;html=1;" parent="1" source="3" target="5" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <object label="ProcessArgs" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/diamond_utils.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="647" hedietLinkedDataV1_end_col_x-num="7" hedietLinkedDataV1_end_line_x-num="648" id="3">
+                    <mxCell style="whiteSpace=wrap;html=1;rounded=0;" parent="1" vertex="1">
+                        <mxGeometry x="-590" y="300" width="120" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <mxCell id="9" value="" style="edgeStyle=none;html=1;" parent="1" source="5" target="8" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <object label="&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;parse_setup&lt;/font&gt;&lt;/div&gt;&lt;div&gt;parse_scans&lt;/div&gt;&lt;div&gt;create_job_name&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/diamond_utils.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="877" hedietLinkedDataV1_end_col_x-num="30" hedietLinkedDataV1_end_line_x-num="879" id="5">
+                    <mxCell style="whiteSpace=wrap;html=1;rounded=0;" parent="1" vertex="1">
+                        <mxGeometry x="-390" y="300" width="120" height="80" as="geometry"/>
+                    </mxCell>
+                </object>
+                <mxCell id="11" value="" style="edgeStyle=none;html=1;" parent="1" source="8" target="10" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <object label="&lt;span style=&quot;color: rgb(63, 63, 63);&quot;&gt;create_jobscript&lt;/span&gt;" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/diamond_utils.py" hedietLinkedDataV1_start_col_x-num="8" hedietLinkedDataV1_start_line_x-num="722" hedietLinkedDataV1_end_col_x-num="24" hedietLinkedDataV1_end_line_x-num="722" id="8">
+                    <mxCell style="whiteSpace=wrap;html=1;rounded=0;" parent="1" vertex="1">
+                        <mxGeometry x="-190" y="300" width="120" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <mxCell id="16" value="" style="edgeStyle=none;html=1;" parent="1" source="10" target="15" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <object label="uses example_calc&lt;div&gt;&lt;br&gt;&lt;/div&gt;" hedietLinkedDataV1_path="../../fast_rsm/CLI/i07/example_calc_setup.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="5" hedietLinkedDataV1_end_col_x-num="1" hedietLinkedDataV1_end_line_x-num="10" id="10">
+                    <mxCell style="whiteSpace=wrap;html=1;rounded=0;" parent="1" vertex="1">
+                        <mxGeometry x="70" y="300" width="120" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <mxCell id="105" value="" style="edgeStyle=none;html=1;" parent="1" source="12" target="104" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="107" value="" style="edgeStyle=none;html=1;" parent="1" source="12" target="106" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <object label="run_process_list" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/diamond_utils.py" hedietLinkedDataV1_start_col_x-num="4" hedietLinkedDataV1_start_line_x-num="471" hedietLinkedDataV1_end_col_x-num="20" hedietLinkedDataV1_end_line_x-num="471" id="12">
+                    <mxCell style="whiteSpace=wrap;html=1;rounded=0;" parent="1" vertex="1">
+                        <mxGeometry x="660" y="300" width="120" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <mxCell id="17" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="15" target="12" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="400" y="330" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <object label="setup_processing" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/diamond_utils.py" hedietLinkedDataV1_start_col_x-num="4" hedietLinkedDataV1_start_line_x-num="64" hedietLinkedDataV1_end_col_x-num="20" hedietLinkedDataV1_end_line_x-num="64" id="15">
+                    <mxCell style="whiteSpace=wrap;html=1;rounded=0;" parent="1" vertex="1">
+                        <mxGeometry x="260" y="300" width="120" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <mxCell id="20" style="edgeStyle=none;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" parent="1" source="19" target="15" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="270" y="530" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="124" style="edgeStyle=none;html=1;exitX=1;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;" parent="1" source="104" target="108" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="130" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="104" target="126" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <object label="parses pyfai options, runs scanlist" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/diamond_utils.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="486" hedietLinkedDataV1_end_col_x-num="58" hedietLinkedDataV1_end_line_x-num="488" id="104">
+                    <mxCell style="whiteSpace=wrap;html=1;rounded=0;" parent="1" vertex="1">
+                        <mxGeometry x="840" y="30" width="120" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <mxCell id="161" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="106" target="160" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <object label="run_full_map_process" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/diamond_utils.py" hedietLinkedDataV1_start_col_x-num="3" hedietLinkedDataV1_start_line_x-num="494" hedietLinkedDataV1_end_col_x-num="30" hedietLinkedDataV1_end_line_x-num="494" id="106">
+                    <mxCell style="whiteSpace=wrap;html=1;rounded=0;" parent="1" vertex="1">
+                        <mxGeometry x="935" y="370" width="160" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <mxCell id="147" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="108" target="145" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <object label="static functions" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/pyfai_interface.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="1338" hedietLinkedDataV1_end_col_x-num="28" hedietLinkedDataV1_end_line_x-num="1338" id="108">
+                    <mxCell style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" parent="1" vertex="1" collapsed="1">
+                        <mxGeometry x="1120" y="-200" width="120" height="30" as="geometry">
+                            <mxRectangle x="1120" y="-200" width="210" height="300" as="alternateBounds"/>
+                        </mxGeometry>
+                    </mxCell>
+                </object>
+                <object label="pyfai_static_qmap" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/pyfai_interface.py" hedietLinkedDataV1_start_col_x-num="4" hedietLinkedDataV1_start_line_x-num="1290" hedietLinkedDataV1_end_col_x-num="21" hedietLinkedDataV1_end_line_x-num="1290" id="109">
+                    <mxCell style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" parent="108" vertex="1">
+                        <mxGeometry y="30" width="210" height="30" as="geometry"/>
+                    </mxCell>
+                </object>
+                <object label="pyfai_static_exitangles" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/pyfai_interface.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="1338" hedietLinkedDataV1_end_col_x-num="28" hedietLinkedDataV1_end_line_x-num="1338" id="113">
+                    <mxCell style="rounded=0;whiteSpace=wrap;html=1;" parent="108" vertex="1">
+                        <mxGeometry y="60" width="210" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <object label="pyfai_static_ivsq" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/pyfai_interface.py" hedietLinkedDataV1_start_col_x-num="4" hedietLinkedDataV1_start_line_x-num="1183" hedietLinkedDataV1_end_col_x-num="23" hedietLinkedDataV1_end_line_x-num="1183" id="121">
+                    <mxCell style="rounded=0;whiteSpace=wrap;html=1;" parent="108" vertex="1">
+                        <mxGeometry y="120" width="210" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <object label="pyfai_static_ivschi" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/pyfai_interface.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="1183" hedietLinkedDataV1_end_col_x-num="24" hedietLinkedDataV1_end_line_x-num="1183" id="120">
+                    <mxCell style="rounded=0;whiteSpace=wrap;html=1;" parent="108" vertex="1">
+                        <mxGeometry y="180" width="210" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <object label="pyfai_static_chimap" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/pyfai_interface.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="1240" hedietLinkedDataV1_end_col_x-num="24" hedietLinkedDataV1_end_line_x-num="1240" id="119">
+                    <mxCell style="rounded=0;whiteSpace=wrap;html=1;" parent="108" vertex="1">
+                        <mxGeometry y="240" width="210" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <mxCell id="125" value="&lt;font style=&quot;font-size: 36px;&quot;&gt;use shift+f3 to link new diagrams with parts of code&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+                    <mxGeometry x="70" y="-170" width="450" height="230" as="geometry"/>
+                </mxCell>
+                <mxCell id="132" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="126" target="131" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="126" value="moving detector functions" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                    <mxGeometry x="1090" y="120" width="180" height="120" as="geometry">
+                        <mxRectangle x="1090" y="120" width="180" height="30" as="alternateBounds"/>
+                    </mxGeometry>
+                </mxCell>
+                <object label="pyfai_moving_ivsq" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/pyfai_interface.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="961" hedietLinkedDataV1_end_col_x-num="43" hedietLinkedDataV1_end_line_x-num="961" id="127">
+                    <mxCell style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" parent="126" vertex="1">
+                        <mxGeometry y="30" width="180" height="30" as="geometry"/>
+                    </mxCell>
+                </object>
+                <object label="pyfai_moving_qmap" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/pyfai_interface.py" hedietLinkedDataV1_start_col_x-num="2" hedietLinkedDataV1_start_line_x-num="1000" hedietLinkedDataV1_end_col_x-num="29" hedietLinkedDataV1_end_line_x-num="1000" id="128">
+                    <mxCell style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" parent="126" vertex="1">
+                        <mxGeometry y="60" width="180" height="30" as="geometry"/>
+                    </mxCell>
+                </object>
+                <object label="pyfai_moving_exitangles" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/pyfai_interface.py" hedietLinkedDataV1_start_col_x-num="3" hedietLinkedDataV1_start_line_x-num="1042" hedietLinkedDataV1_end_col_x-num="29" hedietLinkedDataV1_end_line_x-num="1042" id="129">
+                    <mxCell style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" parent="126" vertex="1">
+                        <mxGeometry y="90" width="180" height="30" as="geometry"/>
+                    </mxCell>
+                </object>
+                <mxCell id="151" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="131" target="148" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="152" style="edgeStyle=&#39;--&#39;;html=1;exitX=1;exitY=0.5;dashed=1;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" parent="1" source="131" target="148" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="153" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="131" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1670" y="89.99999999999977" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <object label="run_shared_memory" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/pyfai_interface.py" hedietLinkedDataV1_start_col_x-num="5" hedietLinkedDataV1_start_line_x-num="904" hedietLinkedDataV1_end_col_x-num="21" hedietLinkedDataV1_end_line_x-num="904" id="131">
+                    <mxCell style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                        <mxGeometry x="1356" y="120" width="120" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <mxCell id="155" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="145" target="148" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <object label="run_single_scan_pool" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/pyfai_interface.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="1089" hedietLinkedDataV1_end_col_x-num="64" hedietLinkedDataV1_end_line_x-num="1089" id="145">
+                    <mxCell style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                        <mxGeometry x="1356" y="-200" width="180" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <mxCell id="149" value="" style="group" parent="1" vertex="1" connectable="0">
+                    <mxGeometry x="1670" y="-170" width="630" height="400" as="geometry"/>
+                </mxCell>
+                <mxCell id="148" value="" style="rounded=0;whiteSpace=wrap;html=1;" parent="149" vertex="1">
+                    <mxGeometry width="630" height="400" as="geometry"/>
+                </mxCell>
+                <mxCell id="143" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="149" source="133" target="141" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="144" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="149" source="133" target="142" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <object label="pyfai_1dmap_worker" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/pyfai_workers.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="353" hedietLinkedDataV1_end_col_x-num="23" hedietLinkedDataV1_end_line_x-num="353" id="133">
+                    <mxCell style="rounded=0;whiteSpace=wrap;html=1;" parent="149" vertex="1">
+                        <mxGeometry x="55" y="110" width="120" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <mxCell id="139" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="149" source="135" target="138" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="140" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="149" source="135" target="137" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <object label="pyfai_2&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;dmap_worker&lt;/span&gt;" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/pyfai_workers.py" hedietLinkedDataV1_start_col_x-num="5" hedietLinkedDataV1_start_line_x-num="399" hedietLinkedDataV1_end_col_x-num="23" hedietLinkedDataV1_end_line_x-num="399" id="135">
+                    <mxCell style="rounded=0;whiteSpace=wrap;html=1;" parent="149" vertex="1">
+                        <mxGeometry x="55" y="270" width="120" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <object label="calculate_2d_map_fiber" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/pyfai_workers.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="176" hedietLinkedDataV1_end_col_x-num="26" hedietLinkedDataV1_end_line_x-num="176" id="137">
+                    <mxCell style="rounded=0;whiteSpace=wrap;html=1;" parent="149" vertex="1">
+                        <mxGeometry x="255" y="230" width="250" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <object label="calculate_2d_map" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/pyfai_workers.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="150" hedietLinkedDataV1_end_col_x-num="21" hedietLinkedDataV1_end_line_x-num="150" id="138">
+                    <mxCell style="rounded=0;whiteSpace=wrap;html=1;" parent="149" vertex="1">
+                        <mxGeometry x="305" y="310" width="120" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <object label="calculate_1d_fiber" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/pyfai_workers.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="204" hedietLinkedDataV1_end_col_x-num="23" hedietLinkedDataV1_end_line_x-num="204" id="141">
+                    <mxCell style="rounded=0;whiteSpace=wrap;html=1;" parent="149" vertex="1">
+                        <mxGeometry x="245" y="40" width="120" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <object label="calculate_1d" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/pyfai_workers.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="232" hedietLinkedDataV1_end_col_x-num="17" hedietLinkedDataV1_end_line_x-num="232" id="142">
+                    <mxCell style="rounded=0;whiteSpace=wrap;html=1;" parent="149" vertex="1">
+                        <mxGeometry x="255" y="140" width="120" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <mxCell id="154" value="multiple calls and save to shared memory" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+                    <mxGeometry x="1480" y="70" width="170" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="156" value="sinlge call to save individual profile" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+                    <mxGeometry x="1570" y="-200" width="60" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="163" value="" style="edgeStyle=none;html=1;" parent="1" source="160" target="162" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <object label="binnned_reciprocal_space_map_smm" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/experiment.py" hedietLinkedDataV1_start_col_x-num="8" hedietLinkedDataV1_start_line_x-num="607" hedietLinkedDataV1_end_col_x-num="39" hedietLinkedDataV1_end_line_x-num="607" id="160">
+                    <mxCell style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                        <mxGeometry x="1160" y="370" width="290" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <mxCell id="166" value="" style="edgeStyle=none;html=1;" parent="1" source="162" target="165" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <object label="bin_maps_with_indices_smm" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/scan.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="194" hedietLinkedDataV1_end_col_x-num="30" hedietLinkedDataV1_end_line_x-num="195" id="162">
+                    <mxCell style="whiteSpace=wrap;html=1;rounded=0;" parent="1" vertex="1">
+                        <mxGeometry x="1520" y="370" width="180" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <mxCell id="168" value="" style="edgeStyle=none;html=1;" parent="1" source="165" target="167" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <object label="bin_one_map_smm&lt;div&gt;&lt;br&gt;&lt;/div&gt;" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/scan.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="248" hedietLinkedDataV1_end_col_x-num="21" hedietLinkedDataV1_end_line_x-num="248" id="165">
+                    <mxCell style="whiteSpace=wrap;html=1;rounded=0;" parent="1" vertex="1">
+                        <mxGeometry x="1800" y="370" width="150" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <mxCell id="170" value="" style="edgeStyle=none;html=1;" parent="1" source="167" target="169" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <object label="weightted_3d_bin" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/binning.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="136" hedietLinkedDataV1_end_col_x-num="0" hedietLinkedDataV1_end_line_x-num="137" id="167">
+                    <mxCell style="whiteSpace=wrap;html=1;rounded=0;" parent="1" vertex="1">
+                        <mxGeometry x="2045" y="370" width="120" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <object label="mapper_c_utils.weighted_bin_3d&lt;div&gt;&lt;br&gt;&lt;/div&gt;" hedietLinkedDataV1_path="../../mapper_c_utils/src/mapper_c_utils/mapper_c_utils.c" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="59" hedietLinkedDataV1_end_col_x-num="65" hedietLinkedDataV1_end_line_x-num="59" id="169">
+                    <mxCell style="whiteSpace=wrap;html=1;rounded=0;" parent="1" vertex="1">
+                        <mxGeometry x="2245" y="370" width="245" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <mxCell id="172" value="" style="group" parent="1" vertex="1" connectable="0">
+                    <mxGeometry x="-120" y="510" width="1870" height="880" as="geometry"/>
+                </mxCell>
+                <mxCell id="171" value="" style="rounded=0;whiteSpace=wrap;html=1;" parent="172" vertex="1">
+                    <mxGeometry width="1870" height="480" as="geometry"/>
+                </mxCell>
+                <mxCell id="99" value="" style="edgeStyle=none;html=1;" parent="172" source="19" target="98" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <object label="create_experiment" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/diamond_utils.py" hedietLinkedDataV1_start_col_x-num="4" hedietLinkedDataV1_start_line_x-num="217" hedietLinkedDataV1_end_col_x-num="21" hedietLinkedDataV1_end_line_x-num="217" id="19">
+                    <mxCell style="rounded=0;whiteSpace=wrap;html=1;" parent="172" vertex="1">
+                        <mxGeometry x="320" y="90" width="120" height="50" as="geometry"/>
+                    </mxCell>
+                </object>
+                <mxCell id="25" style="edgeStyle=none;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="172" source="26" target="98" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="585" y="310" as="sourcePoint"/>
+                        <mxPoint x="585" y="240" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="32" value="" style="edgeStyle=none;html=1;" parent="172" source="26" target="31" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <object label="from_i07_nexus" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/experiment.py" hedietLinkedDataV1_start_col_x-num="2" hedietLinkedDataV1_start_line_x-num="783" hedietLinkedDataV1_end_col_x-num="12" hedietLinkedDataV1_end_line_x-num="784" id="26">
+                    <mxCell style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" parent="172" vertex="1" collapsed="1">
+                        <mxGeometry x="520" y="320" width="130" height="30" as="geometry">
+                            <mxRectangle x="410" y="830" width="250" height="150" as="alternateBounds"/>
+                        </mxGeometry>
+                    </mxCell>
+                </object>
+                <mxCell id="27" value="&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; nexus_paths: List[Union[str, Path]],&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; beam_centre: Tuple[int],&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; detector_distance: float,&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; setup: str,&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; path_to_data: str = &quot;&quot;,&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; using_dps: bool = False,&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; experimental_hutch=0,&lt;/font&gt;&lt;/div&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" parent="26" vertex="1">
+                    <mxGeometry y="30" width="250" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="34" value="" style="edgeStyle=none;html=1;entryX=0;entryY=0;entryDx=0;entryDy=0;" parent="172" source="31" target="75" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="927.2222222222222" y="230" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <object label="gets scans from io.friom_i07" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/io.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="17" hedietLinkedDataV1_end_col_x-num="38" hedietLinkedDataV1_end_line_x-num="20" id="31">
+                    <mxCell style="whiteSpace=wrap;html=1;fontStyle=0;startSize=30;" parent="172" vertex="1">
+                        <mxGeometry x="700" y="305" width="120" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <mxCell id="83" style="edgeStyle=none;html=1;exitX=1;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" parent="172" source="75" target="79" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <object label="sets up I07 Nexus object&lt;div&gt;&lt;br&gt;&lt;/div&gt;" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/io.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="51" hedietLinkedDataV1_end_col_x-num="68" hedietLinkedDataV1_end_line_x-num="54" id="75">
+                    <mxCell style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" parent="172" vertex="1">
+                        <mxGeometry x="925" y="310" width="170" height="120" as="geometry">
+                            <mxRectangle x="650" y="475" width="170" height="40" as="alternateBounds"/>
+                        </mxGeometry>
+                    </mxCell>
+                </object>
+                <object label="I07Nexus" hedietLinkedDataV1_path="../../diffraction_utils/src/diffraction_utils/io.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="376" hedietLinkedDataV1_end_col_x-num="26" hedietLinkedDataV1_end_line_x-num="376" id="56">
+                    <mxCell style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" parent="75" vertex="1" collapsed="1">
+                        <mxGeometry y="30" width="170" height="30" as="geometry">
+                            <mxRectangle y="30" width="170" height="540" as="alternateBounds"/>
+                        </mxGeometry>
+                    </mxCell>
+                </object>
+                <mxCell id="57" value="&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_has_hdf5_data&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_attenuation_filters_moving&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_hdf5_internal_path&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_raw_hdf5_path&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_probe_energy&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_pixel_size&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_image_shape&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_raw_image_paths&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_nx_detector&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_motors&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_transmission&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_dcd_circle_radius&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_dcd_omega&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_diff2motor&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_diff1motor&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_diff_motor&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_delta&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_gamma&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_omega&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_alpha&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_theta&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_chi&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_detector_rot&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_dpsx&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_dpsy&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_dpsz&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_dpsz2&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_detector_info&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_default_axis_type&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_signal_regions&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_u&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_ub&lt;/font&gt;&lt;/div&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" parent="56" vertex="1">
+                    <mxGeometry y="30" width="170" height="510" as="geometry"/>
+                </mxCell>
+                <object label="NexusBase" hedietLinkedDataV1_path="../../diffraction_utils/src/diffraction_utils/io.py" hedietLinkedDataV1_start_col_x-num="1" hedietLinkedDataV1_start_line_x-num="136" hedietLinkedDataV1_end_col_x-num="30" hedietLinkedDataV1_end_line_x-num="136" id="47">
+                    <mxCell style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" parent="75" vertex="1" collapsed="1">
+                        <mxGeometry y="60" width="170" height="30" as="geometry">
+                            <mxRectangle y="60" width="170" height="240" as="alternateBounds"/>
+                        </mxGeometry>
+                    </mxCell>
+                </object>
+                <mxCell id="48" value="&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_diamond_scan&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_scan_axes&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_scan_fields&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_nx_detector&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_nx_instrument&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_nx_entry&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_default_signal&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_default_axis&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_default_signal_name&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_default_axis_name&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_default_nx_data_name&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_default_nx_data&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_motors&lt;/font&gt;&lt;/div&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" parent="47" vertex="1">
+                    <mxGeometry y="30" width="170" height="210" as="geometry"/>
+                </mxCell>
+                <object label="DataFileBase" hedietLinkedDataV1_path="../../diffraction_utils/src/diffraction_utils/data_file.py" hedietLinkedDataV1_start_col_x-num="6" hedietLinkedDataV1_start_line_x-num="34" hedietLinkedDataV1_end_col_x-num="18" hedietLinkedDataV1_end_line_x-num="34" id="51">
+                    <mxCell style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" parent="75" vertex="1" collapsed="1">
+                        <mxGeometry y="90" width="170" height="30" as="geometry">
+                            <mxRectangle y="90" width="170" height="310" as="alternateBounds"/>
+                        </mxGeometry>
+                    </mxCell>
+                </object>
+                <mxCell id="52" value="&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_pixel_size&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_image_shape&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_probe_energy&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_default_signal&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_default_signal_name&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_default_axis&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_default_axis_name&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_scan_length&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_hdf5_internal_path&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_has_hdf5_data&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_raw_hdf5_path&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_local_hdf5_path&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_raw_image_paths&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_parse_local_image_paths&lt;/font&gt;&lt;/div&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" parent="51" vertex="1">
+                    <mxGeometry y="30" width="170" height="280" as="geometry"/>
+                </mxCell>
+                <mxCell id="88" style="edgeStyle=none;html=1;exitX=1;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" parent="172" source="79" target="84" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <object label="creates I07Diffractometer&lt;div&gt;using I07 nexus&amp;nbsp;&lt;/div&gt;" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/io.py" hedietLinkedDataV1_start_col_x-num="11" hedietLinkedDataV1_start_line_x-num="70" hedietLinkedDataV1_end_col_x-num="28" hedietLinkedDataV1_end_line_x-num="70" id="79">
+                    <mxCell style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" parent="172" vertex="1">
+                        <mxGeometry x="1145" y="310" width="140" height="90" as="geometry">
+                            <mxRectangle x="860" y="560" width="180" height="40" as="alternateBounds"/>
+                        </mxGeometry>
+                    </mxCell>
+                </object>
+                <object label="I07Diffractometer" hedietLinkedDataV1_path="../../diffraction_utils/src/diffraction_utils/diffractometers/diamond_i07.py" hedietLinkedDataV1_start_col_x-num="6" hedietLinkedDataV1_start_line_x-num="19" hedietLinkedDataV1_end_col_x-num="23" hedietLinkedDataV1_end_line_x-num="19" id="61">
+                    <mxCell style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" parent="79" vertex="1" collapsed="1">
+                        <mxGeometry y="30" width="140" height="30" as="geometry">
+                            <mxRectangle y="30" width="140" height="220" as="alternateBounds"/>
+                        </mxGeometry>
+                    </mxCell>
+                </object>
+                <mxCell id="62" value="&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;get_u_matrix&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;get_detector_vector&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;get_incident_beam&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_dcd_incident_beam_lab&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_dcd_sample_distance&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_dcd_cone_angle&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_dcd_cone_angle_rad&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_insb_111_theta&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_insb_220_theta&lt;/font&gt;&lt;/div&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" parent="61" vertex="1">
+                    <mxGeometry y="30" width="140" height="190" as="geometry"/>
+                </mxCell>
+                <object label="DiffractometerBase" hedietLinkedDataV1_path="../../diffraction_utils/src/diffraction_utils/diffractometer_base.py" hedietLinkedDataV1_start_col_x-num="6" hedietLinkedDataV1_start_line_x-num="14" hedietLinkedDataV1_end_col_x-num="24" hedietLinkedDataV1_end_line_x-num="14" id="66">
+                    <mxCell style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" parent="79" vertex="1" collapsed="1">
+                        <mxGeometry y="60" width="140" height="30" as="geometry">
+                            <mxRectangle x="1160" y="520" width="160" height="200" as="alternateBounds"/>
+                        </mxGeometry>
+                    </mxCell>
+                </object>
+                <mxCell id="67" value="&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;get_detector_vector&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;get_detector_rotation&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;get_detector_vertical&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;get_detector_horizontal&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;get_incident_beam&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;get_u_matrix&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;get_b_matrix&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;get_ub_matrix&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;rotate_vector_to_frame&lt;/font&gt;&lt;/div&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" parent="66" vertex="1">
+                    <mxGeometry y="30" width="160" height="170" as="geometry"/>
+                </mxCell>
+                <mxCell id="97" style="edgeStyle=none;html=1;exitX=1;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" parent="172" source="84" target="93" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <object label="&lt;span style=&quot;color: rgb(0, 0, 0);&quot;&gt;sets up metadata objectfrom I07Diffractometer&lt;/span&gt;" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/io.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="70" hedietLinkedDataV1_end_col_x-num="45" hedietLinkedDataV1_end_line_x-num="70" id="84">
+                    <mxCell style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" parent="172" vertex="1">
+                        <mxGeometry x="1325" y="305" width="210" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <object label="RSMMetadata" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/rsm_metadata.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="12" hedietLinkedDataV1_end_col_x-num="7" hedietLinkedDataV1_end_line_x-num="14" id="71">
+                    <mxCell style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" parent="84" vertex="1" collapsed="1">
+                        <mxGeometry y="30" width="210" height="30" as="geometry">
+                            <mxRectangle y="30" width="210" height="430" as="alternateBounds"/>
+                        </mxGeometry>
+                    </mxCell>
+                </object>
+                <mxCell id="72" value="&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;swap_beam_centre&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;check_beam_centre_rot&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;beam_centre_range_check&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_correct_beam_centre&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;update_i07_nx&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;get_detector_distance&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;solid_angles&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;vertical_pixel_offsets&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;horizontal_pixel_offsets&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;get_vertical_pixel_distances&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;get_horizontal_pixel_distances&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;relative_polar&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;relative_azimuth&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;incident_wavelength&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;k_incident_length&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_init_solid_angles&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;get_pixel_index_offsets&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_init_vertical_pixel_offsets&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_init_horizontal_pixel_offsets&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_init_relative_polar&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;_init_relative_azimuth&lt;/font&gt;&lt;/div&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" parent="71" vertex="1">
+                    <mxGeometry y="30" width="210" height="400" as="geometry"/>
+                </mxCell>
+                <object label="&lt;span style=&quot;color: rgb(0, 0, 0);&quot;&gt;returns Scan object from metadata&lt;/span&gt;" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/io.py" hedietLinkedDataV1_start_col_x-num="16" hedietLinkedDataV1_start_line_x-num="76" hedietLinkedDataV1_end_col_x-num="20" hedietLinkedDataV1_end_line_x-num="76" id="93">
+                    <mxCell style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" parent="172" vertex="1">
+                        <mxGeometry x="1575" y="305" width="200" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <object label="Scan" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/scan.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="380" hedietLinkedDataV1_end_col_x-num="11" hedietLinkedDataV1_end_line_x-num="380" id="89">
+                    <mxCell style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" parent="93" vertex="1" collapsed="1">
+                        <mxGeometry y="30" width="200" height="30" as="geometry">
+                            <mxRectangle y="30" width="200" height="130" as="alternateBounds"/>
+                        </mxGeometry>
+                    </mxCell>
+                </object>
+                <mxCell id="90" value="&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;processing_steps&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;add_processing_step&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;load_image&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;q_bounds&lt;/font&gt;&lt;/div&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" parent="89" vertex="1">
+                    <mxGeometry y="30" width="200" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="101" value="" style="edgeStyle=none;html=1;" parent="172" source="98" target="100" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <object label="makes Experiment object&lt;div&gt;&lt;br&gt;&lt;/div&gt;" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/diamond_utils.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="226" hedietLinkedDataV1_end_col_x-num="5" hedietLinkedDataV1_end_line_x-num="234" id="98">
+                    <mxCell style="whiteSpace=wrap;html=1;rounded=0;" parent="172" vertex="1">
+                        <mxGeometry x="520" y="85" width="120" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <mxCell id="103" value="" style="edgeStyle=none;html=1;" parent="172" source="100" target="102" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <object label="masks pixels, edf file, regions&lt;div&gt;&lt;br&gt;&lt;/div&gt;" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/diamond_utils.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="236" hedietLinkedDataV1_end_col_x-num="50" hedietLinkedDataV1_end_line_x-num="238" id="100">
+                    <mxCell style="whiteSpace=wrap;html=1;rounded=0;" parent="172" vertex="1">
+                        <mxGeometry x="720" y="85" width="120" height="60" as="geometry"/>
+                    </mxCell>
+                </object>
+                <object label="adjustments&lt;div&gt;setup dps, load_from_dat, skipscans,skipimages,&amp;nbsp;&lt;/div&gt;&lt;div&gt;slitratios&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/diamond_utils.py" hedietLinkedDataV1_start_col_x-num="0" hedietLinkedDataV1_start_line_x-num="243" hedietLinkedDataV1_end_col_x-num="59" hedietLinkedDataV1_end_line_x-num="243" id="102">
+                    <mxCell style="whiteSpace=wrap;html=1;rounded=0;" parent="172" vertex="1">
+                        <mxGeometry x="925" y="62.5" width="120" height="105" as="geometry"/>
+                    </mxCell>
+                </object>
+                <mxCell id="173" value="sharedmemorymanager - ad noe" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+                    <mxGeometry x="1580" y="320" width="60" height="30" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
