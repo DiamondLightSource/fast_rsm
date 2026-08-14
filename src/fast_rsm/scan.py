@@ -8,10 +8,10 @@ information relating to a reciprocal space scan .
 
 import logging
 import traceback
+from collections.abc import Generator
 from multiprocessing import current_process
 from multiprocessing.shared_memory import SharedMemory
 from pathlib import Path
-from typing import Dict, Generator, List, Tuple, Union
 
 import numpy as np
 
@@ -60,7 +60,7 @@ def check_shared_memory(shared_mem_name: str) -> None:
 
 
 def init_process_pool(
-    locks: List,
+    locks: list,
     num_threads: int,
     metadata: RSMMetadata,
     frame: Frame,
@@ -194,13 +194,13 @@ def _chunk_indices(
 
 
 def bin_maps_with_indices_smm(
-    indices: List[int],
+    indices: list[int],
     start: np.ndarray,
     stop: np.ndarray,
     step: np.ndarray,
     min_intensity: float,
     processing_steps: list,
-    skip_images: List[int],
+    skip_images: list[int],
     oop: str,
     spherical_bragg_vec: np.array,
     map_each_image: bool = False,
@@ -257,7 +257,7 @@ def _bin_one_map_smm(
     spherical_bragg_vec: np.array,
     map_each_image: bool = False,
     previous_images: int = 0,
-) -> np.ndarray:
+):
     """
     Calculates and bins the reciprocal space map with index idx. Saves the
     result to the shared memory buffer.
@@ -341,7 +341,7 @@ def rsm_init_worker(
     shmshape: np.ndarray,
     metadata: RSMMetadata,
     newmetadata: dict,
-    motors: Dict[str, np.ndarray],
+    motors: dict[str, np.ndarray],
     num_threads: int,
     frame: Frame,
     output_file_name: str = None,
@@ -393,7 +393,7 @@ class Scan:
             instance of Image with that corresponding index.
     """
 
-    def __init__(self, metadata: RSMMetadata, skip_images: List[int] = None):
+    def __init__(self, metadata: RSMMetadata, skip_images: list[int] = None):
         self.metadata = metadata
 
         if isinstance(skip_images, int):
@@ -426,7 +426,7 @@ class Scan:
 
     def q_bounds(
         self, frame: Frame, spherical_bragg_vec: np.array, oop: str = "y"
-    ) -> Tuple[np.ndarray]:
+    ) -> tuple[np.ndarray]:
         """
         Works out the region of reciprocal space sampled by this scan.
 
@@ -468,8 +468,8 @@ class Scan:
             max_q = np.array([np.amax(q_vecs[:, i]) for i in range(3)])
 
             # Update start/stop accordingly.
-            start = [min_q[x] if min_q[x] < start[x] else start[x] for x in range(3)]
-            stop = [max_q[x] if max_q[x] > stop[x] else stop[x] for x in range(3)]
+            start = [min(start[x], min_q[x]) for x in range(3)]
+            stop = [max(stop[x], max_q[x]) for x in range(3)]
         start, stop = np.array(start), np.array(stop)
         # adjust start,stop,step if frame is in spherical polar co-ordinates
         if frame.coordinates == Frame.sphericalpolar:
@@ -493,8 +493,8 @@ class Scan:
 
     @staticmethod
     def from_i10(
-        path_to_nx: Union[str, Path],
-        beam_centre: Tuple[int],
+        path_to_nx: str | Path,
+        beam_centre: tuple[int],
         detector_distance: float,
         setup: str,
         path_to_data: str = "",
@@ -527,8 +527,8 @@ class Scan:
 
     @staticmethod
     def from_i07(
-        path_to_nx: Union[str, Path],
-        beam_centre: Tuple[int],
+        path_to_nx: str | Path,
+        beam_centre: tuple[int],
         detector_distance: float,
         setup: str,
         path_to_data: str = "",
