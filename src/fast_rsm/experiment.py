@@ -316,6 +316,11 @@ class Experiment:
         tthdirect = -1 * np.degrees(np.arctan(self.projectionx / dcd_sample_dist))
         return self.dcd_incdeg, tthdirect
 
+    def update_masks(self, config):
+        self.mask_pixels(config.specific_pixels)
+        self.mask_edf(config.edfmaskfile)
+        self.mask_regions(config.mask_regions_list)
+
     def load_incident_angle(self, scan: Scan):
         if self.setup == "DCD":
             return self.parse_dcd_angles(scan)

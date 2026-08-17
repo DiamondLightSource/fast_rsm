@@ -142,7 +142,7 @@ config_schema = Schema(
         "skipscans": list,
         "skipimages": list,
         "process_outputs": And(Or(None, list), validate_outputs),
-        "process_outputs_with_config": And(Or(None, list), validate_outputs),
+        "process_outputs_with_config": Or(None, list),
         "map_per_image": bool,
         "savetiffs": bool,
         "savedats": bool,
@@ -227,7 +227,10 @@ def parse_setup_file(file_path: Path):
         assignments[var_name] = out_value
     # ignoring any individual mask, because it is unknown apriori how many the user has defined, and all used ones will be in mask_regions
     out_assignments = {
-        k: v for k, v in assignments.items() if len(re.findall(r"^mask_\d+$", k)) == 0
+        k: v
+        for k, v in assignments.items()
+        if (len(re.findall(r"^mask_\d+$", k)) == 0)
+        & (len(re.findall(r"^config_\d+$", k)) == 0)
     }
     return out_assignments
 

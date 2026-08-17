@@ -531,6 +531,8 @@ def save_config_variables(hf, process_config):
         val = outdict[key]
         if val is None:
             val = "None"
+        if key == "process_outputs_with_config":
+            continue
         config_group.create_dataset(f"{key}", data=val)
 
 

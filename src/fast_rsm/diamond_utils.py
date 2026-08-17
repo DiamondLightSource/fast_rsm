@@ -89,6 +89,15 @@ def create_process_config(
     filtered_settings = {k: v for k, v in process_settings.items() if v is not None}
     default_config.update(filtered_settings)
     check_config_schema(default_config)
+    if process_settings.get("process_outputs_with_config") is not None:
+        for i, process_output_config in enumerate(
+            process_settings["process_outputs_with_config"]
+        ):
+            default_config.update(process_output_config)
+            check_config_schema(default_config)
+            print(f"config_{i + 1} validated")
+
+    default_config.update(filtered_settings)
 
     cfg = SimpleNamespace(**default_config)
     cfg.external_poni = cfg.pyfaiponi is not None
@@ -234,9 +243,10 @@ def create_experiment(process_config: SimpleNamespace):
         experimental_hutch=cfg.experimental_hutch,
     )
 
-    experiment.mask_pixels(cfg.specific_pixels)
-    experiment.mask_edf(cfg.edfmaskfile)
-    experiment.mask_regions(cfg.mask_regions_list)
+    experiment.update_masks(cfg)
+    # experiment.mask_pixels(cfg.specific_pixels)
+    # experiment.mask_edf(cfg.edfmaskfile)
+    # experiment.mask_regions(cfg.mask_regions_list)
 
     # adjustment_args = [cfg.detector_distance, cfg.dps_centres, cfg.load_from_dat,\
     # cfg.scan_numbers, cfg.skipscans, cfg.skipimages,
@@ -496,6 +506,7 @@ def run_process_list(experiment, process_config):
     for process_output_config in cfg.process_outputs_with_config:
         for key, val in process_output_config.items():
             setattr(cfg, key, val)
+        experiment.update_masks(cfg)
         run_config_process(cfg, experiment)
     # functions_dict = get_functions_dict(cfg.map_per_image)
     # scanlist_function = get_run_function(cfg.map_per_image)
