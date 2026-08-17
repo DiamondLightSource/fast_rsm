@@ -468,27 +468,45 @@ def get_run_function(map_per_image):
     return run_scanlist_combined
 
 
+def run_config_process(cfg, experiment):
+    functions_dict = get_functions_dict(cfg.map_per_image)
+    scanlist_function = get_run_function(cfg.map_per_image)
+    pyfai_outputs = [
+        output for output in cfg.process_outputs if output.startswith("pyfai")
+    ]
+
+    for output in pyfai_outputs:
+        runoptions = functions_dict[output]
+        scanlist_function(cfg, experiment, runoptions)
+
+    if "full_reciprocal_map" in cfg.process_outputs:
+        run_full_map_process(experiment, cfg)
+
+
 def run_process_list(experiment, process_config):
     """
     separate function for sending of jobs defined by process output list and input arguments
     """
     cfg = process_config
-    functions_dict = get_functions_dict(cfg.map_per_image)
-    scanlist_function = get_run_function(cfg.map_per_image)
-    pyfai_options = [
-        "pyfai_qmap",
-        "pyfai_exitangles",
-        "pyfai_ivsq",
-        "pyfai_ivschi",
-        "pyfai_chimap",
-    ]
-    for output in cfg.process_outputs:
-        if output in pyfai_options:
-            runoptions = functions_dict[output]
-            scanlist_function(cfg, experiment, runoptions)
 
-    if "full_reciprocal_map" in cfg.process_outputs:
-        run_full_map_process(experiment, cfg)
+    # run processing defined in standard way
+    run_config_process(cfg, experiment)
+
+    # iterate through processing defined in the multi_config way
+    for process_output_config in cfg.process_outputs_with_config:
+        for key, val in process_output_config.items():
+            setattr(cfg, key, val)
+        run_config_process(cfg, experiment)
+    # functions_dict = get_functions_dict(cfg.map_per_image)
+    # scanlist_function = get_run_function(cfg.map_per_image)
+    # pyfai_outputs = [output for output in cfg.process_outputs if output.startswith("pyfai")]
+
+    # for output in pyfai_outputs:
+    #     runoptions = functions_dict[output]
+    #     scanlist_function(cfg, experiment, runoptions)
+
+    # if "full_reciprocal_map" in cfg.process_outputs:
+    #     run_full_map_process(experiment, cfg)
 
 
 def run_full_map_process(experiment, cfg):

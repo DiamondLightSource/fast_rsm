@@ -52,6 +52,8 @@ def validate_outputs(outputs):
     """
     check list of deprecated functions, and print out warning message if needed
     """
+    if (outputs is None) or len(outputs) == 0:
+        return True
     for output in outputs:
         if output in giwaxsdeplist:
             raise SchemaError(deprecation_msg(output))
@@ -139,7 +141,8 @@ config_schema = Schema(
         "min_intensity": float,
         "skipscans": list,
         "skipimages": list,
-        "process_outputs": And(list, validate_outputs),
+        "process_outputs": And(Or(None, list), validate_outputs),
+        "process_outputs_with_config": And(Or(None, list), validate_outputs),
         "map_per_image": bool,
         "savetiffs": bool,
         "savedats": bool,

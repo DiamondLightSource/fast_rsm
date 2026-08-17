@@ -30,6 +30,7 @@ min_intensity: 0.
 skipscans: []
 skipimages: [[],[]]
 process_outputs: []
+process_outputs_with_config: []
 map_per_image: False
 savetiffs: False
 savedats: False
