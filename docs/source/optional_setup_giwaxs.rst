@@ -80,7 +80,7 @@ Examples of using all of these together for an extra section in your exp_setup f
 
 .. tabs::
 
-    .. tab:: With comments
+    .. tab:: Without comments
 
         .. code-block:: python
 

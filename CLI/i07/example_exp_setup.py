@@ -176,8 +176,7 @@ load_from_dat = False
 
 # choose central point to calculate spherical polars around - if commented out defaults to [0,0,0]
 # spherical_bragg_vec=[1.35,1.42,0.96] #519910 , 519528
-# choose to have a manually set cylinder axis to use with cylindrical co-ordinates
-# cylinder_axis=False
+
 
 # choose to change frame of reference for mapping from default ‘hkl’ to 'qxqyqz' :
 # frame_name='hkl'

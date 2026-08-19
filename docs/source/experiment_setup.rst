@@ -21,4 +21,5 @@ Use the walkthrough guides below to create your exp_setup.py file.
    minimum_setup
    optional_setup_all
    optional_setup_giwaxs
+   optional_setup_fullmaps
 
