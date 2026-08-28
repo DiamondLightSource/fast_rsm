@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram id="zz1WSM637PuDPqHPp1Rk" name="Page-1">
-        <mxGraphModel dx="1852" dy="1669" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+        <mxGraphModel dx="1404" dy="1569" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -50,7 +50,7 @@
                 <mxCell id="107" value="" style="edgeStyle=none;html=1;" parent="1" source="12" target="106" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <object label="run_process_list" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/diamond_utils.py" hedietLinkedDataV1_start_col_x-num="4" hedietLinkedDataV1_start_line_x-num="471" hedietLinkedDataV1_end_col_x-num="20" hedietLinkedDataV1_end_line_x-num="471" id="12">
+                <object label="run_process_list" hedietLinkedDataV1_path="../src/fast_rsm/diamond_utils.py" hedietLinkedDataV1_start_col_x-num="4" hedietLinkedDataV1_start_line_x-num="495" hedietLinkedDataV1_end_col_x-num="20" hedietLinkedDataV1_end_line_x-num="495" id="12">
                     <mxCell style="whiteSpace=wrap;html=1;rounded=0;" parent="1" vertex="1">
                         <mxGeometry x="660" y="300" width="120" height="60" as="geometry"/>
                     </mxCell>
@@ -84,7 +84,7 @@
                 <mxCell id="161" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="106" target="160" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <object label="run_full_map_process" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/diamond_utils.py" hedietLinkedDataV1_start_col_x-num="3" hedietLinkedDataV1_start_line_x-num="494" hedietLinkedDataV1_end_col_x-num="30" hedietLinkedDataV1_end_line_x-num="494" id="106">
+                <object label="run_full_map_process" hedietLinkedDataV1_path="../src/fast_rsm/diamond_utils.py" hedietLinkedDataV1_start_col_x-num="4" hedietLinkedDataV1_start_line_x-num="522" hedietLinkedDataV1_end_col_x-num="24" hedietLinkedDataV1_end_line_x-num="522" id="106">
                     <mxCell style="whiteSpace=wrap;html=1;rounded=0;" parent="1" vertex="1">
                         <mxGeometry x="935" y="370" width="160" height="60" as="geometry"/>
                     </mxCell>
@@ -231,7 +231,7 @@
                 <mxCell id="163" value="" style="edgeStyle=none;html=1;" parent="1" source="160" target="162" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <object label="binnned_reciprocal_space_map_smm" hedietLinkedDataV1_path="../../fast_rsm/src/fast_rsm/experiment.py" hedietLinkedDataV1_start_col_x-num="8" hedietLinkedDataV1_start_line_x-num="607" hedietLinkedDataV1_end_col_x-num="39" hedietLinkedDataV1_end_line_x-num="607" id="160">
+                <object label="binnned_reciprocal_space_map_smm" hedietLinkedDataV1_path="../src/fast_rsm/experiment.py" hedietLinkedDataV1_start_col_x-num="8" hedietLinkedDataV1_start_line_x-num="612" hedietLinkedDataV1_end_col_x-num="39" hedietLinkedDataV1_end_line_x-num="612" id="160">
                     <mxCell style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
                         <mxGeometry x="1160" y="370" width="290" height="60" as="geometry"/>
                     </mxCell>
@@ -432,7 +432,7 @@
                         <mxGeometry x="925" y="62.5" width="120" height="105" as="geometry"/>
                     </mxCell>
                 </object>
-                <mxCell id="173" value="sharedmemorymanager - ad noe" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+                <mxCell id="173" value="sharedmemorymanager - ad noe" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
                     <mxGeometry x="1580" y="320" width="60" height="30" as="geometry"/>
                 </mxCell>
             </root>
