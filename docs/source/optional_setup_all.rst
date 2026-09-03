@@ -117,6 +117,44 @@ If you have used extra slits infront of the detector you will need to specify th
 
 .. figure:: ./figures/i07_EH2_geometry.png   
 
+
+Multiple configurations within one exp_setup file
+-------------------------------------------------------- 
+
+.. note::
+    This option is currently being developed and is only available on the testing branch of fast_rsm. This version can be loaded using the following commands:
+
+    .. code-block:: bash
+
+        module load fast_rsm/testing
+
+.. confval:: process_outputs_with_config
+
+     this option is used when you want to use different configuration settings for different process_output options. For example you may want to use one mask option for the pyfai_qmap output, but a different mask option for the pyfai_ivsq output. Here you define a list of configurations, where each configuration is a python dictionary that defines a list of "process_outputs" along with the specific settings you want to override for those outputs. For example:  
+
+    .. code-block:: python
+
+        # multi config options
+        config_1 = {"process_outputs": ["pyfai_qmap", "pyfai_ivsq"], "edfmaskfile": '/dls/science/groups/das/ExampleData/i07/fast_rsm_example_data/masks/Ayo_Mask_sigvert.edf'}
+        config_2 = {"process_outputs": ["pyfai_exitangles"], "edfmaskfile": '/dls/science/groups/das/ExampleData/i07/fast_rsm_example_data/masks/Ayo_Mask_sighor.edf'}
+        process_outputs_with_config = [config_1, config_2] 
+
+    in the above example the qmap and ivsq output will use the mask file Ayo_Mask_sigvert.edf, while the exitangles output will use the mask file Ayo_Mask_sighor.edf. You can also do the same with any of the previously defined options. For mask regions the example would look like this:
+
+    .. code-block:: python
+
+        # multi config options
+        mask_1 = (100, 150, 50, 200)
+        mask_2 = (200, 250, 100, 250)
+        mask_3 = (123,145, 0, 194)
+        mask_4 = (223, 245, 0, 195)
+        config_1 = {"process_outputs": ["pyfai_qmap", "pyfai_ivsq"], "mask_regions": [mask_1,mask_2]}
+        config_2 = {"process_outputs": ["pyfai_exitangles"], "mask_regions": [mask_3, mask_4]}
+        process_outputs_with_config = [config_1, config_2] 
+
+    This will result in the qmap and ivsq outputs using mask_1 and mask_2, while the exitangles output will use mask_3 and mask_4.
+
+
 Examples of using all of these together for an extra section in your exp_setup file is as follows:
 
 .. tabs::
