@@ -121,7 +121,7 @@ If you have used extra slits infront of the detector you will need to specify th
 Multiple configurations within one exp_setup file
 -------------------------------------------------------- 
 
-.. note::
+.. warning::
     This option is currently being developed and is only available on the testing branch of fast_rsm. This version can be loaded using the following commands:
 
     .. code-block:: bash
