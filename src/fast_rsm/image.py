@@ -3,14 +3,13 @@ This module contains the class  that is used to store images.
 """
 
 import logging
-from typing import Union
 
 import numpy as np
 from nexusformat.nexus.tree import NeXusError
 
-import fast_rsm.corrections as corrections
 import mapper_c_utils
 from diffraction_utils import Frame, I07Nexus, Polarisation
+from fast_rsm import corrections
 from fast_rsm.angle_pixel_q import calc_kout_array
 from fast_rsm.rsm_metadata import RSMMetadata
 
@@ -238,7 +237,7 @@ class Image:
                     self._raw_data, k_out_array, pol_vec.array
                 )
 
-    def generate_mask(self, min_intensity: Union[float, int]) -> np.ndarray:
+    def generate_mask(self, min_intensity: float) -> np.ndarray:
         """
         Generates a mask from every pixel whose intensity is below a certain
         value. This mask uses the intensities recorded in the _raw_data, not
@@ -417,9 +416,7 @@ class Image:
         # in hkl-space, multiply each of these vectors by the inverse of UB.
         # Note that this is not an intelligent solution! A more optimal
         # calculation would be carried out in hkl coordinates to begin with.
-        # It's more the case that I'm lazy, this calculation is cleaner and the
-        # performance difference is pretty small. And, I mean, doing the whole
-        # calculation in a non-orthogonal basis sounds gross.
+
         if frame.frame_name == Frame.hkl:
             transform_mat = self.metadata.data_file.ub_matrix.astype(np.float32)
             transform_mat = np.linalg.inv(transform_mat)
@@ -433,18 +430,6 @@ class Image:
         # Finally, we make it so that (001) will end up OOP.
 
         transform_mat = np.matmul(transform_mat, coord_change_mat)
-
-        # #ADD IN HERE INVERSE OF OMEGA AND ALPHA ROTATIONS, WHICH ARE NOT INCLUDED \
-        #  IN THE UB MATRIX. Currently only have kout-kin which is Hlab. \
-        # For hkl in vertical mode we need
-        # # B^(-1)  U^(-1) (Ω^(-1)  A^(-1)  H_lab)
-        # #or for horizontal
-        # #B^(-1)  U^(-1) (Θ^(-1)  χ^(-1)  H_lab)
-        # #incorrectly labelled U matrix, is actually the necessary \
-        # omega+alpha or theta-chi- rotations
-        # samplerotations=self.diffractometer.get_u_matrix(frame.scan_index)
-        # invSampRot=np.linalg.inv(samplerotations)
-        # ub_mat=np.matmul(ub_mat,invSampRot)
 
         # The custom, high performance linear_map expects float32's.
         transform_mat = transform_mat.astype(np.float32)
