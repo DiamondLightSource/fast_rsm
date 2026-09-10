@@ -116,8 +116,10 @@ def convert_scan_list(
     scanlist = parse_scans(scan_range, scan_nums)
     for scan in scanlist:
         print(f"\n exporting data for scan {scan}")
-
-        convertnexus(scan, dir, outdir)
+        try:
+            convertnexus(scan, dir, outdir)
+        except NeXusError as e:
+            print(f"unable to convert {scan}: error message {e}")
 
 
 if __name__ == "__main__":
