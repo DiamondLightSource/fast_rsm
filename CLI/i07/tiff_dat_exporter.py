@@ -1,5 +1,6 @@
 import argparse
 import os
+import re
 from argparse import RawTextHelpFormatter
 
 import numpy as np
@@ -37,30 +38,17 @@ def parse_scans(scan_range, scan_nums):
     return scans
 
 
-def convertnexus(scan, loaddir, savedir):
-    filename = f"i07-{scan}"
-    nexusfile = rf"{loaddir}/{filename}.nxs"
-    print(f"exporting data to {loaddir}/{filename}")
-    loaded_nexus = nxload(rf"{nexusfile}")
-    found_nexus = I07Nexus(nexusfile, loaddir)
-    detector_name = found_nexus.detector_info.name
-    detector_hdf5 = found_nexus.nx_detector.data.nxfilename
-    a1 = nxload(detector_hdf5)
-    if not os.path.exists(f"{savedir}/{filename}"):
-        os.mkdir(rf"{savedir}/{filename}")
-
-    datfile = rf"{savedir}/{filename}/{filename}.dat"
-    f = open(rf"{datfile}", "w")
-    f.write(f"##created .dat file from {filename}\n")
-    for key in loaded_nexus.entry.instrument.keys():
-        clear_output(wait=True)
-        print(f"\r{key}", end="")
-        if "value" in loaded_nexus[f"entry/instrument/{key}"]:
-            val = loaded_nexus[f"entry/instrument/{key}/value"]
-            f.write(f"{key} = {val}\n")
-    f.write(" &END\n")
-    f.close()
-
+def create_dat_file(outdir, filename, i07_nexus, loaded_nexus):
+    datfile = rf"{outdir}/{filename}/{filename}.dat"
+    with open(rf"{datfile}", "w") as f:
+        f.write(f"##created .dat file from {filename}\n")
+        for key in loaded_nexus.entry.instrument:
+            clear_output(wait=True)
+            print(f"\r{key}", end="")
+            if "value" in loaded_nexus[f"entry/instrument/{key}"]:
+                val = loaded_nexus[f"entry/instrument/{key}/value"]
+                f.write(f"{key} = {val}\n")
+        f.write(" &END\n")
     outdata = pd.DataFrame()
 
     outlist = [
@@ -78,18 +66,33 @@ def convertnexus(scan, loaddir, savedir):
     ]
 
     for key in outlist:
-        if key in found_nexus.nx_instrument.keys():
-            outdata[key] = found_nexus.nx_instrument[key].value
+        if key in i07_nexus.nx_instrument:
+            outdata[key] = i07_nexus.nx_instrument[key].nxdata
 
-    for key in found_nexus.nx_entry.keys():
+    for key in i07_nexus.nx_entry:
         if "Region" in key:
-            outdata[key] = found_nexus.nx_entry[key][
-                "_".join(key.split("_")[1:])
-            ].nxdata
-    outdata["d5i"] = found_nexus.nx_instrument["d5i/d5i"].nxdata
+            outdata[key] = i07_nexus.nx_entry[key]["_".join(key.split("_")[1:])].nxdata
+    outdata["d5i"] = i07_nexus.nx_instrument["d5i/d5i"].nxdata
 
     outdata.to_csv(rf"{datfile}", mode="a", sep="\t", index=False)
 
+
+def convertnexus(scan, loaddir, outdir):
+    filename = f"i07-{scan}"
+    nexusfile = rf"{loaddir}/{filename}.nxs"
+    print(f"exporting data to {loaddir}/{filename}")
+    loaded_nexus = nxload(rf"{nexusfile}")
+    i07_nexus = I07Nexus(nexusfile, loaddir)
+    detector_name = i07_nexus.detector_info.name
+    detector_hdf5 = i07_nexus.nx_detector.data.nxfilename
+    a1 = nxload(detector_hdf5)
+    if os.path.exists(f"{outdir}/{filename}"):
+        print(rf"{outdir}/{filename} already exists so skipping {scan}")
+        return
+    os.mkdir(rf"{outdir}/{filename}")
+
+    if not os.path.exists(f"{loaddir}/{scan}.dat"):
+        create_dat_file(outdir, filename, i07_nexus, loaded_nexus)
     count = 1
     data = a1.entry.data.data
 
@@ -97,29 +100,48 @@ def convertnexus(scan, loaddir, savedir):
         imdata = data[n, :, :]
         im = Image.fromarray(np.array(imdata))  # float32
         savestring = "{:0>{}}".format(n, 4)
-        im.save(rf"{savedir}/{filename}/{scan}_{savestring}.tif", "TIFF")
+        im.save(rf"{outdir}/{filename}/{scan}_{savestring}.tif", "TIFF")
         count += 1
+
+
+def convert_directory(loaddir, outdir):
+    print(f"converting all .nxs scans found in {loaddir}")
+    files = os.listdir(loaddir)
+    pattern = r"^i07-.*\.nxs$"
+    scanlist = [
+        file.split("-")[1].split(".")[0] for file in files if re.search(pattern, file)
+    ]
+    scanlist.sort()
+    convert_scan_list(scanlist, loaddir, outdir)
 
 
 # filename = "i07-681185"
 # dir = "/dls/i07/data/2026/si43482-1/Ye"
 
+
 # outdir = "/scratch/rpy65944/Downloads/"
-
-
-def convert_scan_list(
-    dir,
-    scan_range,
-    scan_nums,
-    outdir,
-):
-    scanlist = parse_scans(scan_range, scan_nums)
+def convert_scan_list(scanlist, dir, outdir):
     for scan in scanlist:
         print(f"\n exporting data for scan {scan}")
         try:
             convertnexus(scan, dir, outdir)
         except NeXusError as e:
             print(f"unable to convert {scan}: error message {e}")
+
+
+def convert_scans(args):
+
+    dir, scan_range, scan_nums, outdir = (
+        args.data_directory,
+        args.scan_range,
+        args.scan_nums,
+        args.out_path,
+    )
+    if args.all:
+        convert_directory(dir, outdir)
+        return
+    scanlist = parse_scans(scan_range, scan_nums)
+    convert_scan_list(scanlist, dir, outdir)
 
 
 if __name__ == "__main__":
@@ -146,10 +168,13 @@ if __name__ == "__main__":
     HELP_STR = "Path to the directory for saving output files to. "
     parser.add_argument("-o", "--out_path", help=HELP_STR, default=None)
 
+    HELP_STR = (
+        "Use this flag if you want to convert all .nxs files in the data directory"
+    )
+    parser.add_argument("-a", "--all", help=HELP_STR, action="store_true")
+
     args = parser.parse_args()
 
     if args.out_path is None:
         args.out_path = "/".join(args.data_directory.split("/")[0:6] + ["processing"])
-    convert_scan_list(
-        args.data_directory, args.scan_range, args.scan_nums, args.out_path
-    )
+    convert_scans(args)
