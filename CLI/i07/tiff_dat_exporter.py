@@ -147,7 +147,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.out_path is None:
-        args.out_path = args.data_directory
+        args.out_path = "/".join(args.data_directory.split("/")[0:6] + ["processing"])
     convert_scan_list(
         args.data_directory, args.scan_range, args.scan_nums, args.out_path
     )
