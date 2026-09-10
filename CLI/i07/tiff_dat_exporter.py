@@ -37,8 +37,8 @@ def parse_scans(scan_range, scan_nums):
     return scans
 
 
-def convertnexus(filename, loaddir, savedir):
-
+def convertnexus(scan, loaddir, savedir):
+    filename = f"i07-{scan}"
     nexusfile = rf"{loaddir}/{filename}.nxs"
     print(f"exporting data to {loaddir}/{filename}")
     loaded_nexus = nxload(rf"{nexusfile}")
@@ -97,7 +97,7 @@ def convertnexus(filename, loaddir, savedir):
         imdata = data[n, :, :]
         im = Image.fromarray(np.array(imdata))  # float32
         savestring = "{:0>{}}".format(n, 4)
-        im.save(rf"{savedir}/{filename}/nximage_{savestring}.tif", "TIFF")
+        im.save(rf"{savedir}/{filename}/{scan}_{savestring}.tif", "TIFF")
         count += 1
 
 
@@ -116,8 +116,8 @@ def convert_scan_list(
     scanlist = parse_scans(scan_range, scan_nums)
     for scan in scanlist:
         print(f"\n exporting data for scan {scan}")
-        filename = f"i07-{scan}"
-        convertnexus(filename, dir, outdir)
+
+        convertnexus(scan, dir, outdir)
 
 
 if __name__ == "__main__":
