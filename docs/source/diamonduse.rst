@@ -2,7 +2,7 @@
 Using fast_rsm at Diamond Light Source
 =======================================
 
-Below are detailed instructions on how to use fast_rsm at i07. If you requied any extra assistance, ask a beamline member of staff or email philip.mousley@diamond.ac.uk
+Below are detailed instructions on how to use fast_rsm at i07. If you requied any extra assistance, ask a beamline member of staff or email dataanalysis@diamond.ac.uk
 
 .. toctree::
    :maxdepth: 2
