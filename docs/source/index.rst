@@ -12,7 +12,7 @@ Software for mapping raw surface x-ray diffraction images into reciprocal space.
 `usage at diamond`_ - detailed instructions on how to use fast_rsm at i07. If you requied any extra assistance, ask a beamline member of staff or email dataanalysis@diamond.ac.uk
 
 
- `calculation details`_ - description of the equations and concepts used to carry out the mapping 
+`calculation details`_ - description of the equations and concepts used to carry out the mapping of images into reciprocal space maps.  
 
 
 .. toctree::
