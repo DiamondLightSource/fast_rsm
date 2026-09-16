@@ -73,7 +73,17 @@ If something has gone wrong during the experiment and you end up with corrupted 
 
 .. confval:: skipimages
     
-    this is the list of images you would like to skip for each of the scans given in *skipscans* e.g. [[10,16,24],[11,23]]
+    this is the list of images you would like to skip for each of the scans given in *skipscans* , and it is given as a list of lists in the format:
+    
+    .. code-block:: bash
+        
+        [[images to skip in first skipscan], [images to skip in second skipscan]] 
+    
+    e.g. 
+    
+    .. code-block:: bash
+
+        [[10,16,24],[11,23]]
 
 DPS settings
 ---------------
