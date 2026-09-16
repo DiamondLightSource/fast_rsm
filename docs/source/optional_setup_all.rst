@@ -69,11 +69,11 @@ If something has gone wrong during the experiment and you end up with corrupted 
     
 .. confval:: skipscans
     
-    this should be a list of scans which have images to skipimages e.g. *[123,124]*
+    this should be a list of scans which have images to skip e.g. *[123,124]*
 
 .. confval:: skipimages
     
-    this is the list of images to scan for each of the scans given in *skipscans* e.g. [[10,16,24],[11,23]]
+    this is the list of images you would like to skip for each of the scans given in *skipscans* e.g. [[10,16,24],[11,23]]
 
 DPS settings
 ---------------
