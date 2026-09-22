@@ -2,8 +2,8 @@ Calculations for full reciprocal space maps
 ==============================================
 
 
-steps in code
---------------
+steps of calculation in code
+-------------------------------
 
 - calculate volume start,stop,steps
 - for each scan 
