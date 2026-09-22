@@ -13,7 +13,7 @@ Software for mapping raw surface x-ray diffraction images into reciprocal space.
 
 
 `calculation details`_ - description of the equations and concepts used to carry out the mapping of images into reciprocal space maps.  
-
+g
 
 .. toctree::
    :hidden:
