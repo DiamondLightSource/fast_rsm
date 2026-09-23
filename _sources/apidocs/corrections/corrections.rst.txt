@@ -1,0 +1,61 @@
+:py:mod:`corrections`
+=====================
+
+.. py:module:: corrections
+
+.. autodoc2-docstring:: corrections
+   :allowtitles:
+
+Module Contents
+---------------
+
+Functions
+~~~~~~~~~
+
+.. list-table::
+   :class: autosummary longtable
+   :align: left
+
+   * - :py:obj:`make_float32 <corrections.make_float32>`
+     - .. autodoc2-docstring:: corrections.make_float32
+          :summary:
+   * - :py:obj:`get_corr_ints_kout <corrections.get_corr_ints_kout>`
+     - .. autodoc2-docstring:: corrections.get_corr_ints_kout
+          :summary:
+   * - :py:obj:`reshape_to_original <corrections.reshape_to_original>`
+     - .. autodoc2-docstring:: corrections.reshape_to_original
+          :summary:
+   * - :py:obj:`lorentz <corrections.lorentz>`
+     - .. autodoc2-docstring:: corrections.lorentz
+          :summary:
+   * - :py:obj:`linear_polarisation <corrections.linear_polarisation>`
+     - .. autodoc2-docstring:: corrections.linear_polarisation
+          :summary:
+
+API
+~~~
+
+.. py:function:: make_float32(data_arrays)
+   :canonical: corrections.make_float32
+
+   .. autodoc2-docstring:: corrections.make_float32
+
+.. py:function:: get_corr_ints_kout(intensities, k_out)
+   :canonical: corrections.get_corr_ints_kout
+
+   .. autodoc2-docstring:: corrections.get_corr_ints_kout
+
+.. py:function:: reshape_to_original(intensities, k_out, start_shapes)
+   :canonical: corrections.reshape_to_original
+
+   .. autodoc2-docstring:: corrections.reshape_to_original
+
+.. py:function:: lorentz(intensities: numpy.ndarray, k_in: numpy.ndarray, k_out: numpy.ndarray)
+   :canonical: corrections.lorentz
+
+   .. autodoc2-docstring:: corrections.lorentz
+
+.. py:function:: linear_polarisation(intensities: numpy.ndarray, k_out: numpy.ndarray, polarisation_vector: numpy.ndarray)
+   :canonical: corrections.linear_polarisation
+
+   .. autodoc2-docstring:: corrections.linear_polarisation

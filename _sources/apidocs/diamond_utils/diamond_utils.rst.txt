@@ -1,0 +1,358 @@
+:py:mod:`diamond_utils`
+=======================
+
+.. py:module:: diamond_utils
+
+.. autodoc2-docstring:: diamond_utils
+   :allowtitles:
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. list-table::
+   :class: autosummary longtable
+   :align: left
+
+   * - :py:obj:`ProcessArgs <diamond_utils.ProcessArgs>`
+     - .. autodoc2-docstring:: diamond_utils.ProcessArgs
+          :summary:
+
+Functions
+~~~~~~~~~
+
+.. list-table::
+   :class: autosummary longtable
+   :align: left
+
+   * - :py:obj:`get_im_path <diamond_utils.get_im_path>`
+     - .. autodoc2-docstring:: diamond_utils.get_im_path
+          :summary:
+   * - :py:obj:`setup_processing <diamond_utils.setup_processing>`
+     - .. autodoc2-docstring:: diamond_utils.setup_processing
+          :summary:
+   * - :py:obj:`create_process_config <diamond_utils.create_process_config>`
+     - .. autodoc2-docstring:: diamond_utils.create_process_config
+          :summary:
+   * - :py:obj:`check_folder <diamond_utils.check_folder>`
+     - .. autodoc2-docstring:: diamond_utils.check_folder
+          :summary:
+   * - :py:obj:`check_folder_corruption <diamond_utils.check_folder_corruption>`
+     - .. autodoc2-docstring:: diamond_utils.check_folder_corruption
+          :summary:
+   * - :py:obj:`get_good_paths <diamond_utils.get_good_paths>`
+     - .. autodoc2-docstring:: diamond_utils.get_good_paths
+          :summary:
+   * - :py:obj:`colour_text <diamond_utils.colour_text>`
+     - .. autodoc2-docstring:: diamond_utils.colour_text
+          :summary:
+   * - :py:obj:`data_corruption_warning <diamond_utils.data_corruption_warning>`
+     - .. autodoc2-docstring:: diamond_utils.data_corruption_warning
+          :summary:
+   * - :py:obj:`create_experiment <diamond_utils.create_experiment>`
+     - .. autodoc2-docstring:: diamond_utils.create_experiment
+          :summary:
+   * - :py:obj:`initial_value_checks <diamond_utils.initial_value_checks>`
+     - .. autodoc2-docstring:: diamond_utils.initial_value_checks
+          :summary:
+   * - :py:obj:`setup_dps <diamond_utils.setup_dps>`
+     - .. autodoc2-docstring:: diamond_utils.setup_dps
+          :summary:
+   * - :py:obj:`standard_adjustments <diamond_utils.standard_adjustments>`
+     - .. autodoc2-docstring:: diamond_utils.standard_adjustments
+          :summary:
+   * - :py:obj:`make_mask_lists <diamond_utils.make_mask_lists>`
+     - .. autodoc2-docstring:: diamond_utils.make_mask_lists
+          :summary:
+   * - :py:obj:`make_new_hdf5 <diamond_utils.make_new_hdf5>`
+     - .. autodoc2-docstring:: diamond_utils.make_new_hdf5
+          :summary:
+   * - :py:obj:`run_one_scan_process <diamond_utils.run_one_scan_process>`
+     - .. autodoc2-docstring:: diamond_utils.run_one_scan_process
+          :summary:
+   * - :py:obj:`run_scanlist_loop <diamond_utils.run_scanlist_loop>`
+     - .. autodoc2-docstring:: diamond_utils.run_scanlist_loop
+          :summary:
+   * - :py:obj:`run_scanlist_combined <diamond_utils.run_scanlist_combined>`
+     - .. autodoc2-docstring:: diamond_utils.run_scanlist_combined
+          :summary:
+   * - :py:obj:`get_run_function <diamond_utils.get_run_function>`
+     - .. autodoc2-docstring:: diamond_utils.get_run_function
+          :summary:
+   * - :py:obj:`run_process_list <diamond_utils.run_process_list>`
+     - .. autodoc2-docstring:: diamond_utils.run_process_list
+          :summary:
+   * - :py:obj:`run_full_map_process <diamond_utils.run_full_map_process>`
+     - .. autodoc2-docstring:: diamond_utils.run_full_map_process
+          :summary:
+   * - :py:obj:`save_binoviewer_hdf5 <diamond_utils.save_binoviewer_hdf5>`
+     - .. autodoc2-docstring:: diamond_utils.save_binoviewer_hdf5
+          :summary:
+   * - :py:obj:`get_volume_and_bounds <diamond_utils.get_volume_and_bounds>`
+     - .. autodoc2-docstring:: diamond_utils.get_volume_and_bounds
+          :summary:
+
+API
+~~~
+
+.. py:function:: get_im_path(directorypath: str, scan_number: int, image_number: int = 0)
+   :canonical: diamond_utils.get_im_path
+
+   .. autodoc2-docstring:: diamond_utils.get_im_path
+
+.. py:function:: setup_processing(exp_setup_file: pathlib.Path, job_file_path: str, scan_numbers: list, debuglogging: bool)
+   :canonical: diamond_utils.setup_processing
+
+   .. autodoc2-docstring:: diamond_utils.setup_processing
+
+.. py:function:: create_process_config(exp_setup_file: pathlib.Path, job_file_path: str, scan_numbers: list, debuglogging: bool)
+   :canonical: diamond_utils.create_process_config
+
+   .. autodoc2-docstring:: diamond_utils.create_process_config
+
+.. py:function:: check_folder(folder)
+   :canonical: diamond_utils.check_folder
+
+   .. autodoc2-docstring:: diamond_utils.check_folder
+
+.. py:function:: check_folder_corruption(folderpath: pathlib.Path)
+   :canonical: diamond_utils.check_folder_corruption
+
+   .. autodoc2-docstring:: diamond_utils.check_folder_corruption
+
+.. py:function:: get_good_paths(process_config: types.SimpleNamespace)
+   :canonical: diamond_utils.get_good_paths
+
+   .. autodoc2-docstring:: diamond_utils.get_good_paths
+
+.. py:function:: colour_text(colour, string)
+   :canonical: diamond_utils.colour_text
+
+   .. autodoc2-docstring:: diamond_utils.colour_text
+
+.. py:function:: data_corruption_warning(cfg: types.SimpleNamespace)
+   :canonical: diamond_utils.data_corruption_warning
+
+   .. autodoc2-docstring:: diamond_utils.data_corruption_warning
+
+.. py:function:: create_experiment(process_config: types.SimpleNamespace)
+   :canonical: diamond_utils.create_experiment
+
+   .. autodoc2-docstring:: diamond_utils.create_experiment
+
+.. py:function:: initial_value_checks(dps_centres, cylinder_axis, setup, output_file_size)
+   :canonical: diamond_utils.initial_value_checks
+
+   .. autodoc2-docstring:: diamond_utils.initial_value_checks
+
+.. py:function:: setup_dps(scan, process_config)
+   :canonical: diamond_utils.setup_dps
+
+   .. autodoc2-docstring:: diamond_utils.setup_dps
+
+.. py:function:: standard_adjustments(experiment, process_config)
+   :canonical: diamond_utils.standard_adjustments
+
+   .. autodoc2-docstring:: diamond_utils.standard_adjustments
+
+.. py:function:: make_mask_lists(specific_pixels, mask_regions)
+   :canonical: diamond_utils.make_mask_lists
+
+   .. autodoc2-docstring:: diamond_utils.make_mask_lists
+
+.. py:function:: make_new_hdf5(cfg: types.SimpleNamespace, scan_index: int, name_start: str, experiment: fast_rsm.experiment.Experiment)
+   :canonical: diamond_utils.make_new_hdf5
+
+   .. autodoc2-docstring:: diamond_utils.make_new_hdf5
+
+.. py:function:: run_one_scan_process(cfg, i, experiment, inputscan, runoptions)
+   :canonical: diamond_utils.run_one_scan_process
+
+   .. autodoc2-docstring:: diamond_utils.run_one_scan_process
+
+.. py:function:: run_scanlist_loop(cfg, experiment, runoptions)
+   :canonical: diamond_utils.run_scanlist_loop
+
+   .. autodoc2-docstring:: diamond_utils.run_scanlist_loop
+
+.. py:function:: run_scanlist_combined(cfg, experiment, runoptions)
+   :canonical: diamond_utils.run_scanlist_combined
+
+   .. autodoc2-docstring:: diamond_utils.run_scanlist_combined
+
+.. py:function:: get_run_function(map_per_image)
+   :canonical: diamond_utils.get_run_function
+
+   .. autodoc2-docstring:: diamond_utils.get_run_function
+
+.. py:function:: run_process_list(experiment, process_config)
+   :canonical: diamond_utils.run_process_list
+
+   .. autodoc2-docstring:: diamond_utils.run_process_list
+
+.. py:function:: run_full_map_process(experiment, cfg)
+   :canonical: diamond_utils.run_full_map_process
+
+   .. autodoc2-docstring:: diamond_utils.run_full_map_process
+
+.. py:function:: save_binoviewer_hdf5(output_path: str, process_config: types.SimpleNamespace)
+   :canonical: diamond_utils.save_binoviewer_hdf5
+
+   .. autodoc2-docstring:: diamond_utils.save_binoviewer_hdf5
+
+.. py:function:: get_volume_and_bounds(path_to_npy: str) -> tuple[numpy.ndarray]
+   :canonical: diamond_utils.get_volume_and_bounds
+
+   .. autodoc2-docstring:: diamond_utils.get_volume_and_bounds
+
+.. py:class:: ProcessArgs
+   :canonical: diamond_utils.ProcessArgs
+
+   .. autodoc2-docstring:: diamond_utils.ProcessArgs
+
+   .. py:attribute:: exp_path
+      :canonical: diamond_utils.ProcessArgs.exp_path
+      :type: str
+      :value: None
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.exp_path
+
+   .. py:attribute:: calc_path
+      :canonical: diamond_utils.ProcessArgs.calc_path
+      :type: str
+      :value: None
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.calc_path
+
+   .. py:attribute:: version_path
+      :canonical: diamond_utils.ProcessArgs.version_path
+      :type: str
+      :value: None
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.version_path
+
+   .. py:attribute:: python_version
+      :canonical: diamond_utils.ProcessArgs.python_version
+      :type: str
+      :value: None
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.python_version
+
+   .. py:attribute:: scan_nums
+      :canonical: diamond_utils.ProcessArgs.scan_nums
+      :type: list[int] | None
+      :value: None
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.scan_nums
+
+   .. py:attribute:: scan_range
+      :canonical: diamond_utils.ProcessArgs.scan_range
+      :type: list[int] | None
+      :value: None
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.scan_range
+
+   .. py:attribute:: out_path
+      :canonical: diamond_utils.ProcessArgs.out_path
+      :type: str | None
+      :value: None
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.out_path
+
+   .. py:attribute:: debuglogging
+      :canonical: diamond_utils.ProcessArgs.debuglogging
+      :type: bool
+      :value: 0
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.debuglogging
+
+   .. py:attribute:: local
+      :canonical: diamond_utils.ProcessArgs.local
+      :type: bool
+      :value: 0
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.local
+
+   .. py:attribute:: dev
+      :canonical: diamond_utils.ProcessArgs.dev
+      :type: bool
+      :value: 0
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.dev
+
+   .. py:method:: start_loggers()
+      :canonical: diamond_utils.ProcessArgs.start_loggers
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.start_loggers
+
+   .. py:method:: parse_setup()
+      :canonical: diamond_utils.ProcessArgs.parse_setup
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.parse_setup
+
+   .. py:method:: parse_scans()
+      :canonical: diamond_utils.ProcessArgs.parse_scans
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.parse_scans
+
+   .. py:method:: create_job_name()
+      :canonical: diamond_utils.ProcessArgs.create_job_name
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.create_job_name
+
+   .. py:method:: create_jobscript()
+      :canonical: diamond_utils.ProcessArgs.create_jobscript
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.create_jobscript
+
+   .. py:method:: create_jobfile()
+      :canonical: diamond_utils.ProcessArgs.create_jobfile
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.create_jobfile
+
+   .. py:method:: check_slurmfiles()
+      :canonical: diamond_utils.ProcessArgs.check_slurmfiles
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.check_slurmfiles
+
+   .. py:method:: print_exp_lines()
+      :canonical: diamond_utils.ProcessArgs.print_exp_lines
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.print_exp_lines
+
+   .. py:method:: print_calc_lines()
+      :canonical: diamond_utils.ProcessArgs.print_calc_lines
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.print_calc_lines
+
+   .. py:method:: run_cluster_job()
+      :canonical: diamond_utils.ProcessArgs.run_cluster_job
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.run_cluster_job
+
+   .. py:method:: parse_and_reduce()
+      :canonical: diamond_utils.ProcessArgs.parse_and_reduce
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.parse_and_reduce
+
+   .. py:method:: check_zocalo_calc_path()
+      :canonical: diamond_utils.ProcessArgs.check_zocalo_calc_path
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.check_zocalo_calc_path
+
+   .. py:method:: check_zocalo_output_path()
+      :canonical: diamond_utils.ProcessArgs.check_zocalo_output_path
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.check_zocalo_output_path
+
+   .. py:method:: create_zocalo_exp_file()
+      :canonical: diamond_utils.ProcessArgs.create_zocalo_exp_file
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.create_zocalo_exp_file
+
+   .. py:method:: setup_zocalo_and_reduce()
+      :canonical: diamond_utils.ProcessArgs.setup_zocalo_and_reduce
+
+      .. autodoc2-docstring:: diamond_utils.ProcessArgs.setup_zocalo_and_reduce

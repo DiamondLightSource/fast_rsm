@@ -1,0 +1,301 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculations for GIWAXS datasets &mdash; fast_rsm 2.4.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/jupyter-sphinx.css" />
+      <link rel="stylesheet" type="text/css" href="_static/thebelab.css" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx_collapse.css?v=226d88b4" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=5dd66af0" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=5dd66af0" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=b1e24531"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/thebelab-helper.js"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            fast_rsm
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="diamonduse.html">Using fast_rsm at Diamond Light Source</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apidocs/index.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">fast_rsm</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Calculations for GIWAXS datasets</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/giwaxs_calcs.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="calculations-for-giwaxs-datasets">
+<h1>Calculations for GIWAXS datasets<a class="headerlink" href="#calculations-for-giwaxs-datasets" title="Link to this heading"></a></h1>
+<dl class="simple">
+<dt>Scans in GIWAXS experiments fall into two categories:</dt><dd><ul class="simple">
+<li><p>Static scans - collect data with the detector stationary</p></li>
+<li><p>Moving scans - collect data with detector moving</p></li>
+</ul>
+</dd>
+<dt>The analysis output is one of three options</dt><dd><ul class="simple">
+<li><p>Intensity Vs Q profile (1D)</p></li>
+<li><p>Q parallel Vs Q q_perpendicular (2D)</p></li>
+<li><p>Exit angle in-plane Vs exit angle out-of-plane (2D)</p></li>
+</ul>
+</dd>
+</dl>
+<p>below are the analysis steps used for each type of scan, depending on the analysis output required</p>
+<section id="static-scan-i-vs-q">
+<h2>static scan -  I vs Q<a class="headerlink" href="#static-scan-i-vs-q" title="Link to this heading"></a></h2>
+<blockquote>
+<div><ol class="arabic">
+<li><dl>
+<dt>initiate a standard AzimuthalIntegrator object</dt><dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">aistart</span> <span class="o">=</span> <span class="n">pyFAI</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">pyfaiponi</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</li>
+<li><p>get gamma and delta values, convert to cartesian rot1,rot2,rot3 and then update rot values in PONI</p></li>
+<li><p>use <a class="reference external" href="https://pyfai.readthedocs.io/en/stable/api/pyFAI.html#pyFAI.integrator.azimuthal.AzimuthalIntegrator.integrate1d_ng">ai.integrate1d_ng</a>  with the standard two-theta unit and then convert to Q-values to get three column tth,Q,I dataset:</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">tth</span><span class="p">,</span> <span class="n">I</span> <span class="o">=</span> <span class="n">my_ai</span><span class="o">.</span><span class="n">integrate1d_ng</span><span class="p">(</span><span class="n">img_data</span><span class="p">,</span>
+                      <span class="n">ivqbins</span><span class="p">,</span>
+                      <span class="n">unit</span><span class="o">=</span><span class="s2">"2th_deg"</span><span class="p">,</span> <span class="n">polarization_factor</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">Q</span><span class="o">=</span> <span class="p">[</span><span class="n">experiment</span><span class="o">.</span><span class="n">calcq</span><span class="p">(</span><span class="n">tthval</span><span class="p">,</span> <span class="n">experiment</span><span class="o">.</span><span class="n">incident_wavelength</span><span class="p">)</span> <span class="k">for</span> <span class="n">tthval</span> <span class="ow">in</span> <span class="n">tth</span><span class="p">]</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+</ol>
+</div></blockquote>
+</section>
+<section id="static-scan-q-para-vs-q-perp">
+<h2>static scan - <span class="math notranslate nohighlight">\(Q_{para}\)</span> Vs <span class="math notranslate nohighlight">\(Q_{perp}\)</span><a class="headerlink" href="#static-scan-q-para-vs-q-perp" title="Link to this heading"></a></h2>
+<blockquote>
+<div><ol class="arabic">
+<li><p>calculate qlimits using <a class="reference external" href="./apidocs/experiment/experiment.html#experiment.Experiment.calcqlim">experiment.calcqlim</a> - gets the maximum and mimium pixel distances for each vertical and horizontal direction, then combines with detector distance to calculate maximum and minimum exit angle. From exit angles calculates full range of q values.</p></li>
+<li><p>alter beam centre if vertical setup used.</p></li>
+<li><p>create a poni file if one is not provided - assuming orthogonal detector</p></li>
+<li><p>calculate binning resolution in Q if no qmap bins given</p></li>
+<li><dl>
+<dt>use  <a class="reference external" href="https://pyfai.readthedocs.io/en/stable/api/pyFAI.html#pyFAI.units.get_unit_fiber">units.get_unit_fiber</a>  to set inplane and out of plane units, which account for incident angle, and have sample_orientation=1:</dt><dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">unit_qip_name</span> <span class="o">=</span> <span class="s2">"qip_A^-1"</span>
+<span class="n">unit_qoop_name</span> <span class="o">=</span> <span class="s2">"qoop_A^-1"</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>initiate a FiberIntegrator object using poni file</dt><dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">aistart</span> <span class="o">=</span> <span class="n">pyFAI</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">pyfaiponi</span><span class="p">,</span> <span class="n">type_</span><span class="o">=</span><span class="s2">"pyFAI.integrator.fiber.FiberIntegrator"</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</li>
+<li><p>get gamma and delta values, convert to cartesian rot1,rot2,rot3 and then update rot values in PONI</p></li>
+<li><dl>
+<dt>use  <a class="reference external" href="https://pyfai.readthedocs.io/en/stable/api/pyFAI.html#pyFAI.integrator.azimuthal.AzimuthalIntegrator.integrate2d">ai.integrate2d</a> with method=(“no”, “csr”, “cython”)</dt><dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">map2d</span> <span class="o">=</span> <span class="n">my_ai</span><span class="o">.</span><span class="n">integrate2d</span><span class="p">(</span><span class="n">img_data</span><span class="p">,</span> <span class="n">qmapbins</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qmapbins</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">unit</span><span class="o">=</span><span class="p">(</span><span class="n">unit_qip</span><span class="p">,</span> <span class="n">unit_qoop</span><span class="p">),</span>\
+                    <span class="n">radial_range</span><span class="o">=</span><span class="p">(</span><span class="n">ai_limits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">ai_limits</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span><span class="n">azimuth_range</span><span class="o">=</span><span class="p">(</span><span class="n">ai_limits</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">ai_limits</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span> <span class="n">method</span><span class="o">=</span><span class="p">(</span><span class="s2">"no"</span><span class="p">,</span> <span class="s2">"csr"</span><span class="p">,</span> <span class="s2">"cython"</span><span class="p">))</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</li>
+</ol>
+</div></blockquote>
+</section>
+<section id="static-scan-exit-angles">
+<h2>static scan - Exit angles<a class="headerlink" href="#static-scan-exit-angles" title="Link to this heading"></a></h2>
+<blockquote>
+<div><ol class="arabic">
+<li><p>calculate angle limits using <a class="reference external" href="./apidocs/experiment/experiment.html#experiment.Experiment.calcanglim">experiment.calcanglim</a> - gets the maximum and mimium pixel distances for each vertical and horizontal direction, then combines with detector distance to calculate maximum and minimum exit angles.</p></li>
+<li><p>alter beam centre if vertical setup used.</p></li>
+<li><p>create a poni file if one is not provided - assuming orthogonal detector</p></li>
+<li><dl>
+<dt>use  <a class="reference external" href="https://pyfai.readthedocs.io/en/stable/api/pyFAI.html#pyFAI.units.get_unit_fiber">units.get_unit_fiber</a>  to set inplane and out of plane units, which account for incident angle, and have sample_orientation=1:</dt><dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">unit_qip_name</span> <span class="o">=</span><span class="s2">"exit_angle_horz_deg"</span>
+<span class="n">unit_qoop_name</span> <span class="o">=</span> <span class="s2">"exit_angle_vert_deg"</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>initiate a FiberIntegrator object</dt><dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">aistart</span> <span class="o">=</span> <span class="n">pyFAI</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">pyfaiponi</span><span class="p">,</span> <span class="n">type_</span><span class="o">=</span><span class="s2">"pyFAI.integrator.fiber.FiberIntegrator"</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</li>
+<li><p>get gamma and delta values, convert to cartesian rot1,rot2,rot3 and then update rot values in PONI</p></li>
+<li><dl>
+<dt>use  <a class="reference external" href="https://pyfai.readthedocs.io/en/stable/api/pyFAI.html#pyFAI.integrator.azimuthal.AzimuthalIntegrator.integrate2d">ai.integrate2d</a> with method=(“no”, “csr”, “cython”)</dt><dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">map2d</span> <span class="o">=</span> <span class="n">my_ai</span><span class="o">.</span><span class="n">integrate2d</span><span class="p">(</span><span class="n">img_data</span><span class="p">,</span> <span class="n">qmapbins</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">qmapbins</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">unit</span><span class="o">=</span><span class="p">(</span><span class="n">unit_qip</span><span class="p">,</span> <span class="n">unit_qoop</span><span class="p">),</span>\
+                    <span class="n">radial_range</span><span class="o">=</span><span class="p">(</span><span class="n">ai_limits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">ai_limits</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span><span class="n">azimuth_range</span><span class="o">=</span><span class="p">(</span><span class="n">ai_limits</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">ai_limits</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span> <span class="n">method</span><span class="o">=</span><span class="p">(</span><span class="s2">"no"</span><span class="p">,</span> <span class="s2">"csr"</span><span class="p">,</span> <span class="s2">"cython"</span><span class="p">))</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</li>
+</ol>
+</div></blockquote>
+</section>
+<section id="moving-i-vs-q">
+<h2>moving  -  I vs Q<a class="headerlink" href="#moving-i-vs-q" title="Link to this heading"></a></h2>
+<blockquote>
+<div><ol class="arabic">
+<li><p>calculate angle limits using <a class="reference external" href="./apidocs/experiment/experiment.html#experiment.Experiment.calcanglim">experiment.calcanglim</a> - gets the maximum and mimium pixel distances for each vertical and horizontal direction, then combines with detector distance to calculate maximum and minimum exit angles.</p></li>
+<li><p>alter beam centre if vertical setup used.</p></li>
+<li><p>create a poni file if one is not provided - assuming orthogonal detector</p></li>
+<li><p>chunk up scans into groups, create group of azimuthal integrators editing the rotations for each image</p></li>
+<li><p>create MultiGeometry object including all integrators, and calculate <a class="reference external" href="https://pyfai.readthedocs.io/en/stable/api/pyFAI.html#pyFAI.multi_geometry.MultiGeometry.integrate1d">Multigeometry_integrate1d</a></p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">mg</span> <span class="o">=</span> <span class="n">MultiGeometry</span><span class="p">(</span> <span class="n">ais</span><span class="p">,</span>  <span class="n">unit</span><span class="o">=</span><span class="n">unit_tth_ip</span><span class="p">,</span> <span class="n">wavelength</span><span class="o">=</span><span class="n">experiment</span><span class="o">.</span><span class="n">incident_wavelength</span><span class="p">,</span> <span class="n">radial_range</span><span class="o">=</span><span class="p">(</span><span class="n">radrange</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">radrange</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+<span class="n">result1d</span> <span class="o">=</span> <span class="n">mg</span><span class="o">.</span><span class="n">integrate1d</span><span class="p">(</span><span class="n">img_data_list</span><span class="p">,</span> <span class="n">ivqbins</span><span class="p">)</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p>after each chunk is done, update the total sum and total count arrays</p></li>
+</ol>
+</div></blockquote>
+</section>
+<section id="moving-q-para-vs-q-perp">
+<h2>moving - <span class="math notranslate nohighlight">\(Q_{para}\)</span> Vs <span class="math notranslate nohighlight">\(Q_{perp}\)</span><a class="headerlink" href="#moving-q-para-vs-q-perp" title="Link to this heading"></a></h2>
+<blockquote>
+<div><ol class="arabic">
+<li><p>calculate angle limits using <a class="reference external" href="./apidocs/experiment/experiment.html#experiment.Experiment.calcqlim">experiment.calcqlim</a> - gets the maximum and mimium pixel distances for each vertical and horizontal direction, then combines with detector distance to calculate maximum and minimum exit angles.From exit angles calculates full range of q values.</p></li>
+<li><p>alter beam centre if vertical setup used.</p></li>
+<li><p>create a poni file if one is not provided - assuming orthogonal detector</p></li>
+<li><p>chunk up scans into groups, create group of azimuthal integrators editing the rotations for each image.</p></li>
+<li><p>use  <a class="reference external" href="https://pyfai.readthedocs.io/en/stable/api/pyFAI.html#pyFAI.units.get_unit_fiber">units.get_unit_fiber</a>  to set inplane and out of plane units, which account for incident angle, and have sample_orientation=1:</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">unit_qip_name</span> <span class="o">=</span> <span class="s2">"qip_A^-1"</span>
+<span class="n">unit_qoop_name</span> <span class="o">=</span> <span class="s2">"qoop_A^-1"</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p>For each image in group do <a class="reference external" href="https://pyfai.readthedocs.io/en/stable/api/pyFAI.html#pyFAI.integrator.azimuthal.AzimuthalIntegrator.integrate2d">ai.integrate2d</a> with method=(“no”, “csr”, “cython”)</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">map2d</span> <span class="o">=</span> <span class="n">current_ai</span><span class="o">.</span><span class="n">integrate2d</span><span class="p">(</span><span class="n">current_img</span><span class="p">,</span> <span class="n">qmapbins</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qmapbins</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">unit</span><span class="o">=</span><span class="p">(</span><span class="n">unit_qip</span><span class="p">,</span> <span class="n">unit_qoop</span><span class="p">),</span>\
+                               <span class="n">radial_range</span><span class="o">=</span><span class="p">(</span><span class="n">ai_limits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">ai_limits</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span><span class="n">azimuth_range</span><span class="o">=</span><span class="p">(</span><span class="n">ai_limits</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">ai_limits</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span> <span class="n">method</span><span class="o">=</span><span class="p">(</span><span class="s2">"no"</span><span class="p">,</span> <span class="s2">"csr"</span><span class="p">,</span> <span class="s2">"cython"</span><span class="p">))</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p>after each chunk is done, update the total sum and total count arrays</p></li>
+</ol>
+</div></blockquote>
+</section>
+<section id="moving-exit-angles">
+<h2>moving -Exit angles<a class="headerlink" href="#moving-exit-angles" title="Link to this heading"></a></h2>
+<blockquote>
+<div><ol class="arabic">
+<li><p>calculate angle limits using <a class="reference external" href="./apidocs/experiment/experiment.html#experiment.Experiment.calcanglim">experiment.calcanglim</a> - gets the maximum and mimium pixel distances for each vertical and horizontal direction, then combines with detector distance to calculate maximum and minimum exit angles.</p></li>
+<li><p>alter beam centre if vertical setup used.</p></li>
+<li><p>create a poni file if one is not provided - assuming orthogonal detector</p></li>
+<li><p>chunk up scans into groups, create group of azimuthal integrators editing the rotations for each image.</p></li>
+<li><p>use  <a class="reference external" href="https://pyfai.readthedocs.io/en/stable/api/pyFAI.html#pyFAI.units.get_unit_fiber">units.get_unit_fiber</a>  to set inplane and out of plane units, which account for incident angle, and have sample_orientation=1:</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">unit_qip_name</span> <span class="o">=</span><span class="s2">"exit_angle_horz_deg"</span>
+<span class="n">unit_qoop_name</span> <span class="o">=</span> <span class="s2">"exit_angle_vert_deg"</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p>For each image in group do <a class="reference external" href="https://pyfai.readthedocs.io/en/stable/api/pyFAI.html#pyFAI.integrator.azimuthal.AzimuthalIntegrator.integrate2d">ai.integrate2d</a> with method=(“no”, “csr”, “cython”)</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">map2d</span> <span class="o">=</span> <span class="n">current_ai</span><span class="o">.</span><span class="n">integrate2d</span><span class="p">(</span><span class="n">current_img</span><span class="p">,</span> <span class="n">qmapbins</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qmapbins</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">unit</span><span class="o">=</span><span class="p">(</span><span class="n">unit_qip</span><span class="p">,</span> <span class="n">unit_qoop</span><span class="p">),</span>\
+                               <span class="n">radial_range</span><span class="o">=</span><span class="p">(</span><span class="n">ai_limits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">ai_limits</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span><span class="n">azimuth_range</span><span class="o">=</span><span class="p">(</span><span class="n">ai_limits</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">ai_limits</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span> <span class="n">method</span><span class="o">=</span><span class="p">(</span><span class="s2">"no"</span><span class="p">,</span> <span class="s2">"csr"</span><span class="p">,</span> <span class="s2">"cython"</span><span class="p">))</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p>after each chunk is done, update the total sum and total count arrays</p></li>
+</ol>
+</div></blockquote>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020-2025, Diamond Light Source Ltd.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

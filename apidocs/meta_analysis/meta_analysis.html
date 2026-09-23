@@ -1,0 +1,209 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>meta_analysis &mdash; fast_rsm 2.4.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/jupyter-sphinx.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/thebelab.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx_collapse.css?v=226d88b4" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=5dd66af0" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=5dd66af0" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=b1e24531"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/thebelab-helper.js"></script>
+      <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="rsm_metadata" href="../rsm_metadata/rsm_metadata.html" />
+    <link rel="prev" title="io" href="../io/io.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            fast_rsm
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../diamonduse.html">Using fast_rsm at Diamond Light Source</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../binning/binning.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">binning</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../corrections/corrections.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">corrections</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../diamond_utils/diamond_utils.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">diamond_utils</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../experiment/experiment.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">experiment</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../image/image.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">image</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../io/io.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">io</span></code></a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">meta_analysis</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-contents">Module Contents</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#functions">Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#api">API</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../rsm_metadata/rsm_metadata.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">rsm_metadata</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../scan/scan.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">scan</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../writing/writing.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">writing</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">fast_rsm</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">API Reference</a></li>
+      <li class="breadcrumb-item active"><code class="xref py py-mod docutils literal notranslate"><span class="pre">meta_analysis</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/apidocs/meta_analysis/meta_analysis.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-meta_analysis">
+<span id="meta-analysis"></span><h1><a class="reference internal" href="#module-meta_analysis" title="meta_analysis"><code class="xref py py-mod docutils literal notranslate"><span class="pre">meta_analysis</span></code></a><a class="headerlink" href="#module-meta_analysis" title="Link to this heading"></a></h1>
+<p>The purpose of this module is to provide routines for running some
+pre-processing analysis on the data. This was motivated by the need to work out
+e.g. reciprocal space bounds on scans in a performant way. The decision was made
+to move this into the core of the module .</p>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading"></a></h2>
+<section id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h3>
+<table class="autosummary longtable docutils align-left">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#meta_analysis.get_step_from_filesize" title="meta_analysis.get_step_from_filesize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_step_from_filesize</span></code></a></p></td>
+<td><p>Takes a requested file size, a start and a stop. Works out the step that
+will give you a resultant file of your requested filesize. To calculate
+start and stop you can use Scan.q_bounds, or calculate it yourself.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#meta_analysis._find_exc_broken_frames" title="meta_analysis._find_exc_broken_frames"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_find_exc_broken_frames</span></code></a></p></td>
+<td><p>Takes a scan recorded using i07’s excalibur detector, which is a bit broken.
+Attempts to work out which frames are broken. Returns a list of image
+indices corresponding to the frames that we think are broken.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#meta_analysis.skip_i07_exc_broken_frames" title="meta_analysis.skip_i07_exc_broken_frames"><code class="xref py py-obj docutils literal notranslate"><span class="pre">skip_i07_exc_broken_frames</span></code></a></p></td>
+<td><p>This is the public facing function that can be used to skip all dodgy
+frames captured by i07’s excalibur detector.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="api">
+<h3>API<a class="headerlink" href="#api" title="Link to this heading"></a></h3>
+<dl class="py function">
+<dt class="sig sig-object py" id="meta_analysis.get_step_from_filesize">
+<span class="sig-prename descclassname"><span class="pre">meta_analysis.</span></span><span class="sig-name descname"><span class="pre">get_step_from_filesize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="headerlink" href="#meta_analysis.get_step_from_filesize" title="Link to this definition"></a></dt>
+<dd><p>Takes a requested file size, a start and a stop. Works out the step that
+will give you a resultant file of your requested filesize. To calculate
+start and stop you can use Scan.q_bounds, or calculate it yourself.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>start:</dt><dd><p>array-like [qx_min qy_min qz_min]</p>
+</dd>
+<dt>stop:</dt><dd><p>array-like [qx_max qy_max qz_max]</p>
+</dd>
+<dt>file_size:</dt><dd><p>Requested output filesize in MB. Defaults to 100 MB.</p>
+</dd>
+</dl>
+</dd>
+<dt>Returns:</dt><dd><p>A numpy array of [step step step] (since step_x=step_y=step_z).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="meta_analysis._find_exc_broken_frames">
+<span class="sig-prename descclassname"><span class="pre">meta_analysis.</span></span><span class="sig-name descname"><span class="pre">_find_exc_broken_frames</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scan</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">fast_rsm.scan.Scan</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#meta_analysis._find_exc_broken_frames" title="Link to this definition"></a></dt>
+<dd><p>Takes a scan recorded using i07’s excalibur detector, which is a bit broken.
+Attempts to work out which frames are broken. Returns a list of image
+indices corresponding to the frames that we think are broken.</p>
+<p>For now this simple test relies on the broken frames being much brighter
+than its preceding frames.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="meta_analysis.skip_i07_exc_broken_frames">
+<span class="sig-prename descclassname"><span class="pre">meta_analysis.</span></span><span class="sig-name descname"><span class="pre">skip_i07_exc_broken_frames</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">experiment</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">fast_rsm.experiment.Experiment</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#meta_analysis.skip_i07_exc_broken_frames" title="Link to this definition"></a></dt>
+<dd><p>This is the public facing function that can be used to skip all dodgy
+frames captured by i07’s excalibur detector.</p>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../io/io.html" class="btn btn-neutral float-left" title="io" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../rsm_metadata/rsm_metadata.html" class="btn btn-neutral float-right" title="rsm_metadata" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020-2025, Diamond Light Source Ltd.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

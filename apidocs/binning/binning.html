@@ -1,0 +1,279 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>binning &mdash; fast_rsm 2.4.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/jupyter-sphinx.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/thebelab.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx_collapse.css?v=226d88b4" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=5dd66af0" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=5dd66af0" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=b1e24531"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/thebelab-helper.js"></script>
+      <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="corrections" href="../corrections/corrections.html" />
+    <link rel="prev" title="API Reference" href="../index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            fast_rsm
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../diamonduse.html">Using fast_rsm at Diamond Light Source</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">binning</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-contents">Module Contents</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#functions">Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#api">API</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../corrections/corrections.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">corrections</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../diamond_utils/diamond_utils.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">diamond_utils</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../experiment/experiment.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">experiment</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../image/image.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">image</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../io/io.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">io</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../meta_analysis/meta_analysis.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">meta_analysis</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rsm_metadata/rsm_metadata.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">rsm_metadata</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../scan/scan.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">scan</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../writing/writing.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">writing</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">fast_rsm</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">API Reference</a></li>
+      <li class="breadcrumb-item active"><code class="xref py py-mod docutils literal notranslate"><span class="pre">binning</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/apidocs/binning/binning.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-binning">
+<span id="binning"></span><h1><a class="reference internal" href="#module-binning" title="binning"><code class="xref py py-mod docutils literal notranslate"><span class="pre">binning</span></code></a><a class="headerlink" href="#module-binning" title="Link to this heading"></a></h1>
+<p>This module contains functions for binning 3D  scalar fields.</p>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading"></a></h2>
+<section id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h3>
+<table class="autosummary longtable docutils align-left">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#binning.fix_delta_q_geometry" title="binning.fix_delta_q_geometry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fix_delta_q_geometry</span></code></a></p></td>
+<td><p>If arr.shape is 3D, make it 2D.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#binning.fix_intensity_geometry" title="binning.fix_intensity_geometry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fix_intensity_geometry</span></code></a></p></td>
+<td><p>If arr.shape is 2D, make it 1D.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#binning.finite_diff_grid" title="binning.finite_diff_grid"><code class="xref py py-obj docutils literal notranslate"><span class="pre">finite_diff_grid</span></code></a></p></td>
+<td><p>Works out the shape of the finite differences grid and returns it.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#binning.finite_diff_shape" title="binning.finite_diff_shape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">finite_diff_shape</span></code></a></p></td>
+<td><p>Works out the shape of the finite differences grid that we’re going to need
+to store data with this start, stop and step.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#binning.typecheckdict" title="binning.typecheckdict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">typecheckdict</span></code></a></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#binning.weighted_bin_3d" title="binning.weighted_bin_3d"><code class="xref py py-obj docutils literal notranslate"><span class="pre">weighted_bin_3d</span></code></a></p></td>
+<td><p>This is an alias to the native C function _weighted_bin_3d, which adds a
+useful protective layer. A lot of explicit type conversions are carried out,
+which prevents segfaults on the C side.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#binning.weighted_bin_1d" title="binning.weighted_bin_1d"><code class="xref py py-obj docutils literal notranslate"><span class="pre">weighted_bin_1d</span></code></a></p></td>
+<td><p>Entirely analogous to weighted_bin_3d, but histograms in only 1 dimension.
+This is useful for re-histogramming for e.g. 2-theta and <a href="#id1"><span class="problematic" id="id2">|Q|</span></a> projections.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="api">
+<h3>API<a class="headerlink" href="#api" title="Link to this heading"></a></h3>
+<dl class="py function">
+<dt class="sig sig-object py" id="binning.fix_delta_q_geometry">
+<span class="sig-prename descclassname"><span class="pre">binning.</span></span><span class="sig-name descname"><span class="pre">fix_delta_q_geometry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="headerlink" href="#binning.fix_delta_q_geometry" title="Link to this definition"></a></dt>
+<dd><p>If arr.shape is 3D, make it 2D.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="binning.fix_intensity_geometry">
+<span class="sig-prename descclassname"><span class="pre">binning.</span></span><span class="sig-name descname"><span class="pre">fix_intensity_geometry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="headerlink" href="#binning.fix_intensity_geometry" title="Link to this definition"></a></dt>
+<dd><p>If arr.shape is 2D, make it 1D.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="binning.finite_diff_grid">
+<span class="sig-prename descclassname"><span class="pre">binning.</span></span><span class="sig-name descname"><span class="pre">finite_diff_grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#binning.finite_diff_grid" title="Link to this definition"></a></dt>
+<dd><p>Works out the shape of the finite differences grid and returns it.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="binning.finite_diff_shape">
+<span class="sig-prename descclassname"><span class="pre">binning.</span></span><span class="sig-name descname"><span class="pre">finite_diff_shape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#binning.finite_diff_shape" title="Link to this definition"></a></dt>
+<dd><p>Works out the shape of the finite differences grid that we’re going to need
+to store data with this start, stop and step.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="binning.typecheckdict">
+<span class="sig-prename descclassname"><span class="pre">binning.</span></span><span class="sig-name descname"><span class="pre">typecheckdict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">float_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#binning.typecheckdict" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="binning.weighted_bin_3d">
+<span class="sig-prename descclassname"><span class="pre">binning.</span></span><span class="sig-name descname"><span class="pre">weighted_bin_3d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coords</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_intensity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="headerlink" href="#binning.weighted_bin_3d" title="Link to this definition"></a></dt>
+<dd><p>This is an alias to the native C function _weighted_bin_3d, which adds a
+useful protective layer. A lot of explicit type conversions are carried out,
+which prevents segfaults on the C side.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>coords:</dt><dd><p>A numpy array of the coordinates we’re going to bin. Should be the
+output of Image.q_vectors.</p>
+</dd>
+<dt>weights:</dt><dd><p>The intensities measured at each of the q_vectors stored in coords.
+Should be the output of Image.data</p>
+</dd>
+<dt>out:</dt><dd><p>The current state of the binned reciprocal space map.</p>
+</dd>
+<dt>count:</dt><dd><p>The number of times each voxel in out has been binned to so far.</p>
+</dd>
+<dt>start:</dt><dd><p>A numpy array that looks like [qx_min, qy_min, qz_min].</p>
+</dd>
+<dt>stop:</dt><dd><p>A numpy array that looks like [qx_max, qy_max, qz_max]. Together
+with start, these arrays specify the bounds of the region of
+reciprocal space that we’re binning to.</p>
+</dd>
+<dt>step:</dt><dd><p>The side-length of each reciprocal space voxel.</p>
+</dd>
+<dt>min_intensity:</dt><dd><p>Any intensities recorded below this intensity should be completely
+ignored. This is used for masking. Defaults to None (i.e. no
+masking). This is not the same thing as background subtraction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="binning.weighted_bin_1d">
+<span class="sig-prename descclassname"><span class="pre">binning.</span></span><span class="sig-name descname"><span class="pre">weighted_bin_1d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coords</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#binning.weighted_bin_1d" title="Link to this definition"></a></dt>
+<dd><p>Entirely analogous to weighted_bin_3d, but histograms in only 1 dimension.
+This is useful for re-histogramming for e.g. 2-theta and <a href="#id3"><span class="problematic" id="id4">|Q|</span></a> projections.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>coords:</dt><dd><p>A numpy array of the coordinates we’re going to bin. Should be a
+numpy array with shape (N,).</p>
+</dd>
+<dt>weights:</dt><dd><p>The intensities measured at each of the q_vectors stored in coords.
+Should be a numpy array with shape (N,)</p>
+</dd>
+<dt>out:</dt><dd><p>If the results of this binning are to be appended to another
+histogram, out should be the histogram to which the results will be
+appended. Otherwise, np.zeros() please. This should have the shape
+of your desired output. So, if you’re binning into 1000 equally
+spaced bines, it should have shape (1000,)</p>
+</dd>
+<dt>count:</dt><dd><p>Same shape as out. This array just counts how many times you bin
+into each bin. This is needed for normalisation.</p>
+</dd>
+<dt>start:</dt><dd><p>The minimum coordinate that we want to bin to. Any coordinate
+smaller than this value will be thrown away.</p>
+</dd>
+<dt>stop:</dt><dd><p>The maximum coordinate we want to bin to. Any coordinate larger
+than this value will be thrown away.</p>
+</dd>
+<dt>step:</dt><dd><p>The side-length of each bin voxel.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../index.html" class="btn btn-neutral float-left" title="API Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../corrections/corrections.html" class="btn btn-neutral float-right" title="corrections" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020-2025, Diamond Light Source Ltd.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

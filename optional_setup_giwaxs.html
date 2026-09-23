@@ -1,0 +1,285 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Walkthrough 3 - Optional settings applicable to GIWAXS scans &mdash; fast_rsm 2.4.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/jupyter-sphinx.css" />
+      <link rel="stylesheet" type="text/css" href="_static/thebelab.css" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx_collapse.css?v=226d88b4" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=5dd66af0" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+      <link rel="stylesheet" type="text/css" href="_static/tabs.css?v=a5c4661c" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=5dd66af0" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=b1e24531"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/thebelab-helper.js"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="_static/tabs.js?v=3030b3cb"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Run a single process job from the command line" href="processcli.html" />
+    <link rel="prev" title="Walkthrough 2 - Optional settings applicable to all scan types" href="optional_setup_all.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            fast_rsm
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="diamonduse.html">Using fast_rsm at Diamond Light Source</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="nomachine_wilson.html">Setting up Linux session and wilson connection</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="experiment_setup.html">walkthroughs for creating the experiment setup file</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="minimum_setup.html">Walkthrough 1 - Minimum settings needed in the experiment setup file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="optional_setup_all.html">Walkthrough 2 - Optional settings applicable to all scan types</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Walkthrough 3 - Optional settings applicable to GIWAXS scans</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#calibration-information">Calibration information</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#extra-output-formats">Extra output formats</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#critical-edge">Critical edge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#binning">Binning</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#giwaxs-masking">GIWAXS masking</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="processcli.html">Run a single process job from the command line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="batchjobscli.html">Batch processing multiple jobs from the command line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jobsfromgda.html">Running processing jobs directly after scan from script in gda</a></li>
+<li class="toctree-l2"><a class="reference internal" href="extra_cli.html">Useful CLI functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="diamonduse.html#debugging">Debugging</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="apidocs/index.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">fast_rsm</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="diamonduse.html">Using fast_rsm at Diamond Light Source</a></li>
+          <li class="breadcrumb-item"><a href="experiment_setup.html">walkthroughs for creating the experiment setup file</a></li>
+      <li class="breadcrumb-item active">Walkthrough 3 - Optional settings applicable to GIWAXS scans</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/optional_setup_giwaxs.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="walkthrough-3-optional-settings-applicable-to-giwaxs-scans">
+<h1>Walkthrough 3 - Optional settings applicable to GIWAXS scans<a class="headerlink" href="#walkthrough-3-optional-settings-applicable-to-giwaxs-scans" title="Link to this heading"></a></h1>
+<section id="calibration-information">
+<h2>Calibration information<a class="headerlink" href="#calibration-information" title="Link to this heading"></a></h2>
+<p>If you have collected data from a calibration sample you can use it to create your own PONI file. Then include the path to the PONI file as the following variable. If not included then the mapper will assumed all normal incidence to the detector and create a poni file based on the values for detector_distance and the central pixel.</p>
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-pyfaiponi">
+<span class="sig-name descname"><span class="pre">pyfaiponi</span></span><a class="headerlink" href="#confval-pyfaiponi" title="Link to this definition"></a></dt>
+<dd><p>path to a PONI file to be used by pyFAI</p>
+</dd></dl>
+
+</section>
+<section id="extra-output-formats">
+<h2>Extra output formats<a class="headerlink" href="#extra-output-formats" title="Link to this heading"></a></h2>
+<p>If you have your own software which would require either images or profile data separately you can use the following options to output additional file as well as the standard hdf5 file.</p>
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-savetiffs">
+<span class="sig-name descname"><span class="pre">savetiffs</span></span><a class="headerlink" href="#confval-savetiffs" title="Link to this definition"></a></dt>
+<dd><p>when set to <em>True</em> this will output all mapped images as separate tiff files as well as hdf5 format.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-savedats">
+<span class="sig-name descname"><span class="pre">savedats</span></span><a class="headerlink" href="#confval-savedats" title="Link to this definition"></a></dt>
+<dd><p>when set to <em>True</em> this will output all 1d line profiles as .dat files as weill as hdf5 format</p>
+</dd></dl>
+
+</section>
+<section id="critical-edge">
+<h2>Critical edge<a class="headerlink" href="#critical-edge" title="Link to this heading"></a></h2>
+<p>When using the DCD special consideration of the incident angle needs to be taken account. For these calculations the mapper needs to know the critical angle of your sample</p>
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-alphacritical">
+<span class="sig-name descname"><span class="pre">alphacritical</span></span><a class="headerlink" href="#confval-alphacritical" title="Link to this definition"></a></dt>
+<dd><p>provide the critical angle in degrees for the substrate material being measured</p>
+</dd></dl>
+
+</section>
+<section id="binning">
+<h2>Binning<a class="headerlink" href="#binning" title="Link to this heading"></a></h2>
+<p>You can adjust the options pyFAI will use for its binning procedue through the following variables</p>
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-radialrange">
+<span class="sig-name descname"><span class="pre">radialrange</span></span><a class="headerlink" href="#confval-radialrange" title="Link to this definition"></a></dt>
+<dd><p>this is the radial range in degrees that you would like used for mapping to 1D profile data, in the format (angle_start, angle_stop) e.g. (0,45). If not included the mapper will calculate the full radial range covered by the scans being mapped.</p>
+</dd></dl>
+
+<dl>
+<dt><strong>resolution</strong></dt><dd><dl class="std confval">
+<dt class="sig sig-object std" id="confval-radialstepval">
+<span class="sig-name descname"><span class="pre">radialstepval</span></span><a class="headerlink" href="#confval-radialstepval" title="Link to this definition"></a></dt>
+<dd><p>this is the resolution in the radial angle you would like to be used for mapping to 1D profile data, which will default to 0.01 degrees if not set</p>
+</dd></dl>
+
+<p>OR</p>
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-ivqbins">
+<span class="sig-name descname"><span class="pre">ivqbins</span></span><a class="headerlink" href="#confval-ivqbins" title="Link to this definition"></a></dt>
+<dd><p>this will set the number of bins you would like to be used for mapping to 1D profile data, which will calculate a step value for the set range being used.</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-qmapbins">
+<span class="sig-name descname"><span class="pre">qmapbins</span></span><a class="headerlink" href="#confval-qmapbins" title="Link to this definition"></a></dt>
+<dd><p>set the number of bins you would like to be used for the mapping of 2d Qmaps or exitangle maps</p>
+</dd></dl>
+
+</dd>
+</dl>
+</section>
+<section id="giwaxs-masking">
+<h2>GIWAXS masking<a class="headerlink" href="#giwaxs-masking" title="Link to this heading"></a></h2>
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-azimuthal_sector">
+<span class="sig-name descname"><span class="pre">azimuthal_sector</span></span><a class="headerlink" href="#confval-azimuthal_sector" title="Link to this definition"></a></dt>
+<dd><p>define an azimuthal range over which to carry out the 1d integration for IvsQ. The convention is setting directly to the right of the beam centre as 0, and going counter clockwise increases the degrees to the negative direction, and going clockwise increases the degrees in the positive direction. Then provide the sector going from largest negative angle to largest positive angle, for example the sector shown in the diagram below is given by the values (-135, -45)</p>
+</dd></dl>
+
+<figure class="align-default">
+<a class="reference internal image-reference" href="_images/azimuthal_sector.png"><img alt="_images/azimuthal_sector.png" src="_images/azimuthal_sector.png" style="width: 300px;" />
+</a>
+</figure>
+<p>Examples of using all of these together for an extra section in your exp_setup file is as follows:</p>
+<div class="sphinx-tabs docutils container">
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-0-0" aria-selected="true" class="sphinx-tabs-tab" id="tab-0-0-0" name="0-0" role="tab" tabindex="0">With comments</button><button aria-controls="panel-0-0-1" aria-selected="false" class="sphinx-tabs-tab" id="tab-0-0-1" name="0-1" role="tab" tabindex="-1">With comments</button></div><div aria-labelledby="tab-0-0-0" class="sphinx-tabs-panel" id="panel-0-0-0" name="0-0" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ===================================================================</span>
+<span class="c1"># =========Optional settings for GIWAXS analysis</span>
+<span class="c1"># ===================================================================</span>
+<span class="n">pyfaiponi</span> <span class="o">=</span> <span class="s1">'/home/myponifiles/sample1.poni'</span>
+
+<span class="n">savetiffs</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">savedats</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="n">alphacritical</span> <span class="o">=</span> <span class="mf">0.08</span>
+
+<span class="n">radialrange</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">60</span><span class="p">)</span>
+<span class="n">radialstepval</span> <span class="o">=</span> <span class="mf">0.025</span>
+<span class="n">qmapbins</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1200</span><span class="p">,</span> <span class="mi">1200</span><span class="p">)</span>
+<span class="n">azimuthal_sector</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mi">110</span><span class="p">,</span> <span class="o">-</span><span class="mi">80</span><span class="p">)</span>
+</pre></div>
+</div>
+</div><div aria-labelledby="tab-0-0-1" class="sphinx-tabs-panel" hidden="true" id="panel-0-0-1" name="0-1" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ===================================================================</span>
+<span class="c1"># =========Optional settings for GIWAXS analysis</span>
+<span class="c1"># ===================================================================</span>
+<span class="c1">#If you have collected data from a calibration sample you can use it to create your own PONI file. Then include the path to the PONI file as the following variable.</span>
+
+<span class="n">pyfaiponi</span> <span class="o">=</span> <span class="s1">'/home/myponifiles/sample1.poni'</span>
+
+
+<span class="c1"># There will always be a .hdf5 file created. You can set the option for exporting additonal files with the savetiffs and savedats options below</span>
+<span class="c1"># if you want to export '2d qpara Vs qperp maps' to extra .tiff images set</span>
+<span class="c1"># savetiffs to True</span>
+<span class="n">savetiffs</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="c1"># if you want to export '1d I Vs Q data' to extra .dat files set savedats</span>
+<span class="c1"># to True</span>
+<span class="n">savedats</span> <span class="o">=</span> <span class="kc">True</span>
+
+
+<span class="c1"># critical edge of sample in degrees</span>
+<span class="n">alphacritical</span> <span class="o">=</span> <span class="mf">0.08</span>
+
+<span class="c1"># if calculating pyfai integration on scan with moving detector and large number of images, there is the option to</span>
+<span class="c1"># specify range of q or theta so that number of bins can be calculated. If commented out this will automatically calculate</span>
+<span class="c1"># the limits of the dataset #e.g.</span>
+<span class="n">radialrange</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">60</span><span class="p">)</span>
+
+<span class="c1"># specify steps in theta to calculate the number of bins - if commented out this will default to 0.01</span>
+<span class="n">radialstepval</span> <span class="o">=</span> <span class="mf">0.025</span>
+<span class="c1">###==OR</span>
+<span class="c1"># ## specify directly the number of bins for I Vs Q profile - which will mean radialstepval will have no effect.</span>
+<span class="c1"># ivqbins = None # e.g. 1000</span>
+
+<span class="c1"># *********calculating qpara Vs qperp maps,</span>
+<span class="c1"># set number of bins in the form (q_parallel, q_perpendicular)</span>
+<span class="n">qmapbins</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1200</span><span class="p">,</span> <span class="mi">1200</span><span class="p">)</span>
+
+<span class="c1"># define an azimuthal range over which to carry out the 1d integration for IvsQ</span>
+<span class="n">azimuthal_sector</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mi">110</span><span class="p">,</span> <span class="o">-</span><span class="mi">80</span><span class="p">)</span>
+</pre></div>
+</div>
+</div></div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="optional_setup_all.html" class="btn btn-neutral float-left" title="Walkthrough 2 - Optional settings applicable to all scan types" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="processcli.html" class="btn btn-neutral float-right" title="Run a single process job from the command line" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020-2025, Diamond Light Source Ltd.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

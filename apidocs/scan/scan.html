@@ -1,0 +1,509 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>scan &mdash; fast_rsm 2.4.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/jupyter-sphinx.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/thebelab.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx_collapse.css?v=226d88b4" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=5dd66af0" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=5dd66af0" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=b1e24531"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/thebelab-helper.js"></script>
+      <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="writing" href="../writing/writing.html" />
+    <link rel="prev" title="rsm_metadata" href="../rsm_metadata/rsm_metadata.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            fast_rsm
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../diamonduse.html">Using fast_rsm at Diamond Light Source</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../binning/binning.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">binning</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../corrections/corrections.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">corrections</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../diamond_utils/diamond_utils.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">diamond_utils</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../experiment/experiment.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">experiment</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../image/image.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">image</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../io/io.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">io</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../meta_analysis/meta_analysis.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">meta_analysis</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rsm_metadata/rsm_metadata.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">rsm_metadata</span></code></a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">scan</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-contents">Module Contents</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#functions">Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#data">Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#api">API</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../writing/writing.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">writing</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">fast_rsm</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">API Reference</a></li>
+      <li class="breadcrumb-item active"><code class="xref py py-mod docutils literal notranslate"><span class="pre">scan</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/apidocs/scan/scan.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-scan">
+<span id="scan"></span><h1><a class="reference internal" href="#module-scan" title="scan"><code class="xref py py-mod docutils literal notranslate"><span class="pre">scan</span></code></a><a class="headerlink" href="#module-scan" title="Link to this heading"></a></h1>
+<p>This module contains the scan class, that is used to store all of the
+information relating to a reciprocal space scan .</p>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading"></a></h2>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Link to this heading"></a></h3>
+<table class="autosummary longtable docutils align-left">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#scan.Scan" title="scan.Scan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Scan</span></code></a></p></td>
+<td><p>This class stores all of the data and metadata relating to a reciprocal
+space map.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h3>
+<table class="autosummary longtable docutils align-left">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#scan.check_shared_memory" title="scan.check_shared_memory"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_shared_memory</span></code></a></p></td>
+<td><p>Make sure that a shared memory array is not open. Clear the shared memory
+and print a warning if it is open.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#scan.init_process_pool" title="scan.init_process_pool"><code class="xref py py-obj docutils literal notranslate"><span class="pre">init_process_pool</span></code></a></p></td>
+<td><p>Initializes a processing pool to have a global shared lock.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#scan._on_exit" title="scan._on_exit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_on_exit</span></code></a></p></td>
+<td><p>Can be used with the atexit module. Makes sure that the shared memory is
+cleaned when called.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#scan.chunk" title="scan.chunk"><code class="xref py py-obj docutils literal notranslate"><span class="pre">chunk</span></code></a></p></td>
+<td><p>Split lst into num_chunks almost evenly sized chunks. Algorithm lifted from
+stackoverflow almost without change (but isn’t everything, in the end…)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#scan._chunk_indices" title="scan._chunk_indices"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_chunk_indices</span></code></a></p></td>
+<td><p>Yield num_chunks (N) tuples of incides (a, b) such that array[a0:b0],
+array[a1:b1], …, array[aN:bN] spans the entire array.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#scan.bin_maps_with_indices_smm" title="scan.bin_maps_with_indices_smm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bin_maps_with_indices_smm</span></code></a></p></td>
+<td><p>Bins all of the maps with indices in indices. The purpose of this
+intermediate function call is to decrease the amount of context switching/
+serialization that the interpreter has to do.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#scan._bin_one_map_smm" title="scan._bin_one_map_smm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_bin_one_map_smm</span></code></a></p></td>
+<td><p>Calculates and bins the reciprocal space map with index idx. Saves the
+result to the shared memory buffer.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#scan.rsm_init_worker" title="scan.rsm_init_worker"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rsm_init_worker</span></code></a></p></td>
+<td><p>initialiser for reciprocal space mapping</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="data">
+<h3>Data<a class="headerlink" href="#data" title="Link to this heading"></a></h3>
+<table class="autosummary longtable docutils align-left">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#scan.logger" title="scan.logger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logger</span></code></a></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#scan.lock" title="scan.lock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lock</span></code></a></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#scan.RSM_ARRAY" title="scan.RSM_ARRAY"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RSM_ARRAY</span></code></a></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#scan.COUNT_ARRAY" title="scan.COUNT_ARRAY"><code class="xref py py-obj docutils literal notranslate"><span class="pre">COUNT_ARRAY</span></code></a></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#scan.SHM_RSM" title="scan.SHM_RSM"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SHM_RSM</span></code></a></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#scan.SHM_COUNT" title="scan.SHM_COUNT"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SHM_COUNT</span></code></a></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#scan.METADATA" title="scan.METADATA"><code class="xref py py-obj docutils literal notranslate"><span class="pre">METADATA</span></code></a></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#scan.NUM_THREADS" title="scan.NUM_THREADS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NUM_THREADS</span></code></a></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#scan.FRAME" title="scan.FRAME"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FRAME</span></code></a></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#scan.OUTPUT_FILE_NAME" title="scan.OUTPUT_FILE_NAME"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OUTPUT_FILE_NAME</span></code></a></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#scan.SHM_INTENSITY" title="scan.SHM_INTENSITY"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SHM_INTENSITY</span></code></a></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#scan.INTENSITY_ARRAY" title="scan.INTENSITY_ARRAY"><code class="xref py py-obj docutils literal notranslate"><span class="pre">INTENSITY_ARRAY</span></code></a></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="api">
+<h3>API<a class="headerlink" href="#api" title="Link to this heading"></a></h3>
+<dl class="py data">
+<dt class="sig sig-object py" id="scan.logger">
+<span class="sig-prename descclassname"><span class="pre">scan.</span></span><span class="sig-name descname"><span class="pre">logger</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'getLogger(...)'</span></em><a class="headerlink" href="#scan.logger" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="scan.lock">
+<span class="sig-prename descclassname"><span class="pre">scan.</span></span><span class="sig-name descname"><span class="pre">lock</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#scan.lock" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="scan.RSM_ARRAY">
+<span class="sig-prename descclassname"><span class="pre">scan.</span></span><span class="sig-name descname"><span class="pre">RSM_ARRAY</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#scan.RSM_ARRAY" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="scan.COUNT_ARRAY">
+<span class="sig-prename descclassname"><span class="pre">scan.</span></span><span class="sig-name descname"><span class="pre">COUNT_ARRAY</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#scan.COUNT_ARRAY" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="scan.SHM_RSM">
+<span class="sig-prename descclassname"><span class="pre">scan.</span></span><span class="sig-name descname"><span class="pre">SHM_RSM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#scan.SHM_RSM" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="scan.SHM_COUNT">
+<span class="sig-prename descclassname"><span class="pre">scan.</span></span><span class="sig-name descname"><span class="pre">SHM_COUNT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#scan.SHM_COUNT" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="scan.METADATA">
+<span class="sig-prename descclassname"><span class="pre">scan.</span></span><span class="sig-name descname"><span class="pre">METADATA</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#scan.METADATA" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="scan.NUM_THREADS">
+<span class="sig-prename descclassname"><span class="pre">scan.</span></span><span class="sig-name descname"><span class="pre">NUM_THREADS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#scan.NUM_THREADS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="scan.FRAME">
+<span class="sig-prename descclassname"><span class="pre">scan.</span></span><span class="sig-name descname"><span class="pre">FRAME</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#scan.FRAME" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="scan.OUTPUT_FILE_NAME">
+<span class="sig-prename descclassname"><span class="pre">scan.</span></span><span class="sig-name descname"><span class="pre">OUTPUT_FILE_NAME</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#scan.OUTPUT_FILE_NAME" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="scan.SHM_INTENSITY">
+<span class="sig-prename descclassname"><span class="pre">scan.</span></span><span class="sig-name descname"><span class="pre">SHM_INTENSITY</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#scan.SHM_INTENSITY" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="scan.INTENSITY_ARRAY">
+<span class="sig-prename descclassname"><span class="pre">scan.</span></span><span class="sig-name descname"><span class="pre">INTENSITY_ARRAY</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#scan.INTENSITY_ARRAY" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scan.check_shared_memory">
+<span class="sig-prename descclassname"><span class="pre">scan.</span></span><span class="sig-name descname"><span class="pre">check_shared_memory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shared_mem_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#scan.check_shared_memory" title="Link to this definition"></a></dt>
+<dd><p>Make sure that a shared memory array is not open. Clear the shared memory
+and print a warning if it is open.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>shared_mem_name:</dt><dd><p>Name of the shared memory array to check.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scan.init_process_pool">
+<span class="sig-prename descclassname"><span class="pre">scan.</span></span><span class="sig-name descname"><span class="pre">init_process_pool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">locks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_threads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">fast_rsm.rsm_metadata.RSMMetadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">diffraction_utils.Frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_file_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#scan.init_process_pool" title="Link to this definition"></a></dt>
+<dd><p>Initializes a processing pool to have a global shared lock.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>locks:</dt><dd><p>A list of the locks that will be shared between spawned processes.</p>
+</dd>
+<dt>num_threads:</dt><dd><p>The total number of processes that are being spawned in the pool.</p>
+</dd>
+<dt>shape:</dt><dd><p>Passed if you want to make RSM and count arrays global.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scan._on_exit">
+<span class="sig-prename descclassname"><span class="pre">scan.</span></span><span class="sig-name descname"><span class="pre">_on_exit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shared_mem</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">multiprocessing.shared_memory.SharedMemory</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#scan._on_exit" title="Link to this definition"></a></dt>
+<dd><p>Can be used with the atexit module. Makes sure that the shared memory is
+cleaned when called.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>shared_mem:</dt><dd><p>The shared memory to close/unlink.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scan.chunk">
+<span class="sig-prename descclassname"><span class="pre">scan.</span></span><span class="sig-name descname"><span class="pre">chunk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lst</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_chunks</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#scan.chunk" title="Link to this definition"></a></dt>
+<dd><p>Split lst into num_chunks almost evenly sized chunks. Algorithm lifted from
+stackoverflow almost without change (but isn’t everything, in the end…)</p>
+<dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>lst:</dt><dd><p>The iterable to split up.</p>
+</dd>
+<dt>num_chunks:</dt><dd><p>The number of almost-evenly-sized chunks to split lst into. Note
+that the last chunk can be decently smaller.</p>
+</dd>
+</dl>
+</dd>
+<dt>Yields:</dt><dd><p>the chunks. Note that this yields as a generator, it does not return.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scan._chunk_indices">
+<span class="sig-prename descclassname"><span class="pre">scan.</span></span><span class="sig-name descname"><span class="pre">_chunk_indices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_chunks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">collections.abc.Generator</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#scan._chunk_indices" title="Link to this definition"></a></dt>
+<dd><p>Yield num_chunks (N) tuples of incides (a, b) such that array[a0:b0],
+array[a1:b1], …, array[aN:bN] spans the entire array.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scan.bin_maps_with_indices_smm">
+<span class="sig-prename descclassname"><span class="pre">scan.</span></span><span class="sig-name descname"><span class="pre">bin_maps_with_indices_smm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">indices</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_intensity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">processing_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_images</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">oop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spherical_bragg_vec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">map_each_image</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">previous_images</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#scan.bin_maps_with_indices_smm" title="Link to this definition"></a></dt>
+<dd><p>Bins all of the maps with indices in indices. The purpose of this
+intermediate function call is to decrease the amount of context switching/
+serialization that the interpreter has to do.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scan._bin_one_map_smm">
+<span class="sig-prename descclassname"><span class="pre">scan.</span></span><span class="sig-name descname"><span class="pre">_bin_one_map_smm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_intensity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">processing_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">oop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spherical_bragg_vec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">map_each_image</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">previous_images</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#scan._bin_one_map_smm" title="Link to this definition"></a></dt>
+<dd><p>Calculates and bins the reciprocal space map with index idx. Saves the
+result to the shared memory buffer.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scan.rsm_init_worker">
+<span class="sig-prename descclassname"><span class="pre">scan.</span></span><span class="sig-name descname"><span class="pre">rsm_init_worker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">smmlock</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shm_rsm_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shm_counts_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shmshape</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">fast_rsm.rsm_metadata.RSMMetadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">newmetadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">motors</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_threads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">diffraction_utils.Frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_file_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#scan.rsm_init_worker" title="Link to this definition"></a></dt>
+<dd><p>initialiser for reciprocal space mapping</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="scan.Scan">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">scan.</span></span><span class="sig-name descname"><span class="pre">Scan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">fast_rsm.rsm_metadata.RSMMetadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_images</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#scan.Scan" title="Link to this definition"></a></dt>
+<dd><p>This class stores all of the data and metadata relating to a reciprocal
+space map.</p>
+<dl class="simple">
+<dt>Attrs:</dt><dd><dl class="simple">
+<dt>metadata:</dt><dd><p>Scan metadata.</p>
+</dd>
+<dt>skip_images:</dt><dd><p>Image indices to be skipped in a reciprocal space map.</p>
+</dd>
+<dt>load_image:</dt><dd><p>A Callable that takes an index as an argument and returns an
+instance of Image with that corresponding index.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Initialization</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="scan.Scan.processing_steps">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">processing_steps</span></span><a class="headerlink" href="#scan.Scan.processing_steps" title="Link to this definition"></a></dt>
+<dd><p>Left as a property to give the option to deepcopy in the future.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="scan.Scan.add_processing_step">
+<span class="sig-name descname"><span class="pre">add_processing_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#scan.Scan.add_processing_step" title="Link to this definition"></a></dt>
+<dd><p>Adds the processing step to the processing pipeline.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>function:</dt><dd><p>A function that takes a numpy array as an argument, and returns
+a numpy array.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="scan.Scan.load_image">
+<span class="sig-name descname"><span class="pre">load_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#scan.Scan.load_image" title="Link to this definition"></a></dt>
+<dd><p>Convenience method for loading a single image. This is unpicklable.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="scan.Scan.q_bounds">
+<span class="sig-name descname"><span class="pre">q_bounds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frame</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">diffraction_utils.Frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spherical_bragg_vec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">oop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'y'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#scan.Scan.q_bounds" title="Link to this definition"></a></dt>
+<dd><p>Works out the region of reciprocal space sampled by this scan.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>frame:</dt><dd><p>The frame of reference in which we want to calculate the bounds.</p>
+</dd>
+</dl>
+</dd>
+<dt>Returns:</dt><dd><p>(start, stop), where start and stop are numpy arrays with shape (3,)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="scan.Scan.from_i10">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_i10</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path_to_nx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beam_centre</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">detector_distance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setup</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path_to_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#scan.Scan.from_i10" title="Link to this definition"></a></dt>
+<dd><p>Aliases to io.from_i10.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>path_to_nx:</dt><dd><p>Path to the nexus file containing the scan metadata.</p>
+</dd>
+<dt>beam_centre:</dt><dd><p>A (y, x) tuple of the beam centre, measured in the usual image
+coordinate system, in units of pixels.</p>
+</dd>
+<dt>detector_distance:</dt><dd><p>The distance between the sample and the detector.</p>
+</dd>
+<dt>setup:</dt><dd><p>What was the experimental setup? Can be “vertical”, “horizontal”
+or “DCD”.</p>
+</dd>
+<dt>path_to_data:</dt><dd><p>Path to the directory in which the images are stored. Defaults
+to ‘’, in which case a bunch of reasonable directories will be
+searched for the images.</p>
+</dd>
+</dl>
+</dd>
+<dt>Returns:</dt><dd><p>Corresponding instance of Scan.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="scan.Scan.from_i07">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_i07</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path_to_nx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beam_centre</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">detector_distance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setup</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path_to_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#scan.Scan.from_i07" title="Link to this definition"></a></dt>
+<dd><p>Aliases to io.from_i07.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>path_to_nx:</dt><dd><p>Path to the nexus file containing the scan metadata.</p>
+</dd>
+<dt>beam_centre:</dt><dd><p>A (y, x) tuple of the beam centre, measured in the usual image
+coordinate system, in units of pixels.</p>
+</dd>
+<dt>detector_distance:</dt><dd><p>The distance between the sample and the detector.</p>
+</dd>
+<dt>setup:</dt><dd><p>What was the experimental setup? Can be “vertical”, “horizontal”
+or “DCD”.</p>
+</dd>
+<dt>path_to_data:</dt><dd><p>Path to the directory in which the images are stored. Defaults
+to ‘’, in which case a bunch of reasonable directories will be
+searched for the images.</p>
+</dd>
+</dl>
+</dd>
+<dt>Returns:</dt><dd><p>Corresponding instance of Scan.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../rsm_metadata/rsm_metadata.html" class="btn btn-neutral float-left" title="rsm_metadata" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../writing/writing.html" class="btn btn-neutral float-right" title="writing" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020-2025, Diamond Light Source Ltd.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

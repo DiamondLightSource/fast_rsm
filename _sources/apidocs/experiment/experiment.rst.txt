@@ -1,0 +1,198 @@
+:py:mod:`experiment`
+====================
+
+.. py:module:: experiment
+
+.. autodoc2-docstring:: experiment
+   :allowtitles:
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. list-table::
+   :class: autosummary longtable
+   :align: left
+
+   * - :py:obj:`Experiment <experiment.Experiment>`
+     - .. autodoc2-docstring:: experiment.Experiment
+          :summary:
+
+Functions
+~~~~~~~~~
+
+.. list-table::
+   :class: autosummary longtable
+   :align: left
+
+   * - :py:obj:`_remove_file <experiment._remove_file>`
+     - .. autodoc2-docstring:: experiment._remove_file
+          :summary:
+   * - :py:obj:`_sum_numpy_files <experiment._sum_numpy_files>`
+     - .. autodoc2-docstring:: experiment._sum_numpy_files
+          :summary:
+   * - :py:obj:`histogram_xy <experiment.histogram_xy>`
+     - .. autodoc2-docstring:: experiment.histogram_xy
+          :summary:
+   * - :py:obj:`_match_start_stop_to_step <experiment._match_start_stop_to_step>`
+     - .. autodoc2-docstring:: experiment._match_start_stop_to_step
+          :summary:
+   * - :py:obj:`write_im_to_tiff <experiment.write_im_to_tiff>`
+     - .. autodoc2-docstring:: experiment.write_im_to_tiff
+          :summary:
+   * - :py:obj:`do_savetiffs <experiment.do_savetiffs>`
+     - .. autodoc2-docstring:: experiment.do_savetiffs
+          :summary:
+   * - :py:obj:`write_qi_to_csv <experiment.write_qi_to_csv>`
+     - .. autodoc2-docstring:: experiment.write_qi_to_csv
+          :summary:
+   * - :py:obj:`do_savedats <experiment.do_savedats>`
+     - .. autodoc2-docstring:: experiment.do_savedats
+          :summary:
+
+Data
+~~~~
+
+.. list-table::
+   :class: autosummary longtable
+   :align: left
+
+   * - :py:obj:`logger <experiment.logger>`
+     - .. autodoc2-docstring:: experiment.logger
+          :summary:
+
+API
+~~~
+
+.. py:data:: logger
+   :canonical: experiment.logger
+   :value: 'getLogger(...)'
+
+   .. autodoc2-docstring:: experiment.logger
+
+.. py:function:: _remove_file(path: str | pathlib.Path)
+   :canonical: experiment._remove_file
+
+   .. autodoc2-docstring:: experiment._remove_file
+
+.. py:function:: _sum_numpy_files(filenames: list[pathlib.Path | str])
+   :canonical: experiment._sum_numpy_files
+
+   .. autodoc2-docstring:: experiment._sum_numpy_files
+
+.. py:function:: histogram_xy(x, y, step_size)
+   :canonical: experiment.histogram_xy
+
+   .. autodoc2-docstring:: experiment.histogram_xy
+
+.. py:function:: _match_start_stop_to_step(step, user_bounds, auto_bounds, eps=1e-05)
+   :canonical: experiment._match_start_stop_to_step
+
+   .. autodoc2-docstring:: experiment._match_start_stop_to_step
+
+.. py:function:: write_im_to_tiff(parainfo, perpinfo, hfname, out_filename, imdata)
+   :canonical: experiment.write_im_to_tiff
+
+   .. autodoc2-docstring:: experiment.write_im_to_tiff
+
+.. py:function:: do_savetiffs(hf, data, axespara, axesperp)
+   :canonical: experiment.do_savetiffs
+
+   .. autodoc2-docstring:: experiment.do_savetiffs
+
+.. py:function:: write_qi_to_csv(qvals, intvals, tthetavals, out_filename, metadata)
+   :canonical: experiment.write_qi_to_csv
+
+   .. autodoc2-docstring:: experiment.write_qi_to_csv
+
+.. py:function:: do_savedats(hf, intdata, qdata, tthdata)
+   :canonical: experiment.do_savedats
+
+   .. autodoc2-docstring:: experiment.do_savedats
+
+.. py:class:: Experiment(scans: list[fast_rsm.scan.Scan], setup: str)
+   :canonical: experiment.Experiment
+
+   .. autodoc2-docstring:: experiment.Experiment
+
+   .. rubric:: Initialization
+
+   .. autodoc2-docstring:: experiment.Experiment.__init__
+
+   .. py:method:: parse_dcd_angles(scan: fast_rsm.scan.Scan)
+      :canonical: experiment.Experiment.parse_dcd_angles
+
+      .. autodoc2-docstring:: experiment.Experiment.parse_dcd_angles
+
+   .. py:method:: load_incident_angle(scan: fast_rsm.scan.Scan)
+      :canonical: experiment.Experiment.load_incident_angle
+
+      .. autodoc2-docstring:: experiment.Experiment.load_incident_angle
+
+   .. py:method:: load_dps_offsets(scan: fast_rsm.scan.Scan)
+      :canonical: experiment.Experiment.load_dps_offsets
+
+      .. autodoc2-docstring:: experiment.Experiment.load_dps_offsets
+
+   .. py:method:: load_curve_values(scan: fast_rsm.scan.Scan)
+      :canonical: experiment.Experiment.load_curve_values
+
+      .. autodoc2-docstring:: experiment.Experiment.load_curve_values
+
+   .. py:method:: _clean_temp_files() -> None
+      :canonical: experiment.Experiment._clean_temp_files
+
+      .. autodoc2-docstring:: experiment.Experiment._clean_temp_files
+
+   .. py:method:: add_processing_step(processing_step: callable) -> None
+      :canonical: experiment.Experiment.add_processing_step
+
+      .. autodoc2-docstring:: experiment.Experiment.add_processing_step
+
+   .. py:method:: mask_pixels(pixels: tuple) -> None
+      :canonical: experiment.Experiment.mask_pixels
+
+      .. autodoc2-docstring:: experiment.Experiment.mask_pixels
+
+   .. py:method:: mask_regions(regions: list[diffraction_utils.Region])
+      :canonical: experiment.Experiment.mask_regions
+
+      .. autodoc2-docstring:: experiment.Experiment.mask_regions
+
+   .. py:method:: mask_edf(edfmask)
+      :canonical: experiment.Experiment.mask_edf
+
+      .. autodoc2-docstring:: experiment.Experiment.mask_edf
+
+   .. py:method:: q_bounds(frame: diffraction_utils.Frame, spherical_bragg_vec: numpy.ndarray, oop: str = 'y') -> tuple[numpy.ndarray]
+      :canonical: experiment.Experiment.q_bounds
+
+      .. autodoc2-docstring:: experiment.Experiment.q_bounds
+
+   .. py:method:: get_limitcalc_vars(axis, slitvertratio, slithorratio)
+      :canonical: experiment.Experiment.get_limitcalc_vars
+
+      .. autodoc2-docstring:: experiment.Experiment.get_limitcalc_vars
+
+   .. py:method:: calcanglim(axis, slitvertratio=None, slithorratio=None)
+      :canonical: experiment.Experiment.calcanglim
+
+      .. autodoc2-docstring:: experiment.Experiment.calcanglim
+
+   .. py:method:: calcqlim(axis, slitvertratio=None, slithorratio=None)
+      :canonical: experiment.Experiment.calcqlim
+
+      .. autodoc2-docstring:: experiment.Experiment.calcqlim
+
+   .. py:method:: binned_reciprocal_space_map_smm(num_threads: int, map_frame: diffraction_utils.Frame, process_config: types.SimpleNamespace, output_file_name: str = 'mapped', min_intensity_mask: float = None, output_file_size: float = 100, save_vtk: bool = True, save_npy: bool = True, oop: str = 'y', volume_start: numpy.ndarray = None, volume_stop: numpy.ndarray = None, volume_step: numpy.ndarray = None, map_each_image: bool = False)
+      :canonical: experiment.Experiment.binned_reciprocal_space_map_smm
+
+      .. autodoc2-docstring:: experiment.Experiment.binned_reciprocal_space_map_smm
+
+   .. py:method:: from_i07_nxs(nexus_paths: list[str | pathlib.Path], beam_centre: tuple[int], detector_distance: float, setup: str, path_to_data: str = '', using_dps: bool = False, experimental_hutch=0)
+      :canonical: experiment.Experiment.from_i07_nxs
+      :classmethod:
+
+      .. autodoc2-docstring:: experiment.Experiment.from_i07_nxs

@@ -1,0 +1,473 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Walkthrough 2 - Optional settings applicable to all scan types &mdash; fast_rsm 2.4.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/jupyter-sphinx.css" />
+      <link rel="stylesheet" type="text/css" href="_static/thebelab.css" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx_collapse.css?v=226d88b4" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=5dd66af0" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+      <link rel="stylesheet" type="text/css" href="_static/tabs.css?v=a5c4661c" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=5dd66af0" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=b1e24531"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/thebelab-helper.js"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="_static/tabs.js?v=3030b3cb"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Walkthrough 3 - Optional settings applicable to GIWAXS scans" href="optional_setup_giwaxs.html" />
+    <link rel="prev" title="Walkthrough 1 - Minimum settings needed in the experiment setup file" href="minimum_setup.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            fast_rsm
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="diamonduse.html">Using fast_rsm at Diamond Light Source</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="nomachine_wilson.html">Setting up Linux session and wilson connection</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="experiment_setup.html">walkthroughs for creating the experiment setup file</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="minimum_setup.html">Walkthrough 1 - Minimum settings needed in the experiment setup file</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Walkthrough 2 - Optional settings applicable to all scan types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#masking">Masking</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#skipping">Skipping</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#dps-settings">DPS settings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#using-thv-motor">Using thv motor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#detector-slits">Detector slits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#multiple-configurations-within-one-exp-setup-file">Multiple configurations within one exp_setup file</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="optional_setup_giwaxs.html">Walkthrough 3 - Optional settings applicable to GIWAXS scans</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="processcli.html">Run a single process job from the command line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="batchjobscli.html">Batch processing multiple jobs from the command line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jobsfromgda.html">Running processing jobs directly after scan from script in gda</a></li>
+<li class="toctree-l2"><a class="reference internal" href="extra_cli.html">Useful CLI functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="diamonduse.html#debugging">Debugging</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="apidocs/index.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">fast_rsm</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="diamonduse.html">Using fast_rsm at Diamond Light Source</a></li>
+          <li class="breadcrumb-item"><a href="experiment_setup.html">walkthroughs for creating the experiment setup file</a></li>
+      <li class="breadcrumb-item active">Walkthrough 2 - Optional settings applicable to all scan types</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/optional_setup_all.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="walkthrough-2-optional-settings-applicable-to-all-scan-types">
+<h1>Walkthrough 2 - Optional settings applicable to all scan types<a class="headerlink" href="#walkthrough-2-optional-settings-applicable-to-all-scan-types" title="Link to this heading"></a></h1>
+<p>There are several optional settings that can be included for all scan types, which fall into the following categories:</p>
+<ul class="simple">
+<li><p>masking</p></li>
+<li><p>skipping</p></li>
+<li><p>DPS settings</p></li>
+<li><p>Using thv motor</p></li>
+<li><p>Using slits</p></li>
+</ul>
+<section id="masking">
+<h2>Masking<a class="headerlink" href="#masking" title="Link to this heading"></a></h2>
+<p>There are two methods available to mask unwanted pixels or areas from you image.</p>
+<dl>
+<dt>Option 1 (preferred)</dt><dd><p>Make a mask by using the makemask command from the terminal line after loading fast_rsm. This requires two inputs:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>-dir =the path to where the experiment data i stored</p></li>
+<li><p>-s =the number of the scan you want to make the mask for</p></li>
+</ul>
+</div></blockquote>
+<p>e.g.</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>module<span class="w"> </span>load<span class="w"> </span>fast_rsm
+makemask<span class="w"> </span>-dir<span class="w"> </span>/dls/i07/data/2025/si36456-5/sample1<span class="w"> </span>-s<span class="w"> </span><span class="m">535612</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>This will open up the mask GUI. Save the created mask and note down the full file path to the .edf file.</p>
+</dd>
+</dl>
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-edfmaskfile">
+<span class="sig-name descname"><span class="pre">edfmaskfile</span></span><a class="headerlink" href="#confval-edfmaskfile" title="Link to this definition"></a></dt>
+<dd><p>path to the .edf mask file under this variable</p>
+</dd></dl>
+
+<dl class="simple">
+<dt>Option 2</dt><dd><p>Alternatively you can directly specify pixel or regions to mask</p>
+</dd>
+</dl>
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-specific_pixels">
+<span class="sig-name descname"><span class="pre">specific_pixels</span></span><a class="headerlink" href="#confval-specific_pixels" title="Link to this definition"></a></dt>
+<dd><p>here you provide a list of pixel positions to mask in the format [(xvalues),(yvalues)] e.g. [(233, 234),(83, 83)]</p>
+<p>to mask whole regions, specify the indivudual regions as mask_n in the format <em>(xstart,xend,ystart,yend)</em> and then combine them together into a list mask_regions e.g.</p>
+<blockquote>
+<div><dl class="std confval">
+<dt class="sig sig-object std" id="confval-mask_1">
+<span class="sig-name descname"><span class="pre">mask_1</span></span><a class="headerlink" href="#confval-mask_1" title="Link to this definition"></a></dt>
+<dd><p>(0, 75, 0, 194)</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-mask_2">
+<span class="sig-name descname"><span class="pre">mask_2</span></span><a class="headerlink" href="#confval-mask_2" title="Link to this definition"></a></dt>
+<dd><p>(425, 485, 0, 194)</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-mask_regions">
+<span class="sig-name descname"><span class="pre">mask_regions</span></span><a class="headerlink" href="#confval-mask_regions" title="Link to this definition"></a></dt>
+<dd><p>[mask_1, mask_2]</p>
+</dd></dl>
+
+</div></blockquote>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-min_intensity">
+<span class="sig-name descname"><span class="pre">min_intensity</span></span><a class="headerlink" href="#confval-min_intensity" title="Link to this definition"></a></dt>
+<dd><p>used to set a minimum intensity threshold below which the pixel is masked</p>
+</dd></dl>
+
+</section>
+<section id="skipping">
+<h2>Skipping<a class="headerlink" href="#skipping" title="Link to this heading"></a></h2>
+<p>If something has gone wrong during the experiment and you end up with corrupted images you can still process the scan, and set the software to ignore specific images in specific scans</p>
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-skipscans">
+<span class="sig-name descname"><span class="pre">skipscans</span></span><a class="headerlink" href="#confval-skipscans" title="Link to this definition"></a></dt>
+<dd><p>this should be a list of scans which have images to skip e.g. <em>[123,124]</em></p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-skipimages">
+<span class="sig-name descname"><span class="pre">skipimages</span></span><a class="headerlink" href="#confval-skipimages" title="Link to this definition"></a></dt>
+<dd><p>this is the list of images you would like to skip for each of the scans given in <em>skipscans</em> , and it is given as a list of lists in the format:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">[[</span>images<span class="w"> </span>to<span class="w"> </span>skip<span class="w"> </span><span class="k">in</span><span class="w"> </span>first<span class="w"> </span>skipscan<span class="o">]</span>,<span class="w"> </span><span class="o">[</span>images<span class="w"> </span>to<span class="w"> </span>skip<span class="w"> </span><span class="k">in</span><span class="w"> </span>second<span class="w"> </span>skipscan<span class="o">]]</span>
+</pre></div>
+</div>
+<p>e.g.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">[[</span><span class="m">10</span>,16,24<span class="o">]</span>,<span class="o">[</span><span class="m">11</span>,23<span class="o">]]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+<section id="dps-settings">
+<h2>DPS settings<a class="headerlink" href="#dps-settings" title="Link to this heading"></a></h2>
+<p>If you have used the Detector Positioning System (DPS) in your experiment you will need to include the initial positions of the DPS when aligned on the straight-through beam</p>
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-using_dps">
+<span class="sig-name descname"><span class="pre">using_dps</span></span><a class="headerlink" href="#confval-using_dps" title="Link to this definition"></a></dt>
+<dd><p>set this to True when your experiment has used the DPS
+The actual positions of the DPS are saved in the following four variables, saved in units of <strong>meters</strong></p>
+<ul class="simple">
+<li><p><strong>dpsx_central_pixel</strong></p></li>
+<li><p><strong>dpsy_central_pixel</strong></p></li>
+<li><p><strong>dpsz_central_pixel</strong></p></li>
+<li><p><strong>dpsz2_central_pixel</strong></p></li>
+</ul>
+</dd></dl>
+
+</section>
+<section id="using-thv-motor">
+<h2>Using thv motor<a class="headerlink" href="#using-thv-motor" title="Link to this heading"></a></h2>
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-use_thv">
+<span class="sig-name descname"><span class="pre">use_thv</span></span><a class="headerlink" href="#confval-use_thv" title="Link to this definition"></a></dt>
+<dd><p>set this to True if you have used the hexapod to access higher angles and require using the <em>thv</em> motor</p>
+</dd></dl>
+
+<div class="toctree-wrapper compound">
+</div>
+</section>
+<section id="detector-slits">
+<h2>Detector slits<a class="headerlink" href="#detector-slits" title="Link to this heading"></a></h2>
+<p>If you have used extra slits infront of the detector you will need to specify the ratio of the slit distance to the sample detector distance. For example if your detector distance is 0.89m and your slits are positioned 0.55m away from the detector the ratio would be 0.55/0.89</p>
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-slitvertratio">
+<span class="sig-name descname"><span class="pre">slitvertratio</span></span><a class="headerlink" href="#confval-slitvertratio" title="Link to this definition"></a></dt>
+<dd><p>if you have used vertical slits include the ratio of distances here</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-slithorratio">
+<span class="sig-name descname"><span class="pre">slithorratio</span></span><a class="headerlink" href="#confval-slithorratio" title="Link to this definition"></a></dt>
+<dd><p>if you have used horizontal slits include the ratio of distance here</p>
+</dd></dl>
+
+<figure class="align-default">
+<img alt="_images/i07_EH2_geometry.png" src="_images/i07_EH2_geometry.png" />
+</figure>
+</section>
+<section id="multiple-configurations-within-one-exp-setup-file">
+<h2>Multiple configurations within one exp_setup file<a class="headerlink" href="#multiple-configurations-within-one-exp-setup-file" title="Link to this heading"></a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This option is currently being developed and is only available on the testing branch of fast_rsm. This version can be loaded using the following commands:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>module<span class="w"> </span>load<span class="w"> </span>fast_rsm/testing
+</pre></div>
+</div>
+</div>
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-process_outputs_with_config">
+<span class="sig-name descname"><span class="pre">process_outputs_with_config</span></span><a class="headerlink" href="#confval-process_outputs_with_config" title="Link to this definition"></a></dt>
+<dd><blockquote>
+<div><p>this option is used when you want to use different configuration settings for different process_output options. For example you may want to use one mask option for the pyfai_qmap output, but a different mask option for the pyfai_ivsq output. Here you define a list of configurations, where each configuration is a python dictionary that defines a list of “process_outputs” along with the specific settings you want to override for those outputs. For example:</p>
+</div></blockquote>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># multi config options</span>
+<span class="n">config_1</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"process_outputs"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"pyfai_qmap"</span><span class="p">,</span> <span class="s2">"pyfai_ivsq"</span><span class="p">],</span> <span class="s2">"edfmaskfile"</span><span class="p">:</span> <span class="s1">'/dls/science/groups/das/ExampleData/i07/fast_rsm_example_data/masks/Ayo_Mask_sigvert.edf'</span><span class="p">}</span>
+<span class="n">config_2</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"process_outputs"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"pyfai_exitangles"</span><span class="p">],</span> <span class="s2">"edfmaskfile"</span><span class="p">:</span> <span class="s1">'/dls/science/groups/das/ExampleData/i07/fast_rsm_example_data/masks/Ayo_Mask_sighor.edf'</span><span class="p">}</span>
+<span class="n">process_outputs_with_config</span> <span class="o">=</span> <span class="p">[</span><span class="n">config_1</span><span class="p">,</span> <span class="n">config_2</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>in the above example the qmap and ivsq output will use the mask file Ayo_Mask_sigvert.edf, while the exitangles output will use the mask file Ayo_Mask_sighor.edf. You can also do the same with any of the previously defined options. For mask regions the example would look like this:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># multi config options</span>
+<span class="n">mask_1</span> <span class="o">=</span> <span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">150</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+<span class="n">mask_2</span> <span class="o">=</span> <span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">250</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">250</span><span class="p">)</span>
+<span class="n">mask_3</span> <span class="o">=</span> <span class="p">(</span><span class="mi">123</span><span class="p">,</span><span class="mi">145</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">194</span><span class="p">)</span>
+<span class="n">mask_4</span> <span class="o">=</span> <span class="p">(</span><span class="mi">223</span><span class="p">,</span> <span class="mi">245</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">195</span><span class="p">)</span>
+<span class="n">config_1</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"process_outputs"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"pyfai_qmap"</span><span class="p">,</span> <span class="s2">"pyfai_ivsq"</span><span class="p">],</span> <span class="s2">"mask_regions"</span><span class="p">:</span> <span class="p">[</span><span class="n">mask_1</span><span class="p">,</span><span class="n">mask_2</span><span class="p">]}</span>
+<span class="n">config_2</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"process_outputs"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"pyfai_exitangles"</span><span class="p">],</span> <span class="s2">"mask_regions"</span><span class="p">:</span> <span class="p">[</span><span class="n">mask_3</span><span class="p">,</span> <span class="n">mask_4</span><span class="p">]}</span>
+<span class="n">process_outputs_with_config</span> <span class="o">=</span> <span class="p">[</span><span class="n">config_1</span><span class="p">,</span> <span class="n">config_2</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>This will result in the qmap and ivsq outputs using mask_1 and mask_2, while the exitangles output will use mask_3 and mask_4.</p>
+</dd></dl>
+
+<p>Examples of using all of these together for an extra section in your exp_setup file is as follows:</p>
+<div class="sphinx-tabs docutils container">
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-0-0" aria-selected="true" class="sphinx-tabs-tab" id="tab-0-0-0" name="0-0" role="tab" tabindex="0">Without  comments mask edf</button><button aria-controls="panel-0-0-1" aria-selected="false" class="sphinx-tabs-tab" id="tab-0-0-1" name="0-1" role="tab" tabindex="-1">With comments mask edf</button><button aria-controls="panel-0-0-2" aria-selected="false" class="sphinx-tabs-tab" id="tab-0-0-2" name="0-2" role="tab" tabindex="-1">Without comments mask regions</button><button aria-controls="panel-0-0-3" aria-selected="false" class="sphinx-tabs-tab" id="tab-0-0-3" name="0-3" role="tab" tabindex="-1">With comments mask regions</button></div><div aria-labelledby="tab-0-0-0" class="sphinx-tabs-panel" id="panel-0-0-0" name="0-0" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">##### ^^^^ REST OF MINIMUM SETUP FILE ^^^</span>
+<span class="n">map_per_image</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="c1"># ===================================================================</span>
+<span class="c1"># =======Optional settings applicable to all scan types</span>
+<span class="c1"># ===================================================================</span>
+<span class="c1">#               ===========MASKING=============</span>
+
+<span class="n">edfmaskfile</span> <span class="o">=</span> <span class="s1">'/dls/science/groups/das/ExampleData/i07/fast_rsm_example_data/masks/exc_gaps.edf'</span>
+<span class="n">skipscans</span> <span class="o">=</span> <span class="p">[</span><span class="mi">123</span><span class="p">,</span><span class="mi">124</span><span class="p">]</span>
+<span class="n">skipimages</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">10</span><span class="p">,</span><span class="mi">16</span><span class="p">,</span><span class="mi">24</span><span class="p">],[</span><span class="mi">11</span><span class="p">,</span><span class="mi">23</span><span class="p">]]</span>
+
+<span class="n">using_dps</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">dpsx_central_pixel</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.0481825</span>
+<span class="n">dpsy_central_pixel</span> <span class="o">=</span> <span class="mf">0.0270</span>
+<span class="n">dpsz_central_pixel</span> <span class="o">=</span> <span class="mf">0.2000</span>
+<span class="n">dpsz2_central_pixel</span> <span class="o">=</span> <span class="mf">0.160</span>
+
+<span class="n">use_thv</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">slitvertratio</span> <span class="o">=</span> <span class="mf">0.55</span> <span class="o">/</span> <span class="mf">0.89</span>
+<span class="n">slithorratio</span> <span class="o">=</span> <span class="mf">0.55</span> <span class="o">/</span> <span class="mf">0.89</span>
+</pre></div>
+</div>
+</div><div aria-labelledby="tab-0-0-1" class="sphinx-tabs-panel" hidden="true" id="panel-0-0-1" name="0-1" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">##### ^^^^ REST OF MINIMUM SETUP FILE ^^^</span>
+<span class="n">map_per_image</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="c1"># ===================================================================</span>
+<span class="c1"># =======Optional settings applicable to all scan types</span>
+<span class="c1"># ===================================================================</span>
+<span class="c1">#               ===========MASKING=============</span>
+<span class="c1"># add path to edfmaskfile created with pyFAI gui accessed via 'makemask'</span>
+<span class="c1"># option in fast_rsm</span>
+<span class="n">edfmaskfile</span> <span class="o">=</span> <span class="s1">'/dls/science/groups/das/ExampleData/i07/fast_rsm_example_data/masks/exc_gaps.edf'</span>
+
+<span class="c1">#            =======OPTIONS FOR SKIPPING IMAGES IF ISSUES ARE PRESENT</span>
+<span class="c1"># CHOOSE SCANS WHICH HAVE IMAGES TO SKIP, AND THEN SPECIFY WHICH IMAGES WITHIN THOSE SCANS NEED TO BE SKIPPED</span>
+<span class="c1"># I.E. A LIST OF IMAGES TO SKIP FOR EACH SCAN VALUE IN SKIPSCANS</span>
+<span class="n">skipscans</span> <span class="o">=</span> <span class="p">[</span><span class="mi">123</span><span class="p">,</span><span class="mi">124</span><span class="p">]</span>
+
+<span class="n">skipimages</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">10</span><span class="p">,</span><span class="mi">16</span><span class="p">,</span><span class="mi">24</span><span class="p">],[</span><span class="mi">11</span><span class="p">,</span><span class="mi">23</span><span class="p">]]</span>
+
+<span class="c1"># Are you using the DPS system?</span>
+<span class="n">using_dps</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="c1"># The DPS central pixel locations are not typically recorded in the nexus file.</span>
+<span class="c1"># NOTE THAT THIS SHOULD BE THE CENTRAL PIXEL FOR THE UNDEFLECTED BEAM.</span>
+<span class="c1"># UNITS OF METERS, PLEASE (everything is S.I., except energy in eV).</span>
+<span class="n">dpsx_central_pixel</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.0481825</span>
+<span class="n">dpsy_central_pixel</span> <span class="o">=</span> <span class="mf">0.0270</span>
+<span class="n">dpsz_central_pixel</span> <span class="o">=</span> <span class="mf">0.2000</span>
+<span class="n">dpsz2_central_pixel</span> <span class="o">=</span> <span class="mf">0.160</span>
+
+<span class="c1"># for specifying the use of the new motor thv - a combination of diffractometer and hexapod to reach larger incident angles</span>
+<span class="n">use_thv</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="c1"># if not using sample slits leave both as None, if using slits set to</span>
+<span class="c1"># slit-detector/sample-detector  e.g. 0.55/0.89</span>
+<span class="n">slitvertratio</span> <span class="o">=</span> <span class="mf">0.55</span> <span class="o">/</span> <span class="mf">0.89</span>  <span class="c1"># 0.55 / 0.89</span>
+<span class="n">slithorratio</span> <span class="o">=</span> <span class="mf">0.55</span> <span class="o">/</span> <span class="mf">0.89</span>
+</pre></div>
+</div>
+</div><div aria-labelledby="tab-0-0-2" class="sphinx-tabs-panel" hidden="true" id="panel-0-0-2" name="0-2" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">##### ^^^^ REST OF MINIMUM SETUP FILE ^^^</span>
+<span class="n">map_per_image</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="c1"># ===================================================================</span>
+<span class="c1"># =======Optional settings applicable to all scan types</span>
+<span class="c1"># ===================================================================</span>
+<span class="c1">#               ===========MASKING=============</span>
+<span class="n">specific_pixels</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">233</span><span class="p">,</span> <span class="mi">234</span><span class="p">),(</span><span class="mi">83</span><span class="p">,</span> <span class="mi">83</span><span class="p">)]</span>
+
+<span class="n">mask_1</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">75</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">194</span><span class="p">)</span>
+<span class="n">mask_2</span> <span class="o">=</span> <span class="p">(</span><span class="mi">425</span><span class="p">,</span> <span class="mi">485</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">194</span><span class="p">)</span>
+<span class="n">mask_regions</span> <span class="o">=</span> <span class="p">[</span><span class="n">mask_1</span><span class="p">,</span> <span class="n">mask_2</span><span class="p">]</span>
+
+<span class="n">min_intensity</span> <span class="o">=</span> <span class="mi">10</span>
+
+<span class="n">skipscans</span> <span class="o">=</span> <span class="p">[</span><span class="mi">123</span><span class="p">,</span><span class="mi">124</span><span class="p">]</span>
+<span class="n">skipimages</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">10</span><span class="p">,</span><span class="mi">16</span><span class="p">,</span><span class="mi">24</span><span class="p">],[</span><span class="mi">11</span><span class="p">,</span><span class="mi">23</span><span class="p">]]</span>
+
+
+<span class="n">using_dps</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">dpsx_central_pixel</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.0481825</span>
+<span class="n">dpsy_central_pixel</span> <span class="o">=</span> <span class="mf">0.0270</span>
+<span class="n">dpsz_central_pixel</span> <span class="o">=</span> <span class="mf">0.2000</span>
+<span class="n">dpsz2_central_pixel</span> <span class="o">=</span> <span class="mf">0.160</span>
+
+<span class="n">use_thv</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">slitvertratio</span> <span class="o">=</span> <span class="mf">0.55</span> <span class="o">/</span> <span class="mf">0.89</span>
+<span class="n">slithorratio</span> <span class="o">=</span> <span class="mf">0.55</span> <span class="o">/</span> <span class="mf">0.89</span>
+</pre></div>
+</div>
+</div><div aria-labelledby="tab-0-0-3" class="sphinx-tabs-panel" hidden="true" id="panel-0-0-3" name="0-3" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">##### ^^^^ REST OF MINIMUM SETUP FILE ^^^</span>
+<span class="n">map_per_image</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="c1"># ===================================================================</span>
+<span class="c1"># =======Optional settings applicable to all scan types</span>
+<span class="c1"># ===================================================================</span>
+<span class="c1">#               ===========MASKING=============</span>
+<span class="c1"># alternatively specify masked regions with pixels and regions</span>
+<span class="c1"># If you have a small number of hot pixels to mask, an exact example, where we want to mask pixel (233, 83) and pixel</span>
+<span class="c1"># (234, 83), where pixel coordinates are (x, y):</span>
+<span class="c1">#</span>
+<span class="n">specific_pixels</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">233</span><span class="p">,</span> <span class="mi">234</span><span class="p">),(</span><span class="mi">83</span><span class="p">,</span> <span class="mi">83</span><span class="p">)]</span>
+
+<span class="c1"># give  (start_x,  stop_x, start_y, start_y) for each region</span>
+<span class="c1">#</span>
+<span class="n">mask_1</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">75</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">194</span><span class="p">)</span>
+<span class="n">mask_2</span> <span class="o">=</span> <span class="p">(</span><span class="mi">425</span><span class="p">,</span> <span class="mi">485</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">194</span><span class="p">)</span>
+
+<span class="c1">#</span>
+<span class="c1"># If you don't want to use any mask regions, just leave mask_regions equal to</span>
+<span class="c1"># None.</span>
+<span class="n">mask_regions</span> <span class="o">=</span> <span class="p">[</span><span class="n">mask_1</span><span class="p">,</span> <span class="n">mask_2</span><span class="p">]</span>
+
+<span class="c1"># Ignore pixels with an intensity below this value. If you don't want to ignore</span>
+<span class="c1"># any pixels, then set min_intensity = None. This is useful for dynamically</span>
+<span class="c1"># creating masks (which is really useful for generating masks from -ve</span>
+<span class="c1"># numbers).</span>
+<span class="n">min_intensity</span> <span class="o">=</span> <span class="mi">10</span>
+
+<span class="c1">#            =======OPTIONS FOR SKIPPING IMAGES IF ISSUES ARE PRESENT</span>
+<span class="c1"># CHOOSE SCANS WHICH HAVE IMAGES TO SKIP, AND THEN SPECIFY WHICH IMAGES WITHIN THOSE SCANS NEED TO BE SKIPPED</span>
+<span class="c1"># I.E. A LIST OF IMAGES TO SKIP FOR EACH SCAN VALUE IN SKIPSCANS</span>
+<span class="n">skipscans</span> <span class="o">=</span> <span class="p">[</span><span class="mi">123</span><span class="p">,</span><span class="mi">124</span><span class="p">]</span>
+
+<span class="n">skipimages</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">10</span><span class="p">,</span><span class="mi">16</span><span class="p">,</span><span class="mi">24</span><span class="p">],[</span><span class="mi">11</span><span class="p">,</span><span class="mi">23</span><span class="p">]]</span>
+
+<span class="c1"># Are you using the DPS system?</span>
+<span class="n">using_dps</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="c1"># The DPS central pixel locations are not typically recorded in the nexus file.</span>
+<span class="c1"># NOTE THAT THIS SHOULD BE THE CENTRAL PIXEL FOR THE UNDEFLECTED BEAM.</span>
+<span class="c1"># UNITS OF METERS, PLEASE (everything is S.I., except energy in eV).</span>
+<span class="n">dpsx_central_pixel</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.0481825</span>
+<span class="n">dpsy_central_pixel</span> <span class="o">=</span> <span class="mf">0.0270</span>
+<span class="n">dpsz_central_pixel</span> <span class="o">=</span> <span class="mf">0.2000</span>
+<span class="n">dpsz2_central_pixel</span> <span class="o">=</span> <span class="mf">0.160</span>
+
+<span class="c1"># for specifying the use of the new motor thv - a combination of diffractometer and hexapod to reach larger incident angles</span>
+<span class="n">use_thv</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="c1"># if not using sample slits leave both as None, if using slits set to</span>
+<span class="c1"># slit-detector/sample-detector  e.g. 0.55/0.89</span>
+<span class="n">slitvertratio</span> <span class="o">=</span> <span class="mf">0.55</span> <span class="o">/</span> <span class="mf">0.89</span>  <span class="c1"># 0.55 / 0.89</span>
+<span class="n">slithorratio</span> <span class="o">=</span> <span class="mf">0.55</span> <span class="o">/</span> <span class="mf">0.89</span>
+</pre></div>
+</div>
+</div></div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="minimum_setup.html" class="btn btn-neutral float-left" title="Walkthrough 1 - Minimum settings needed in the experiment setup file" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="optional_setup_giwaxs.html" class="btn btn-neutral float-right" title="Walkthrough 3 - Optional settings applicable to GIWAXS scans" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020-2025, Diamond Light Source Ltd.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

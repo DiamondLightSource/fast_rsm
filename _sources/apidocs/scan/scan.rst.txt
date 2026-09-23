@@ -1,0 +1,253 @@
+:py:mod:`scan`
+==============
+
+.. py:module:: scan
+
+.. autodoc2-docstring:: scan
+   :allowtitles:
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. list-table::
+   :class: autosummary longtable
+   :align: left
+
+   * - :py:obj:`Scan <scan.Scan>`
+     - .. autodoc2-docstring:: scan.Scan
+          :summary:
+
+Functions
+~~~~~~~~~
+
+.. list-table::
+   :class: autosummary longtable
+   :align: left
+
+   * - :py:obj:`check_shared_memory <scan.check_shared_memory>`
+     - .. autodoc2-docstring:: scan.check_shared_memory
+          :summary:
+   * - :py:obj:`init_process_pool <scan.init_process_pool>`
+     - .. autodoc2-docstring:: scan.init_process_pool
+          :summary:
+   * - :py:obj:`_on_exit <scan._on_exit>`
+     - .. autodoc2-docstring:: scan._on_exit
+          :summary:
+   * - :py:obj:`chunk <scan.chunk>`
+     - .. autodoc2-docstring:: scan.chunk
+          :summary:
+   * - :py:obj:`_chunk_indices <scan._chunk_indices>`
+     - .. autodoc2-docstring:: scan._chunk_indices
+          :summary:
+   * - :py:obj:`bin_maps_with_indices_smm <scan.bin_maps_with_indices_smm>`
+     - .. autodoc2-docstring:: scan.bin_maps_with_indices_smm
+          :summary:
+   * - :py:obj:`_bin_one_map_smm <scan._bin_one_map_smm>`
+     - .. autodoc2-docstring:: scan._bin_one_map_smm
+          :summary:
+   * - :py:obj:`rsm_init_worker <scan.rsm_init_worker>`
+     - .. autodoc2-docstring:: scan.rsm_init_worker
+          :summary:
+
+Data
+~~~~
+
+.. list-table::
+   :class: autosummary longtable
+   :align: left
+
+   * - :py:obj:`logger <scan.logger>`
+     - .. autodoc2-docstring:: scan.logger
+          :summary:
+   * - :py:obj:`lock <scan.lock>`
+     - .. autodoc2-docstring:: scan.lock
+          :summary:
+   * - :py:obj:`RSM_ARRAY <scan.RSM_ARRAY>`
+     - .. autodoc2-docstring:: scan.RSM_ARRAY
+          :summary:
+   * - :py:obj:`COUNT_ARRAY <scan.COUNT_ARRAY>`
+     - .. autodoc2-docstring:: scan.COUNT_ARRAY
+          :summary:
+   * - :py:obj:`SHM_RSM <scan.SHM_RSM>`
+     - .. autodoc2-docstring:: scan.SHM_RSM
+          :summary:
+   * - :py:obj:`SHM_COUNT <scan.SHM_COUNT>`
+     - .. autodoc2-docstring:: scan.SHM_COUNT
+          :summary:
+   * - :py:obj:`METADATA <scan.METADATA>`
+     - .. autodoc2-docstring:: scan.METADATA
+          :summary:
+   * - :py:obj:`NUM_THREADS <scan.NUM_THREADS>`
+     - .. autodoc2-docstring:: scan.NUM_THREADS
+          :summary:
+   * - :py:obj:`FRAME <scan.FRAME>`
+     - .. autodoc2-docstring:: scan.FRAME
+          :summary:
+   * - :py:obj:`OUTPUT_FILE_NAME <scan.OUTPUT_FILE_NAME>`
+     - .. autodoc2-docstring:: scan.OUTPUT_FILE_NAME
+          :summary:
+   * - :py:obj:`SHM_INTENSITY <scan.SHM_INTENSITY>`
+     - .. autodoc2-docstring:: scan.SHM_INTENSITY
+          :summary:
+   * - :py:obj:`INTENSITY_ARRAY <scan.INTENSITY_ARRAY>`
+     - .. autodoc2-docstring:: scan.INTENSITY_ARRAY
+          :summary:
+
+API
+~~~
+
+.. py:data:: logger
+   :canonical: scan.logger
+   :value: 'getLogger(...)'
+
+   .. autodoc2-docstring:: scan.logger
+
+.. py:data:: lock
+   :canonical: scan.lock
+   :value: None
+
+   .. autodoc2-docstring:: scan.lock
+
+.. py:data:: RSM_ARRAY
+   :canonical: scan.RSM_ARRAY
+   :value: None
+
+   .. autodoc2-docstring:: scan.RSM_ARRAY
+
+.. py:data:: COUNT_ARRAY
+   :canonical: scan.COUNT_ARRAY
+   :value: None
+
+   .. autodoc2-docstring:: scan.COUNT_ARRAY
+
+.. py:data:: SHM_RSM
+   :canonical: scan.SHM_RSM
+   :value: None
+
+   .. autodoc2-docstring:: scan.SHM_RSM
+
+.. py:data:: SHM_COUNT
+   :canonical: scan.SHM_COUNT
+   :value: None
+
+   .. autodoc2-docstring:: scan.SHM_COUNT
+
+.. py:data:: METADATA
+   :canonical: scan.METADATA
+   :value: None
+
+   .. autodoc2-docstring:: scan.METADATA
+
+.. py:data:: NUM_THREADS
+   :canonical: scan.NUM_THREADS
+   :value: None
+
+   .. autodoc2-docstring:: scan.NUM_THREADS
+
+.. py:data:: FRAME
+   :canonical: scan.FRAME
+   :value: None
+
+   .. autodoc2-docstring:: scan.FRAME
+
+.. py:data:: OUTPUT_FILE_NAME
+   :canonical: scan.OUTPUT_FILE_NAME
+   :value: None
+
+   .. autodoc2-docstring:: scan.OUTPUT_FILE_NAME
+
+.. py:data:: SHM_INTENSITY
+   :canonical: scan.SHM_INTENSITY
+   :value: None
+
+   .. autodoc2-docstring:: scan.SHM_INTENSITY
+
+.. py:data:: INTENSITY_ARRAY
+   :canonical: scan.INTENSITY_ARRAY
+   :value: None
+
+   .. autodoc2-docstring:: scan.INTENSITY_ARRAY
+
+.. py:function:: check_shared_memory(shared_mem_name: str) -> None
+   :canonical: scan.check_shared_memory
+
+   .. autodoc2-docstring:: scan.check_shared_memory
+
+.. py:function:: init_process_pool(locks: list, num_threads: int, metadata: fast_rsm.rsm_metadata.RSMMetadata, frame: diffraction_utils.Frame, shape: tuple, output_file_name: str = None) -> None
+   :canonical: scan.init_process_pool
+
+   .. autodoc2-docstring:: scan.init_process_pool
+
+.. py:function:: _on_exit(shared_mem: multiprocessing.shared_memory.SharedMemory) -> None
+   :canonical: scan._on_exit
+
+   .. autodoc2-docstring:: scan._on_exit
+
+.. py:function:: chunk(lst, num_chunks)
+   :canonical: scan.chunk
+
+   .. autodoc2-docstring:: scan.chunk
+
+.. py:function:: _chunk_indices(array: numpy.ndarray, num_chunks: int) -> collections.abc.Generator[tuple[int, int], None, None]
+   :canonical: scan._chunk_indices
+
+   .. autodoc2-docstring:: scan._chunk_indices
+
+.. py:function:: bin_maps_with_indices_smm(indices: list[int], start: numpy.ndarray, stop: numpy.ndarray, step: numpy.ndarray, min_intensity: float, processing_steps: list, skip_images: list[int], oop: str, spherical_bragg_vec: numpy.array, map_each_image: bool = False, previous_images: int = 0) -> None
+   :canonical: scan.bin_maps_with_indices_smm
+
+   .. autodoc2-docstring:: scan.bin_maps_with_indices_smm
+
+.. py:function:: _bin_one_map_smm(start: numpy.ndarray, stop: numpy.ndarray, step: numpy.ndarray, min_intensity: float, idx: int, processing_steps: list, oop: str, spherical_bragg_vec: numpy.array, map_each_image: bool = False, previous_images: int = 0)
+   :canonical: scan._bin_one_map_smm
+
+   .. autodoc2-docstring:: scan._bin_one_map_smm
+
+.. py:function:: rsm_init_worker(smmlock, shm_rsm_name: str, shm_counts_name: str, shmshape: numpy.ndarray, metadata: fast_rsm.rsm_metadata.RSMMetadata, newmetadata: dict, motors: dict[str, numpy.ndarray], num_threads: int, frame: diffraction_utils.Frame, output_file_name: str = None)
+   :canonical: scan.rsm_init_worker
+
+   .. autodoc2-docstring:: scan.rsm_init_worker
+
+.. py:class:: Scan(metadata: fast_rsm.rsm_metadata.RSMMetadata, skip_images: list[int] = None)
+   :canonical: scan.Scan
+
+   .. autodoc2-docstring:: scan.Scan
+
+   .. rubric:: Initialization
+
+   .. autodoc2-docstring:: scan.Scan.__init__
+
+   .. py:property:: processing_steps
+      :canonical: scan.Scan.processing_steps
+
+      .. autodoc2-docstring:: scan.Scan.processing_steps
+
+   .. py:method:: add_processing_step(function) -> None
+      :canonical: scan.Scan.add_processing_step
+
+      .. autodoc2-docstring:: scan.Scan.add_processing_step
+
+   .. py:method:: load_image(idx: int, load_data=True)
+      :canonical: scan.Scan.load_image
+
+      .. autodoc2-docstring:: scan.Scan.load_image
+
+   .. py:method:: q_bounds(frame: diffraction_utils.Frame, spherical_bragg_vec: numpy.array, oop: str = 'y') -> tuple[numpy.ndarray]
+      :canonical: scan.Scan.q_bounds
+
+      .. autodoc2-docstring:: scan.Scan.q_bounds
+
+   .. py:method:: from_i10(path_to_nx: str | pathlib.Path, beam_centre: tuple[int], detector_distance: float, setup: str, path_to_data: str = '')
+      :canonical: scan.Scan.from_i10
+      :staticmethod:
+
+      .. autodoc2-docstring:: scan.Scan.from_i10
+
+   .. py:method:: from_i07(path_to_nx: str | pathlib.Path, beam_centre: tuple[int], detector_distance: float, setup: str, path_to_data: str = '')
+      :canonical: scan.Scan.from_i07
+      :staticmethod:
+
+      .. autodoc2-docstring:: scan.Scan.from_i07

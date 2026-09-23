@@ -1,0 +1,187 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Useful CLI functions &mdash; fast_rsm 2.4.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/jupyter-sphinx.css" />
+      <link rel="stylesheet" type="text/css" href="_static/thebelab.css" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx_collapse.css?v=226d88b4" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=5dd66af0" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=5dd66af0" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=b1e24531"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/thebelab-helper.js"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API Reference" href="apidocs/index.html" />
+    <link rel="prev" title="Running processing jobs directly after scan from script in gda" href="jobsfromgda.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            fast_rsm
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="diamonduse.html">Using fast_rsm at Diamond Light Source</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="nomachine_wilson.html">Setting up Linux session and wilson connection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="experiment_setup.html">walkthroughs for creating the experiment setup file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="processcli.html">Run a single process job from the command line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="batchjobscli.html">Batch processing multiple jobs from the command line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jobsfromgda.html">Running processing jobs directly after scan from script in gda</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Useful CLI functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#makesetup">makesetup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#makemask">makemask</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyfai-calib2">pyFAI-calib2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-setups">get_setups</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tiffconvert">tiffconvert</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="diamonduse.html#debugging">Debugging</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="apidocs/index.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">fast_rsm</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="diamonduse.html">Using fast_rsm at Diamond Light Source</a></li>
+      <li class="breadcrumb-item active">Useful CLI functions</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/extra_cli.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="useful-cli-functions">
+<h1>Useful CLI functions<a class="headerlink" href="#useful-cli-functions" title="Link to this heading"></a></h1>
+<p>Once the fast_rsm module has been loaded there are also some other useful functions made accessible</p>
+<section id="makesetup">
+<h2>makesetup<a class="headerlink" href="#makesetup" title="Link to this heading"></a></h2>
+<p>Use this to open up a template experiment_setup file, edit with your experiment information and then save to your preferred directory</p>
+</section>
+<section id="makemask">
+<h2>makemask<a class="headerlink" href="#makemask" title="Link to this heading"></a></h2>
+<p>use this to quickly make a mask for you processing. It will open up the pyFAI mask creation tool and load in the first image of your scan. From here you can use the GUI tools to draw on the desired mask and then save to a specified directory.</p>
+</section>
+<section id="pyfai-calib2">
+<h2>pyFAI-calib2<a class="headerlink" href="#pyfai-calib2" title="Link to this heading"></a></h2>
+<p>use this to launch the <code class="xref py py-mod docutils literal notranslate"><span class="pre">pyFAI</span></code> calibration tool which you can use to analyse your calibration data to create a PONI file - see the <code class="xref py py-mod docutils literal notranslate"><span class="pre">pyFAI</span></code> documentation page on the <a class="reference external" href="https://pyfai.readthedocs.io/en/stable/usage/cookbook/calib-gui/index.html#cookbook-calibration-gui">calibration GUI</a> for more details</p>
+</section>
+<section id="get-setups">
+<h2>get_setups<a class="headerlink" href="#get-setups" title="Link to this heading"></a></h2>
+<p>use this to get setup information used to calculate a hdf5 file. If the hdf5 file has the configuration saved to config, and it contains the joblines from the analysis job sent to the cluster - then you can type</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>get_setups<span class="w"> </span>-hf<span class="w">  </span>path/to/hdf5file.hdf5<span class="w">   </span>-outdir<span class="w">   </span>path/to/out/directory
+</pre></div>
+</div>
+<p>This will open up the hdf5 file, locate the joblines information, and then it will save a copy if this information and open exp_setup.py and calc_setup.py files with the information that was used to send off the analysis job</p>
+</section>
+<section id="tiffconvert">
+<h2>tiffconvert<a class="headerlink" href="#tiffconvert" title="Link to this heading"></a></h2>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Currently only available on the testing branch of fast-rsm</p>
+</div>
+<p>Open a new terminal on any of the diamond linux machines
+Load the testing version of the fast_rsm module using :</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>module<span class="w"> </span>load<span class="w"> </span>fast_rsm/testing
+</pre></div>
+</div>
+<p>The extractor can then be used from the command line using one of the following structures:
+To specify a few scan numbers at a time, use the -s option followed by the scan numbers e.g. :</p>
+<blockquote>
+<div><p>tiffextract -dir  /path/to/data/directory -s 1234  1235</p>
+</div></blockquote>
+<p>To specify a scan range of numbers evenly spaces use the -sr followed by double brackets with start,stop,step e.g.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tiffextract<span class="w"> </span>-dir<span class="w"> </span>/path/to/data/directory<span class="w"> </span>-sr<span class="w"> </span><span class="o">[[</span><span class="m">1120</span>,<span class="w"> </span><span class="m">1150</span>,<span class="w"> </span><span class="m">5</span><span class="o">]]</span>
+</pre></div>
+</div>
+<p>To specify extraction of all .nxs file in the directory use -a flag e.g.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tiffextract<span class="w"> </span>-dir<span class="w"> </span>/path/to/data/directory<span class="w"> </span>-a
+</pre></div>
+</div>
+<p>The default output folder is the  experiment     /processing  directory, however you can add an optional different output folder by adding -o followed by the new output path e.g.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tiffextract<span class="w"> </span>-dir<span class="w">  </span>/path/to/data/directory<span class="w"> </span>-s<span class="w"> </span><span class="m">1234</span><span class="w">  </span><span class="m">1235</span><span class="w">  </span>-o<span class="w"> </span>/path/to/new/output
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="jobsfromgda.html" class="btn btn-neutral float-left" title="Running processing jobs directly after scan from script in gda" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="apidocs/index.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020-2025, Diamond Light Source Ltd.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

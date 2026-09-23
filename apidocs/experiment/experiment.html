@@ -1,0 +1,473 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>experiment &mdash; fast_rsm 2.4.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/jupyter-sphinx.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/thebelab.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx_collapse.css?v=226d88b4" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=5dd66af0" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=5dd66af0" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=b1e24531"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/thebelab-helper.js"></script>
+      <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="image" href="../image/image.html" />
+    <link rel="prev" title="diamond_utils" href="../diamond_utils/diamond_utils.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            fast_rsm
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../diamonduse.html">Using fast_rsm at Diamond Light Source</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../binning/binning.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">binning</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../corrections/corrections.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">corrections</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../diamond_utils/diamond_utils.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">diamond_utils</span></code></a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">experiment</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-contents">Module Contents</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#functions">Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#data">Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#api">API</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../image/image.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">image</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../io/io.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">io</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../meta_analysis/meta_analysis.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">meta_analysis</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rsm_metadata/rsm_metadata.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">rsm_metadata</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../scan/scan.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">scan</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../writing/writing.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">writing</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">fast_rsm</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">API Reference</a></li>
+      <li class="breadcrumb-item active"><code class="xref py py-mod docutils literal notranslate"><span class="pre">experiment</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/apidocs/experiment/experiment.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-experiment">
+<span id="experiment"></span><h1><a class="reference internal" href="#module-experiment" title="experiment"><code class="xref py py-mod docutils literal notranslate"><span class="pre">experiment</span></code></a><a class="headerlink" href="#module-experiment" title="Link to this heading"></a></h1>
+<p>This file contains the Experiment class, which contains all of the information
+relating to your experiment.</p>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading"></a></h2>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Link to this heading"></a></h3>
+<table class="autosummary longtable docutils align-left">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#experiment.Experiment" title="experiment.Experiment"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Experiment</span></code></a></p></td>
+<td><p>The Experiment class specifies all experimental details necessary to process
+experimental data. This can be a list of file paths, a central pixel
+location, details of the experimental geometry, the desired output, etc.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h3>
+<table class="autosummary longtable docutils align-left">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#experiment._remove_file" title="experiment._remove_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_remove_file</span></code></a></p></td>
+<td><p>Removes a file if it exists. Doesn’t do anything if it doesn’t exist.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#experiment._sum_numpy_files" title="experiment._sum_numpy_files"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_sum_numpy_files</span></code></a></p></td>
+<td><p>Takes a list of paths to .npy files. Adds them all together. Returns this
+sum.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#experiment.histogram_xy" title="experiment.histogram_xy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">histogram_xy</span></code></a></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#experiment._match_start_stop_to_step" title="experiment._match_start_stop_to_step"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_match_start_stop_to_step</span></code></a></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#experiment.write_im_to_tiff" title="experiment.write_im_to_tiff"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_im_to_tiff</span></code></a></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#experiment.do_savetiffs" title="experiment.do_savetiffs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">do_savetiffs</span></code></a></p></td>
+<td><p>save separate tiffs for all 2d image data in data</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#experiment.write_qi_to_csv" title="experiment.write_qi_to_csv"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_qi_to_csv</span></code></a></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#experiment.do_savedats" title="experiment.do_savedats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">do_savedats</span></code></a></p></td>
+<td><p>save all 1d datasets to .dat files</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="data">
+<h3>Data<a class="headerlink" href="#data" title="Link to this heading"></a></h3>
+<table class="autosummary longtable docutils align-left">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#experiment.logger" title="experiment.logger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logger</span></code></a></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="api">
+<h3>API<a class="headerlink" href="#api" title="Link to this heading"></a></h3>
+<dl class="py data">
+<dt class="sig sig-object py" id="experiment.logger">
+<span class="sig-prename descclassname"><span class="pre">experiment.</span></span><span class="sig-name descname"><span class="pre">logger</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'getLogger(...)'</span></em><a class="headerlink" href="#experiment.logger" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="experiment._remove_file">
+<span class="sig-prename descclassname"><span class="pre">experiment.</span></span><span class="sig-name descname"><span class="pre">_remove_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">pathlib.Path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#experiment._remove_file" title="Link to this definition"></a></dt>
+<dd><p>Removes a file if it exists. Doesn’t do anything if it doesn’t exist.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="experiment._sum_numpy_files">
+<span class="sig-prename descclassname"><span class="pre">experiment.</span></span><span class="sig-name descname"><span class="pre">_sum_numpy_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filenames</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">pathlib.Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#experiment._sum_numpy_files" title="Link to this definition"></a></dt>
+<dd><p>Takes a list of paths to .npy files. Adds them all together. Returns this
+sum.</p>
+<p>TODO: this could be parallelised.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>filenames:</dt><dd><p>A list/tuple/iterable of strings/paths/np.load-able things.</p>
+</dd>
+</dl>
+</dd>
+<dt>Returns:</dt><dd><p>Sum of the contents of all the files in the filenames list.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="experiment.histogram_xy">
+<span class="sig-prename descclassname"><span class="pre">experiment.</span></span><span class="sig-name descname"><span class="pre">histogram_xy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_size</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#experiment.histogram_xy" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>x<span class="classifier">array</span></dt><dd><p>x dataset.</p>
+</dd>
+<dt>y<span class="classifier">array</span></dt><dd><p>y dataset.</p>
+</dd>
+<dt>step_size<span class="classifier">float</span></dt><dd><p>desired stepsize.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>bin_centers<span class="classifier">array</span></dt><dd><p>value of centres for bin values.</p>
+</dd>
+<dt>hist<span class="classifier">array</span></dt><dd><p>historgam output.</p>
+</dd>
+<dt>hist_normalized<span class="classifier">array</span></dt><dd><p>normalised histogram output.</p>
+</dd>
+<dt>counts<span class="classifier">array</span></dt><dd><p>counts for each bin position.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="experiment._match_start_stop_to_step">
+<span class="sig-prename descclassname"><span class="pre">experiment.</span></span><span class="sig-name descname"><span class="pre">_match_start_stop_to_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_bounds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auto_bounds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#experiment._match_start_stop_to_step" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="experiment.write_im_to_tiff">
+<span class="sig-prename descclassname"><span class="pre">experiment.</span></span><span class="sig-name descname"><span class="pre">write_im_to_tiff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parainfo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">perpinfo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hfname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imdata</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#experiment.write_im_to_tiff" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="experiment.do_savetiffs">
+<span class="sig-prename descclassname"><span class="pre">experiment.</span></span><span class="sig-name descname"><span class="pre">do_savetiffs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axespara</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axesperp</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#experiment.do_savetiffs" title="Link to this definition"></a></dt>
+<dd><p>save separate tiffs for all 2d image data in data</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="experiment.write_qi_to_csv">
+<span class="sig-prename descclassname"><span class="pre">experiment.</span></span><span class="sig-name descname"><span class="pre">write_qi_to_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qvals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intvals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tthetavals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#experiment.write_qi_to_csv" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="experiment.do_savedats">
+<span class="sig-prename descclassname"><span class="pre">experiment.</span></span><span class="sig-name descname"><span class="pre">do_savedats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intdata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qdata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tthdata</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#experiment.do_savedats" title="Link to this definition"></a></dt>
+<dd><p>save all 1d datasets to .dat files</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="experiment.Experiment">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">experiment.</span></span><span class="sig-name descname"><span class="pre">Experiment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scans</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">fast_rsm.scan.Scan</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setup</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#experiment.Experiment" title="Link to this definition"></a></dt>
+<dd><p>The Experiment class specifies all experimental details necessary to process
+experimental data. This can be a list of file paths, a central pixel
+location, details of the experimental geometry, the desired output, etc.</p>
+<p>Experiments contain lot of tools that can be used to work out what they are.
+For example, experiments can work out whether or not binning is required to
+reduce data volumes, and if so, generate finite difference volumes in which
+the data can be optimally stored.</p>
+<dl class="simple">
+<dt>Attrs:</dt><dd><dl class="simple">
+<dt>scans:</dt><dd><p>A list of all of the scans explored in this experiment.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Initialization</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="experiment.Experiment.parse_dcd_angles">
+<span class="sig-name descname"><span class="pre">parse_dcd_angles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scan</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">fast_rsm.scan.Scan</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#experiment.Experiment.parse_dcd_angles" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="experiment.Experiment.load_incident_angle">
+<span class="sig-name descname"><span class="pre">load_incident_angle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scan</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">fast_rsm.scan.Scan</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#experiment.Experiment.load_incident_angle" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="experiment.Experiment.load_dps_offsets">
+<span class="sig-name descname"><span class="pre">load_dps_offsets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scan</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">fast_rsm.scan.Scan</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#experiment.Experiment.load_dps_offsets" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="experiment.Experiment.load_curve_values">
+<span class="sig-name descname"><span class="pre">load_curve_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scan</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">fast_rsm.scan.Scan</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#experiment.Experiment.load_curve_values" title="Link to this definition"></a></dt>
+<dd><p>set attributes of experiment for easier access to key variables</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="experiment.Experiment._clean_temp_files">
+<span class="sig-name descname"><span class="pre">_clean_temp_files</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#experiment.Experiment._clean_temp_files" title="Link to this definition"></a></dt>
+<dd><p>Removes all temporary files.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="experiment.Experiment.add_processing_step">
+<span class="sig-name descname"><span class="pre">add_processing_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">processing_step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">callable</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#experiment.Experiment.add_processing_step" title="Link to this definition"></a></dt>
+<dd><p>Adds a processing step to every scan in the experiment. The processing
+step is a function that takes a numpy array representing the input
+image, and outputs a numpy array representing the output image. A valid
+processing step could look something like</p>
+<dl class="simple">
+<dt>def add_one(arr):</dt><dd><p>return arr + 1</p>
+</dd>
+</dl>
+<p>If you, for some reason, wanted to add 1 to every raw image array, this
+function can be added to all the scans in this experiment using:</p>
+<blockquote>
+<div><p>experiment.add_processing_step(add_one)</p>
+</div></blockquote>
+<p>Note that this must currently (python 3.10) be a module-level named
+function. Because of the internals of how pythons serialization
+(pickling) works, anonymous (lambda) functions won’t work.</p>
+<p><em>Processing steps are applied in the order in which they are added.</em></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="experiment.Experiment.mask_pixels">
+<span class="sig-name descname"><span class="pre">mask_pixels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pixels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#experiment.Experiment.mask_pixels" title="Link to this definition"></a></dt>
+<dd><p>Masks the requested pixels. Note that the pixels argument will be used
+to directly affect arrays, i.e.</p>
+<p>array[pixels] = np.nan</p>
+<p>is going to be used at somencounterede point.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>pixels:</dt><dd><p>The pixels to be masked.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="experiment.Experiment.mask_regions">
+<span class="sig-name descname"><span class="pre">mask_regions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">regions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">diffraction_utils.Region</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#experiment.Experiment.mask_regions" title="Link to this definition"></a></dt>
+<dd><p>Masks the requested regions defined as regions in setup file.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="experiment.Experiment.mask_edf">
+<span class="sig-name descname"><span class="pre">mask_edf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">edfmask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#experiment.Experiment.mask_edf" title="Link to this definition"></a></dt>
+<dd><p>apply any mask defined with a .edf file as created in pyFAI-calib GUI</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="experiment.Experiment.q_bounds">
+<span class="sig-name descname"><span class="pre">q_bounds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frame</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">diffraction_utils.Frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spherical_bragg_vec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">oop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'y'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#experiment.Experiment.q_bounds" title="Link to this definition"></a></dt>
+<dd><p>Works out the region of reciprocal space sampled by every scan in this
+experiment. This is reasonably performant, but should really be
+parallelised at some point.</p>
+<dl class="simple">
+<dt>Returns:</dt><dd><p>(start, stop)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="experiment.Experiment.get_limitcalc_vars">
+<span class="sig-name descname"><span class="pre">get_limitcalc_vars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slitvertratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slithorratio</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#experiment.Experiment.get_limitcalc_vars" title="Link to this definition"></a></dt>
+<dd><p>Calculates the pixel limits of the scan in either vertical or horizontal direction
+and returns dictionary with values relating to the limits calculated</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="experiment.Experiment.calcanglim">
+<span class="sig-name descname"><span class="pre">calcanglim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slitvertratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slithorratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#experiment.Experiment.calcanglim" title="Link to this definition"></a></dt>
+<dd><p>Calculates limits in exit angle for either vertical or horizontal axis</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="experiment.Experiment.calcqlim">
+<span class="sig-name descname"><span class="pre">calcqlim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slitvertratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slithorratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#experiment.Experiment.calcqlim" title="Link to this definition"></a></dt>
+<dd><p>Calculates limits in q for either vertical or horizontal axis</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="experiment.Experiment.binned_reciprocal_space_map_smm">
+<span class="sig-name descname"><span class="pre">binned_reciprocal_space_map_smm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_threads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">map_frame</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">diffraction_utils.Frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">process_config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">types.SimpleNamespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_file_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'mapped'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_intensity_mask</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_file_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_vtk</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_npy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">oop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'y'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">volume_start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">volume_stop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">volume_step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">map_each_image</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#experiment.Experiment.binned_reciprocal_space_map_smm" title="Link to this definition"></a></dt>
+<dd><p>Carries out a binned reciprocal space map for this experimental data.        New version using SharedMemoryManager</p>
+<dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>num_threads:</dt><dd><p>How many threads should be used to carry out this map? You
+should probably set this to however many threads are available
+on your machine.</p>
+</dd>
+<dt>map_frame:</dt><dd><p>An instance of diffraction_utils.Frame that specifies what
+frame of reference and coordinate system you’d like your map to
+be carried out in.</p>
+</dd>
+<dt>output_file_name:</dt><dd><p>What should the final file be saved as?</p>
+</dd>
+<dt>output_file_size:</dt><dd><p>The desired output file size, in units of MB.
+Defaults to 100 MB.</p>
+</dd>
+<dt>save_vtk:</dt><dd><p>Should we save a vtk file for this map? Defaults to True.</p>
+</dd>
+<dt>save_npy:</dt><dd><p>Should we save a numpy file for this map? Defaults to True.</p>
+</dd>
+<dt>oop:</dt><dd><p>Which synchrotron axis should become the out-of-plane (001)
+direction. Defaults to ‘y’; can be ‘x’, ‘y’ or ‘z’.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="experiment.Experiment.from_i07_nxs">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_i07_nxs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nexus_paths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">pathlib.Path</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beam_centre</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">detector_distance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setup</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path_to_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">using_dps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">experimental_hutch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#experiment.Experiment.from_i07_nxs" title="Link to this definition"></a></dt>
+<dd><p>Generates an instance of Experiment from paths to nexus files obtained
+from the i07 beamline. Also requires a few other essential pieces of
+information to uniquely specify the experimental setup (because you
+could be doing basically anything on i07…)</p>
+<dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>nexus_paths:</dt><dd><p>Path to the nexus files containing all of the scans’ metadata.
+If the experiment consists of only one scan, then you can pass
+a single string/Path in place of a list of strings/paths.</p>
+</dd>
+<dt>beam_centre:</dt><dd><p>A (y, x) tuple of the beam centre, measured in the usual image
+coordinate system, in units of pixels.</p>
+</dd>
+<dt>detector_distance:</dt><dd><p>The distance between the sample and the detector.</p>
+</dd>
+<dt>setup:</dt><dd><p>What was the experimental setup? Can be “vertical”, “horizontal”
+or “DCD”.</p>
+</dd>
+<dt>path_to_data:</dt><dd><p>Path to the directory in which the images are stored. Defaults
+to ‘’, in which case a bunch of reasonable directories will be
+searched for the images.</p>
+</dd>
+</dl>
+</dd>
+<dt>Returns:</dt><dd><p>Corresponding instance of Experiment.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../diamond_utils/diamond_utils.html" class="btn btn-neutral float-left" title="diamond_utils" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../image/image.html" class="btn btn-neutral float-right" title="image" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020-2025, Diamond Light Source Ltd.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

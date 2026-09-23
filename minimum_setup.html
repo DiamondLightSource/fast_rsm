@@ -1,0 +1,323 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Walkthrough 1 - Minimum settings needed in the experiment setup file &mdash; fast_rsm 2.4.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/jupyter-sphinx.css" />
+      <link rel="stylesheet" type="text/css" href="_static/thebelab.css" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx_collapse.css?v=226d88b4" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=5dd66af0" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+      <link rel="stylesheet" type="text/css" href="_static/tabs.css?v=a5c4661c" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=5dd66af0" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=b1e24531"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/thebelab-helper.js"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="_static/tabs.js?v=3030b3cb"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Walkthrough 2 - Optional settings applicable to all scan types" href="optional_setup_all.html" />
+    <link rel="prev" title="walkthroughs for creating the experiment setup file" href="experiment_setup.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            fast_rsm
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="diamonduse.html">Using fast_rsm at Diamond Light Source</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="nomachine_wilson.html">Setting up Linux session and wilson connection</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="experiment_setup.html">walkthroughs for creating the experiment setup file</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Walkthrough 1 - Minimum settings needed in the experiment setup file</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#data-paths">Data paths</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#geometry">Geometry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#processing-options">Processing options</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#minimum-example">Minimum example</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="optional_setup_all.html">Walkthrough 2 - Optional settings applicable to all scan types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="optional_setup_giwaxs.html">Walkthrough 3 - Optional settings applicable to GIWAXS scans</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="processcli.html">Run a single process job from the command line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="batchjobscli.html">Batch processing multiple jobs from the command line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jobsfromgda.html">Running processing jobs directly after scan from script in gda</a></li>
+<li class="toctree-l2"><a class="reference internal" href="extra_cli.html">Useful CLI functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="diamonduse.html#debugging">Debugging</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="apidocs/index.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">fast_rsm</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="diamonduse.html">Using fast_rsm at Diamond Light Source</a></li>
+          <li class="breadcrumb-item"><a href="experiment_setup.html">walkthroughs for creating the experiment setup file</a></li>
+      <li class="breadcrumb-item active">Walkthrough 1 - Minimum settings needed in the experiment setup file</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/minimum_setup.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+  .ss-layout-default-AA_BC { grid-template-areas: 'A A' 'B C'; }
+</style>
+<section id="walkthrough-1-minimum-settings-needed-in-the-experiment-setup-file">
+<h1>Walkthrough 1 - Minimum settings needed in the experiment setup file<a class="headerlink" href="#walkthrough-1-minimum-settings-needed-in-the-experiment-setup-file" title="Link to this heading"></a></h1>
+<p>For all processing jobs the minimum required information in the experimental setup file is the following:</p>
+<ul class="simple">
+<li><p>Data paths</p></li>
+<li><p>Geometry</p></li>
+<li><p>Processing options</p></li>
+</ul>
+<section id="data-paths">
+<h2>Data paths<a class="headerlink" href="#data-paths" title="Link to this heading"></a></h2>
+<p>The first details to include in the setup file are where the data is currently saved, and where you would like to output the processed results. This information is stored in the following two variables:</p>
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-local_data_path">
+<span class="sig-name descname"><span class="pre">local_data_path</span></span><a class="headerlink" href="#confval-local_data_path" title="Link to this definition"></a></dt>
+<dd><p>Set this to the directory path where your files are saved, note you will need to include any subdirectories in this path e.g  <em>/dls/i07/data/2025/si36456-5/sample1</em></p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-local_output_path">
+<span class="sig-name descname"><span class="pre">local_output_path</span></span><a class="headerlink" href="#confval-local_output_path" title="Link to this definition"></a></dt>
+<dd><p>Set this to the path where you want the output from the data processing to be saved e.g.  <em>/dls/i07/data/2025/si36456-5/processing/sample1</em></p>
+</dd></dl>
+
+</section>
+<section id="geometry">
+<h2>Geometry<a class="headerlink" href="#geometry" title="Link to this heading"></a></h2>
+<p>The next step is to include details on the geometry of the setup, which are stored in the following variables:</p>
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-setup">
+<span class="sig-name descname"><span class="pre">setup</span></span><a class="headerlink" href="#confval-setup" title="Link to this definition"></a></dt>
+<dd><p>How was your sample mounted? Options are ‘horizontal’, ‘vertical’ and ‘DCD’.</p>
+<p>from <a class="reference external" href="https://journals.iucr.org/paper?S0021889810048922">Schleputz 2011 paper</a></p>
+</dd></dl>
+
+<figure class="sphinx-subfigure align-default" id="setups">
+<div class="sphinx-subfigure-grid ss-layout-default-AA_BC outline" style="display: grid; gap: 8px; grid-gap: 8px;">
+<div class="sphinx-subfigure-area" style="display: flex; flex-direction: column; justify-content: center; align-items: center; grid-area: A;">
+<a class="reference internal image-reference" href="_images/hor_ver_diagram.png"><img alt="_images/hor_ver_diagram.png" src="_images/hor_ver_diagram.png" style="width: 450px;" />
+</a>
+</div>
+<div class="sphinx-subfigure-area" style="display: flex; flex-direction: column; justify-content: center; align-items: center; grid-area: B;">
+<span class="caption">Horizontal setup</span>
+<a class="reference internal image-reference" href="_images/horizontal_setup.png"><img alt="Horizontal setup" src="_images/horizontal_setup.png" style="width: 300px;" />
+</a>
+</div>
+<div class="sphinx-subfigure-area" style="display: flex; flex-direction: column; justify-content: center; align-items: center; grid-area: C;">
+<span class="caption">Vertical setup</span>
+<a class="reference internal image-reference" href="_images/vertical_setup.png"><img alt="Vertical setup" src="_images/vertical_setup.png" style="width: 300px;" />
+</a>
+</div>
+</div>
+</figure>
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-experimental_hutch">
+<span class="sig-name descname"><span class="pre">experimental_hutch</span></span><a class="headerlink" href="#confval-experimental_hutch" title="Link to this definition"></a></dt>
+<dd><p>which experimental hutch was used 1= experimental hutch 1, 2=experimental hutch 2</p>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-beam_centre">
+<span class="sig-name descname"><span class="pre">beam_centre</span></span><a class="headerlink" href="#confval-beam_centre" title="Link to this definition"></a></dt>
+<dd><p>The beam centre, as can be read out from GDA, in pixel_x, pixel_y. e.g. (231,1531)</p>
+</dd></dl>
+
+<figure class="align-default">
+<img alt="_images/beam_centre.png" src="_images/beam_centre.png" />
+</figure>
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-detector_distance">
+<span class="sig-name descname"><span class="pre">detector_distance</span></span><a class="headerlink" href="#confval-detector_distance" title="Link to this definition"></a></dt>
+<dd><p>The distance between the sample and the detector (or, if using the DCD, the distance between the receiving slit and the detector). Units of meters.</p>
+</dd></dl>
+
+<figure class="align-default">
+<img alt="_images/i07_EH1_geometry.png" src="_images/i07_EH1_geometry.png" />
+</figure>
+</section>
+<section id="processing-options">
+<h2>Processing options<a class="headerlink" href="#processing-options" title="Link to this heading"></a></h2>
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-process_outputs">
+<span class="sig-name descname"><span class="pre">process_outputs</span></span><a class="headerlink" href="#confval-process_outputs" title="Link to this definition"></a></dt>
+<dd><p>define what outputs you would like from the processing in a list e.g. [‘pyfai_ivsq’]. The options available are:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>full_reciprocal_map</strong>: calculates a full reciprocal space map combining all scans listed into a single volume. Use this option for scan such as crystal truncation rod scans, fractional order rod scans, or in-plane HK scans.</p></li>
+<li><p><strong>pyfai_qmap</strong>: calculates 2d q_parallel Vs q_perpendicular plots using pyFAI.</p></li>
+<li><p><strong>pyfai_ivsq</strong>: calculates 1d Intensity Vs Q using pyFAI.</p></li>
+<li><p><strong>pyfai_exitangles</strong>: calculates a 2d map of horizontal exit angle Vs vertical exit angle</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>pyFAI latest version has grazing incidence options, however chi angle may not be true chi. Currently ok for qualitative comparisons.</p>
+</div>
+<ul class="simple">
+<li><p><strong>pyfai_ivschi</strong>: calculates 1d Intensity Vs Chi using pyFAI.</p></li>
+<li><p><strong>pyfai_chimap</strong>: calculates 2d Chi Vs Q_total using pyFAI.</p></li>
+</ul>
+</div></blockquote>
+</dd></dl>
+
+<dl class="std confval">
+<dt class="sig sig-object std" id="confval-map_per_image">
+<span class="sig-name descname"><span class="pre">map_per_image</span></span><a class="headerlink" href="#confval-map_per_image" title="Link to this definition"></a></dt>
+<dd><p>this option will set whether to combine all scans into a single output:</p>
+<blockquote>
+<div><p>map_per_image=False -&gt; gives a single output file (either HKL volume or mapped GIWAXS data)</p>
+<p>map_per_image=True -&gt; analyses each image individually creating multiple output files (either HKL volumes or mapped GIWAXS)</p>
+</div></blockquote>
+</dd></dl>
+
+</section>
+<section id="minimum-example">
+<h2>Minimum example<a class="headerlink" href="#minimum-example" title="Link to this heading"></a></h2>
+<p>Putting everything together into an example exp_setup.py file gives the following:</p>
+<div class="sphinx-tabs docutils container">
+<div aria-label="Tabbed content" class="closeable" role="tablist"><button aria-controls="panel-0-0-0" aria-selected="true" class="sphinx-tabs-tab" id="tab-0-0-0" name="0-0" role="tab" tabindex="0">Without comments</button><button aria-controls="panel-0-0-1" aria-selected="false" class="sphinx-tabs-tab" id="tab-0-0-1" name="0-1" role="tab" tabindex="-1">With comments</button></div><div aria-labelledby="tab-0-0-0" class="sphinx-tabs-panel" id="panel-0-0-0" name="0-0" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">local_data_path</span> <span class="o">=</span> <span class="s1">'/dls/i07/data/2025/si36456-5/sample1'</span>  <span class="c1"># '/dls/i07/data/2024/##experiment-number##/##subfolder#</span>
+<span class="n">local_output_path</span> <span class="o">=</span> <span class="s1">'/dls/i07/data/2025/si36456-5/processing/sample1'</span>  <span class="c1"># '/dls/i07/data/2024/##experiment-number##/processing'</span>
+
+<span class="n">setup</span> <span class="o">=</span> <span class="s1">'horizontal'</span>
+<span class="n">experimental_hutch</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">beam_centre</span> <span class="o">=</span> <span class="p">(</span><span class="mi">119</span><span class="p">,</span> <span class="mi">1564</span><span class="p">)</span>
+<span class="n">detector_distance</span> <span class="o">=</span> <span class="mf">0.18</span>
+
+<span class="n">process_outputs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'pyfai_qmap'</span><span class="p">]</span>
+<span class="n">map_per_image</span> <span class="o">=</span> <span class="kc">False</span>
+</pre></div>
+</div>
+</div><div aria-labelledby="tab-0-0-1" class="sphinx-tabs-panel" hidden="true" id="panel-0-0-1" name="0-1" role="tabpanel" tabindex="0"><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># copied from /dls_sw/apps/fast_rsm/v2.2.0/fast_rsm/CLI/i07/example_exp_setup.py</span>
+<span class="c1">#===================================================================</span>
+<span class="c1">#======Information required for all scan types======</span>
+<span class="c1">#===================================================================</span>
+
+<span class="c1"># How was your sample mounted? Options are 'horizontal', 'vertical' and 'DCD'.</span>
+<span class="n">setup</span> <span class="o">=</span> <span class="s1">'horizontal'</span>
+
+<span class="c1"># which experimental hutch was used  1= experimental hutch 1,</span>
+<span class="c1"># 2=experimental hutch 2</span>
+<span class="n">experimental_hutch</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="c1"># Set this to the directory path where your files are saved, note you will</span>
+<span class="c1"># need to include any subdirectories in this path</span>
+<span class="n">local_data_path</span> <span class="o">=</span> <span class="s1">'/dls/i07/data/2025/si36456-5/sample1'</span>  <span class="c1"># '/dls/i07/data/2024/##experiment-number##/##subfolder#</span>
+<span class="c1"># Set this to the path where you want the output from the data processing</span>
+<span class="c1"># to be saved</span>
+<span class="n">local_output_path</span> <span class="o">=</span> <span class="s1">'/dls/i07/data/2025/si36456-5/processing/sample1'</span>  <span class="c1"># '/dls/i07/data/2024/##experiment-number##/processing'</span>
+
+
+<span class="c1"># The beam centre, as can be read out from GDA, in pixel_x, pixel_y.</span>
+<span class="n">beam_centre</span> <span class="o">=</span> <span class="p">(</span><span class="mi">119</span><span class="p">,</span> <span class="mi">1564</span><span class="p">)</span>
+
+<span class="c1"># The distance between the sample and the detector (or, if using the DCD, the</span>
+<span class="c1"># distance between the receiving slit and the detector). Units of meters.</span>
+<span class="n">detector_distance</span> <span class="o">=</span> <span class="mf">0.18</span>
+
+
+<span class="c1"># define what outputs you would like form the processing here, choose from:</span>
+<span class="c1"># 'full_reciprocal_map' = calculates a full reciprocal space map combining all</span>
+<span class="c1">#                           scans listed into a single volume</span>
+<span class="c1">#</span>
+<span class="c1"># 'pyfai_qmap' = calculates 2d q_parallel Vs q_perpendicular plots using pyFAI</span>
+<span class="c1">#</span>
+<span class="c1"># 'pyfai_ivsq' = calculates 1d Intensity Vs Q using pyFAI</span>
+<span class="c1">#</span>
+<span class="c1"># 'pyfai_exitangles' - calculates a map of vertical exit angle Vs horizontal exit angle</span>
+
+<span class="c1"># 'pyfai_ivsq'  , 'pyfai_qmap','pyfai_exitangles' ,'full_reciprocal_map'</span>
+<span class="n">process_outputs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'pyfai_qmap'</span><span class="p">]</span>
+
+
+<span class="c1"># Set this to True if you would like each image to be mapped independently.</span>
+<span class="c1"># If this is False, all images in all scans will be combined into one large</span>
+<span class="c1"># reciprocal space map.</span>
+<span class="n">map_per_image</span> <span class="o">=</span> <span class="kc">False</span>
+</pre></div>
+</div>
+</div></div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="experiment_setup.html" class="btn btn-neutral float-left" title="walkthroughs for creating the experiment setup file" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="optional_setup_all.html" class="btn btn-neutral float-right" title="Walkthrough 2 - Optional settings applicable to all scan types" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020-2025, Diamond Light Source Ltd.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,22 @@
+/* .wy-side-nav-search, .wy-nav-top {
+    background: #ffffff;
+}
+
+.wy-side-nav-search>div.version{
+    color: #000000;
+}
+
+.wy-side-nav-search>a.icon.icon-home{
+    color: #000000;
+} */
+
+/* .fa-bars{
+    color: #000000;
+} */
+
+
+/* Style the collapse title */
+.blue-title .toggle-header {
+    color: blue;
+    font-weight: bold;
+}

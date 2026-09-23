@@ -1,0 +1,181 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Using fast_rsm at Diamond Light Source &mdash; fast_rsm 2.4.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/jupyter-sphinx.css" />
+      <link rel="stylesheet" type="text/css" href="_static/thebelab.css" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx_collapse.css?v=226d88b4" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=5dd66af0" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=5dd66af0" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=b1e24531"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/thebelab-helper.js"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Setting up Linux session and wilson connection" href="nomachine_wilson.html" />
+    <link rel="prev" title="Reciprocal Space Mapping" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            fast_rsm
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Using fast_rsm at Diamond Light Source</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="nomachine_wilson.html">Setting up Linux session and wilson connection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="experiment_setup.html">walkthroughs for creating the experiment setup file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="processcli.html">Run a single process job from the command line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="batchjobscli.html">Batch processing multiple jobs from the command line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jobsfromgda.html">Running processing jobs directly after scan from script in gda</a></li>
+<li class="toctree-l2"><a class="reference internal" href="extra_cli.html">Useful CLI functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#debugging">Debugging</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="apidocs/index.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">fast_rsm</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Using fast_rsm at Diamond Light Source</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/diamonduse.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="using-fast-rsm-at-diamond-light-source">
+<h1>Using fast_rsm at Diamond Light Source<a class="headerlink" href="#using-fast-rsm-at-diamond-light-source" title="Link to this heading"></a></h1>
+<p>Below are detailed instructions on how to use fast_rsm at i07. If you requied any extra assistance, ask a beamline member of staff or email <a class="reference external" href="mailto:dataanalysis&#37;&#52;&#48;diamond&#46;ac&#46;uk">dataanalysis<span>&#64;</span>diamond<span>&#46;</span>ac<span>&#46;</span>uk</a></p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="nomachine_wilson.html">Setting up Linux session and wilson connection</a></li>
+</ul>
+</div>
+<p>Once you have a diamond linux session and your SSH connection setup, follow the steps below to run your processing jobs.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="experiment_setup.html">walkthroughs for creating the experiment setup file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="processcli.html">Run a single process job from the command line</a></li>
+<li class="toctree-l1"><a class="reference internal" href="batchjobscli.html">Batch processing multiple jobs from the command line</a></li>
+</ul>
+</div>
+<p>Alternatively there is the option to setup your data collection macro so that the analysis is performed automatically:</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="jobsfromgda.html">Running processing jobs directly after scan from script in gda</a></li>
+</ul>
+</div>
+<p>There are also a set of useful functions available from the command line one the fast_rsm module has been loaded</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="extra_cli.html">Useful CLI functions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="extra_cli.html#makesetup">makesetup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="extra_cli.html#makemask">makemask</a></li>
+<li class="toctree-l2"><a class="reference internal" href="extra_cli.html#pyfai-calib2">pyFAI-calib2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="extra_cli.html#get-setups">get_setups</a></li>
+<li class="toctree-l2"><a class="reference internal" href="extra_cli.html#tiffconvert">tiffconvert</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="debugging">
+<h2>Debugging<a class="headerlink" href="#debugging" title="Link to this heading"></a></h2>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>If you can’t get nomachine working, contact the beamline staff/diamond IT support.</p></li>
+<li><dl class="simple">
+<dt>If module load fast_rsm doesn’t work:</dt><dd><ol class="loweralpha simple">
+<li><p>if you get “command not found: module”, you’re probably on your own computer, not the diamond servers!</p></li>
+<li><p>If you get “Unable to locate a modulefile for ‘fast_rsm’, there is a serious problem. Contact beamline staff immediately.</p></li>
+</ol>
+</dd>
+</dl>
+</li>
+<li><p>The slurmout file should contain error messages with information about what error was encountered. If these do not provide an easy solution, forward this onto the i07’s data analysis scientist for support</p></li>
+</ol>
+<p>Q: I finished processing, but the output looks ridiculous. What do I do?</p>
+<p>There are many reasons why this could happen, but first make sure that you remembered to correctly set your central pixel (this is the easiest thing to forget). Otherwise, either some other piece of information has been entered incorrectly, or your data file is corrupt in some way. In case of the latter, contact the i07’s data analysis scientist to investigate.</p>
+</div></blockquote>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Reciprocal Space Mapping" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nomachine_wilson.html" class="btn btn-neutral float-right" title="Setting up Linux session and wilson connection" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020-2025, Diamond Light Source Ltd.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

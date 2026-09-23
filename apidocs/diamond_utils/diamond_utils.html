@@ -1,0 +1,531 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>diamond_utils &mdash; fast_rsm 2.4.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/jupyter-sphinx.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/thebelab.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx_collapse.css?v=226d88b4" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=5dd66af0" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=5dd66af0" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=b1e24531"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/thebelab-helper.js"></script>
+      <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="experiment" href="../experiment/experiment.html" />
+    <link rel="prev" title="corrections" href="../corrections/corrections.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            fast_rsm
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../diamonduse.html">Using fast_rsm at Diamond Light Source</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../binning/binning.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">binning</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../corrections/corrections.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">corrections</span></code></a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">diamond_utils</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-contents">Module Contents</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#functions">Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#api">API</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../experiment/experiment.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">experiment</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../image/image.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">image</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../io/io.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">io</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../meta_analysis/meta_analysis.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">meta_analysis</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../rsm_metadata/rsm_metadata.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">rsm_metadata</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../scan/scan.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">scan</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../writing/writing.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">writing</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">fast_rsm</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">API Reference</a></li>
+      <li class="breadcrumb-item active"><code class="xref py py-mod docutils literal notranslate"><span class="pre">diamond_utils</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/apidocs/diamond_utils/diamond_utils.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-diamond_utils">
+<span id="diamond-utils"></span><h1><a class="reference internal" href="#module-diamond_utils" title="diamond_utils"><code class="xref py py-mod docutils literal notranslate"><span class="pre">diamond_utils</span></code></a><a class="headerlink" href="#module-diamond_utils" title="Link to this heading"></a></h1>
+<p>This file contains a suite of utility functions for processing data acquired
+specifically at Diamond.</p>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading"></a></h2>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Link to this heading"></a></h3>
+<table class="autosummary longtable docutils align-left">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#diamond_utils.ProcessArgs" title="diamond_utils.ProcessArgs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ProcessArgs</span></code></a></p></td>
+<td><p>a class to hold all information about the processing settings requested, and provide parsing checks, then job submission</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h3>
+<table class="autosummary longtable docutils align-left">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#diamond_utils.get_im_path" title="diamond_utils.get_im_path"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_im_path</span></code></a></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#diamond_utils.setup_processing" title="diamond_utils.setup_processing"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup_processing</span></code></a></p></td>
+<td><p>uses process configuration to create an experiment object
+and setup a logger if requested
+returns :  Experiment, config, logger</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#diamond_utils.create_process_config" title="diamond_utils.create_process_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_process_config</span></code></a></p></td>
+<td><p>creates a simplenamespace configuration settings object</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#diamond_utils.check_folder" title="diamond_utils.check_folder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_folder</span></code></a></p></td>
+<td><p>check individual scan folders for corrupt .h5 files</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#diamond_utils.check_folder_corruption" title="diamond_utils.check_folder_corruption"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_folder_corruption</span></code></a></p></td>
+<td><p>check any folders associated with scan</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#diamond_utils.get_good_paths" title="diamond_utils.get_good_paths"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_good_paths</span></code></a></p></td>
+<td><p>checks for corrupted .h5 files in scan folder</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#diamond_utils.colour_text" title="diamond_utils.colour_text"><code class="xref py py-obj docutils literal notranslate"><span class="pre">colour_text</span></code></a></p></td>
+<td><p>return a colour string to print using chosen colour and string text</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#diamond_utils.data_corruption_warning" title="diamond_utils.data_corruption_warning"><code class="xref py py-obj docutils literal notranslate"><span class="pre">data_corruption_warning</span></code></a></p></td>
+<td><p>give warning in terminal if corrupt scans found</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#diamond_utils.create_experiment" title="diamond_utils.create_experiment"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_experiment</span></code></a></p></td>
+<td><p>creates an experiment object from process configuration settings</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#diamond_utils.initial_value_checks" title="diamond_utils.initial_value_checks"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initial_value_checks</span></code></a></p></td>
+<td><p>does initial checks on dps_centres, cylinder_axis, setup, output_file_size
+sets oop value
+returns: oop</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#diamond_utils.setup_dps" title="diamond_utils.setup_dps"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup_dps</span></code></a></p></td>
+<td><p>adjust dps settings in scan metadata</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#diamond_utils.standard_adjustments" title="diamond_utils.standard_adjustments"><code class="xref py py-obj docutils literal notranslate"><span class="pre">standard_adjustments</span></code></a></p></td>
+<td><p>carries out standard adjustments to the Experiment object
+keeping track of total images,  calculating dps offsets,
+setting skipscans and skipimages, setting up slitratio values</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#diamond_utils.make_mask_lists" title="diamond_utils.make_mask_lists"><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_mask_lists</span></code></a></p></td>
+<td><p>takes in specific pixels and mask regions
+makes sure specific pixels x,y is correct way round for analysis
+sets up mask Region objects, and corrects region x,y</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#diamond_utils.make_new_hdf5" title="diamond_utils.make_new_hdf5"><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_new_hdf5</span></code></a></p></td>
+<td><p>makes a new hdf5 file using a process_config, scan_index,
+name  and Experiment</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#diamond_utils.run_one_scan_process" title="diamond_utils.run_one_scan_process"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_one_scan_process</span></code></a></p></td>
+<td><p>creates a hdf5 file and then sends off a process option to run</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#diamond_utils.run_scanlist_loop" title="diamond_utils.run_scanlist_loop"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_scanlist_loop</span></code></a></p></td>
+<td><p>iterates through list of scans and runs requested process
+options</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#diamond_utils.run_scanlist_combined" title="diamond_utils.run_scanlist_combined"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_scanlist_combined</span></code></a></p></td>
+<td><p>sends whole list of scans to run requested process together</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#diamond_utils.get_run_function" title="diamond_utils.get_run_function"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_run_function</span></code></a></p></td>
+<td><p>returns a dict of functions for mapping either static or moving, depending
+on configuration requested</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#diamond_utils.run_process_list" title="diamond_utils.run_process_list"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_process_list</span></code></a></p></td>
+<td><p>separate function for sending of jobs defined by process output list and input arguments</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#diamond_utils.run_full_map_process" title="diamond_utils.run_full_map_process"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_full_map_process</span></code></a></p></td>
+<td><p>runs full reciprocal map processing using a process configuration</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#diamond_utils.save_binoviewer_hdf5" title="diamond_utils.save_binoviewer_hdf5"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_binoviewer_hdf5</span></code></a></p></td>
+<td><p>Saves the .npy file as a binoviewer-readable hdf5 file.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#diamond_utils.get_volume_and_bounds" title="diamond_utils.get_volume_and_bounds"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_volume_and_bounds</span></code></a></p></td>
+<td><p>Takes the path to a .npy file. Loads the volume stored in the .npy file, and
+also grabs the definition of the corresponding finite differences volume
+from the bounds file.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="api">
+<h3>API<a class="headerlink" href="#api" title="Link to this heading"></a></h3>
+<dl class="py function">
+<dt class="sig sig-object py" id="diamond_utils.get_im_path">
+<span class="sig-prename descclassname"><span class="pre">diamond_utils.</span></span><span class="sig-name descname"><span class="pre">get_im_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directorypath</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scan_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.get_im_path" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="diamond_utils.setup_processing">
+<span class="sig-prename descclassname"><span class="pre">diamond_utils.</span></span><span class="sig-name descname"><span class="pre">setup_processing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exp_setup_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scan_numbers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debuglogging</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.setup_processing" title="Link to this definition"></a></dt>
+<dd><p>uses process configuration to create an experiment object
+and setup a logger if requested
+returns :  Experiment, config, logger</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="diamond_utils.create_process_config">
+<span class="sig-prename descclassname"><span class="pre">diamond_utils.</span></span><span class="sig-name descname"><span class="pre">create_process_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exp_setup_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scan_numbers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debuglogging</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.create_process_config" title="Link to this definition"></a></dt>
+<dd><p>creates a simplenamespace configuration settings object</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="diamond_utils.check_folder">
+<span class="sig-prename descclassname"><span class="pre">diamond_utils.</span></span><span class="sig-name descname"><span class="pre">check_folder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">folder</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.check_folder" title="Link to this definition"></a></dt>
+<dd><p>check individual scan folders for corrupt .h5 files</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="diamond_utils.check_folder_corruption">
+<span class="sig-prename descclassname"><span class="pre">diamond_utils.</span></span><span class="sig-name descname"><span class="pre">check_folder_corruption</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">folderpath</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pathlib.Path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.check_folder_corruption" title="Link to this definition"></a></dt>
+<dd><p>check any folders associated with scan</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="diamond_utils.get_good_paths">
+<span class="sig-prename descclassname"><span class="pre">diamond_utils.</span></span><span class="sig-name descname"><span class="pre">get_good_paths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">process_config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">types.SimpleNamespace</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.get_good_paths" title="Link to this definition"></a></dt>
+<dd><p>checks for corrupted .h5 files in scan folder</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="diamond_utils.colour_text">
+<span class="sig-prename descclassname"><span class="pre">diamond_utils.</span></span><span class="sig-name descname"><span class="pre">colour_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">colour</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">string</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.colour_text" title="Link to this definition"></a></dt>
+<dd><p>return a colour string to print using chosen colour and string text</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="diamond_utils.data_corruption_warning">
+<span class="sig-prename descclassname"><span class="pre">diamond_utils.</span></span><span class="sig-name descname"><span class="pre">data_corruption_warning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">types.SimpleNamespace</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.data_corruption_warning" title="Link to this definition"></a></dt>
+<dd><p>give warning in terminal if corrupt scans found</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="diamond_utils.create_experiment">
+<span class="sig-prename descclassname"><span class="pre">diamond_utils.</span></span><span class="sig-name descname"><span class="pre">create_experiment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">process_config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">types.SimpleNamespace</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.create_experiment" title="Link to this definition"></a></dt>
+<dd><p>creates an experiment object from process configuration settings</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="diamond_utils.initial_value_checks">
+<span class="sig-prename descclassname"><span class="pre">diamond_utils.</span></span><span class="sig-name descname"><span class="pre">initial_value_checks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dps_centres</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cylinder_axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setup</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_file_size</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.initial_value_checks" title="Link to this definition"></a></dt>
+<dd><p>does initial checks on dps_centres, cylinder_axis, setup, output_file_size
+sets oop value
+returns: oop</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="diamond_utils.setup_dps">
+<span class="sig-prename descclassname"><span class="pre">diamond_utils.</span></span><span class="sig-name descname"><span class="pre">setup_dps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">process_config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.setup_dps" title="Link to this definition"></a></dt>
+<dd><p>adjust dps settings in scan metadata</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="diamond_utils.standard_adjustments">
+<span class="sig-prename descclassname"><span class="pre">diamond_utils.</span></span><span class="sig-name descname"><span class="pre">standard_adjustments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">experiment</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">process_config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.standard_adjustments" title="Link to this definition"></a></dt>
+<dd><p>carries out standard adjustments to the Experiment object
+keeping track of total images,  calculating dps offsets,
+setting skipscans and skipimages, setting up slitratio values</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="diamond_utils.make_mask_lists">
+<span class="sig-prename descclassname"><span class="pre">diamond_utils.</span></span><span class="sig-name descname"><span class="pre">make_mask_lists</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">specific_pixels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_regions</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.make_mask_lists" title="Link to this definition"></a></dt>
+<dd><p>takes in specific pixels and mask regions
+makes sure specific pixels x,y is correct way round for analysis
+sets up mask Region objects, and corrects region x,y</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="diamond_utils.make_new_hdf5">
+<span class="sig-prename descclassname"><span class="pre">diamond_utils.</span></span><span class="sig-name descname"><span class="pre">make_new_hdf5</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">types.SimpleNamespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scan_index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name_start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">experiment</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">fast_rsm.experiment.Experiment</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.make_new_hdf5" title="Link to this definition"></a></dt>
+<dd><p>makes a new hdf5 file using a process_config, scan_index,
+name  and Experiment</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="diamond_utils.run_one_scan_process">
+<span class="sig-prename descclassname"><span class="pre">diamond_utils.</span></span><span class="sig-name descname"><span class="pre">run_one_scan_process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">experiment</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputscan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">runoptions</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.run_one_scan_process" title="Link to this definition"></a></dt>
+<dd><p>creates a hdf5 file and then sends off a process option to run</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="diamond_utils.run_scanlist_loop">
+<span class="sig-prename descclassname"><span class="pre">diamond_utils.</span></span><span class="sig-name descname"><span class="pre">run_scanlist_loop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">experiment</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">runoptions</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.run_scanlist_loop" title="Link to this definition"></a></dt>
+<dd><p>iterates through list of scans and runs requested process
+options</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="diamond_utils.run_scanlist_combined">
+<span class="sig-prename descclassname"><span class="pre">diamond_utils.</span></span><span class="sig-name descname"><span class="pre">run_scanlist_combined</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">experiment</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">runoptions</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.run_scanlist_combined" title="Link to this definition"></a></dt>
+<dd><p>sends whole list of scans to run requested process together</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="diamond_utils.get_run_function">
+<span class="sig-prename descclassname"><span class="pre">diamond_utils.</span></span><span class="sig-name descname"><span class="pre">get_run_function</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">map_per_image</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.get_run_function" title="Link to this definition"></a></dt>
+<dd><p>returns a dict of functions for mapping either static or moving, depending
+on configuration requested</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="diamond_utils.run_process_list">
+<span class="sig-prename descclassname"><span class="pre">diamond_utils.</span></span><span class="sig-name descname"><span class="pre">run_process_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">experiment</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">process_config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.run_process_list" title="Link to this definition"></a></dt>
+<dd><p>separate function for sending of jobs defined by process output list and input arguments</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="diamond_utils.run_full_map_process">
+<span class="sig-prename descclassname"><span class="pre">diamond_utils.</span></span><span class="sig-name descname"><span class="pre">run_full_map_process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">experiment</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.run_full_map_process" title="Link to this definition"></a></dt>
+<dd><p>runs full reciprocal map processing using a process configuration</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="diamond_utils.save_binoviewer_hdf5">
+<span class="sig-prename descclassname"><span class="pre">diamond_utils.</span></span><span class="sig-name descname"><span class="pre">save_binoviewer_hdf5</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">process_config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">types.SimpleNamespace</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.save_binoviewer_hdf5" title="Link to this definition"></a></dt>
+<dd><p>Saves the .npy file as a binoviewer-readable hdf5 file.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="diamond_utils.get_volume_and_bounds">
+<span class="sig-prename descclassname"><span class="pre">diamond_utils.</span></span><span class="sig-name descname"><span class="pre">get_volume_and_bounds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path_to_npy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#diamond_utils.get_volume_and_bounds" title="Link to this definition"></a></dt>
+<dd><p>Takes the path to a .npy file. Loads the volume stored in the .npy file, and
+also grabs the definition of the corresponding finite differences volume
+from the bounds file.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>path_to_npy:</dt><dd><p>Path to the .npy file containing the volume of interest.</p>
+</dd>
+</dl>
+</dd>
+<dt>Returns:</dt><dd><p>A tuple taking the form (volume, start, stop, step), where each element
+of the tuple is a numpy array of values. The first value returned is the
+full reciprocal space volume, and could be very large (up to ~GB).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">diamond_utils.</span></span><span class="sig-name descname"><span class="pre">ProcessArgs</span></span><a class="headerlink" href="#diamond_utils.ProcessArgs" title="Link to this definition"></a></dt>
+<dd><p>a class to hold all information about the processing settings requested, and provide parsing checks, then job submission</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.exp_path">
+<span class="sig-name descname"><span class="pre">exp_path</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#diamond_utils.ProcessArgs.exp_path" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.calc_path">
+<span class="sig-name descname"><span class="pre">calc_path</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#diamond_utils.ProcessArgs.calc_path" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.version_path">
+<span class="sig-name descname"><span class="pre">version_path</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#diamond_utils.ProcessArgs.version_path" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.python_version">
+<span class="sig-name descname"><span class="pre">python_version</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#diamond_utils.ProcessArgs.python_version" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.scan_nums">
+<span class="sig-name descname"><span class="pre">scan_nums</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#diamond_utils.ProcessArgs.scan_nums" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.scan_range">
+<span class="sig-name descname"><span class="pre">scan_range</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#diamond_utils.ProcessArgs.scan_range" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.out_path">
+<span class="sig-name descname"><span class="pre">out_path</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#diamond_utils.ProcessArgs.out_path" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.debuglogging">
+<span class="sig-name descname"><span class="pre">debuglogging</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#diamond_utils.ProcessArgs.debuglogging" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.local">
+<span class="sig-name descname"><span class="pre">local</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#diamond_utils.ProcessArgs.local" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.dev">
+<span class="sig-name descname"><span class="pre">dev</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#diamond_utils.ProcessArgs.dev" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.start_loggers">
+<span class="sig-name descname"><span class="pre">start_loggers</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.ProcessArgs.start_loggers" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.parse_setup">
+<span class="sig-name descname"><span class="pre">parse_setup</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.ProcessArgs.parse_setup" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.parse_scans">
+<span class="sig-name descname"><span class="pre">parse_scans</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.ProcessArgs.parse_scans" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.create_job_name">
+<span class="sig-name descname"><span class="pre">create_job_name</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.ProcessArgs.create_job_name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.create_jobscript">
+<span class="sig-name descname"><span class="pre">create_jobscript</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.ProcessArgs.create_jobscript" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.create_jobfile">
+<span class="sig-name descname"><span class="pre">create_jobfile</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.ProcessArgs.create_jobfile" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.check_slurmfiles">
+<span class="sig-name descname"><span class="pre">check_slurmfiles</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.ProcessArgs.check_slurmfiles" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.print_exp_lines">
+<span class="sig-name descname"><span class="pre">print_exp_lines</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.ProcessArgs.print_exp_lines" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.print_calc_lines">
+<span class="sig-name descname"><span class="pre">print_calc_lines</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.ProcessArgs.print_calc_lines" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.run_cluster_job">
+<span class="sig-name descname"><span class="pre">run_cluster_job</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.ProcessArgs.run_cluster_job" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.parse_and_reduce">
+<span class="sig-name descname"><span class="pre">parse_and_reduce</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.ProcessArgs.parse_and_reduce" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.check_zocalo_calc_path">
+<span class="sig-name descname"><span class="pre">check_zocalo_calc_path</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.ProcessArgs.check_zocalo_calc_path" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.check_zocalo_output_path">
+<span class="sig-name descname"><span class="pre">check_zocalo_output_path</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.ProcessArgs.check_zocalo_output_path" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.create_zocalo_exp_file">
+<span class="sig-name descname"><span class="pre">create_zocalo_exp_file</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.ProcessArgs.create_zocalo_exp_file" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="diamond_utils.ProcessArgs.setup_zocalo_and_reduce">
+<span class="sig-name descname"><span class="pre">setup_zocalo_and_reduce</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#diamond_utils.ProcessArgs.setup_zocalo_and_reduce" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../corrections/corrections.html" class="btn btn-neutral float-left" title="corrections" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../experiment/experiment.html" class="btn btn-neutral float-right" title="experiment" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020-2025, Diamond Light Source Ltd.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
