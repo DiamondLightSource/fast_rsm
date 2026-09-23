@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - documentation
-    # currently not deploying correctly on github pages, so changed branch name to, needs to be changed back to actual branch name to make use of building documentation onto github pages
 
 permissions:
   contents: write
