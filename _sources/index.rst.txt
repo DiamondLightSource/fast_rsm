@@ -7,7 +7,7 @@
 Reciprocal Space Mapping
 =======================================
 
-Software for mapping raw surface x-ray diffraction images into reciprocal space. For mapping datasets such as crystal truncation rods (CTRs) into HKL volumes fast_rsm uses routines created at Diamond Light Source. However for processing graxing incidence wide-angle x-ray scattering (GIWAXS) datasets fast_rsm uses routines within the package `pyFAI`_ 
+Software for mapping raw surface x-ray diffraction images into reciprocal space volumes. For mapping datasets such as crystal truncation rods (CTRs) into HKL volumes fast_rsm uses routines created at Diamond Light Source. However for processing graxing incidence wide-angle x-ray scattering (GIWAXS) datasets fast_rsm uses routines within the package `pyFAI`_ 
 
 `usage at diamond`_ - detailed instructions on how to use fast_rsm at Diamond on the i07 beamline. If you requied any extra assistance, ask a beamline member of staff or email dataanalysis@diamond.ac.uk
 

@@ -118,7 +118,7 @@
 <img alt="_images/gammadelta.png" src="_images/gammadelta.png" />
 </figure>
 <div class="sphinx_collapse docutils">
-<input class="sphinx_collapse__input" id="d9df5223-d878-4b06-9a20-5497adcbc930" name="d9df5223-d878-4b06-9a20-5497adcbc930" type="checkbox"><label class="sphinx_collapse__label" for="d9df5223-d878-4b06-9a20-5497adcbc930"><i class="sphinx_collapse__icon"></i>Click to see script for calculating detector vector</label><div class="sphinx_collapse__content docutils">
+<input class="sphinx_collapse__input" id="9942b78f-4039-41b3-a8a1-c7a60f3509ac" name="9942b78f-4039-41b3-a8a1-c7a60f3509ac" type="checkbox"><label class="sphinx_collapse__label" for="9942b78f-4039-41b3-a8a1-c7a60f3509ac"><i class="sphinx_collapse__icon"></i>Click to see script for calculating detector vector</label><div class="sphinx_collapse__content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">get_detector_vector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frame</span><span class="p">:</span> <span class="n">Frame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Vector3</span><span class="p">:</span>
     <span class="c1"># The following are the axis in the lab frame when all motors are @0.</span>
     <span class="n">gamma_axis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
@@ -161,7 +161,7 @@
 <blockquote>
 <div><p>use the detector rotation to get the vertical and horizontal displacement vectors on the detector</p>
 <div class="sphinx_collapse docutils">
-<input class="sphinx_collapse__input" id="3a12443d-bba4-4f5a-8665-5501ce7a02a3" name="3a12443d-bba4-4f5a-8665-5501ce7a02a3" type="checkbox"><label class="sphinx_collapse__label" for="3a12443d-bba4-4f5a-8665-5501ce7a02a3"><i class="sphinx_collapse__icon"></i>Click to see script for calculating vertical and horizontal detector vector</label><div class="sphinx_collapse__content docutils">
+<input class="sphinx_collapse__input" id="b99714d2-feeb-43ed-ae97-0746f92983c9" name="b99714d2-feeb-43ed-ae97-0746f92983c9" type="checkbox"><label class="sphinx_collapse__label" for="b99714d2-feeb-43ed-ae97-0746f92983c9"><i class="sphinx_collapse__icon"></i>Click to see script for calculating vertical and horizontal detector vector</label><div class="sphinx_collapse__content docutils">
 <p>vertical</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">rot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_detector_rotation</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span>
 <span class="n">lab_frame</span> <span class="o">=</span> <span class="n">Frame</span><span class="p">(</span><span class="n">Frame</span><span class="o">.</span><span class="n">lab</span><span class="p">,</span> <span class="n">frame</span><span class="o">.</span><span class="n">diffractometer</span><span class="p">,</span> <span class="n">frame</span><span class="o">.</span><span class="n">scan_index</span><span class="p">)</span>
@@ -200,7 +200,7 @@
 <img alt="_images/hor_vert_detector.png" src="_images/hor_vert_detector.png" />
 </figure>
 <div class="sphinx_collapse docutils">
-<input class="sphinx_collapse__input" id="19e2f81e-10d2-445c-91eb-818bd7777d45" name="19e2f81e-10d2-445c-91eb-818bd7777d45" type="checkbox"><label class="sphinx_collapse__label" for="19e2f81e-10d2-445c-91eb-818bd7777d45"><i class="sphinx_collapse__icon"></i>Click to see script for calculating vector shifts in x and y</label><div class="sphinx_collapse__content docutils">
+<input class="sphinx_collapse__input" id="07afbdc8-c3ad-44d6-920b-31ecc9512e72" name="07afbdc8-c3ad-44d6-920b-31ecc9512e72" type="checkbox"><label class="sphinx_collapse__label" for="07afbdc8-c3ad-44d6-920b-31ecc9512e72"><i class="sphinx_collapse__icon"></i>Click to see script for calculating vector shifts in x and y</label><div class="sphinx_collapse__content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">detector_distance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get_detector_distance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
 <span class="n">detector_distance</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">detector_distance</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 <span class="n">vertical</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get_vertical_pixel_distances</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
@@ -227,7 +227,7 @@
 <li><p>when loading image array, there are solid angle corrections applied</p>
 <blockquote>
 <div><div class="sphinx_collapse docutils">
-<input class="sphinx_collapse__input" id="5834753a-510e-49b2-b762-68073b5c9ff9" name="5834753a-510e-49b2-b762-68073b5c9ff9" type="checkbox"><label class="sphinx_collapse__label" for="5834753a-510e-49b2-b762-68073b5c9ff9"><i class="sphinx_collapse__icon"></i>Click to see script for calculating solid angle correction</label><div class="sphinx_collapse__content docutils">
+<input class="sphinx_collapse__input" id="ec4d3b21-9fa6-4830-9f43-171ae0940ea8" name="ec4d3b21-9fa6-4830-9f43-171ae0940ea8" type="checkbox"><label class="sphinx_collapse__label" for="ec4d3b21-9fa6-4830-9f43-171ae0940ea8"><i class="sphinx_collapse__icon"></i>Click to see script for calculating solid angle correction</label><div class="sphinx_collapse__content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">data_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_file</span><span class="o">.</span><span class="n">image_shape</span>
 <span class="bp">self</span><span class="o">.</span><span class="n">_init_relative_polar</span><span class="p">((</span><span class="n">data_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">data_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
 <span class="n">theta_diffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">relative_polar</span><span class="p">)</span>
@@ -258,7 +258,7 @@
 <li><dl>
 <dt>Do polarisation correction</dt><dd><p>python code gets vectors and polarisation of diffractometer setup, and passes values to C function</p>
 <div class="sphinx_collapse docutils">
-<input class="sphinx_collapse__input" id="d0f74b6c-4fdf-4871-8b0e-bb48e5d8a826" name="d0f74b6c-4fdf-4871-8b0e-bb48e5d8a826" type="checkbox"><label class="sphinx_collapse__label" for="d0f74b6c-4fdf-4871-8b0e-bb48e5d8a826"><i class="sphinx_collapse__icon"></i>Click to see python and C scripts for calculating polarisation correction</label><div class="sphinx_collapse__content docutils">
+<input class="sphinx_collapse__input" id="f6248911-cf70-42e9-bd15-e54784b3a4b3" name="f6248911-cf70-42e9-bd15-e54784b3a4b3" type="checkbox"><label class="sphinx_collapse__label" for="f6248911-cf70-42e9-bd15-e54784b3a4b3"><i class="sphinx_collapse__icon"></i>Click to see python and C scripts for calculating polarisation correction</label><div class="sphinx_collapse__content docutils">
 <p>python</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># The beam is always polarised along the synchrotron x-axis in I07.</span>
 <span class="bp">self</span><span class="o">.</span><span class="n">polarisation</span> <span class="o">=</span> <span class="n">Polarisation</span><span class="p">(</span><span class="n">Polarisation</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span>\
@@ -298,7 +298,7 @@
 <li><p>get HKL vectors for all pixels in an image, and then bin these into 3D volume</p>
 <blockquote>
 <div><div class="sphinx_collapse docutils">
-<input class="sphinx_collapse__input" id="c42e34aa-fbe0-4fcb-8f68-8c4488d0cd92" name="c42e34aa-fbe0-4fcb-8f68-8c4488d0cd92" type="checkbox"><label class="sphinx_collapse__label" for="c42e34aa-fbe0-4fcb-8f68-8c4488d0cd92"><i class="sphinx_collapse__icon"></i>Click to see python and C scripts for doing weighted 3d bin</label><div class="sphinx_collapse__content docutils">
+<input class="sphinx_collapse__input" id="05b28367-a293-42c6-84fa-673c87ef6be4" name="05b28367-a293-42c6-84fa-673c87ef6be4" type="checkbox"><label class="sphinx_collapse__label" for="05b28367-a293-42c6-84fa-673c87ef6be4"><i class="sphinx_collapse__icon"></i>Click to see python and C scripts for doing weighted 3d bin</label><div class="sphinx_collapse__content docutils">
 <p>python</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">q_vectors</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">q_vectors</span><span class="p">(</span><span class="n">FRAME</span><span class="p">,</span> <span class="n">oop</span><span class="o">=</span><span class="n">oop</span><span class="p">)</span>
 <span class="n">weighted_bin_3d</span><span class="p">(</span><span class="n">q_vectors</span><span class="p">,</span>
