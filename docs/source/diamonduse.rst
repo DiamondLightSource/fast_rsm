@@ -4,18 +4,33 @@ Using fast_rsm at Diamond Light Source
 
 Below are detailed instructions on how to use fast_rsm at i07. If you requied any extra assistance, ask a beamline member of staff or email dataanalysis@diamond.ac.uk
 
+
+step 1 - obtain access to a diamond linux machine and setup access to the wilson computing cluster
+----------------------------------------------------------------------------------------------------
+
 .. toctree::
    :maxdepth: 2
 
    nomachine_wilson
 
+step 2 - create your experimental settings file
+----------------------------------------------------
 
-Once you have a diamond linux session and your SSH connection setup, follow the steps below to run your processing jobs. 
+Once you have a diamond linux session and your SSH connection to the wilson computing cluster setup, follow the steps below to run your processing jobs. 
 
 .. toctree::
    :maxdepth: 1
 
    experiment_setup
+
+step 3 - Run your processing job 
+-----------------------------------
+
+You can send off your jobs using the command line interface (CLI)
+
+.. toctree::
+   :maxdepth: 1
+
    processcli
    batchjobscli
 
@@ -26,6 +41,9 @@ Alternatively there is the option to setup your data collection macro so that th
 
    jobsfromgda
 
+
+CLI functions
+----------------
 
 There are also a set of useful functions available from the command line one the fast_rsm module has been loaded
 
