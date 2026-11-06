@@ -4,7 +4,7 @@ pytest==9.1.0
 nexusformat==2.0.2
 fast-histogram==0.14
 pyevtk==1.7.0
-setuptools==73.0.1
+setuptools==84.1.0
 transformations==2025.1.1
 h5py==3.16.0
 pyyaml==6.0.3
